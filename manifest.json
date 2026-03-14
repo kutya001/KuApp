@@ -2,7 +2,7 @@
   "name": "McGill Тренер",
   "short_name": "McGill",
   "description": "Таймер для реабилитационного протокола Макгилла (Большая тройка).",
-  "start_url": ".",
+  "start_url": "/McGill/",
   "display": "standalone",
   "background_color": "#121212",
   "theme_color": "#121212",
