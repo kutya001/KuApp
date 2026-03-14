@@ -1,10 +1,10 @@
 const CACHE_NAME = 'mcgill-trainer-v1';
 const ASSETS_TO_CACHE = [
-  './',
-  './index.html',
-  './manifest.json',
-  './icon-192.png',
-  './icon-512.png'
+  '/McGill/',
+  '/McGill/index.html',
+  '/McGill/manifest.json',
+  '/McGill/icon-256.png',
+  '/McGill/icon-512.png'
 ];
 
 // Установка Service Worker и кэширование файлов
