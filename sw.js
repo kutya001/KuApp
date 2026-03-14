@@ -3,6 +3,7 @@ const ASSETS_TO_CACHE = [
   '/McGill/',
   '/McGill/index.html',
   '/McGill/manifest.json',
+  '/McGill/workouts.json',
   '/McGill/icon-256.png',
   '/McGill/icon-512.png'
 ];
