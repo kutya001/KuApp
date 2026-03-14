@@ -4,6 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>McGill Тренер</title>
+		link rel="manifest" href="manifest.json">
     <style>
         :root {
             --bg-color: #121212;
@@ -586,5 +587,18 @@
 
         renderTimeline();
     </script>
+		<script>
+	        if ('serviceWorker' in navigator) {
+	            window.addEventListener('load', () => {
+	                navigator.serviceWorker.register('./sw.js')
+	                    .then((registration) => {
+	                        console.log('ServiceWorker зарегистрирован. Scope:', registration.scope);
+	                    })
+	                    .catch((error) => {
+	                        console.error('Ошибка регистрации ServiceWorker:', error);
+	                    });
+	            });
+	        }
+	    </script>
 </body>
 </html>
