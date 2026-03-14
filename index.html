@@ -50,6 +50,7 @@
             text-align: left;
             flex: 1;
             margin-right: 10px;
+            min-width: 0;
         }
 
         .workout-select {
@@ -75,6 +76,14 @@
             color: var(--text-main);
         }
 
+        .exercise-title {
+            font-size: 1.2rem;
+            font-weight: bold;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
         .phase-title {
             font-size: 0.9rem;
             color: var(--text-sec);
@@ -83,6 +92,7 @@
         .header-buttons {
             display: flex;
             gap: 8px;
+            flex-shrink: 0;
         }
 
         .btn-info {
@@ -136,6 +146,14 @@
             color: var(--text-sec);
         }
 
+        /* --- ИСПРАВЛЕНИЕ: прогресс по времени --- */
+        .step-counter {
+            font-size: 0.75rem;
+            color: var(--text-sec);
+            margin-top: 3px;
+            letter-spacing: 1px;
+        }
+
         .volume-container {
             width: 100%;
             max-width: 400px;
@@ -170,10 +188,11 @@
             color: white;
             background-color: var(--surface);
             cursor: pointer;
-            transition: transform 0.1s, filter 0.2s;
+            transition: transform 0.1s, filter 0.2s, opacity 0.2s;
         }
 
         button.control-btn:active { transform: scale(0.95); }
+        button.control-btn:disabled { opacity: 0.35; cursor: not-allowed; }
         #btn-main { background-color: var(--accent-work); }
         #btn-next { background-color: var(--surface); border: 1px solid var(--text-sec); }
 
@@ -196,11 +215,11 @@
 
         .info-card b { color: var(--text-main); }
         .info-card div { margin-bottom: 8px; color: var(--text-sec); }
-        .info-card .step-desc { 
-            padding-top: 8px; 
-            border-top: 1px solid var(--surface); 
-            color: var(--accent-prep); 
-            font-weight: bold; 
+        .info-card .step-desc {
+            padding-top: 8px;
+            border-top: 1px solid var(--surface);
+            color: var(--accent-prep);
+            font-weight: bold;
             margin-bottom: 0;
         }
 
@@ -227,6 +246,7 @@
             border-radius: 5px;
         }
 
+        /* --- ИСПРАВЛЕНИЕ: прогресс-бар теперь считается по времени --- */
         .progress-bar {
             width: 100%;
             height: 6px;
@@ -239,7 +259,7 @@
             height: 100%;
             background-color: var(--accent-work);
             width: 0%;
-            transition: width 0.3s linear;
+            transition: width 0.5s linear;
         }
 
         .modal-overlay {
@@ -272,7 +292,7 @@
         .modal-content p { margin-bottom: 10px; color: var(--text-sec); }
         .modal-content ul { padding-left: 20px; margin-bottom: 15px; color: var(--text-sec); }
         .modal-content li { margin-bottom: 5px; }
-        
+
         .close-modal {
             position: absolute;
             top: 15px; right: 15px;
@@ -311,17 +331,19 @@
         body.state-work .time-label { color: var(--accent-work); }
         body.state-work .info-card { border-left-color: var(--accent-work); }
         body.state-work .info-card .step-desc { color: var(--accent-work); }
-        
+
         body.state-rest .timer-circle { border-color: var(--accent-rest); }
         body.state-rest .time-label { color: var(--accent-rest); }
         body.state-rest .info-card { border-left-color: var(--accent-rest); }
         body.state-rest .info-card .step-desc { color: var(--accent-rest); }
-        
+
         body.state-prep .timer-circle { border-color: var(--accent-prep); }
         body.state-prep .time-label { color: var(--accent-prep); }
         body.state-prep .info-card { border-left-color: var(--accent-prep); }
         body.state-prep .info-card .step-desc { color: var(--accent-prep); }
 
+        body.state-finish .timer-circle { border-color: var(--accent-work); }
+        body.state-finish .time-label { color: var(--accent-work); }
     </style>
 </head>
 <body>
@@ -330,8 +352,8 @@
 
     <header>
         <div class="header-text">
+            <!-- exercise-title и workout-select переключаются через setRunningView() -->
             <div class="exercise-title" id="ex-title" style="display: none;"></div>
-            
             <select class="workout-select" id="workout-select">
                 <option value="">Загрузка программ...</option>
             </select>
@@ -347,6 +369,7 @@
         <div class="timer-circle" id="circle">
             <div class="time-display" id="time">00</div>
             <div class="time-label" id="label">ГОТОВ</div>
+            <div class="step-counter" id="step-counter"></div>
         </div>
 
         <div class="volume-container">
@@ -356,15 +379,15 @@
 
         <div class="controls">
             <button class="control-btn" id="btn-main">Старт</button>
-            <button class="control-btn" id="btn-next">Пропуск</button>
+            <!-- ИСПРАВЛЕНИЕ: кнопка «Пропуск» задизейблена до старта -->
+            <button class="control-btn" id="btn-next" disabled>Пропуск</button>
         </div>
 
         <div class="info-card" id="info-card">
             <div style="color: var(--text-main);">Программа не загружена.</div>
         </div>
 
-        <div class="timeline" id="timeline">
-            </div>
+        <div class="timeline" id="timeline"></div>
     </main>
 
     <div class="modal-overlay" id="modal-desc">
@@ -388,7 +411,7 @@
 
 Требования к структуре JSON:
 Корневой объект должен содержать массив "programs", внутри которого находится один объект новой тренировки.
-Объект тренировки должен содержать поля: id, name, description, estimatedTime, exercisesDetails (объект с описанием биомеханики каждого упражнения) и protocol (массив шагов таймера).
+Объект тренировки должен содержать поля: id, name, description, estimatedTime (строка, например "15 минут"), exercisesDetails (объект с описанием биомеханики каждого упражнения) и protocol (массив шагов таймера).
 
 Правила для exercisesDetails:
 Ключ — название упражнения. Значение — объект с полями:
@@ -401,7 +424,7 @@
 Каждый элемент — объект шага таймера. Поля:
 - ex: Название упражнения (совпадает с ключом из exercisesDetails).
 - phase: Название фазы (например, "Подготовка", "Подход 1", "Отдых").
-- type: Строго одно из: work (выполнение), rest (отдых), prep (ожидание).
+- type: Строго одно из: work (выполнение), rest (отдых), prep (ожидание), finish (завершение).
 - time: Длительность в секундах (число).
 - voiceTxt: Текст для TTS. Коротко. Пустая строка "", если озвучка не требуется.
 - toneType: Строго одно из: prep, work, rest, tick, finish.
@@ -420,58 +443,76 @@
     </div>
 
     <script>
-        // --- ГЛОБАЛЬНЫЕ ДАННЫЕ И СОСТОЯНИЕ ---
+        // ─── ГЛОБАЛЬНОЕ СОСТОЯНИЕ ───────────────────────────────────────────────
         let workoutsData = [];
         let exDetails = {};
         let protocol = [];
-        
+        let totalProtocolTime = 0; // ИСПРАВЛЕНИЕ: суммарное время протокола для точного прогресс-бара
+
         let currentStepIdx = 0;
         let timeLeft = 0;
+        let elapsedTime = 0;  // ИСПРАВЛЕНИЕ: суммарное пройденное время
         let isRunning = false;
         let timerInterval = null;
         let wakeLock = null;
 
-        // --- DOM ЭЛЕМЕНТЫ ---
-        const uiTime = document.getElementById('time'), 
-              uiLabel = document.getElementById('label'),
-              uiExTitle = document.getElementById('ex-title'), 
-              uiPhTitle = document.getElementById('ph-title'),
-              infoCard = document.getElementById('info-card'), 
-              btnMain = document.getElementById('btn-main'),
-              timeline = document.getElementById('timeline'), 
-              progressFill = document.getElementById('progress'),
-              workoutSelect = document.getElementById('workout-select');
+        // ─── DOM ────────────────────────────────────────────────────────────────
+        const uiTime        = document.getElementById('time');
+        const uiLabel       = document.getElementById('label');
+        const uiStepCounter = document.getElementById('step-counter');
+        const uiExTitle     = document.getElementById('ex-title');
+        const uiPhTitle     = document.getElementById('ph-title');
+        const infoCard      = document.getElementById('info-card');
+        const btnMain       = document.getElementById('btn-main');
+        const btnNext       = document.getElementById('btn-next');
+        const timeline      = document.getElementById('timeline');
+        const progressFill  = document.getElementById('progress');
+        const workoutSelect = document.getElementById('workout-select');
 
-        // --- ИНИЦИАЛИЗАЦИЯ ДАННЫХ ИЗ JSON ---
-        // --- ИНИЦИАЛИЗАЦИЯ ДАННЫХ ИЗ JSON ---
+        // ─── ЗАГРУЗКА ДАННЫХ ────────────────────────────────────────────────────
         async function fetchWorkouts() {
             try {
-                // 1. Загружаем список (каталог) файлов
                 const indexResponse = await fetch('./workouts/index.json');
                 if (!indexResponse.ok) throw new Error('Не найден каталог workouts/index.json');
                 const files = await indexResponse.json();
 
                 workoutsData = [];
 
-                // 2. Параллельно загружаем все файлы из папки
-                const fetchPromises = files.map(file => fetch(`./workouts/${file}`).then(res => res.json()));
-                const results = await Promise.all(fetchPromises);
+                // ИСПРАВЛЕНИЕ: Promise.allSettled — один битый файл не роняет всё
+                const fetchPromises = files.map(file =>
+                    fetch(`./workouts/${file}`)
+                        .then(res => { if (!res.ok) throw new Error(`HTTP ${res.status}`); return res.json(); })
+                );
+                const results = await Promise.allSettled(fetchPromises);
 
-                // 3. Объединяем все программы (каждый файл содержит {"programs": [...]})
-                results.forEach(data => {
-                    if (data && data.programs) {
-                        workoutsData = workoutsData.concat(data.programs);
+                let failedCount = 0;
+                results.forEach((result, i) => {
+                    if (result.status === 'fulfilled') {
+                        const data = result.value;
+                        if (data && data.programs) {
+                            workoutsData = workoutsData.concat(data.programs);
+                        }
+                    } else {
+                        console.warn(`Не удалось загрузить ${files[i]}:`, result.reason);
+                        failedCount++;
                     }
                 });
 
-                populateSelect();
-                if (workoutsData.length > 0) {
-                    loadWorkoutData(0);
+                if (workoutsData.length === 0) {
+                    throw new Error('Ни одна программа не загружена.');
                 }
+
+                if (failedCount > 0) {
+                    console.warn(`Загружено с ошибками: ${failedCount} из ${files.length} файлов недоступны.`);
+                }
+
+                populateSelect();
+                loadWorkoutData(0);
+
             } catch (error) {
                 console.error('Ошибка загрузки тренировок:', error);
                 workoutSelect.innerHTML = '<option value="">Ошибка загрузки</option>';
-                uiPhTitle.textContent = "Необходим index.json";
+                uiPhTitle.textContent = 'Необходим index.json';
                 infoCard.innerHTML = `<div style="color: var(--accent-rest);">Не удалось загрузить каталог программ. Убедитесь, что файл workouts/index.json существует.</div>`;
             }
         }
@@ -484,246 +525,359 @@
                 option.textContent = prog.name;
                 workoutSelect.appendChild(option);
             });
-            workoutSelect.addEventListener('change', (e) => loadWorkoutData(e.target.value));
+            workoutSelect.addEventListener('change', (e) => loadWorkoutData(parseInt(e.target.value)));
         }
 
         function loadWorkoutData(index) {
-            stopTimer();
+            // ИСПРАВЛЕНИЕ: сначала гарантированно останавливаем таймер
+            clearInterval(timerInterval);
+            timerInterval = null;
+            isRunning = false;
+            releaseWakeLock();
+            if (window.speechSynthesis) window.speechSynthesis.cancel();
+
             const prog = workoutsData[index];
             exDetails = prog.exercisesDetails;
-            protocol = prog.protocol;
+            protocol  = prog.protocol;
+
+            // ИСПРАВЛЕНИЕ: нормализуем estimatedTime к строке
+            const et = prog.estimatedTime;
+            const etStr = (typeof et === 'number') ? `${et} минут` : et;
+
+            // Считаем суммарное время протокола для точного прогресс-бара
+            totalProtocolTime = protocol.reduce((sum, s) => sum + s.time, 0);
+
             uiPhTitle.textContent = prog.name;
-            updateDescModal(prog);
-            resetTimer();
+            updateDescModal(prog, etStr);
+            resetTimerUI();
         }
 
-        function updateDescModal(prog) {
+        function updateDescModal(prog, etStr) {
             const body = document.getElementById('desc-modal-body');
             let exList = '';
             Object.keys(prog.exercisesDetails).forEach(key => {
-                if(key !== 'Переход' && key !== 'Финиш') {
+                if (key !== 'Переход' && key !== 'Финиш' && key !== 'Подготовка') {
                     exList += `<li><b>${key}:</b> ${prog.exercisesDetails[key].goal}</li>`;
                 }
             });
             body.innerHTML = `
                 <h2>${prog.name}</h2>
-                <p><b>Ориентировочное время:</b> ${prog.estimatedTime}</p>
+                <p><b>Ориентировочное время:</b> ${etStr}</p>
                 <p>${prog.description}</p>
                 <h3>Упражнения:</h3>
                 <ul>${exList}</ul>
             `;
         }
 
-        // --- АУДИО И ГОЛОС ---
-        const AudioContext = window.AudioContext || window.webkitAudioContext;
+        // ─── АУДИО И ГОЛОС ──────────────────────────────────────────────────────
+        const AudioCtxClass = window.AudioContext || window.webkitAudioContext;
         let audioCtx;
         let globalVolume = 0.8;
 
-        document.getElementById('volume-slider').addEventListener('input', (e) => globalVolume = parseFloat(e.target.value));
+        document.getElementById('volume-slider').addEventListener('input', (e) => {
+            globalVolume = parseFloat(e.target.value);
+        });
 
         function initAudio() {
-            if (!audioCtx) audioCtx = new AudioContext();
+            if (!audioCtx) audioCtx = new AudioCtxClass();
             if (audioCtx.state === 'suspended') audioCtx.resume();
         }
 
+        // ИСПРАВЛЕНИЕ: проверка состояния контекста перед каждым воспроизведением
         function playTone(type) {
-            if (!audioCtx) return;
-            const osc = audioCtx.createOscillator();
+            if (!audioCtx || audioCtx.state === 'closed') return;
+            if (audioCtx.state === 'suspended') { audioCtx.resume(); return; }
+
+            const osc  = audioCtx.createOscillator();
             const gain = audioCtx.createGain();
-            osc.connect(gain); gain.connect(audioCtx.destination);
+            osc.connect(gain);
+            gain.connect(audioCtx.destination);
             const now = audioCtx.currentTime;
             const vol = globalVolume;
 
             if (type === 'work') {
-                osc.type = 'sine'; osc.frequency.setValueAtTime(880, now);
-                gain.gain.setValueAtTime(vol, now); gain.gain.exponentialRampToValueAtTime(0.01, now + 0.6);
+                osc.type = 'sine';
+                osc.frequency.setValueAtTime(880, now);
+                gain.gain.setValueAtTime(vol, now);
+                gain.gain.exponentialRampToValueAtTime(0.01, now + 0.6);
                 osc.start(now); osc.stop(now + 0.6);
             } else if (type === 'rest') {
-                osc.type = 'triangle'; osc.frequency.setValueAtTime(440, now);
-                gain.gain.setValueAtTime(vol, now); gain.gain.exponentialRampToValueAtTime(0.01, now + 0.5);
+                osc.type = 'triangle';
+                osc.frequency.setValueAtTime(440, now);
+                gain.gain.setValueAtTime(vol, now);
+                gain.gain.exponentialRampToValueAtTime(0.01, now + 0.5);
                 osc.start(now); osc.stop(now + 0.5);
             } else if (type === 'prep') {
-                osc.type = 'square'; osc.frequency.setValueAtTime(660, now);
-                gain.gain.setValueAtTime(vol * 0.5, now); gain.gain.exponentialRampToValueAtTime(0.01, now + 0.15);
+                osc.type = 'square';
+                osc.frequency.setValueAtTime(660, now);
+                gain.gain.setValueAtTime(vol * 0.5, now);
+                gain.gain.exponentialRampToValueAtTime(0.01, now + 0.15);
                 osc.start(now); osc.stop(now + 0.15);
                 const osc2 = audioCtx.createOscillator(), gain2 = audioCtx.createGain();
-                osc2.type = 'square'; osc2.frequency.setValueAtTime(660, now + 0.2);
-                gain2.gain.setValueAtTime(vol * 0.5, now + 0.2); gain2.gain.exponentialRampToValueAtTime(0.01, now + 0.35);
+                osc2.type = 'square';
+                osc2.frequency.setValueAtTime(660, now + 0.2);
+                gain2.gain.setValueAtTime(vol * 0.5, now + 0.2);
+                gain2.gain.exponentialRampToValueAtTime(0.01, now + 0.35);
                 osc2.connect(gain2); gain2.connect(audioCtx.destination);
                 osc2.start(now + 0.2); osc2.stop(now + 0.35);
             } else if (type === 'tick') {
-                osc.type = 'sine'; osc.frequency.setValueAtTime(1000, now);
-                gain.gain.setValueAtTime(vol * 0.4, now); gain.gain.exponentialRampToValueAtTime(0.01, now + 0.1);
+                osc.type = 'sine';
+                osc.frequency.setValueAtTime(1000, now);
+                gain.gain.setValueAtTime(vol * 0.4, now);
+                gain.gain.exponentialRampToValueAtTime(0.01, now + 0.1);
                 osc.start(now); osc.stop(now + 0.1);
             } else if (type === 'finish') {
-                osc.type = 'sine'; osc.frequency.setValueAtTime(440, now);
-                osc.frequency.setValueAtTime(554, now + 0.2); osc.frequency.setValueAtTime(659, now + 0.4); osc.frequency.setValueAtTime(880, now + 0.6);
-                gain.gain.setValueAtTime(vol, now); gain.gain.linearRampToValueAtTime(0.01, now + 1.2);
+                osc.type = 'sine';
+                osc.frequency.setValueAtTime(440, now);
+                osc.frequency.setValueAtTime(554, now + 0.2);
+                osc.frequency.setValueAtTime(659, now + 0.4);
+                osc.frequency.setValueAtTime(880, now + 0.6);
+                gain.gain.setValueAtTime(vol, now);
+                gain.gain.linearRampToValueAtTime(0.01, now + 1.2);
                 osc.start(now); osc.stop(now + 1.2);
             }
         }
 
         function speak(text) {
             if (!window.speechSynthesis || !text) return;
+            // ИСПРАВЛЕНИЕ: resume перед speak — необходимо на iOS после паузы
             window.speechSynthesis.cancel();
+            window.speechSynthesis.resume();
             const utterance = new SpeechSynthesisUtterance(text);
-            utterance.lang = 'ru-RU'; utterance.rate = 1.1; utterance.volume = globalVolume;
+            utterance.lang = 'ru-RU';
+            utterance.rate = 1.1;
+            utterance.volume = globalVolume;
             window.speechSynthesis.speak(utterance);
         }
 
-        // --- ЛОГИКА ТАЙМЕРА И UI ---
+        // ─── ВСПОМОГАТЕЛЬНЫЕ ФУНКЦИИ UI ────────────────────────────────────────
+
+        // ИСПРАВЛЕНИЕ: единая функция переключения вида заголовка
+        function setRunningView(running) {
+            workoutSelect.style.display = running ? 'none' : 'block';
+            uiExTitle.style.display     = running ? 'block' : 'none';
+        }
+
         function renderTimeline() {
             timeline.innerHTML = '';
-            if (protocol.length === 0) return;
+            if (!protocol.length) return;
             const endIdx = Math.min(currentStepIdx + 4, protocol.length);
-            for(let i = currentStepIdx; i < endIdx; i++) {
-                const s = protocol[i];
+            for (let i = currentStepIdx; i < endIdx; i++) {
+                const s   = protocol[i];
                 const div = document.createElement('div');
                 div.className = `timeline-item ${i === currentStepIdx ? 'active' : ''}`;
-                div.innerHTML = `<span>${s.ex} - ${s.phase}</span> <span>${s.time}с</span>`;
+                div.innerHTML = `<span>${s.ex} — ${s.phase}</span><span>${s.time}с</span>`;
                 timeline.appendChild(div);
             }
         }
 
         function buildInfoCard(exName, stepDesc) {
-            const d = exDetails[exName] || { goal: '-', start: '-', move: '-' };
+            const d = exDetails[exName] || { goal: '—', start: '—', move: '—' };
             return `
                 <div><b>Цель:</b> ${d.goal}</div>
-                ${d.start !== '-' ? `<div><b>Исходное положение:</b> ${d.start}</div>` : ''}
+                ${d.start && d.start !== '—' && d.start !== '-'
+                    ? `<div><b>Исходное положение:</b> ${d.start}</div>` : ''}
                 <div><b>Движение:</b> ${d.move}</div>
                 <div class="step-desc">${stepDesc}</div>
             `;
         }
 
-        async function requestWakeLock() { try { if ('wakeLock' in navigator) wakeLock = await navigator.wakeLock.request('screen'); } catch (err) {} }
-        function releaseWakeLock() { if (wakeLock) wakeLock.release().then(() => wakeLock = null); }
+        // ИСПРАВЛЕНИЕ: прогресс считается по времени, а не по шагам
+        function calcProgress() {
+            if (!totalProtocolTime) return 0;
+            // Суммируем время завершённых шагов + уже прошедшее время текущего
+            let done = 0;
+            for (let i = 0; i < currentStepIdx; i++) done += protocol[i].time;
+            const currentStepTime = protocol[currentStepIdx] ? protocol[currentStepIdx].time : 0;
+            done += (currentStepTime - timeLeft);
+            return Math.min(100, (done / totalProtocolTime) * 100);
+        }
+
+        async function requestWakeLock() {
+            try {
+                if ('wakeLock' in navigator) wakeLock = await navigator.wakeLock.request('screen');
+            } catch (err) {}
+        }
+        function releaseWakeLock() {
+            if (wakeLock) { wakeLock.release().then(() => { wakeLock = null; }); }
+        }
+
+        // ─── ЛОГИКА ТАЙМЕРА ─────────────────────────────────────────────────────
+
+        // ИСПРАВЛЕНИЕ: labelMap включает 'finish'
+        const labelMap = {
+            work:   'УДЕРЖАНИЕ',
+            rest:   'ОТДЫХ',
+            prep:   'ОЖИДАНИЕ',
+            finish: 'ФИНИШ',
+        };
 
         function updateUI() {
-            if (protocol.length === 0) return;
+            if (!protocol.length) return;
+
+            // ИСПРАВЛЕНИЕ: проверка выхода за пределы — без вызова resetTimer внутри updateUI
             if (currentStepIdx >= protocol.length) {
-                resetTimer();
-                workoutSelect.style.display = 'block';
-                uiExTitle.style.display = 'none';
-                uiExTitle.textContent = "Тренировка завершена";
-                uiTime.textContent = "00";
-                infoCard.innerHTML = buildInfoCard('Финиш', 'Комплекс завершен.');
+                handleFinish();
                 return;
             }
 
-            const step = protocol[currentStepIdx];
-            
-            workoutSelect.style.display = 'none';
-            uiExTitle.style.display = 'block';
-            uiExTitle.textContent = step.ex;
-            uiTime.textContent = timeLeft;
-            
-            infoCard.innerHTML = buildInfoCard(step.ex, step.stepDesc);
-            
-            let labelMap = { 'work': 'УДЕРЖАНИЕ', 'rest': 'ОТДЫХ', 'prep': 'ОЖИДАНИЕ', 'finish': 'ФИНИШ' };
-            uiLabel.textContent = labelMap[step.type] || 'РАБОТА';
+            const step  = protocol[currentStepIdx];
+            const total = protocol.length;
 
+            setRunningView(true);
+            uiExTitle.textContent   = step.ex;
+            uiTime.textContent      = timeLeft;
+            uiStepCounter.textContent = `${currentStepIdx + 1} / ${total}`;
+            infoCard.innerHTML      = buildInfoCard(step.ex, step.stepDesc);
+            uiLabel.textContent     = labelMap[step.type] || 'РАБОТА';
             document.body.className = `state-${step.type}`;
-            progressFill.style.width = `${((currentStepIdx) / protocol.length) * 100}%`;
+            progressFill.style.width = `${calcProgress()}%`;
             renderTimeline();
         }
 
+        // ИСПРАВЛЕНИЕ: обработка финиша вынесена отдельно, без лишних resetTimer
+        function handleFinish() {
+            stopTimer();
+            setRunningView(false);
+            uiTime.textContent      = '✓';
+            uiLabel.textContent     = 'ФИНИШ';
+            uiStepCounter.textContent = '';
+            document.body.className = '';
+            progressFill.style.width = '100%';
+            infoCard.innerHTML = buildInfoCard('Финиш', 'Комплекс успешно завершён!');
+            renderTimeline();
+            // Кнопки в начальное состояние
+            btnMain.textContent = 'Старт';
+            btnMain.style.backgroundColor = 'var(--accent-work)';
+            btnNext.disabled = true;
+        }
+
         function loadStep() {
-            if(currentStepIdx >= protocol.length) return updateUI();
+            if (currentStepIdx >= protocol.length) { handleFinish(); return; }
             const step = protocol[currentStepIdx];
             timeLeft = step.time;
-            if(step.voiceTxt) speak(step.voiceTxt);
-            if(step.toneType) playTone(step.toneType);
+            if (step.voiceTxt) speak(step.voiceTxt);
+            if (step.toneType) playTone(step.toneType);
             updateUI();
         }
 
-        function nextStep() { currentStepIdx++; loadStep(); }
+        function nextStep() {
+            if (currentStepIdx < protocol.length) {
+                currentStepIdx++;
+                loadStep();
+            }
+        }
 
         function tick() {
             timeLeft--;
-            if (timeLeft <= 0) nextStep();
-            else {
+            if (timeLeft <= 0) {
+                nextStep();
+            } else {
                 updateUI();
-                if(timeLeft <= 3 && protocol[currentStepIdx].time > 5) playTone('tick');
+                if (timeLeft <= 3 && protocol[currentStepIdx] && protocol[currentStepIdx].time > 5) {
+                    playTone('tick');
+                }
             }
         }
 
         function startTimer() {
-            if (protocol.length === 0) return;
-            initAudio(); requestWakeLock();
-            if(currentStepIdx === 0 && timeLeft === 0) { 
-                speak("Инициализация протокола."); 
-                loadStep(); 
+            if (!protocol.length) return;
+            initAudio();
+            requestWakeLock();
+
+            // Если тренировка не началась — загружаем первый шаг
+            if (currentStepIdx === 0 && timeLeft === 0) {
+                speak('Инициализация протокола.');
+                loadStep();
             }
+
             isRunning = true;
-            btnMain.textContent = "Пауза"; btnMain.style.backgroundColor = "var(--accent-rest)";
+            btnMain.textContent = 'Пауза';
+            btnMain.style.backgroundColor = 'var(--accent-rest)';
+            btnNext.disabled = false;  // Пропуск доступен только во время тренировки
             timerInterval = setInterval(tick, 1000);
         }
 
         function stopTimer() {
             isRunning = false;
-            btnMain.textContent = "Продолжить"; btnMain.style.backgroundColor = "var(--accent-work)";
-            clearInterval(timerInterval); releaseWakeLock(); window.speechSynthesis.cancel();
+            clearInterval(timerInterval);
+            timerInterval = null;
+            releaseWakeLock();
+            if (window.speechSynthesis) window.speechSynthesis.cancel();
+            btnMain.textContent = 'Продолжить';
+            btnMain.style.backgroundColor = 'var(--accent-work)';
+            btnNext.disabled = true;
         }
 
-        function resetTimer() {
-            stopTimer(); 
-            currentStepIdx = 0; 
-            timeLeft = 0;
-            btnMain.textContent = "Старт"; 
-            btnMain.style.backgroundColor = "var(--accent-work)";
-            progressFill.style.width = '0%'; 
-            document.body.className = '';
-            uiTime.textContent = "00"; 
-            uiLabel.textContent = "ГОТОВ";
-            
-            workoutSelect.style.display = 'block';
-            uiExTitle.style.display = 'none';
+        // Только сброс UI — не останавливает таймер (используется внутри loadWorkoutData)
+        function resetTimerUI() {
+            currentStepIdx = 0;
+            timeLeft       = 0;
+            elapsedTime    = 0;
 
-            if(protocol.length > 0) {
-                infoCard.innerHTML = `<div style="color: var(--text-main);">Ожидание инициализации протокола. Нажмите "Старт".</div>`;
+            btnMain.textContent = 'Старт';
+            btnMain.style.backgroundColor = 'var(--accent-work)';
+            btnNext.disabled = true;
+
+            progressFill.style.width = '0%';
+            document.body.className  = '';
+            uiTime.textContent       = '00';
+            uiLabel.textContent      = 'ГОТОВ';
+            uiStepCounter.textContent = '';
+
+            setRunningView(false);
+
+            if (protocol.length > 0) {
+                infoCard.innerHTML = `<div style="color: var(--text-main);">Нажмите «Старт» для начала тренировки.</div>`;
                 renderTimeline();
             }
         }
 
-        // --- ОБРАБОТЧИКИ СОБЫТИЙ И МОДАЛЬНЫЕ ОКНА ---
+        // ─── ОБРАБОТЧИКИ СОБЫТИЙ ────────────────────────────────────────────────
         btnMain.addEventListener('click', () => isRunning ? stopTimer() : startTimer());
-        document.getElementById('btn-next').addEventListener('click', () => { if(currentStepIdx < protocol.length) nextStep(); });
+
+        btnNext.addEventListener('click', () => {
+            if (!btnNext.disabled && currentStepIdx < protocol.length) nextStep();
+        });
 
         const modalDesc = document.getElementById('modal-desc');
-        const modalAI = document.getElementById('modal-ai');
+        const modalAI   = document.getElementById('modal-ai');
 
         document.getElementById('btn-show-desc').addEventListener('click', () => modalDesc.style.display = 'flex');
         document.getElementById('btn-close-desc').addEventListener('click', () => modalDesc.style.display = 'none');
-        
         document.getElementById('btn-show-ai').addEventListener('click', () => modalAI.style.display = 'flex');
         document.getElementById('btn-close-ai').addEventListener('click', () => modalAI.style.display = 'none');
-        
-        document.getElementById('btn-copy-prompt').addEventListener('click', () => {
-            const text = document.getElementById('ai-prompt-text');
-            text.select();
-            document.execCommand('copy');
-            alert('Промпт скопирован в буфер обмена');
+
+        // ИСПРАВЛЕНИЕ: clipboard API вместо устаревшего execCommand
+        document.getElementById('btn-copy-prompt').addEventListener('click', async () => {
+            const text = document.getElementById('ai-prompt-text').value;
+            try {
+                await navigator.clipboard.writeText(text);
+                alert('Промпт скопирован в буфер обмена');
+            } catch {
+                // Fallback для старых браузеров / ненадёжных контекстов
+                const ta = document.getElementById('ai-prompt-text');
+                ta.select();
+                document.execCommand('copy');
+                alert('Промпт скопирован в буфер обмена');
+            }
         });
 
-        window.addEventListener('click', (e) => { 
-            if(e.target === modalDesc) modalDesc.style.display = 'none'; 
-            if(e.target === modalAI) modalAI.style.display = 'none'; 
+        window.addEventListener('click', (e) => {
+            if (e.target === modalDesc) modalDesc.style.display = 'none';
+            if (e.target === modalAI)   modalAI.style.display   = 'none';
         });
 
-        // Запуск приложения
+        // Запуск
         fetchWorkouts();
-
     </script>
+
     <script>
         if ('serviceWorker' in navigator) {
             window.addEventListener('load', () => {
                 navigator.serviceWorker.register('./sw.js')
-                    .then((registration) => {
-                        console.log('ServiceWorker зарегистрирован. Scope:', registration.scope);
-                    })
-                    .catch((error) => {
-                        console.error('Ошибка регистрации ServiceWorker:', error);
-                    });
+                    .then(reg => console.log('ServiceWorker зарегистрирован. Scope:', reg.scope))
+                    .catch(err => console.error('Ошибка регистрации ServiceWorker:', err));
             });
         }
     </script>
