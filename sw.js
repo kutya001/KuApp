@@ -1,19 +1,52 @@
-const CACHE_NAME = 'v1';
-const ASSETS = [
+const CACHE_NAME = 'mcgill-trainer-v1';
+const ASSETS_TO_CACHE = [
   './',
   './index.html',
-  './style.css',
-  './main.js'
+  './manifest.json',
+  './icon-192.png',
+  './icon-512.png'
 ];
 
-self.addEventListener('install', (e) => {
-  e.waitUntil(
-    caches.open(CACHE_NAME).then((cache) => cache.addAll(ASSETS))
+// Установка Service Worker и кэширование файлов
+self.addEventListener('install', (event) => {
+  event.waitUntil(
+    caches.open(CACHE_NAME)
+      .then((cache) => {
+        console.log('Кэширование файлов успешно');
+        return cache.addAll(ASSETS_TO_CACHE);
+      })
   );
+  self.skipWaiting();
 });
 
-self.addEventListener('fetch', (e) => {
-  e.respondWith(
-    caches.match(e.request).then((res) => res || fetch(e.request))
+// Активация и удаление старых кэшей
+self.addEventListener('activate', (event) => {
+  event.waitUntil(
+    caches.keys().then((cacheNames) => {
+      return Promise.all(
+        cacheNames.map((cacheName) => {
+          if (cacheName !== CACHE_NAME) {
+            console.log('Удаление старого кэша:', cacheName);
+            return caches.delete(cacheName);
+          }
+        })
+      );
+    })
+  );
+  self.clients.claim();
+});
+
+// Перехват запросов (стратегия Cache First, затем Network)
+self.addEventListener('fetch', (event) => {
+  event.respondWith(
+    caches.match(event.request)
+      .then((response) => {
+        // Возвращаем из кэша, если найдено
+        if (response) {
+          return response;
+        }
+        // Иначе идем в сеть
+        return fetch(event.request);
+      })
   );
 });
