@@ -440,21 +440,36 @@
               workoutSelect = document.getElementById('workout-select');
 
         // --- ИНИЦИАЛИЗАЦИЯ ДАННЫХ ИЗ JSON ---
+        // --- ИНИЦИАЛИЗАЦИЯ ДАННЫХ ИЗ JSON ---
         async function fetchWorkouts() {
             try {
-                const response = await fetch('./workouts.json');
-                if (!response.ok) throw new Error('Ошибка HTTP: ' + response.status);
-                const data = await response.json();
-                workoutsData = data.programs;
+                // 1. Загружаем список (каталог) файлов
+                const indexResponse = await fetch('./workouts/index.json');
+                if (!indexResponse.ok) throw new Error('Не найден каталог workouts/index.json');
+                const files = await indexResponse.json();
+
+                workoutsData = [];
+
+                // 2. Параллельно загружаем все файлы из папки
+                const fetchPromises = files.map(file => fetch(`./workouts/${file}`).then(res => res.json()));
+                const results = await Promise.all(fetchPromises);
+
+                // 3. Объединяем все программы (каждый файл содержит {"programs": [...]})
+                results.forEach(data => {
+                    if (data && data.programs) {
+                        workoutsData = workoutsData.concat(data.programs);
+                    }
+                });
+
                 populateSelect();
                 if (workoutsData.length > 0) {
                     loadWorkoutData(0);
                 }
             } catch (error) {
-                console.error('Ошибка загрузки workouts.json:', error);
+                console.error('Ошибка загрузки тренировок:', error);
                 workoutSelect.innerHTML = '<option value="">Ошибка загрузки</option>';
-                uiPhTitle.textContent = "Необходим workouts.json";
-                infoCard.innerHTML = `<div style="color: var(--accent-rest);">Не удалось загрузить данные программ. Убедитесь, что файл workouts.json находится в корневом каталоге.</div>`;
+                uiPhTitle.textContent = "Необходим index.json";
+                infoCard.innerHTML = `<div style="color: var(--accent-rest);">Не удалось загрузить каталог программ. Убедитесь, что файл workouts/index.json существует.</div>`;
             }
         }
 
