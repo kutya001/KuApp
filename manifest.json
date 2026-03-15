@@ -4,11 +4,20 @@
   "description": "Таймер для реабилитационного протокола Макгилла (Большая тройка).",
   "start_url": "/McGill/",
   "display": "standalone",
-  "background_color": "#121212",
-  "theme_color": "#121212",
+  "background_color": "#0a0a0f",
+  "theme_color": "#0a0a0f",
   "orientation": "portrait",
   "icons": [
     { "src": "icon-256.png", "type": "image/png", "sizes": "256x256" },
     { "src": "icon-512.png", "type": "image/png", "sizes": "512x512" }
+  ],
+  "shortcuts": [
+    {
+      "name": "Большая тройка Макгилла",
+      "short_name": "Большая тройка",
+      "description": "Запустить протокол Большой тройки",
+      "url": "/McGill/?start=0",
+      "icons": [{ "src": "icon-256.png", "sizes": "256x256" }]
+    }
   ]
 }
