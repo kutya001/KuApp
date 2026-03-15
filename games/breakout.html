@@ -1,0 +1,159 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,user-scalable=no">
+<title>Арканоид</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:#0a0a0f;display:flex;flex-direction:column;align-items:center;height:100dvh;overflow:hidden;font-family:'JetBrains Mono',monospace;color:#f0f0f8;user-select:none}
+#hdr{display:flex;justify-content:space-between;width:100%;max-width:400px;padding:8px 14px 4px;font-size:.75rem;color:#8888aa}
+#score{font-size:1rem;font-weight:700;color:#f0f0f8}
+canvas{display:block;border-radius:8px;touch-action:none}
+#overlay{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:12px;background:rgba(10,10,15,.85);backdrop-filter:blur(4px)}
+#overlay h2{font-size:1.2rem}
+#overlay p{font-size:.75rem;color:#8888aa;text-align:center;max-width:220px}
+#btn-go{background:#5b8cff;color:#fff;border:none;padding:12px 36px;border-radius:10px;font-size:.95rem;font-weight:700;cursor:pointer;font-family:inherit}
+</style>
+</head>
+<body>
+<div id="hdr"><span>⭐ <span id="score">0</span></span><span>❤️ <span id="lives">3</span></span><span>ур. <span id="level">1</span></span></div>
+<canvas id="c"></canvas>
+<div id="overlay">
+  <h2>🧱 Арканоид</h2>
+  <p>Тяни ракетку пальцем или мышью</p>
+  <button id="btn-go">Играть</button>
+</div>
+<script>
+const canvas=document.getElementById('c'),ctx=canvas.getContext('2d');
+let W,H,pad,ball,bricks,score,lives,level,running=false,raf;
+const ROWS=5,COLS=8,PH=12,PW_BASE=80,BR=7;
+const COLORS=['#ff4466','#ff8c42','#ffd700','#00e5a0','#5b8cff'];
+
+function resize(){
+  W=Math.min(window.innerWidth,400);
+  H=window.innerHeight-52;
+  canvas.width=W;canvas.height=H;
+}
+
+function initBricks(){
+  bricks=[];
+  const bw=Math.floor((W-20)/COLS)-4,bh=18;
+  for(let r=0;r<ROWS;r++) for(let c=0;c<COLS;c++){
+    bricks.push({x:10+c*(bw+4),y:40+r*(bh+4),w:bw,h:bh,alive:true,color:COLORS[r%COLORS.length],hits:r<2?1:r<4?2:3});
+  }
+}
+
+function newGame(){
+  resize();
+  score=0;lives=3;level=1;
+  pad={x:W/2-40,y:H-30,w:PW_BASE,h:PH};
+  const spd=3.5+level*.3;
+  ball={x:W/2,y:H-50,vx:spd*(Math.random()<.5?1:-1),vy:-spd};
+  initBricks();
+  running=true;
+  document.getElementById('overlay').style.display='none';
+  updateHUD();
+  if(raf) cancelAnimationFrame(raf);
+  raf=requestAnimationFrame(loop);
+}
+
+function loop(){
+  if(!running) return;
+  raf=requestAnimationFrame(loop);
+  update();draw();
+}
+
+function update(){
+  ball.x+=ball.vx;ball.y+=ball.vy;
+  // Стены
+  if(ball.x-BR<0){ball.x=BR;ball.vx=-ball.vx;}
+  if(ball.x+BR>W){ball.x=W-BR;ball.vx=-ball.vx;}
+  if(ball.y-BR<0){ball.y=BR;ball.vy=-ball.vy;}
+  // Дно — потеря жизни
+  if(ball.y+BR>H){
+    lives--;updateHUD();
+    if(lives<=0){end(false);return;}
+    ball.x=W/2;ball.y=H-50;
+    const spd=3.5+level*.3;
+    ball.vx=spd*(Math.random()<.5?1:-1);ball.vy=-spd;
+  }
+  // Ракетка
+  if(ball.y+BR>=pad.y&&ball.y+BR<=pad.y+PH&&ball.x>=pad.x&&ball.x<=pad.x+pad.w){
+    ball.vy=-Math.abs(ball.vy);
+    ball.vx=((ball.x-(pad.x+pad.w/2))/(pad.w/2))*5;
+  }
+  // Кирпичи
+  for(const b of bricks){
+    if(!b.alive) continue;
+    if(ball.x+BR>b.x&&ball.x-BR<b.x+b.w&&ball.y+BR>b.y&&ball.y-BR<b.y+b.h){
+      b.hits--;
+      if(b.hits<=0){b.alive=false;score+=10*(ROWS-bricks.indexOf(b)%ROWS);updateHUD();}
+      ball.vy=-ball.vy;
+      break;
+    }
+  }
+  // Все кирпичи уничтожены
+  if(bricks.every(b=>!b.alive)){
+    level++;pad.w=Math.max(40,PW_BASE-level*5);updateHUD();
+    initBricks();
+    const spd=3.5+level*.3;ball.vx=spd*(Math.random()<.5?1:-1);ball.vy=-Math.abs(ball.vy)*spd/Math.abs(ball.vy);
+  }
+}
+
+function draw(){
+  ctx.fillStyle='#111118';ctx.fillRect(0,0,W,H);
+  // Кирпичи
+  bricks.forEach(b=>{
+    if(!b.alive) return;
+    ctx.fillStyle=b.color;
+    ctx.beginPath();ctx.roundRect(b.x,b.y,b.w,b.h,4);ctx.fill();
+    if(b.hits>1){ctx.fillStyle='rgba(255,255,255,.2)';ctx.fillRect(b.x+2,b.y+2,b.w-4,4);}
+  });
+  // Ракетка
+  ctx.fillStyle='#5b8cff';
+  ctx.beginPath();ctx.roundRect(pad.x,pad.y,pad.w,PH,6);ctx.fill();
+  // Мяч
+  ctx.fillStyle='#f0f0f8';
+  ctx.beginPath();ctx.arc(ball.x,ball.y,BR,0,Math.PI*2);ctx.fill();
+}
+
+function updateHUD(){
+  document.getElementById('score').textContent=score;
+  document.getElementById('lives').textContent='❤️'.repeat(lives);
+  document.getElementById('level').textContent=level;
+}
+
+function end(win){
+  running=false;cancelAnimationFrame(raf);
+  const ov=document.getElementById('overlay');
+  ov.querySelector('h2').textContent=win?'🎉 Победа!':'💀 Игра окончена';
+  ov.querySelector('p').textContent=`Счёт: ${score}`;
+  ov.style.display='flex';
+}
+
+canvas.addEventListener('mousemove',e=>{
+  if(!running) return;
+  const r=canvas.getBoundingClientRect();
+  pad.x=e.clientX-r.left-pad.w/2;
+  pad.x=Math.max(0,Math.min(W-pad.w,pad.x));
+});
+canvas.addEventListener('touchmove',e=>{
+  e.preventDefault();
+  const r=canvas.getBoundingClientRect();
+  pad.x=e.touches[0].clientX-r.left-pad.w/2;
+  pad.x=Math.max(0,Math.min(W-pad.w,pad.x));
+},{passive:false});
+
+document.addEventListener('keydown',e=>{
+  if(!running) return;
+  if(e.key==='ArrowLeft') pad.x=Math.max(0,pad.x-18);
+  if(e.key==='ArrowRight') pad.x=Math.min(W-pad.w,pad.x+18);
+});
+
+document.getElementById('btn-go').addEventListener('click',newGame);
+window.addEventListener('resize',()=>{if(running) newGame();else resize();});
+resize();
+</script>
+</body>
+</html>

@@ -1,0 +1,147 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,user-scalable=no">
+<title>Атлет</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:#0a0a0f;color:#f0f0f8;font-family:'JetBrains Mono',monospace;display:flex;flex-direction:column;align-items:center;height:100dvh;overflow:hidden;user-select:none}
+#hero-area{display:flex;flex-direction:column;align-items:center;padding:16px;flex-shrink:0}
+#athlete{font-size:5rem;cursor:pointer;transition:transform .1s;line-height:1}
+#athlete:active{transform:scale(.9)}
+#energy-bar{width:200px;height:8px;background:#1a1a24;border-radius:4px;margin-top:8px;overflow:hidden}
+#energy-fill{height:100%;background:linear-gradient(90deg,#5b8cff,#00e5a0);width:0%;transition:width .2s}
+#stats{display:flex;gap:16px;margin-top:10px;font-size:.72rem;color:#8888aa}
+.stat .val{font-size:1rem;font-weight:700;color:#f0f0f8}
+#score-big{font-size:1.6rem;font-weight:700;color:#ffd700;margin-top:4px}
+#score-lbl{font-size:.6rem;color:#8888aa;letter-spacing:.1em}
+#auto-lbl{font-size:.65rem;color:#00e5a0;min-height:14px}
+#shop{flex:1;overflow-y:auto;width:100%;padding:0 12px 16px}
+.upgrade{background:#1a1a24;border:1px solid #22222f;border-radius:10px;padding:10px 12px;margin-bottom:8px;display:flex;align-items:center;gap:12px;cursor:pointer;transition:background .15s,border-color .15s}
+.upgrade:hover{background:#22222f}
+.upgrade.can{border-color:#5b8cff}
+.upgrade.can:active{background:#1f1f36}
+.upgrade.maxed{opacity:.45;cursor:default}
+.upg-icon{font-size:1.8rem;flex-shrink:0}
+.upg-info{flex:1}
+.upg-name{font-size:.82rem;font-weight:700}
+.upg-desc{font-size:.68rem;color:#8888aa;margin-top:1px}
+.upg-cost{font-size:.72rem;color:#ffd700;margin-top:2px}
+.upg-lv{font-size:.65rem;color:#5b8cff;background:rgba(91,140,255,.1);padding:2px 7px;border-radius:4px;flex-shrink:0}
+#floats{position:fixed;inset:0;pointer-events:none;overflow:hidden}
+.float{position:absolute;font-size:.85rem;font-weight:700;color:#ffd700;animation:floatUp 1s ease-out forwards;pointer-events:none}
+@keyframes floatUp{0%{opacity:1;transform:translateY(0)}100%{opacity:0;transform:translateY(-60px)}}
+</style>
+</head>
+<body>
+<div id="hero-area">
+  <div id="athlete">🏋️</div>
+  <div id="energy-bar"><div id="energy-fill"></div></div>
+  <div id="auto-lbl"></div>
+  <div id="score-big">0</div>
+  <div id="score-lbl">ОЧКИ СИЛЫ</div>
+  <div id="stats">
+    <div class="stat"><div class="val" id="cpc">1</div><div>за тап</div></div>
+    <div class="stat"><div class="val" id="cps">0</div><div>в сек</div></div>
+  </div>
+</div>
+<div id="shop"></div>
+<div id="floats"></div>
+
+<script>
+let pts=0,perClick=1,perSec=0,energy=0,maxEnergy=100;
+let upgrades=[
+  {id:0,icon:'💪',name:'Тренировка',desc:'Сила тапа +1',base:15,mult:1.6,effect:'click',val:1,lvl:0,max:20},
+  {id:1,icon:'🥤',name:'Протеин',desc:'+0.5 очков/сек',base:50,mult:1.7,effect:'auto',val:0.5,lvl:0,max:20},
+  {id:2,icon:'😴',name:'Сон',desc:'Макс энергия +20',base:80,mult:1.5,effect:'energy',val:20,lvl:0,max:10},
+  {id:3,icon:'🎽',name:'Экипировка',desc:'Сила тапа ×1.5',base:200,mult:2.0,effect:'click_mult',val:1.5,lvl:0,max:5},
+  {id:4,icon:'🏃',name:'Кардио',desc:'+2 очков/сек',base:300,mult:1.8,effect:'auto',val:2,lvl:0,max:15},
+  {id:5,icon:'🧘',name:'Медитация',desc:'Энергия: +5/сек авто',base:500,mult:2.0,effect:'energy_auto',val:5,lvl:0,max:10},
+  {id:6,icon:'🏆',name:'Чемпион',desc:'Все ×2',base:2000,mult:3.0,effect:'all_mult',val:2,lvl:0,max:3},
+];
+let energyAuto=0;
+
+function cost(u){return Math.floor(u.base*Math.pow(u.mult,u.lvl));}
+
+function renderShop(){
+  const s=document.getElementById('shop');s.innerHTML='';
+  upgrades.forEach(u=>{
+    if(u.lvl>=u.max) return; // убираем из списка если максимум
+    const c=cost(u);
+    const div=document.createElement('div');
+    div.className='upgrade'+(pts>=c?' can':'')+(u.lvl>=u.max?' maxed':'');
+    div.innerHTML=`
+      <div class="upg-icon">${u.icon}</div>
+      <div class="upg-info">
+        <div class="upg-name">${u.name}</div>
+        <div class="upg-desc">${u.desc}</div>
+        <div class="upg-cost">${u.lvl>=u.max?'МАКСИМУМ':'🪙 '+fmt(c)}</div>
+      </div>
+      <div class="upg-lv">ур.${u.lvl}</div>`;
+    if(u.lvl<u.max) div.addEventListener('click',()=>buy(u));
+    s.appendChild(div);
+  });
+}
+
+function buy(u){
+  const c=cost(u);if(pts<c) return;
+  pts-=c;u.lvl++;
+  if(u.effect==='click') perClick+=u.val;
+  else if(u.effect==='auto') perSec+=u.val;
+  else if(u.effect==='energy') maxEnergy+=u.val;
+  else if(u.effect==='click_mult') perClick=Math.round(perClick*u.val);
+  else if(u.effect==='energy_auto') energyAuto+=u.val;
+  else if(u.effect==='all_mult'){perClick=Math.round(perClick*u.val);perSec=Math.round(perSec*u.val*10)/10;}
+  document.getElementById('cpc').textContent=fmt(perClick);
+  document.getElementById('cps').textContent=fmt(perSec);
+  renderShop();updateScore();
+}
+
+function tap(e){
+  const bonus=1+energy/maxEnergy;
+  const gain=Math.ceil(perClick*bonus);
+  pts+=gain;energy=Math.min(maxEnergy,energy+2);
+  spawnFloat(e.clientX||window.innerWidth/2,e.clientY||120,'+'+fmt(gain));
+  updateScore();renderShop();
+}
+
+function spawnFloat(x,y,txt){
+  const f=document.createElement('div');f.className='float';
+  f.textContent=txt;f.style.left=(x-20)+'px';f.style.top=(y-20)+'px';
+  document.getElementById('floats').appendChild(f);
+  setTimeout(()=>f.remove(),1000);
+}
+
+function fmt(n){if(n>=1e6) return(n/1e6).toFixed(1)+'M';if(n>=1e3) return(n/1e3).toFixed(1)+'K';return Math.floor(n);}
+
+function updateScore(){
+  document.getElementById('score-big').textContent=fmt(pts);
+  document.getElementById('energy-fill').style.width=(energy/maxEnergy*100)+'%';
+  const pct=Math.round(energy/maxEnergy*100);
+  document.getElementById('auto-lbl').textContent=pct>0?`⚡ ${pct}% бонус к тапу`:'';
+}
+
+// Автоклик
+setInterval(()=>{
+  if(perSec>0){pts+=perSec/20;renderShop();updateScore();}
+  if(energyAuto>0){energy=Math.min(maxEnergy,energy+energyAuto/20);}
+  else if(energy>0){energy=Math.max(0,energy-0.5);}
+  updateScore();
+},50);
+
+const athl=document.getElementById('athlete');
+athl.addEventListener('click',tap);
+athl.addEventListener('touchstart',e=>{e.preventDefault();tap(e.touches[0]);},{passive:false});
+
+// Смена атлета по уровню
+setInterval(()=>{
+  const frames=['🏋️','💪','🤸','🏅','🥇'];
+  const lvl=Math.min(4,Math.floor(upgrades.reduce((a,u)=>a+u.lvl,0)/5));
+  athl.textContent=frames[lvl];
+},2000);
+
+renderShop();updateScore();
+</script>
+</body>
+</html>

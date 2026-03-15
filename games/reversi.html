@@ -1,0 +1,147 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,user-scalable=no">
+<title>Реверси</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:#0a0a0f;color:#f0f0f8;font-family:'JetBrains Mono',monospace;display:flex;flex-direction:column;align-items:center;height:100dvh;overflow:hidden;user-select:none;padding-top:8px}
+#top{display:flex;justify-content:space-between;align-items:center;width:min(92vw,340px);margin-bottom:8px}
+.sc{text-align:center;background:#1a1a24;border-radius:8px;padding:6px 16px;min-width:80px}
+.sc-val{font-size:1.4rem;font-weight:700}
+.sc-lbl{font-size:.6rem;color:#8888aa;margin-top:1px}
+#turn{font-size:.75rem;color:#8888aa;text-align:center}
+#board{display:grid;grid-template-columns:repeat(8,1fr);gap:3px;background:#0f1f0f;border:2px solid #1a3a1a;border-radius:10px;padding:6px;width:min(92vw,340px)}
+.cell{aspect-ratio:1;border-radius:6px;background:#0d1f0d;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:background .15s;position:relative}
+.cell:hover{background:#152a15}
+.cell.hint{background:#1a3a1a}
+.cell.hint::after{content:'';position:absolute;width:30%;height:30%;border-radius:50%;background:rgba(0,229,160,.35)}
+.disc{width:72%;height:72%;border-radius:50%;transition:transform .25s}
+.disc.b{background:radial-gradient(circle at 35% 35%,#555,#111)}
+.disc.w{background:radial-gradient(circle at 35% 35%,#eee,#aaa)}
+.disc.flip{animation:flip .25s}
+@keyframes flip{0%{transform:scaleX(1)}50%{transform:scaleX(0)}100%{transform:scaleX(1)}}
+#btns{margin-top:8px;display:flex;gap:10px}
+button{background:transparent;border:1px solid rgba(255,255,255,.15);color:#8888aa;padding:8px 22px;border-radius:8px;font-family:inherit;font-size:.78rem;cursor:pointer}
+button:hover{background:#1a1a24}
+#msg{position:fixed;inset:0;background:rgba(10,10,15,.88);display:none;flex-direction:column;align-items:center;justify-content:center;gap:12px}
+#msg h2{font-size:1.2rem}#msg p{font-size:.78rem;color:#8888aa}
+#mBtn{background:#00e5a0;color:#000;border:none;padding:11px 32px;border-radius:10px;font-size:.9rem;font-weight:700;cursor:pointer;font-family:inherit}
+</style>
+</head>
+<body>
+<div id="top">
+  <div class="sc"><div class="sc-val" id="bsc">2</div><div class="sc-lbl">⚫ Вы</div></div>
+  <div id="turn">Ваш ход</div>
+  <div class="sc"><div class="sc-val" id="wsc">2</div><div class="sc-lbl">⚪ ИИ</div></div>
+</div>
+<div id="board"></div>
+<div id="btns"><button id="btnNew">Новая игра</button></div>
+<div id="msg"><h2 id="mt"></h2><p id="mp"></p><button id="mBtn">Ещё раз</button></div>
+
+<script>
+const DIR=[[-1,-1],[-1,0],[-1,1],[0,-1],[0,1],[1,-1],[1,0],[1,1]];
+let board,turn,locked;
+
+function newGame(){
+  board=Array(64).fill(0);
+  board[27]=2;board[28]=1;board[35]=1;board[36]=2;
+  turn=1;locked=false;
+  document.getElementById('msg').style.display='none';
+  render();
+}
+
+function rc(i){return[Math.floor(i/8),i%8];}
+function idx(r,c){return r*8+c;}
+
+function flips(i,player){
+  const [r,c]=rc(i);const res=[];
+  for(const [dr,dc] of DIR){
+    let nr=r+dr,nc=c+dc,line=[];
+    while(nr>=0&&nr<8&&nc>=0&&nc<8&&board[idx(nr,nc)]===3-player){
+      line.push(idx(nr,nc));nr+=dr;nc+=dc;
+    }
+    if(line.length&&nr>=0&&nr<8&&nc>=0&&nc<8&&board[idx(nr,nc)]===player) res.push(...line);
+  }
+  return res;
+}
+
+function valid(player){
+  return Array.from({length:64},(_,i)=>i).filter(i=>!board[i]&&flips(i,player).length);
+}
+
+function place(i,player){
+  const fl=flips(i,player);if(!fl.length) return false;
+  board[i]=player;fl.forEach(j=>board[j]=player);
+  return true;
+}
+
+function score(){
+  const b=board.filter(v=>v===1).length,w=board.filter(v=>v===2).length;
+  document.getElementById('bsc').textContent=b;
+  document.getElementById('wsc').textContent=w;
+  return{b,w};
+}
+
+function render(){
+  const g=document.getElementById('board');g.innerHTML='';
+  const hints=valid(turn);
+  for(let i=0;i<64;i++){
+    const d=document.createElement('div');
+    d.className='cell'+(hints.includes(i)&&turn===1?' hint':'');
+    if(board[i]){
+      const disc=document.createElement('div');
+      disc.className='disc '+(board[i]===1?'b':'w');
+      d.appendChild(disc);
+    }
+    if(turn===1&&hints.includes(i)) d.addEventListener('click',()=>playerMove(i));
+    g.appendChild(d);
+  }
+  score();
+  document.getElementById('turn').textContent=turn===1?'Ваш ход':'ИИ думает…';
+}
+
+function playerMove(i){
+  if(locked||turn!==1) return;
+  if(!place(i,1)) return;
+  locked=true;render();
+  setTimeout(nextTurn,300);
+}
+
+function nextTurn(){
+  turn=3-turn;
+  if(!valid(turn).length){
+    turn=3-turn;
+    if(!valid(turn).length){endGame();return;}
+  }
+  render();
+  if(turn===2) setTimeout(aiMove,400);
+  else locked=false;
+}
+
+function aiMove(){
+  const moves=valid(2);if(!moves.length){nextTurn();return;}
+  // Жадный: максимум захватов + угловой приоритет
+  const corners=[0,7,56,63];
+  const cornerMove=moves.find(m=>corners.includes(m));
+  let best=cornerMove||moves.reduce((a,b)=>flips(b,2).length>flips(a,2).length?b:a);
+  place(best,2);render();
+  setTimeout(nextTurn,300);
+}
+
+function endGame(){
+  const{b,w}=score();
+  let res=b>w?'🎉 Победа! Чёрные':'⚪ Победа! Белые';
+  if(b===w) res='🤝 Ничья';
+  document.getElementById('mt').textContent=res;
+  document.getElementById('mp').textContent=`⚫ ${b} : ${w} ⚪`;
+  document.getElementById('msg').style.display='flex';
+}
+
+document.getElementById('btnNew').addEventListener('click',newGame);
+document.getElementById('mBtn').addEventListener('click',newGame);
+newGame();
+</script>
+</body>
+</html>

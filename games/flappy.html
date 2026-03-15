@@ -1,0 +1,126 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,user-scalable=no">
+<title>Флаппи</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:#0a0a0f;display:flex;flex-direction:column;align-items:center;justify-content:center;height:100dvh;overflow:hidden;user-select:none}
+canvas{display:block;border-radius:12px;touch-action:none}
+</style>
+</head>
+<body>
+<canvas id="c"></canvas>
+<script>
+const canvas=document.getElementById('c'),ctx=canvas.getContext('2d');
+const W=Math.min(window.innerWidth,360),H=window.innerHeight-20;
+canvas.width=W;canvas.height=H;
+
+const GRAVITY=0.35,JUMP=-7,GAP=140,PIPE_W=52,SPEED=2.4;
+let bird,pipes,score,best=+localStorage.getItem('flappy_best')||0,state='idle',raf;
+
+const BIRD_FRAMES=['🐦','🐤'];
+let bframe=0,bframeTick=0;
+
+function init(){
+  bird={x:W*0.28,y:H/2,vy:0,r:16};
+  pipes=[];score=0;state='idle';
+  spawnPipe();
+  if(raf) cancelAnimationFrame(raf);
+  raf=requestAnimationFrame(loop);
+}
+
+function spawnPipe(){
+  const top=60+Math.random()*(H-GAP-120);
+  pipes.push({x:W+10,top,gap:GAP,scored:false});
+}
+
+function flap(){
+  if(state==='dead') return init();
+  if(state==='idle') state='play';
+  bird.vy=JUMP;
+}
+
+function loop(){
+  raf=requestAnimationFrame(loop);
+  if(state==='play') update();
+  draw();
+}
+
+function update(){
+  bird.vy+=GRAVITY;bird.y+=bird.vy;
+  if(bird.y-bird.r<0||bird.y+bird.r>H){die();return;}
+
+  // Трубы
+  for(let p of pipes){
+    p.x-=SPEED;
+    if(!p.scored&&p.x+PIPE_W<bird.x){p.scored=true;score++;if(score>best){best=score;localStorage.setItem('flappy_best',best);}}
+    if(bird.x+bird.r>p.x&&bird.x-bird.r<p.x+PIPE_W&&(bird.y-bird.r<p.top||bird.y+bird.r>p.top+p.gap)){die();return;}
+  }
+  pipes=pipes.filter(p=>p.x>-PIPE_W);
+  if(pipes.length===0||pipes[pipes.length-1].x<W-200) spawnPipe();
+
+  bframeTick++;if(bframeTick%12===0) bframe=1-bframe;
+}
+
+function die(){state='dead';}
+
+function draw(){
+  // Фон
+  ctx.fillStyle='#111118';ctx.fillRect(0,0,W,H);
+  // Земля
+  ctx.fillStyle='#22222f';ctx.fillRect(0,H-30,W,30);
+
+  // Трубы
+  pipes.forEach(p=>{
+    ctx.fillStyle='#00c897';
+    // Верхняя
+    ctx.beginPath();ctx.roundRect(p.x,0,PIPE_W,p.top,4);ctx.fill();
+    ctx.fillStyle='#00a87e';
+    ctx.fillRect(p.x-4,p.top-20,PIPE_W+8,20);
+    // Нижняя
+    ctx.fillStyle='#00c897';
+    const bot=p.top+p.gap;
+    ctx.beginPath();ctx.roundRect(p.x,bot,PIPE_W,H-bot-30,4);ctx.fill();
+    ctx.fillStyle='#00a87e';
+    ctx.fillRect(p.x-4,bot,PIPE_W+8,20);
+  });
+
+  // Птица
+  ctx.save();
+  ctx.translate(bird.x,bird.y);
+  const tilt=Math.max(-30,Math.min(50,bird.vy*4));
+  ctx.rotate(tilt*Math.PI/180);
+  ctx.font=`${bird.r*2}px serif`;
+  ctx.textAlign='center';ctx.textBaseline='middle';
+  ctx.fillText(state==='dead'?'💥':BIRD_FRAMES[bframe],0,0);
+  ctx.restore();
+
+  // Счёт
+  ctx.fillStyle='#f0f0f8';ctx.font='bold 28px JetBrains Mono,monospace';
+  ctx.textAlign='center';ctx.textBaseline='top';
+  ctx.fillText(score,W/2,14);
+
+  if(state==='idle'||state==='dead'){
+    ctx.fillStyle='rgba(10,10,15,.75)';ctx.fillRect(0,0,W,H);
+    ctx.fillStyle='#f0f0f8';ctx.font='bold 1.3rem JetBrains Mono,monospace';
+    ctx.textAlign='center';ctx.textBaseline='middle';
+    ctx.fillText(state==='idle'?'🐦 Флаппи':'💀 Игра окончена',W/2,H/2-40);
+    ctx.font='.8rem JetBrains Mono,monospace';ctx.fillStyle='#8888aa';
+    ctx.fillText(`Счёт: ${score}  Рекорд: ${best}`,W/2,H/2);
+    ctx.fillStyle='#5b8cff';ctx.fillRect(W/2-60,H/2+30,120,44);
+    ctx.beginPath();ctx.roundRect(W/2-60,H/2+30,120,44,10);ctx.fillStyle='#5b8cff';ctx.fill();
+    ctx.fillStyle='#fff';ctx.font='bold .95rem JetBrains Mono,monospace';
+    ctx.fillText(state==='idle'?'Начать':'Ещё раз',W/2,H/2+52);
+  }
+}
+
+canvas.addEventListener('click',flap);
+canvas.addEventListener('touchstart',e=>{e.preventDefault();flap();},{passive:false});
+document.addEventListener('keydown',e=>{if(e.code==='Space'){e.preventDefault();flap();}});
+
+init();
+</script>
+</body>
+</html>

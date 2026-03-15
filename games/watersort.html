@@ -1,0 +1,117 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,user-scalable=no">
+<title>Сортировка цветов</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:#0a0a0f;color:#f0f0f8;font-family:'JetBrains Mono',monospace;display:flex;flex-direction:column;align-items:center;height:100dvh;overflow:hidden;user-select:none}
+#top{display:flex;justify-content:space-between;align-items:center;width:min(94vw,380px);padding:10px 0 8px}
+h3{font-size:.9rem;font-weight:700}
+#meta{font-size:.72rem;color:#8888aa}
+#tubes-wrap{flex:1;display:flex;align-items:center;justify-content:center;flex-wrap:wrap;gap:12px;padding:0 10px;width:100%;max-width:400px}
+.tube-outer{display:flex;flex-direction:column;align-items:center;gap:4px;cursor:pointer}
+.tube{width:44px;height:160px;border:2px solid #2c2c40;border-top:none;border-radius:0 0 22px 22px;display:flex;flex-direction:column-reverse;overflow:hidden;transition:transform .15s;background:#111118;position:relative}
+.tube.sel{transform:translateY(-16px);border-color:#5b8cff}
+.tube.done{border-color:#00e5a0}
+.seg{width:100%;transition:height .25s}
+.tube-num{font-size:.6rem;color:#44445a}
+#btns{display:flex;gap:10px;padding:8px 0 12px}
+button{background:transparent;border:1px solid rgba(255,255,255,.15);color:#8888aa;padding:9px 20px;border-radius:8px;font-family:inherit;font-size:.78rem;cursor:pointer}
+button:hover{background:#1a1a24;color:#f0f0f8}
+#msg{position:fixed;inset:0;background:rgba(10,10,15,.88);display:none;flex-direction:column;align-items:center;justify-content:center;gap:12px}
+#msg h2{font-size:1.2rem}#msg p{font-size:.78rem;color:#8888aa}
+#mBtn{background:#00e5a0;color:#000;border:none;padding:11px 32px;border-radius:10px;font-size:.9rem;font-weight:700;cursor:pointer;font-family:inherit}
+</style>
+</head>
+<body>
+<div id="top"><h3>🧪 Сортировка цветов</h3><div id="meta">Ходов: <span id="moves">0</span></div></div>
+<div id="tubes-wrap"></div>
+<div id="btns">
+  <button id="btnUndo">↺ Отмена</button>
+  <button id="btnNew">Новая</button>
+</div>
+<div id="msg"><h2>🎉 Решено!</h2><p id="msub"></p><button id="mBtn">Ещё раз</button></div>
+
+<script>
+const COLORS=['#5b8cff','#00e5a0','#ff8c42','#ff4466','#ffd700','#b05bff','#00c8ff','#ff69b4'];
+const CAP=4;
+let tubes,sel,moves,history;
+
+function newGame(){
+  const numColors=6;
+  // Создаём numColors труб по CAP сегментов + 2 пустые
+  let pool=[];
+  for(let c=0;c<numColors;c++) for(let i=0;i<CAP;i++) pool.push(c);
+  // Перемешиваем
+  for(let i=pool.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[pool[i],pool[j]]=[pool[j],pool[i]];}
+  tubes=[];
+  for(let t=0;t<numColors;t++) tubes.push(pool.slice(t*CAP,t*CAP+CAP));
+  tubes.push([]);tubes.push([]); // 2 пустые
+  sel=null;moves=0;history=[];
+  document.getElementById('moves').textContent=0;
+  document.getElementById('msg').style.display='none';
+  render();
+}
+
+function render(){
+  const w=document.getElementById('tubes-wrap');
+  w.innerHTML='';
+  tubes.forEach((tube,i)=>{
+    const outer=document.createElement('div');outer.className='tube-outer';
+    const div=document.createElement('div');
+    const done=tube.length===CAP&&tube.every(c=>c===tube[0]);
+    div.className='tube'+(i===sel?' sel':'')+(done?' done':'');
+    tube.forEach(c=>{
+      const seg=document.createElement('div');
+      seg.className='seg';
+      seg.style.height=(100/CAP)+'%';
+      seg.style.background=COLORS[c];
+      div.appendChild(seg);
+    });
+    outer.appendChild(div);
+    const lbl=document.createElement('div');lbl.className='tube-num';lbl.textContent=i+1;
+    outer.appendChild(lbl);
+    outer.addEventListener('click',()=>clickTube(i));
+    w.appendChild(outer);
+  });
+}
+
+function clickTube(i){
+  if(sel===null){
+    if(tubes[i].length===0) return;
+    sel=i;render();return;
+  }
+  if(sel===i){sel=null;render();return;}
+  // Попытка перелить
+  const from=tubes[sel],to=tubes[i];
+  if(to.length>=CAP){sel=null;render();return;}
+  const topFrom=from[from.length-1];
+  if(to.length>0&&to[to.length-1]!==topFrom){sel=null;render();return;}
+  // Считаем сколько сегментов одного цвета наверху
+  let cnt=0;
+  for(let k=from.length-1;k>=0&&from[k]===topFrom;k--) cnt++;
+  const canMove=Math.min(cnt,CAP-to.length);
+  if(!canMove){sel=null;render();return;}
+  // Сохраняем состояние
+  history.push(tubes.map(t=>[...t]));
+  for(let k=0;k<canMove;k++){to.push(from.pop());}
+  moves++;document.getElementById('moves').textContent=moves;
+  sel=null;render();
+  if(tubes.every(t=>t.length===0||(t.length===CAP&&t.every(c=>c===t[0])))){
+    document.getElementById('msub').textContent=`${moves} ходов`;
+    document.getElementById('msg').style.display='flex';
+  }
+}
+
+document.getElementById('btnUndo').addEventListener('click',()=>{
+  if(!history.length) return;
+  tubes=history.pop();sel=null;render();
+});
+document.getElementById('btnNew').addEventListener('click',newGame);
+document.getElementById('mBtn').addEventListener('click',newGame);
+newGame();
+</script>
+</body>
+</html>

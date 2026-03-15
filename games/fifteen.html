@@ -1,0 +1,133 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,user-scalable=no">
+<title>Пятнашки</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:#0a0a0f;color:#f0f0f8;font-family:'JetBrains Mono',monospace;display:flex;flex-direction:column;align-items:center;justify-content:center;height:100dvh;gap:14px;user-select:none}
+#meta{display:flex;gap:24px;font-size:.75rem;color:#8888aa}
+.mv{text-align:center}.mv-val{font-size:1.3rem;font-weight:700;color:#f0f0f8}
+#grid{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;width:min(88vw,320px)}
+.tile{aspect-ratio:1;border-radius:12px;display:flex;align-items:center;justify-content:center;font-size:clamp(1.2rem,6vw,1.8rem);font-weight:700;cursor:pointer;transition:transform .1s,background .15s}
+.tile.num{background:#1a1a24;border:1px solid #2c2c40}
+.tile.num:hover{background:#22222f}
+.tile.num:active{transform:scale(.94)}
+.tile.empty{background:transparent;cursor:default;border:2px dashed #22222f}
+.tile.done{background:rgba(0,229,160,.12);border-color:#00e5a0;color:#00e5a0}
+#btns{display:flex;gap:10px}
+button{background:transparent;border:1px solid rgba(255,255,255,.15);color:#8888aa;padding:9px 22px;border-radius:8px;font-family:inherit;font-size:.8rem;cursor:pointer}
+button:hover{background:#1a1a24;color:#f0f0f8}
+#win{position:fixed;inset:0;background:rgba(10,10,15,.88);display:none;flex-direction:column;align-items:center;justify-content:center;gap:12px}
+#win h2{font-size:1.3rem}
+#win p{font-size:.78rem;color:#8888aa}
+#win button{background:#00e5a0;color:#000;border:none;padding:12px 32px;border-radius:10px;font-size:.95rem;font-weight:700}
+</style>
+</head>
+<body>
+<div id="meta">
+  <div class="mv"><div class="mv-val" id="moves">0</div><div>ходов</div></div>
+  <div class="mv"><div class="mv-val" id="timer">00:00</div><div>время</div></div>
+  <div class="mv"><div class="mv-val" id="best">—</div><div>рекорд</div></div>
+</div>
+<div id="grid"></div>
+<div id="btns"><button id="btnNew">Новая игра</button></div>
+<div id="win"><h2>🎉 Решено!</h2><p id="win-info"></p><button id="winBtn">Ещё раз</button></div>
+
+<script>
+let tiles,empty,moves,sec,tid,best=localStorage.getItem('15best')||null;
+if(best) document.getElementById('best').textContent=best+'х';
+
+function shuffle(){
+  // Fisher-Yates, проверяем чётность перестановки
+  let arr=[1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,0];
+  do {
+    for(let i=15;i>0;i--){const j=Math.floor(Math.random()*(i+1));[arr[i],arr[j]]=[arr[j],arr[i]];}
+  } while(!solvable(arr));
+  return arr;
+}
+
+function solvable(a){
+  let inv=0;
+  for(let i=0;i<16;i++) for(let j=i+1;j<16;j++) if(a[i]&&a[j]&&a[i]>a[j]) inv++;
+  const row=3-Math.floor(a.indexOf(0)/4);
+  return (inv+row)%2===0;
+}
+
+function newGame(){
+  tiles=shuffle();
+  empty=tiles.indexOf(0);
+  moves=0; sec=0;
+  document.getElementById('moves').textContent=0;
+  document.getElementById('timer').textContent='00:00';
+  document.getElementById('win').style.display='none';
+  clearInterval(tid);
+  tid=setInterval(()=>{sec++;const m=String(Math.floor(sec/60)).padStart(2,'0'),s=String(sec%60).padStart(2,'0');document.getElementById('timer').textContent=`${m}:${s}`;},1000);
+  render();
+}
+
+function render(){
+  const g=document.getElementById('grid');g.innerHTML='';
+  tiles.forEach((v,i)=>{
+    const d=document.createElement('div');
+    const done=v===i+1||(v===0&&i===15);
+    d.className=`tile ${v===0?'empty':'num'}${done?' done':''}`;
+    d.textContent=v||'';
+    if(v!==0) d.addEventListener('click',()=>move(i));
+    g.appendChild(d);
+  });
+}
+
+function move(i){
+  const r=Math.floor(i/4),c=i%4,er=Math.floor(empty/4),ec=empty%4;
+  if(Math.abs(r-er)+Math.abs(c-ec)!==1) return;
+  [tiles[i],tiles[empty]]=[tiles[empty],tiles[i]];
+  empty=i; moves++;
+  document.getElementById('moves').textContent=moves;
+  render();
+  if(tiles.every((v,i)=>v===(i<15?i+1:0))){
+    clearInterval(tid);
+    const b=best?Math.min(+best,moves):moves;
+    best=b; localStorage.setItem('15best',b);
+    document.getElementById('best').textContent=b+'х';
+    const m=String(Math.floor(sec/60)).padStart(2,'0'),s=String(sec%60).padStart(2,'0');
+    document.getElementById('win-info').textContent=`${moves} ходов · ${m}:${s}`;
+    document.getElementById('win').style.display='flex';
+  }
+}
+
+document.getElementById('btnNew').addEventListener('click',newGame);
+document.getElementById('winBtn').addEventListener('click',newGame);
+
+document.addEventListener('keydown',e=>{
+  const er=Math.floor(empty/4),ec=empty%4;
+  let target=-1;
+  if(e.key==='ArrowUp'&&er<3) target=(er+1)*4+ec;
+  if(e.key==='ArrowDown'&&er>0) target=(er-1)*4+ec;
+  if(e.key==='ArrowLeft'&&ec<3) target=er*4+ec+1;
+  if(e.key==='ArrowRight'&&ec>0) target=er*4+ec-1;
+  if(target>=0) move(target);
+});
+
+// Свайп
+let sx,sy;
+document.addEventListener('touchstart',e=>{sx=e.touches[0].clientX;sy=e.touches[0].clientY;},{passive:true});
+document.addEventListener('touchend',e=>{
+  const dx=e.changedTouches[0].clientX-sx,dy=e.changedTouches[0].clientY-sy;
+  const er=Math.floor(empty/4),ec=empty%4;
+  let target=-1;
+  if(Math.abs(dx)>Math.abs(dy)){
+    if(dx>30&&ec>0) target=er*4+ec-1;
+    else if(dx<-30&&ec<3) target=er*4+ec+1;
+  } else {
+    if(dy>30&&er>0) target=(er-1)*4+ec;
+    else if(dy<-30&&er<3) target=(er+1)*4+ec;
+  }
+  if(target>=0) move(target);
+},{passive:true});
+
+newGame();
+</script>
+</body>
+</html>

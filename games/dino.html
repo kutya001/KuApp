@@ -1,0 +1,124 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,user-scalable=no">
+<title>Дино</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:#0a0a0f;display:flex;flex-direction:column;align-items:center;justify-content:center;height:100dvh;overflow:hidden;user-select:none}
+canvas{display:block;touch-action:none}
+</style>
+</head>
+<body>
+<canvas id="c"></canvas>
+<script>
+const canvas=document.getElementById('c'),ctx=canvas.getContext('2d');
+const W=Math.min(window.innerWidth,500),H=200;
+canvas.width=W;canvas.height=H;
+canvas.style.width=W+'px';canvas.style.height=H+'px';
+
+const GND=150,GRAVITY=0.7,JUMP=-14;
+let dino,obstacles,score,best=+localStorage.getItem('dino_best')||0,spd,state,raf,tick;
+let clouds=[];
+
+function init(){
+  dino={x:60,y:GND,vy:0,w:30,h:36,frame:0,ftick:0,ducking:false};
+  obstacles=[];clouds=[{x:W,y:40,w:60},{x:W+200,y:55,w:80}];
+  score=0;spd=4;state='idle';tick=0;
+  if(raf) cancelAnimationFrame(raf);
+  raf=requestAnimationFrame(loop);
+}
+
+function jump(){
+  if(state==='dead') return init();
+  if(state==='idle') state='play';
+  if(dino.y>=GND) dino.vy=JUMP;
+}
+
+function loop(){
+  raf=requestAnimationFrame(loop);
+  if(state==='play') update();
+  draw();
+}
+
+function update(){
+  tick++;
+  // Скорость нарастает
+  if(tick%400===0) spd+=0.5;
+
+  // Дино
+  dino.vy+=GRAVITY;dino.y+=dino.vy;
+  if(dino.y>=GND){dino.y=GND;dino.vy=0;}
+  dino.ftick++;if(dino.ftick%8===0) dino.frame=1-dino.frame;
+
+  // Облака
+  clouds.forEach(c=>{c.x-=spd*.3;});
+  clouds=clouds.filter(c=>c.x>-100);
+  if(clouds.length<2||clouds[clouds.length-1].x<W-150) clouds.push({x:W+50,y:30+Math.random()*40,w:50+Math.random()*50});
+
+  // Препятствия
+  if(obstacles.length===0||obstacles[obstacles.length-1].x<W-200-Math.random()*200){
+    const tall=Math.random()<.4;
+    obstacles.push({x:W+10,y:tall?GND-30:GND,w:20,h:tall?66:36});
+  }
+  obstacles.forEach(o=>o.x-=spd);
+  obstacles=obstacles.filter(o=>o.x>-40);
+
+  score++;
+  if(score>best){best=score;localStorage.setItem('dino_best',best);}
+
+  // Столкновение
+  for(const o of obstacles){
+    if(dino.x+dino.w-6>o.x+4&&dino.x+6<o.x+o.w-4&&dino.y+dino.h-4>o.y+4){
+      state='dead';return;
+    }
+  }
+}
+
+function draw(){
+  ctx.fillStyle='#111118';ctx.fillRect(0,0,W,H);
+  // Земля
+  ctx.fillStyle='#2c2c40';ctx.fillRect(0,GND+36,W,4);
+
+  // Облака
+  clouds.forEach(c=>{
+    ctx.fillStyle='rgba(136,136,170,.15)';
+    ctx.beginPath();ctx.ellipse(c.x,c.y,c.w/2,14,0,0,Math.PI*2);ctx.fill();
+  });
+
+  // Препятствия (кактусы)
+  obstacles.forEach(o=>{
+    ctx.fillStyle='#00c897';
+    ctx.beginPath();ctx.roundRect(o.x,o.y,o.w,o.h,4);ctx.fill();
+    // "руки"
+    ctx.fillRect(o.x-8,o.y+10,8,6);
+    ctx.fillRect(o.x+o.w,o.y+14,8,6);
+  });
+
+  // Дино
+  ctx.font='30px serif';ctx.textAlign='left';ctx.textBaseline='bottom';
+  const frames=['🦕','🦖'];
+  ctx.fillText(state==='dead'?'💀':frames[dino.frame],dino.x,dino.y+dino.h);
+
+  // Счёт
+  ctx.fillStyle='#f0f0f8';ctx.font='bold 14px JetBrains Mono,monospace';
+  ctx.textAlign='right';ctx.textBaseline='top';
+  ctx.fillText(`${Math.floor(score/10)}  rec:${Math.floor(best/10)}`,W-10,8);
+
+  if(state==='idle'||state==='dead'){
+    ctx.fillStyle='rgba(10,10,15,.7)';ctx.fillRect(0,0,W,H);
+    ctx.fillStyle='#f0f0f8';ctx.font='bold 1rem JetBrains Mono,monospace';
+    ctx.textAlign='center';ctx.textBaseline='middle';
+    ctx.fillText(state==='idle'?'🦕 Tap / Space для старта':'💀 Tap для перезапуска',W/2,H/2);
+  }
+}
+
+canvas.addEventListener('click',jump);
+canvas.addEventListener('touchstart',e=>{e.preventDefault();jump();},{passive:false});
+document.addEventListener('keydown',e=>{if(e.code==='Space'){e.preventDefault();jump();}});
+
+init();
+</script>
+</body>
+</html>

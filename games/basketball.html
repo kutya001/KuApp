@@ -1,0 +1,160 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,user-scalable=no">
+<title>Баскетбол</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:#0a0a0f;display:flex;flex-direction:column;align-items:center;height:100dvh;overflow:hidden;user-select:none;font-family:'JetBrains Mono',monospace;color:#f0f0f8}
+#hdr{display:flex;justify-content:space-between;width:100%;max-width:380px;padding:8px 16px 4px;font-size:.75rem;color:#8888aa}
+#score{font-size:1.1rem;font-weight:700;color:#f0f0f8}
+canvas{display:block;touch-action:none;border-radius:8px}
+#aim-hint{font-size:.62rem;color:#44445a;text-align:center;padding:3px 0}
+</style>
+</head>
+<body>
+<div id="hdr"><span>🏀 <span id="score">0</span></span><span>⏱ <span id="timer">30</span>с</span><span>Рекорд: <span id="best">0</span></span></div>
+<canvas id="c"></canvas>
+<div id="aim-hint">Тяни снизу вверх для броска</div>
+
+<script>
+const canvas=document.getElementById('c'),ctx=canvas.getContext('2d');
+const W=Math.min(window.innerWidth,380),H=window.innerHeight-60;
+canvas.width=W;canvas.height=H;
+
+const GND=H-40,BALL_R=18;
+let ball,hoop,drag,score,best=+localStorage.getItem('bball_best')||0,timer,running=false,raf;
+let hoopAnim=0,streak=0;
+
+document.getElementById('best').textContent=best;
+
+function newHoop(){
+  hoop={x:60+Math.random()*(W-120),y:80+Math.random()*(H/2-80),w:56,h:8,rimR:5};
+}
+
+function init(){
+  ball={x:W/2+(Math.random()*60-30),y:GND,vx:0,vy:0,flying:false};
+  drag=null;score=0;streak=0;running=true;
+  clearInterval(timer);let t=30;
+  document.getElementById('timer').textContent=t;
+  document.getElementById('score').textContent=0;
+  timer=setInterval(()=>{t--;document.getElementById('timer').textContent=t;if(t<=0){clearInterval(timer);running=false;}},1000);
+  newHoop();
+  if(raf) cancelAnimationFrame(raf);
+  raf=requestAnimationFrame(loop);
+}
+
+function loop(){raf=requestAnimationFrame(loop);update();draw();}
+
+function update(){
+  if(!running) return;
+  hoopAnim=Math.max(0,hoopAnim-.05);
+  if(!ball.flying) return;
+  ball.vy+=0.45;ball.x+=ball.vx;ball.y+=ball.vy;
+
+  // Попадание в кольцо
+  const cx=hoop.x+hoop.w/2;
+  if(Math.abs(ball.x-cx)<18&&Math.abs(ball.y-hoop.y)<14&&ball.vy>0){
+    streak++;score+=streak>1?3:2;
+    document.getElementById('score').textContent=score;
+    if(score>best){best=score;localStorage.setItem('bball_best',best);document.getElementById('best').textContent=best;}
+    hoopAnim=1;
+    newHoop();
+    setTimeout(()=>{if(running){ball={x:W/2+(Math.random()*60-30),y:GND,vx:0,vy:0,flying:false};}},300);
+    ball.flying=false;return;
+  }
+
+  // Отскок от стен
+  if(ball.x-BALL_R<0||ball.x+BALL_R>W) ball.vx=-ball.vx*0.7;
+  // Выход за экран — промах
+  if(ball.y>H+50||ball.x<-100||ball.x>W+100){
+    streak=0;
+    ball={x:W/2+(Math.random()*60-30),y:GND,vx:0,vy:0,flying:false};
+  }
+}
+
+function draw(){
+  ctx.fillStyle='#111118';ctx.fillRect(0,0,W,H);
+  // Фон-корт
+  ctx.strokeStyle='rgba(255,255,255,.04)';ctx.lineWidth=1;
+  ctx.beginPath();ctx.arc(W/2,H/2,80,0,Math.PI*2);ctx.stroke();
+  ctx.beginPath();ctx.moveTo(0,GND+2);ctx.lineTo(W,GND+2);ctx.stroke();
+
+  // Штанга
+  ctx.strokeStyle='#333';ctx.lineWidth=3;
+  ctx.beginPath();ctx.moveTo(hoop.x-20,hoop.y);ctx.lineTo(hoop.x-20,0);ctx.stroke();
+
+  // Сетка
+  if(hoopAnim>0){
+    ctx.strokeStyle=`rgba(0,229,160,${hoopAnim})`;ctx.lineWidth=2;
+    for(let i=0;i<4;i++){
+      ctx.beginPath();
+      ctx.moveTo(hoop.x+i*(hoop.w/3),hoop.y+hoop.h);
+      ctx.lineTo(hoop.x+hoop.w/2,hoop.y+hoop.h+30);
+      ctx.stroke();
+    }
+  }
+
+  // Кольцо
+  const rimColor=hoopAnim>0?`rgba(0,229,160,${.5+hoopAnim*.5})`:'#ff8c42';
+  ctx.strokeStyle=rimColor;ctx.lineWidth=5;ctx.lineCap='round';
+  ctx.beginPath();ctx.moveTo(hoop.x,hoop.y);ctx.lineTo(hoop.x+hoop.w,hoop.y);ctx.stroke();
+
+  // Мяч
+  const gr=ctx.createRadialGradient(ball.x-5,ball.y-5,2,ball.x,ball.y,BALL_R);
+  gr.addColorStop(0,'#ff9a3c');gr.addColorStop(1,'#c25000');
+  ctx.fillStyle=gr;ctx.beginPath();ctx.arc(ball.x,ball.y,BALL_R,0,Math.PI*2);ctx.fill();
+  // Линии мяча
+  ctx.strokeStyle='rgba(0,0,0,.3)';ctx.lineWidth=1.5;
+  ctx.beginPath();ctx.moveTo(ball.x-BALL_R,ball.y);ctx.lineTo(ball.x+BALL_R,ball.y);ctx.stroke();
+  ctx.beginPath();ctx.arc(ball.x,ball.y,BALL_R*.6,0,Math.PI);ctx.stroke();
+
+  // Прицел при перетаскивании
+  if(drag&&!ball.flying){
+    const dx=ball.x-drag.x,dy=ball.y-drag.y;
+    ctx.strokeStyle='rgba(91,140,255,.4)';ctx.lineWidth=2;ctx.setLineDash([5,5]);
+    ctx.beginPath();ctx.moveTo(ball.x,ball.y);
+    let tx=ball.x+dx*2,ty=ball.y+dy*2;
+    for(let i=0;i<12;i++){
+      ty+=0.45*(i*.5);tx+=dx*.2;
+      ctx.lineTo(tx,ty);
+    }
+    ctx.stroke();ctx.setLineDash([]);
+  }
+
+  // HUD финиш
+  if(!running&&timer===undefined||(!running)){
+    ctx.fillStyle='rgba(10,10,15,.8)';ctx.fillRect(0,0,W,H);
+    ctx.fillStyle='#f0f0f8';ctx.font='bold 1.2rem JetBrains Mono,monospace';
+    ctx.textAlign='center';ctx.textBaseline='middle';
+    ctx.fillText('🏀 Время вышло!',W/2,H/2-30);
+    ctx.font='.8rem JetBrains Mono,monospace';ctx.fillStyle='#8888aa';
+    ctx.fillText(`Счёт: ${score}  Рекорд: ${best}`,W/2,H/2);
+    ctx.fillStyle='#5b8cff';
+    ctx.beginPath();ctx.roundRect(W/2-60,H/2+25,120,40,10);ctx.fill();
+    ctx.fillStyle='#fff';ctx.font='bold .9rem JetBrains Mono,monospace';
+    ctx.fillText('Ещё раз',W/2,H/2+45);
+  }
+}
+
+canvas.addEventListener('mousedown',e=>{const r=canvas.getBoundingClientRect();drag={x:e.clientX-r.left,y:e.clientY-r.top};});
+canvas.addEventListener('touchstart',e=>{e.preventDefault();const r=canvas.getBoundingClientRect(),t=e.touches[0];drag={x:t.clientX-r.left,y:t.clientY-r.top};},{passive:false});
+canvas.addEventListener('mouseup',shoot);
+canvas.addEventListener('touchend',e=>{e.preventDefault();shoot(e.changedTouches[0]);},{passive:false});
+
+function shoot(e){
+  if(!running||ball.flying||!drag) return;
+  const r=canvas.getBoundingClientRect();
+  const ex=e.clientX-r.left,ey=e.clientY-r.top;
+  const dx=(ball.x-ex)*0.22,dy=(ball.y-ey)*0.22;
+  if(dy<-1){ball.vx=dx;ball.vy=dy;ball.flying=true;}
+  drag=null;
+}
+canvas.addEventListener('click',e=>{if(!running){const r=canvas.getBoundingClientRect();const x=e.clientX-r.left,y=e.clientY-r.top;if(x>W/2-60&&x<W/2+60&&y>H/2+25&&y<H/2+65) init();}});
+canvas.addEventListener('touchstart',e=>{if(!running){e.preventDefault();init();}},{passive:false});
+
+init();
+</script>
+</body>
+</html>

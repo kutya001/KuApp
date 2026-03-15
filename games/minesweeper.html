@@ -1,0 +1,167 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,user-scalable=no">
+<title>Сапёр</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:#0a0a0f;color:#f0f0f8;font-family:'JetBrains Mono',monospace;display:flex;flex-direction:column;align-items:center;height:100dvh;overflow:hidden;user-select:none;padding-top:8px}
+#top{display:flex;justify-content:space-between;align-items:center;width:100%;max-width:360px;padding:0 10px 8px}
+#diff-row{display:flex;gap:6px}
+.dbtn{background:#22222f;border:1px solid #22222f;color:#8888aa;padding:5px 10px;border-radius:6px;font-family:inherit;font-size:.68rem;cursor:pointer}
+.dbtn.on{border-color:#5b8cff;color:#5b8cff}
+#meta{display:flex;gap:16px;font-size:.72rem;color:#8888aa;align-items:center}
+#grid{display:inline-grid;gap:2px;background:#111118;border-radius:8px;padding:8px}
+.cell{display:flex;align-items:center;justify-content:center;border-radius:4px;cursor:pointer;font-weight:700;transition:background .1s;aspect-ratio:1}
+.cell.hidden{background:#1a1a24;border:1px solid #2c2c40}
+.cell.hidden:active{background:#22222f}
+.cell.flagged{background:#1a1a24;border:1px solid #ff8c42}
+.cell.open{background:#111118;cursor:default}
+.cell.mine{background:#ff4466;color:#fff}
+.cell.safe{background:rgba(0,229,160,.08)}
+.n1{color:#5b8cff}.n2{color:#00e5a0}.n3{color:#ff4466}.n4{color:#b05bff}.n5{color:#ff8c42}.n6{color:#00c8ff}.n7{color:#f0f0f8}.n8{color:#8888aa}
+#msg{position:fixed;inset:0;background:rgba(10,10,15,.88);display:none;flex-direction:column;align-items:center;justify-content:center;gap:12px}
+#msg h2{font-size:1.2rem}
+#msg p{font-size:.78rem;color:#8888aa}
+#mBtn{background:#00e5a0;color:#000;border:none;padding:11px 32px;border-radius:10px;font-size:.9rem;font-weight:700;cursor:pointer;font-family:inherit}
+#hint{font-size:.6rem;color:#44445a;text-align:center;padding:4px 0}
+</style>
+</head>
+<body>
+<div id="top">
+  <div id="diff-row">
+    <button class="dbtn on" data-r="8" data-c="9" data-m="10">Легко</button>
+    <button class="dbtn" data-r="10" data-c="10" data-m="15">Средне</button>
+    <button class="dbtn" data-r="12" data-c="10" data-m="22">Сложно</button>
+  </div>
+  <div id="meta">
+    <span>💣 <span id="mcount">10</span></span>
+    <span>⏱ <span id="timer">0</span></span>
+  </div>
+</div>
+<div id="grid"></div>
+<div id="hint">Долгое нажатие = флаг 🚩</div>
+<div id="msg"><h2 id="mtitle"></h2><p id="msub"></p><button id="mBtn">Ещё раз</button></div>
+
+<script>
+let ROWS=8,COLS=9,MINES=10;
+let board,revealed,flagged,minePos,first,over,sec,tid,flags;
+
+function newGame(){
+  board=Array(ROWS*COLS).fill(0);
+  revealed=Array(ROWS*COLS).fill(false);
+  flagged=Array(ROWS*COLS).fill(false);
+  minePos=new Set(); first=true; over=false; flags=0; sec=0;
+  document.getElementById('mcount').textContent=MINES;
+  document.getElementById('timer').textContent='0';
+  document.getElementById('msg').style.display='none';
+  clearInterval(tid);
+  renderGrid();
+}
+
+function placeMines(safe){
+  minePos.clear();
+  const safe9=neighbors(safe).concat([safe]);
+  while(minePos.size<MINES){
+    const i=Math.floor(Math.random()*ROWS*COLS);
+    if(!safe9.includes(i)) minePos.add(i);
+  }
+  minePos.forEach(i=>board[i]=-1);
+  for(let i=0;i<ROWS*COLS;i++){
+    if(board[i]===-1) continue;
+    board[i]=neighbors(i).filter(n=>minePos.has(n)).length;
+  }
+}
+
+function neighbors(i){
+  const r=Math.floor(i/COLS),c=i%COLS,ns=[];
+  for(let dr=-1;dr<=1;dr++) for(let dc=-1;dc<=1;dc++){
+    if(!dr&&!dc) continue;
+    const nr=r+dr,nc=c+dc;
+    if(nr>=0&&nr<ROWS&&nc>=0&&nc<COLS) ns.push(nr*COLS+nc);
+  }
+  return ns;
+}
+
+function reveal(i){
+  if(revealed[i]||flagged[i]) return;
+  revealed[i]=true;
+  if(board[i]===0) neighbors(i).forEach(n=>reveal(n));
+}
+
+function openCell(i){
+  if(over||flagged[i]) return;
+  if(first){
+    first=false; placeMines(i);
+    tid=setInterval(()=>{sec++;document.getElementById('timer').textContent=sec;},1000);
+  }
+  if(board[i]===-1){
+    revealed[i]=true; gameOver(false); return;
+  }
+  reveal(i); renderGrid();
+  if(checkWin()) gameOver(true);
+}
+
+function toggleFlag(i){
+  if(over||revealed[i]) return;
+  flagged[i]=!flagged[i];
+  flags+=flagged[i]?1:-1;
+  document.getElementById('mcount').textContent=MINES-flags;
+  renderGrid();
+}
+
+function checkWin(){
+  return Array.from({length:ROWS*COLS},(_,i)=>i)
+    .every(i=>minePos.has(i)?true:revealed[i]);
+}
+
+function gameOver(win){
+  over=true; clearInterval(tid);
+  if(!win) minePos.forEach(i=>revealed[i]=true);
+  renderGrid();
+  const m=document.getElementById('msg');
+  document.getElementById('mtitle').textContent=win?'🎉 Очищено!':'💥 Взрыв!';
+  document.getElementById('msub').textContent=win?`За ${sec} сек`:'Попробуй снова';
+  m.style.display='flex';
+}
+
+function renderGrid(){
+  const g=document.getElementById('grid');
+  g.style.gridTemplateColumns=`repeat(${COLS},1fr)`;
+  const sz=Math.min(32,Math.floor((window.innerWidth-32)/COLS));
+  g.innerHTML='';
+  for(let i=0;i<ROWS*COLS;i++){
+    const d=document.createElement('div');
+    d.style.width=d.style.height=sz+'px';
+    d.style.fontSize=Math.max(10,sz*.55)+'px';
+    if(revealed[i]){
+      if(board[i]===-1){d.className='cell mine';d.textContent='💣';}
+      else{
+        d.className='cell open'+(board[i]>0?` n${board[i]}`:'');
+        d.textContent=board[i]||'';
+        if(!board[i]) d.classList.add('safe');
+      }
+    } else if(flagged[i]){d.className='cell flagged';d.textContent='🚩';}
+    else{d.className='cell hidden';}
+
+    // Touch: долгое нажатие = флаг
+    let pt;
+    d.addEventListener('touchstart',()=>{pt=setTimeout(()=>{toggleFlag(i);},400);},{passive:true});
+    d.addEventListener('touchend',()=>clearTimeout(pt),{passive:true});
+    d.addEventListener('click',()=>openCell(i));
+    d.addEventListener('contextmenu',e=>{e.preventDefault();toggleFlag(i);});
+    g.appendChild(d);
+  }
+}
+
+document.querySelectorAll('.dbtn').forEach(b=>b.addEventListener('click',()=>{
+  ROWS=+b.dataset.r;COLS=+b.dataset.c;MINES=+b.dataset.m;
+  document.querySelectorAll('.dbtn').forEach(x=>x.classList.remove('on'));b.classList.add('on');
+  newGame();
+}));
+document.getElementById('mBtn').addEventListener('click',newGame);
+newGame();
+</script>
+</body>
+</html>

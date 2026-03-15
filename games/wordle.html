@@ -1,0 +1,201 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,user-scalable=no">
+<title>Слово</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:#0a0a0f;color:#f0f0f8;font-family:'JetBrains Mono',monospace;display:flex;flex-direction:column;align-items:center;height:100dvh;overflow:hidden;user-select:none}
+#top{padding:8px 0 6px;text-align:center}
+h3{font-size:1rem;font-weight:700;letter-spacing:.1em}
+#sub{font-size:.65rem;color:#8888aa;margin-top:2px}
+#board{display:flex;flex-direction:column;gap:6px;margin:8px 0}
+.row{display:flex;gap:6px}
+.tile{width:clamp(42px,12vw,52px);height:clamp(42px,12vw,52px);border:2px solid #2c2c40;border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:clamp(1.1rem,5vw,1.5rem);font-weight:700;transition:background .3s,border-color .3s}
+.tile.cur{border-color:#5b8cff}
+.tile.hit{background:#00e5a0;border-color:#00e5a0;color:#000}
+.tile.near{background:#ffd700;border-color:#ffd700;color:#000}
+.tile.miss{background:#22222f;border-color:#22222f}
+.tile.pop{animation:pop .15s}
+@keyframes pop{0%{transform:scale(1)}50%{transform:scale(1.12)}100%{transform:scale(1)}}
+.tile.shake{animation:shake .3s}
+@keyframes shake{0%,100%{transform:translateX(0)}25%{transform:translateX(-5px)}75%{transform:translateX(5px)}}
+#kbd{display:flex;flex-direction:column;gap:5px;margin-top:auto;padding-bottom:12px}
+.krow{display:flex;gap:4px;justify-content:center}
+.key{background:#22222f;border:none;color:#f0f0f8;border-radius:6px;padding:10px 5px;min-width:clamp(26px,7.5vw,34px);font-family:inherit;font-size:clamp(.65rem,2.5vw,.8rem);cursor:pointer;transition:background .2s}
+.key.wide{min-width:clamp(42px,11vw,54px);font-size:.65rem}
+.key.hit{background:#00e5a0;color:#000}
+.key.near{background:#ffd700;color:#000}
+.key.miss{background:#111118;color:#44445a}
+#toast{position:fixed;top:70px;left:50%;transform:translateX(-50%);background:#22222f;border:1px solid rgba(255,255,255,.15);color:#f0f0f8;padding:7px 18px;border-radius:20px;font-size:.8rem;pointer-events:none;opacity:0;transition:opacity .3s}
+#msg{position:fixed;inset:0;background:rgba(10,10,15,.88);display:none;flex-direction:column;align-items:center;justify-content:center;gap:12px}
+#msg h2{font-size:1.2rem}#msg p{font-size:.78rem;color:#8888aa;text-align:center}
+#mBtn{background:#5b8cff;color:#fff;border:none;padding:11px 32px;border-radius:10px;font-size:.9rem;font-weight:700;cursor:pointer;font-family:inherit}
+</style>
+</head>
+<body>
+<div id="top"><h3>СЛОВО</h3><div id="sub">Угадай слово за 6 попыток</div></div>
+<div id="board"></div>
+<div id="kbd"></div>
+<div id="toast"></div>
+<div id="msg"><h2 id="mt"></h2><p id="mp"></p><button id="mBtn">Новое слово</button></div>
+
+<script>
+// 5-буквенные русские слова
+const WORDS=['АБРИС','АГЕНТ','АДРЕС','АИСТ','АКЦИЯ','АЛГОРИТМ','АЛМАЗ','АЛЬФА','АНИМЕ','АНТРЕ',
+'АППАРАТ','АРЕСТ','АРКАДА','АРХИВ','АСТРА','АТАКА','АТЛЕТ','АФИША','БАДЬЯ','БАЛКА',
+'БАНАН','БАРИН','БАССЕЙН','БАТОН','БАШНЯ','БЕЛКА','БЕСЕДА','БИЗОН','БИЛЕТ','БИНГО',
+'БИРКА','БЛАНК','БЛЕСК','БЛИНТ','БЛЮДО','БОРЬБА','БОЧКА','БРАВО','БРИФИНГ','БУКВА',
+'БУНКЕР','ВАГОН','ВАЛЕТ','ВАРЯГ','ВЕКТОР','ВЕРБА','ВИЛКА','ВИТАЯ','ВИХРЬ','ВЛАСТЬ',
+'ВОЛНА','ВОПРОС','ВРЕМЯ','ВУЛКАН','ВЫХОД','ГЕНИЙ','ГЛАВА','ГЛАДЬ','ГОНКА','ГОРКА',
+'ГОСТЬ','ГРАНЬ','ГРОЗА','ГРУША','ГУБКА','ДАВКА','ДВЕРЬ','ДЕЛЕЦ','ДЕМОН','ДИВАН',
+'ДИЕТА','ДИСКО','ДОБРО','ДОКЕР','ДОСКА','ДОЧКА','ДРАКОН','ДРЕЛЬ','ДРОВА','ДРОЖЬ',
+'ДРОНА','ДУМКА','ДЫМКА','ДЯТЕЛ','ЕГЕРЬ','ЁЖИК','ЖАЖДА','ЖАНЕТ','ЖАРКОЕ','ЖЕЛУДЬ',
+'ЖЕТОН','ЖИЗНЬ','ЖИРАФ','ЖОНГЛЁР','ЗАБОР','ЗАГАР','ЗАГИБ','ЗАДОР','ЗАЙКА','ЗАЛИВ',
+'ЗАМОК','ЗАПАС','ЗЕФИР','ЗИМНИЙ','ЗОНТИК','ЗУБЕЦ','ИГРОК','ИВОЛГА','ИДЕАЛ','ИЗГИБ'].filter(w=>w.length===5);
+
+const ROWS_N=6,COLS_N=5;
+const LAYOUT=[
+  'ЙЦУКЕНГШЩЗХЪ',
+  'ФЫВАПРОЛДЖЭ',
+  'ЯЧСМИТЬБЮ',
+  'ДЕЙСТВО'
+];
+let target,guesses,current,over;
+const keyState={};
+
+function newGame(){
+  target=WORDS[Math.floor(Math.random()*WORDS.length)];
+  guesses=[];current='';over=false;
+  Object.keys(keyState).forEach(k=>delete keyState[k]);
+  document.getElementById('msg').style.display='none';
+  buildBoard();buildKbd();render();
+}
+
+function buildBoard(){
+  const b=document.getElementById('board');b.innerHTML='';
+  for(let r=0;r<ROWS_N;r++){
+    const row=document.createElement('div');row.className='row';row.id='row-'+r;
+    for(let c=0;c<COLS_N;c++){
+      const t=document.createElement('div');t.className='tile';t.id=`t-${r}-${c}`;
+      row.appendChild(t);
+    }
+    b.appendChild(row);
+  }
+}
+
+function buildKbd(){
+  const k=document.getElementById('kbd');k.innerHTML='';
+  // Действия в отдельной строке
+  [...LAYOUT,'ВВОД⌫'].forEach((row,ri)=>{
+    const div=document.createElement('div');div.className='krow';
+    if(ri<4){
+      [...row].forEach(ch=>{
+        const btn=document.createElement('button');btn.className='key';btn.textContent=ch;btn.dataset.k=ch;
+        btn.addEventListener('click',()=>inputChar(ch));div.appendChild(btn);
+      });
+    } else {
+      const enter=document.createElement('button');enter.className='key wide';enter.textContent='ВВОД';enter.addEventListener('click',submit);div.appendChild(enter);
+      const del=document.createElement('button');del.className='key wide';del.textContent='⌫';del.addEventListener('click',()=>del_ch());div.appendChild(del);
+    }
+    k.appendChild(div);
+  });
+}
+
+function render(){
+  const row=guesses.length;
+  // Заполнить текущую строку
+  for(let c=0;c<COLS_N;c++){
+    const t=document.getElementById(`t-${row}-${c}`);
+    if(!t) continue;
+    t.className='tile'+(c<current.length?' cur':'');
+    t.textContent=current[c]||'';
+  }
+}
+
+function inputChar(ch){
+  if(over||current.length>=COLS_N) return;
+  current+=ch;render();
+  const t=document.getElementById(`t-${guesses.length}-${current.length-1}`);
+  if(t){t.classList.add('pop');setTimeout(()=>t.classList.remove('pop'),150);}
+}
+
+function del_ch(){
+  if(!current.length) return;
+  current=current.slice(0,-1);render();
+}
+
+function submit(){
+  if(over||current.length<COLS_N){shake();return;}
+  if(!WORDS.includes(current)){toast('Нет в словаре');shake();return;}
+  const row=guesses.length;
+  const result=score(current,target);
+  result.forEach((r,c)=>{
+    const t=document.getElementById(`t-${row}-${c}`);
+    setTimeout(()=>{t.className='tile '+r;},c*80);
+    const ch=current[c];
+    if(!keyState[ch]||r==='hit'||(r==='near'&&keyState[ch]==='miss')) keyState[ch]=r;
+  });
+  setTimeout(updateKbd,(COLS_N-1)*80+200);
+  guesses.push(current);current='';
+  const won=result.every(r=>r==='hit');
+  setTimeout(()=>{
+    if(won){ over=true; showMsg('🎉 Верно!',`Слово: ${target}`); }
+    else if(guesses.length>=ROWS_N){ over=true; showMsg('😞 Не угадал',`Слово было: ${target}`); }
+    else render();
+  },COLS_N*80+300);
+}
+
+function score(guess,tgt){
+  const res=Array(COLS_N).fill('miss');
+  const rem=[...tgt];
+  // Сначала точные
+  for(let i=0;i<COLS_N;i++) if(guess[i]===tgt[i]){res[i]='hit';rem[rem.indexOf(guess[i])]='_';}
+  // Потом близкие
+  for(let i=0;i<COLS_N;i++){
+    if(res[i]==='hit') continue;
+    const idx=rem.indexOf(guess[i]);
+    if(idx>=0){res[i]='near';rem[idx]='_';}
+  }
+  return res;
+}
+
+function updateKbd(){
+  document.querySelectorAll('.key').forEach(btn=>{
+    const k=btn.dataset.k;if(!k) return;
+    const s=keyState[k];if(s) btn.className=`key ${s}`;
+  });
+}
+
+function shake(){
+  const row=document.getElementById('row-'+guesses.length);
+  row.querySelectorAll('.tile').forEach(t=>{t.classList.add('shake');setTimeout(()=>t.classList.remove('shake'),300);});
+}
+
+let toastTid;
+function toast(msg){
+  const t=document.getElementById('toast');t.textContent=msg;t.style.opacity='1';
+  clearTimeout(toastTid);toastTid=setTimeout(()=>t.style.opacity='0',1500);
+}
+
+function showMsg(h,p){
+  document.getElementById('mt').textContent=h;
+  document.getElementById('mp').textContent=p;
+  document.getElementById('msg').style.display='flex';
+}
+
+document.addEventListener('keydown',e=>{
+  if(e.key==='Enter') submit();
+  else if(e.key==='Backspace') del_ch();
+  else {
+    const ch=e.key.toUpperCase();
+    if('АБВГДЕЁЖЗИЙКЛМНОПРСТУФХЦЧШЩЪЫЬЭЮЯ'.includes(ch)) inputChar(ch);
+  }
+});
+
+document.getElementById('mBtn').addEventListener('click',newGame);
+newGame();
+</script>
+</body>
+</html>

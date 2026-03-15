@@ -1,0 +1,105 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,user-scalable=no">
+<title>Найди пару</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:#0a0a0f;color:#f0f0f8;font-family:'JetBrains Mono',monospace;display:flex;flex-direction:column;align-items:center;height:100dvh;overflow:hidden;user-select:none;padding:10px}
+#top{display:flex;justify-content:space-between;align-items:center;width:min(94vw,360px);margin-bottom:10px}
+#diff-row{display:flex;gap:6px}
+.dbtn{background:#22222f;border:1px solid #22222f;color:#8888aa;padding:5px 10px;border-radius:6px;font-family:inherit;font-size:.68rem;cursor:pointer}
+.dbtn.on{border-color:#5b8cff;color:#5b8cff}
+#meta{font-size:.75rem;color:#8888aa}
+#grid{display:grid;gap:8px;width:min(94vw,360px)}
+.card{aspect-ratio:1;border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:clamp(1.4rem,7vw,2rem);cursor:pointer;transition:transform .2s,background .2s;background:#1a1a24;border:1px solid #2c2c40}
+.card.flip{background:#22222f;transform:rotateY(180deg)}
+.card.show{background:#1a1a24;border-color:#2c2c40}
+.card.matched{background:rgba(0,229,160,.12);border-color:#00e5a0;cursor:default}
+.card.shake{animation:shake .3s}
+@keyframes shake{0%,100%{transform:translateX(0)}25%{transform:translateX(-4px)}75%{transform:translateX(4px)}}
+#msg{position:fixed;inset:0;background:rgba(10,10,15,.88);display:none;flex-direction:column;align-items:center;justify-content:center;gap:12px}
+#msg h2{font-size:1.2rem}#msg p{font-size:.78rem;color:#8888aa}
+#mBtn{background:#ffd700;color:#000;border:none;padding:11px 32px;border-radius:10px;font-size:.95rem;font-weight:700;cursor:pointer;font-family:inherit}
+</style>
+</head>
+<body>
+<div id="top">
+  <div id="diff-row">
+    <button class="dbtn on" data-p="6">3×4</button>
+    <button class="dbtn" data-p="8">4×4</button>
+    <button class="dbtn" data-p="10">4×5</button>
+  </div>
+  <div id="meta">🔄 <span id="tries">0</span> попыток</div>
+</div>
+<div id="grid"></div>
+<div id="msg"><h2>🎉 Все пары!</h2><p id="msub"></p><button id="mBtn">Ещё раз</button></div>
+
+<script>
+const SETS=[
+  ['🏋️','🧘','🚴','🏊','🤸','🏃','⛹️','🤼','🥊','🥋'],
+  ['💪','🦵','🦶','👊','🙌','🤲','🦾','🧠','❤️','🔥'],
+];
+let pairs=6,cards=[],flipped=[],matched=0,locked=false,tries=0,tid;
+
+function newGame(){
+  matched=0;tries=0;flipped=[];locked=false;
+  document.getElementById('tries').textContent=0;
+  document.getElementById('msg').style.display='none';
+  const pool=[...SETS[0],...SETS[1]].slice(0,pairs);
+  cards=[...pool,...pool].sort(()=>Math.random()-.5);
+  renderGrid();
+}
+
+function renderGrid(){
+  const g=document.getElementById('grid');
+  const cols=pairs<=6?3:4;
+  g.style.gridTemplateColumns=`repeat(${cols},1fr)`;
+  g.innerHTML='';
+  cards.forEach((em,i)=>{
+    const d=document.createElement('div');
+    d.className='card';d.dataset.i=i;d.dataset.em=em;
+    d.textContent='';
+    d.addEventListener('click',()=>flip(d,i));
+    g.appendChild(d);
+  });
+}
+
+function flip(d,i){
+  if(locked||d.classList.contains('matched')||flipped.includes(i)) return;
+  d.textContent=cards[i];d.classList.add('show');
+  flipped.push(i);
+  if(flipped.length===2){
+    locked=true;tries++;
+    document.getElementById('tries').textContent=tries;
+    const [a,b]=flipped;
+    const da=document.querySelector(`[data-i="${a}"]`),db=document.querySelector(`[data-i="${b}"]`);
+    if(cards[a]===cards[b]){
+      da.classList.add('matched');db.classList.add('matched');
+      matched+=2;flipped=[];locked=false;
+      if(matched===cards.length){
+        const eff=Math.round((pairs*2/tries)*100);
+        document.getElementById('msub').textContent=`${tries} попыток · КПД ${eff}%`;
+        document.getElementById('msg').style.display='flex';
+      }
+    } else {
+      setTimeout(()=>{
+        da.textContent='';da.classList.remove('show');
+        db.textContent='';db.classList.remove('show');
+        flipped=[];locked=false;
+      },900);
+    }
+  }
+}
+
+document.querySelectorAll('.dbtn').forEach(b=>b.addEventListener('click',()=>{
+  pairs=+b.dataset.p;
+  document.querySelectorAll('.dbtn').forEach(x=>x.classList.remove('on'));b.classList.add('on');
+  newGame();
+}));
+document.getElementById('mBtn').addEventListener('click',newGame);
+newGame();
+</script>
+</body>
+</html>

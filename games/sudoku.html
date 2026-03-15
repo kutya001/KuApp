@@ -1,0 +1,172 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,user-scalable=no">
+<title>Судоку</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+:root{--bg:#0a0a0f;--s1:#1a1a24;--s2:#22222f;--t:#f0f0f8;--t2:#8888aa;--g:#00e5a0;--b:#5b8cff;--r:#ff4466;--y:#ffd700}
+body{background:var(--bg);color:var(--t);font-family:'JetBrains Mono',monospace;display:flex;flex-direction:column;align-items:center;height:100dvh;overflow:hidden;user-select:none}
+#top{display:flex;justify-content:space-between;align-items:center;width:min(94vw,360px);padding:8px 0 6px}
+#diff-row{display:flex;gap:6px}
+.dbtn{background:var(--s2);border:1px solid var(--s2);color:var(--t2);padding:5px 12px;border-radius:6px;font-family:inherit;font-size:.7rem;cursor:pointer}
+.dbtn.on{border-color:var(--b);color:var(--b)}
+#timer{font-size:.75rem;color:var(--t2)}
+#board{display:grid;grid-template-columns:repeat(9,1fr);gap:1px;background:#333;border:2px solid #555;border-radius:4px;width:min(94vw,360px);margin-bottom:10px}
+.cell{aspect-ratio:1;background:var(--s1);display:flex;align-items:center;justify-content:center;font-size:clamp(.8rem,3.5vw,1.1rem);cursor:pointer;transition:background .1s;position:relative}
+.cell.given{font-weight:700;color:var(--t)}
+.cell.user{color:var(--b)}
+.cell.sel{background:#2a2a40}
+.cell.err{color:var(--r)!important}
+.cell.hint-hi{background:rgba(91,140,255,.15)}
+.cell.box-r{border-right:2px solid #555}
+.cell.box-b{border-bottom:2px solid #555}
+#numpad{display:grid;grid-template-columns:repeat(5,1fr);gap:6px;width:min(94vw,360px)}
+.nBtn{background:var(--s1);border:1px solid var(--s2);border-radius:8px;padding:10px 4px;font-size:1.1rem;font-weight:700;cursor:pointer;transition:background .1s}
+.nBtn:active{background:var(--s2)}
+#actions{display:flex;gap:8px;width:min(94vw,360px);margin-top:8px}
+.aBtn{flex:1;background:transparent;border:1px solid var(--s2);color:var(--t2);border-radius:8px;padding:8px 4px;font-family:inherit;font-size:.72rem;cursor:pointer}
+.aBtn:hover{background:var(--s2)}
+#msg{position:fixed;inset:0;background:rgba(10,10,15,.88);display:none;flex-direction:column;align-items:center;justify-content:center;gap:12px}
+#msg h2{font-size:1.2rem}
+#msg p{font-size:.78rem;color:var(--t2)}
+#mBtn{background:var(--g);color:#000;border:none;padding:11px 32px;border-radius:10px;font-size:.95rem;font-weight:700;cursor:pointer;font-family:inherit}
+</style>
+</head>
+<body>
+<div id="top">
+  <div id="diff-row">
+    <button class="dbtn on" data-d="0">Легко</button>
+    <button class="dbtn" data-d="1">Средне</button>
+    <button class="dbtn" data-d="2">Сложно</button>
+  </div>
+  <div id="timer">00:00</div>
+</div>
+<div id="board"></div>
+<div id="numpad"></div>
+<div id="actions">
+  <button class="aBtn" id="aErase">⌫ Стереть</button>
+  <button class="aBtn" id="aHint">💡 Подсказка</button>
+  <button class="aBtn" id="aNew">Новая</button>
+</div>
+<div id="msg"><h2></h2><p></p><button id="mBtn">Ещё раз</button></div>
+
+<script>
+const REMOVE=[30,45,55];
+let puzzle,solution,given,selected=null,diff=0,seconds=0,timerID,hints=3;
+
+function gen(){
+  // Simple backtracking fill
+  const b=Array(81).fill(0);
+  fill(b,0);
+  return b;
+}
+function fill(b,pos){
+  if(pos===81) return true;
+  const nums=[1,2,3,4,5,6,7,8,9].sort(()=>Math.random()-.5);
+  for(const n of nums){
+    if(ok(b,pos,n)){b[pos]=n;if(fill(b,pos+1)) return true;b[pos]=0;}
+  }
+  return false;
+}
+function ok(b,pos,n){
+  const r=Math.floor(pos/9),c=pos%9;
+  for(let i=0;i<9;i++){if(b[r*9+i]===n||b[i*9+c]===n) return false;}
+  const br=Math.floor(r/3)*3,bc=Math.floor(c/3)*3;
+  for(let i=0;i<3;i++) for(let j=0;j<3;j++){if(b[(br+i)*9+bc+j]===n) return false;}
+  return true;
+}
+
+function newGame(){
+  solution=gen();
+  puzzle=solution.slice();
+  given=Array(81).fill(false);
+  let rem=REMOVE[diff];
+  const idxs=[...Array(81).keys()].sort(()=>Math.random()-.5);
+  for(let i=0;i<rem;i++) puzzle[idxs[i]]=0;
+  for(let i=0;i<81;i++) given[i]=puzzle[i]!==0;
+  selected=null; hints=3;
+  clearInterval(timerID); seconds=0; updateTimer();
+  timerID=setInterval(()=>{seconds++;updateTimer();},1000);
+  render(); document.getElementById('msg').style.display='none';
+}
+
+function updateTimer(){
+  const m=String(Math.floor(seconds/60)).padStart(2,'0');
+  const s=String(seconds%60).padStart(2,'0');
+  document.getElementById('timer').textContent=`${m}:${s}`;
+}
+
+function render(){
+  const bd=document.getElementById('board');
+  bd.innerHTML='';
+  for(let i=0;i<81;i++){
+    const c=document.createElement('div');
+    const r=Math.floor(i/9),col=i%9;
+    c.className='cell'+(given[i]?' given':puzzle[i]?' user':'')+
+      (selected===i?' sel':'')+
+      (selected!==null&&puzzle[selected]&&puzzle[i]===puzzle[selected]&&i!==selected?' hint-hi':'')+
+      (!ok(puzzle,i,puzzle[i])&&puzzle[i]&&!given[i]?' err':'')+
+      (col===2||col===5?' box-r':'')+(r===2||r===5?' box-b':'');
+    c.textContent=puzzle[i]||'';
+    c.addEventListener('click',()=>{selected=i;render();});
+    bd.appendChild(c);
+  }
+}
+
+function input(n){
+  if(selected===null||given[selected]) return;
+  puzzle[selected]=n;
+  render();
+  if(puzzle.every((v,i)=>v===solution[i])){
+    clearInterval(timerID);
+    const m=String(Math.floor(seconds/60)).padStart(2,'0'),s=String(seconds%60).padStart(2,'0');
+    showMsg('🎉 Решено!',`Время: ${m}:${s}`);
+  }
+}
+
+function showMsg(t,p){
+  const m=document.getElementById('msg');
+  m.querySelector('h2').textContent=t;
+  m.querySelector('p').textContent=p;
+  m.style.display='flex';
+}
+
+document.getElementById('numpad').innerHTML=[1,2,3,4,5,6,7,8,9,'✕'].map(n=>
+  `<button class="nBtn" data-n="${n}">${n}</button>`).join('');
+document.getElementById('numpad').addEventListener('click',e=>{
+  const n=e.target.dataset.n; if(n===undefined) return;
+  input(n==='✕'?0:+n);
+});
+
+document.getElementById('aErase').addEventListener('click',()=>input(0));
+document.getElementById('aHint').addEventListener('click',()=>{
+  if(!hints||selected===null||given[selected]) return;
+  puzzle[selected]=solution[selected]; hints--; render();
+  document.getElementById('aHint').textContent=`💡 Подсказка (${hints})`;
+});
+document.getElementById('aNew').addEventListener('click',newGame);
+document.getElementById('mBtn').addEventListener('click',newGame);
+document.querySelectorAll('.dbtn').forEach(b=>b.addEventListener('click',()=>{
+  diff=+b.dataset.d;
+  document.querySelectorAll('.dbtn').forEach(x=>x.classList.remove('on'));
+  b.classList.add('on'); newGame();
+}));
+
+document.addEventListener('keydown',e=>{
+  if(e.key>='1'&&e.key<='9') input(+e.key);
+  if(e.key==='Backspace'||e.key==='Delete') input(0);
+  if(!selected) return;
+  const r=Math.floor(selected/9),c=selected%9;
+  if(e.key==='ArrowRight') selected=r*9+Math.min(8,c+1);
+  if(e.key==='ArrowLeft') selected=r*9+Math.max(0,c-1);
+  if(e.key==='ArrowDown') selected=Math.min(80,selected+9);
+  if(e.key==='ArrowUp') selected=Math.max(0,selected-9);
+  render();
+});
+
+newGame();
+</script>
+</body>
+</html>
