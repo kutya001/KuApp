@@ -1,0 +1,144 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,user-scalable=no">
+<title>Крестики-нолики</title>
+<style>
+  *{box-sizing:border-box;margin:0;padding:0}
+  :root{--bg:#0a0a0f;--sur:#1a1a24;--sur2:#22222f;--text:#f0f0f8;--text2:#8888aa;--g:#00e5a0;--r:#ff4466;--b:#5b8cff;--y:#ffd700}
+  body{background:var(--bg);color:var(--text);font-family:'JetBrains Mono',monospace;display:flex;flex-direction:column;align-items:center;justify-content:center;height:100dvh;gap:16px;user-select:none}
+  #status{font-size:.9rem;color:var(--text2);letter-spacing:.06em;height:20px;text-align:center}
+  #board{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;width:min(80vw,280px)}
+  .cell{aspect-ratio:1;background:var(--sur);border-radius:12px;border:2px solid var(--sur2);display:flex;align-items:center;justify-content:center;font-size:2.8rem;cursor:pointer;transition:background .15s,border-color .15s}
+  .cell:hover:not(.taken){background:var(--sur2);border-color:rgba(255,255,255,.15)}
+  .cell.taken{cursor:default}
+  .cell.x{color:var(--b)}
+  .cell.o{color:var(--r)}
+  .cell.win{border-color:var(--y)!important;background:rgba(255,215,0,.08)!important}
+  #score-row{display:flex;gap:24px;font-size:.75rem;color:var(--text2)}
+  .sc{text-align:center}.sc-val{font-size:1.3rem;font-weight:700;color:var(--text)}
+  #btn-new{background:transparent;border:1px solid rgba(255,255,255,.15);color:var(--text2);padding:9px 28px;border-radius:8px;font-family:inherit;font-size:.85rem;cursor:pointer}
+  #btn-new:hover{background:var(--sur2);color:var(--text)}
+  #diff-row{display:flex;gap:8px}
+  .diff-btn{background:var(--sur2);border:1px solid var(--sur2);color:var(--text2);padding:6px 14px;border-radius:6px;font-family:inherit;font-size:.7rem;cursor:pointer}
+  .diff-btn.active{border-color:var(--b);color:var(--b)}
+</style>
+</head>
+<body>
+<div id="diff-row">
+  <button class="diff-btn" data-d="easy">Легко</button>
+  <button class="diff-btn active" data-d="hard">Сложно</button>
+</div>
+<div id="status">Ваш ход</div>
+<div id="board"></div>
+<div id="score-row">
+  <div class="sc"><div class="sc-val" id="sw">0</div><div>Вы</div></div>
+  <div class="sc"><div class="sc-val" id="sd">0</div><div>Ничья</div></div>
+  <div class="sc"><div class="sc-val" id="sl">0</div><div>ИИ</div></div>
+</div>
+<button id="btn-new">Новая игра</button>
+
+<script>
+const WINS=[[0,1,2],[3,4,5],[6,7,8],[0,3,6],[1,4,7],[2,5,8],[0,4,8],[2,4,6]];
+let board,human='X',ai='O',scores={w:0,d:0,l:0},locked=false,diff='hard';
+
+function $(id){return document.getElementById(id);}
+
+function renderBoard(){
+  const el=$('board'); el.innerHTML='';
+  board.forEach((v,i)=>{
+    const c=document.createElement('div');
+    c.className='cell'+(v?` taken ${v.toLowerCase()}`:'');
+    c.textContent=v==='X'?'✕':v==='O'?'○':'';
+    if(!v&&!locked) c.addEventListener('click',()=>humanMove(i));
+    el.appendChild(c);
+  });
+}
+
+function checkWin(b,p){
+  return WINS.find(w=>w.every(i=>b[i]===p))||null;
+}
+
+function humanMove(i){
+  if(board[i]||locked) return;
+  board[i]=human; renderBoard();
+  const w=checkWin(board,human);
+  if(w){highlight(w);end('win');return;}
+  if(board.every(Boolean)){end('draw');return;}
+  locked=true; $('status').textContent='Думает…';
+  setTimeout(()=>{aiMove();},diff==='hard'?300:100);
+}
+
+function aiMove(){
+  const idx=diff==='hard'?bestMove():randomMove();
+  board[idx]=ai; renderBoard();
+  const w=checkWin(board,ai);
+  if(w){highlight(w);end('lose');return;}
+  if(board.every(Boolean)){end('draw');return;}
+  locked=false; $('status').textContent='Ваш ход';
+}
+
+function randomMove(){
+  const empty=board.map((v,i)=>v?-1:i).filter(v=>v>=0);
+  return empty[Math.floor(Math.random()*empty.length)];
+}
+
+function bestMove(){
+  let best=-Infinity,move=0;
+  board.forEach((_,i)=>{
+    if(board[i]) return;
+    board[i]=ai;
+    const s=minimax(board,0,false);
+    board[i]=null;
+    if(s>best){best=s;move=i;}
+  });
+  return move;
+}
+
+function minimax(b,depth,isMax){
+  if(checkWin(b,ai)) return 10-depth;
+  if(checkWin(b,human)) return depth-10;
+  if(b.every(Boolean)) return 0;
+  if(isMax){
+    let best=-Infinity;
+    b.forEach((_,i)=>{ if(!b[i]){b[i]=ai;best=Math.max(best,minimax(b,depth+1,false));b[i]=null;} });
+    return best;
+  } else {
+    let best=Infinity;
+    b.forEach((_,i)=>{ if(!b[i]){b[i]=human;best=Math.min(best,minimax(b,depth+1,true));b[i]=null;} });
+    return best;
+  }
+}
+
+function highlight(w){
+  const cells=$('board').children;
+  w.forEach(i=>cells[i].classList.add('win'));
+}
+
+function end(result){
+  locked=true;
+  if(result==='win'){scores.w++;$('sw').textContent=scores.w;$('status').textContent='🎉 Вы победили!';}
+  else if(result==='lose'){scores.l++;$('sl').textContent=scores.l;$('status').textContent='🤖 ИИ победил';}
+  else{scores.d++;$('sd').textContent=scores.d;$('status').textContent='🤝 Ничья';}
+}
+
+function newGame(){
+  board=Array(9).fill(null); locked=false;
+  $('status').textContent='Ваш ход'; renderBoard();
+}
+
+$('btn-new').addEventListener('click',newGame);
+document.querySelectorAll('.diff-btn').forEach(b=>{
+  b.addEventListener('click',()=>{
+    diff=b.dataset.d;
+    document.querySelectorAll('.diff-btn').forEach(x=>x.classList.remove('active'));
+    b.classList.add('active');
+    newGame();
+  });
+});
+
+newGame();
+</script>
+</body>
+</html>

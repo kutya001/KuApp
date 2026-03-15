@@ -1,4 +1,4 @@
-const CACHE_NAME = 'mcgill-trainer-v3';
+const CACHE_NAME = 'mcgill-trainer-v4';
 const STATIC_ASSETS = [
     '/McGill/',
     '/McGill/index.html',
@@ -28,8 +28,8 @@ self.addEventListener('activate', (event) => {
 self.addEventListener('fetch', (event) => {
     const url = event.request.url;
 
-    // index.json — Network First
-    if (url.includes('workouts/index.json')) {
+    // index.json (workouts + games) — Network First
+    if (url.includes('workouts/index.json') || url.includes('games/index.json')) {
         event.respondWith(
             fetch(event.request)
                 .then(response => {
@@ -39,8 +39,9 @@ self.addEventListener('fetch', (event) => {
                         try {
                             const data = await toCache.json();
                             const base = url.replace('index.json', '');
-                            data.forEach(file => {
-                                const fileUrl = base + file;
+                            const files = Array.isArray(data) ? data : [];
+                            files.forEach(entry => {
+                                const fileUrl = base + (typeof entry === 'string' ? entry : entry.file);
                                 cache.match(fileUrl).then(cached => {
                                     if (!cached) fetch(fileUrl).then(r => { if(r.ok) cache.put(fileUrl, r); }).catch(()=>{});
                                 });
@@ -54,8 +55,9 @@ self.addEventListener('fetch', (event) => {
         return;
     }
 
-    // Workout JSON — Stale-While-Revalidate
-    if (url.includes('/workouts/') && url.endsWith('.json')) {
+    // Workouts JSON + Games HTML — Stale-While-Revalidate
+    if ((url.includes('/workouts/') && url.endsWith('.json')) ||
+        (url.includes('/games/') && (url.endsWith('.html') || url.endsWith('.json')))) {
         event.respondWith(
             caches.match(event.request).then(cached => {
                 const networkFetch = fetch(event.request).then(response => {

@@ -219,6 +219,15 @@
         .ai-steps code { background: var(--surface-3); padding: 1px 5px; border-radius: 4px; font-family: 'JetBrains Mono', monospace; font-size: 0.75rem; color: var(--text); }
         .prompt-box { background: var(--surface-2); border: 1px solid var(--border); border-radius: var(--radius-sm); padding: 12px; font-family: 'JetBrains Mono', monospace; font-size: 0.72rem; color: var(--text-2); line-height: 1.6; white-space: pre-wrap; word-break: break-word; margin-bottom: 10px; max-height: 220px; overflow-y: auto; user-select: text; }
 
+        /* ── ИГРЫ ── */
+        .game-card { display:flex; align-items:center; gap:12px; background:var(--surface-2); border:1px solid var(--border); border-radius:var(--radius-sm); padding:12px 14px; margin-bottom:8px; cursor:pointer; transition:background .15s; }
+        .game-card:hover { background:var(--surface-3); }
+        .game-icon { font-size:1.8rem; flex-shrink:0; width:44px; text-align:center; }
+        .game-info { flex:1; min-width:0; }
+        .game-name { font-size:.9rem; font-weight:700; margin-bottom:2px; }
+        .game-desc { font-size:.72rem; color:var(--text-2); }
+        .game-arrow { color:var(--text-3); font-size:1rem; }
+
         ::-webkit-scrollbar { width: 4px; }
         ::-webkit-scrollbar-track { background: transparent; }
         ::-webkit-scrollbar-thumb { background: var(--border-hi); border-radius: 2px; }
@@ -236,6 +245,9 @@
     </div>
     <div id="offline-badge">офлайн</div>
     <div class="header-btns">
+        <button class="btn-icon" id="btn-games" title="Игры" aria-label="Игры">
+            <svg viewBox="0 0 24 24"><rect x="2" y="7" width="20" height="14" rx="3"/><path d="M16 2l2 5M8 2l-2 5"/><line x1="9" y1="14" x2="11" y2="14"/><line x1="10" y1="13" x2="10" y2="15"/><circle cx="15" cy="13" r=".8" fill="currentColor" stroke="none"/><circle cx="17" cy="15" r=".8" fill="currentColor" stroke="none"/></svg>
+        </button>
         <button class="btn-icon" id="btn-desc" title="Схема" aria-label="Схема тренировки">
             <svg viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>
         </button>
@@ -281,6 +293,27 @@
 
     <div class="timeline" id="timeline" role="list" aria-label="Предстоящие шаги"></div>
 </main>
+
+<!-- ═══ Игры ═══ -->
+<div class="modal-backdrop" id="modal-games" role="dialog" aria-label="Игры">
+    <div class="modal-sheet" style="max-height:96dvh">
+        <div class="modal-handle"></div>
+        <div class="modal-header"><h2>🎮 Игры</h2><button class="btn-close" data-close="modal-games">×</button></div>
+        <div class="modal-body">
+            <div id="games-catalog"></div>
+        </div>
+    </div>
+</div>
+
+<!-- ═══ Игра-фрейм ═══ -->
+<div id="game-frame-wrap" style="display:none;position:fixed;inset:0;z-index:200;background:#0a0a0f;flex-direction:column">
+    <div style="display:flex;align-items:center;gap:10px;padding:10px 14px;background:#111118;border-bottom:1px solid rgba(255,255,255,.07);flex-shrink:0">
+        <button id="btn-game-back" style="background:#22222f;border:1px solid rgba(255,255,255,.15);color:#f0f0f8;width:34px;height:34px;border-radius:8px;font-size:1rem;cursor:pointer;display:flex;align-items:center;justify-content:center">←</button>
+        <span id="game-frame-title" style="font-family:'Manrope',sans-serif;font-weight:700;font-size:.95rem;flex:1"></span>
+        <span id="game-pause-note" style="font-size:.65rem;color:#ff8c42;font-family:'JetBrains Mono',monospace">⏸ тренировка на паузе</span>
+    </div>
+    <iframe id="game-iframe" style="flex:1;border:none;width:100%;background:#0a0a0f" sandbox="allow-scripts allow-same-origin" allowfullscreen></iframe>
+</div>
 
 <!-- ═══ Схема ═══ -->
 <div class="modal-backdrop" id="modal-desc" role="dialog" aria-label="Схема тренировки">
@@ -891,12 +924,70 @@ $('import-file').addEventListener('change', async e=>{
 });
 
 // ═══════════════════════════════════════════════════════════════════
+//  ИГРЫ
+// ═══════════════════════════════════════════════════════════════════
+let gamesData = [];
+
+async function fetchGames() {
+    try {
+        const res = await fetch('./games/index.json');
+        if (!res.ok) return;
+        gamesData = await res.json();
+    } catch(e) { console.warn('games/index.json не найден:', e); }
+}
+
+function renderGamesCatalog() {
+    const el = $('games-catalog');
+    if (!gamesData.length) {
+        el.innerHTML = `<div style="text-align:center;color:var(--text-3);padding:24px;font-size:.82rem">Игры не найдены.<br>Добавьте HTML-файлы в папку games/</div>`;
+        return;
+    }
+    el.innerHTML = gamesData.map(g => `
+        <div class="game-card" data-file="${g.file}" data-name="${g.name}">
+            <div class="game-icon">${g.icon}</div>
+            <div class="game-info">
+                <div class="game-name">${g.name}</div>
+                <div class="game-desc">${g.desc}</div>
+            </div>
+            <div class="game-arrow">›</div>
+        </div>`).join('');
+    el.querySelectorAll('.game-card').forEach(card => {
+        card.addEventListener('click', () => openGame(card.dataset.file, card.dataset.name));
+    });
+}
+
+function openGame(file, name) {
+    closeModal('modal-games');
+    // Ставим тренировку на паузу если идёт
+    const wasRunning = state.isRunning;
+    if (wasRunning) pauseTimer();
+    $('game-pause-note').style.display = wasRunning ? 'block' : 'none';
+    $('game-frame-title').textContent = name;
+    $('game-iframe').src = `./games/${file}`;
+    const wrap = $('game-frame-wrap');
+    wrap.style.display = 'flex';
+}
+
+function closeGame() {
+    $('game-frame-wrap').style.display = 'none';
+    $('game-iframe').src = 'about:blank';
+}
+
+$('btn-game-back').addEventListener('click', closeGame);
+
+// ═══════════════════════════════════════════════════════════════════
 //  МОДАЛЫ
 // ═══════════════════════════════════════════════════════════════════
-function openModal(id) { $(id).classList.add('open'); if(id==='modal-cache') refreshCacheList(); if(id==='modal-history') renderHistory(); }
+function openModal(id) {
+    $(id).classList.add('open');
+    if(id==='modal-cache') refreshCacheList();
+    if(id==='modal-history') renderHistory();
+    if(id==='modal-games') renderGamesCatalog();
+}
 function closeModal(id) { $(id).classList.remove('open'); }
 document.querySelectorAll('[data-close]').forEach(btn=>btn.addEventListener('click',()=>closeModal(btn.dataset.close)));
 document.querySelectorAll('.modal-backdrop').forEach(m=>m.addEventListener('click',e=>{ if(e.target===m) closeModal(m.id); }));
+$('btn-games').addEventListener('click',   ()=>openModal('modal-games'));
 $('btn-desc').addEventListener('click',    ()=>openModal('modal-desc'));
 $('btn-history').addEventListener('click', ()=>openModal('modal-history'));
 $('btn-sound').addEventListener('click',   ()=>openModal('modal-sound'));
@@ -995,6 +1086,7 @@ document.addEventListener('visibilitychange', resumeAudioOnVisible);
 // ═══════════════════════════════════════════════════════════════════
 loadSoundCfg();
 fetchWorkouts();
+fetchGames();
 if('serviceWorker' in navigator) window.addEventListener('load',()=>navigator.serviceWorker.register('./sw.js').then(r=>console.log('SW:',r.scope)).catch(e=>console.error('SW error:',e)));
 </script>
 </body>

@@ -1,0 +1,156 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,user-scalable=no">
+<title>2048</title>
+<style>
+  *{box-sizing:border-box;margin:0;padding:0}
+  :root{--bg:#0a0a0f;--sur:#1a1a24;--sur2:#22222f;--text:#f0f0f8;--text2:#8888aa}
+  body{background:var(--bg);color:var(--text);font-family:'JetBrains Mono',monospace;display:flex;flex-direction:column;align-items:center;height:100dvh;overflow:hidden;user-select:none;padding-top:10px}
+  #hdr{display:flex;justify-content:space-between;align-items:center;width:min(92vw,340px);margin-bottom:10px}
+  #title{font-size:1.6rem;font-weight:700}
+  .sc-box{background:var(--sur);border-radius:8px;padding:4px 14px;text-align:center;min-width:60px}
+  .sc-lbl{font-size:.55rem;color:var(--text2);letter-spacing:.1em}
+  .sc-val{font-size:1rem;font-weight:700}
+  #grid{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;background:var(--sur);border-radius:12px;padding:10px;width:min(92vw,340px)}
+  .tile{aspect-ratio:1;border-radius:8px;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:1.4rem;transition:background .1s}
+  .t0{background:#22222f}
+  .t2{background:#3a3a50;color:#f0f0f8}
+  .t4{background:#4a3a60;color:#f0f0f8}
+  .t8{background:#5b4a80;color:#fff}
+  .t16{background:#2d6e8a;color:#fff}
+  .t32{background:#1a8a6a;color:#fff}
+  .t64{background:#00c897;color:#000;font-size:1.2rem}
+  .t128{background:#00e5a0;color:#000;font-size:1.1rem}
+  .t256{background:#ffd700;color:#000;font-size:1rem}
+  .t512{background:#ffb020;color:#000;font-size:1rem}
+  .t1024{background:#ff8c42;color:#000;font-size:.9rem}
+  .t2048{background:#ff4466;color:#fff;font-size:.85rem}
+  .tbig{background:#ff4466;color:#fff;font-size:.7rem}
+  #msg{position:fixed;inset:0;background:rgba(10,10,15,.85);display:none;flex-direction:column;align-items:center;justify-content:center;gap:12px;font-size:1.2rem;font-weight:700}
+  #msg p{font-size:.8rem;color:var(--text2)}
+  #btn-r{background:#00e5a0;color:#000;border:none;padding:11px 32px;border-radius:10px;font-size:.95rem;font-weight:700;cursor:pointer;font-family:inherit}
+  #btn-new{background:transparent;border:1px solid rgba(255,255,255,.15);color:var(--text2);padding:7px 18px;border-radius:8px;font-family:inherit;font-size:.75rem;cursor:pointer;margin-top:8px}
+</style>
+</head>
+<body>
+<div id="hdr">
+  <div id="title">2048</div>
+  <div style="display:flex;gap:8px">
+    <div class="sc-box"><div class="sc-lbl">СЧЁТ</div><div class="sc-val" id="score">0</div></div>
+    <div class="sc-box"><div class="sc-lbl">РЕКОРД</div><div class="sc-val" id="best">0</div></div>
+  </div>
+</div>
+<div id="grid"></div>
+<button id="btn-new">Новая игра</button>
+
+<div id="msg">
+  <div id="msg-text">🎉 2048!</div>
+  <p id="msg-sub"></p>
+  <button id="btn-r">Ещё раз</button>
+</div>
+
+<script>
+let board,score,best=+localStorage.getItem('2048_best')||0,over=false;
+const gridEl=document.getElementById('grid');
+const scoreEl=document.getElementById('score');
+const bestEl=document.getElementById('best');
+const msg=document.getElementById('msg');
+bestEl.textContent=best;
+
+function newGame(){
+  board=Array(16).fill(0); score=0; over=false;
+  scoreEl.textContent=0; msg.style.display='none';
+  addTile(); addTile(); render();
+}
+
+function addTile(){
+  const empty=board.map((v,i)=>v===0?i:-1).filter(i=>i>=0);
+  if(!empty.length) return;
+  const i=empty[Math.floor(Math.random()*empty.length)];
+  board[i]=Math.random()<0.9?2:4;
+}
+
+function render(){
+  gridEl.innerHTML='';
+  board.forEach(v=>{
+    const d=document.createElement('div');
+    const cls=v===0?'t0':v>=2048?'t2048':`t${v}`;
+    d.className=`tile ${cls}`;
+    if(v>0) d.textContent=v;
+    gridEl.appendChild(d);
+  });
+}
+
+function slide(row){
+  let arr=row.filter(v=>v), merged=false;
+  for(let i=0;i<arr.length-1;i++){
+    if(arr[i]===arr[i+1]&&!merged){
+      arr[i]*=2; score+=arr[i]; arr.splice(i+1,1); merged=true;
+    } else { merged=false; }
+  }
+  while(arr.length<4) arr.push(0);
+  return arr;
+}
+
+function move(dir){
+  if(over) return;
+  const prev=board.slice();
+  for(let i=0;i<4;i++){
+    let row;
+    if(dir==='l') row=board.slice(i*4,i*4+4);
+    else if(dir==='r') row=board.slice(i*4,i*4+4).reverse();
+    else if(dir==='u') row=[board[i],board[i+4],board[i+8],board[i+12]];
+    else row=[board[i+12],board[i+8],board[i+4],board[i]];
+
+    const slid=slide(row);
+    if(dir==='r') slid.reverse();
+
+    if(dir==='l'||dir==='r') for(let j=0;j<4;j++) board[i*4+j]=slid[j];
+    else if(dir==='u') [board[i],board[i+4],board[i+8],board[i+12]]=slid;
+    else [board[i+12],board[i+8],board[i+4],board[i]]=slid;
+  }
+
+  const changed=board.some((v,i)=>v!==prev[i]);
+  if(changed){
+    scoreEl.textContent=score;
+    if(score>best){ best=score; bestEl.textContent=best; localStorage.setItem('2048_best',best); }
+    addTile(); render();
+    if(board.includes(2048)&&!over){ showMsg('🎉 2048!','Продолжай!'); over=true; return; }
+    if(!canMove()){ showMsg('😞 Игра окончена',`Счёт: ${score}`); over=true; }
+  }
+}
+
+function canMove(){
+  if(board.includes(0)) return true;
+  for(let i=0;i<4;i++) for(let j=0;j<3;j++){
+    if(board[i*4+j]===board[i*4+j+1]) return true;
+    if(board[j*4+i]===board[(j+1)*4+i]) return true;
+  }
+  return false;
+}
+
+function showMsg(t,s){ document.getElementById('msg-text').textContent=t; document.getElementById('msg-sub').textContent=s; msg.style.display='flex'; }
+
+document.getElementById('btn-new').addEventListener('click',newGame);
+document.getElementById('btn-r').addEventListener('click',newGame);
+
+document.addEventListener('keydown',e=>{
+  const map={ArrowLeft:'l',ArrowRight:'r',ArrowUp:'u',ArrowDown:'d'};
+  if(map[e.key]){ e.preventDefault(); move(map[e.key]); }
+});
+
+let tx,ty;
+document.addEventListener('touchstart',e=>{ tx=e.touches[0].clientX; ty=e.touches[0].clientY; },{passive:true});
+document.addEventListener('touchend',e=>{
+  const dx=e.changedTouches[0].clientX-tx, dy=e.changedTouches[0].clientY-ty;
+  if(Math.abs(dx)<20&&Math.abs(dy)<20) return;
+  if(Math.abs(dx)>Math.abs(dy)) move(dx>0?'r':'l');
+  else move(dy>0?'d':'u');
+},{passive:true});
+
+newGame();
+</script>
+</body>
+</html>

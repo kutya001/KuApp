@@ -1,0 +1,157 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,user-scalable=no">
+<title>Пинг-понг</title>
+<style>
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{background:#0a0a0f;display:flex;flex-direction:column;align-items:center;justify-content:flex-start;height:100dvh;overflow:hidden;user-select:none;font-family:'JetBrains Mono',monospace;color:#f0f0f8}
+  #hdr{display:flex;justify-content:space-between;align-items:center;width:100%;padding:8px 20px}
+  #sc{font-size:1.6rem;font-weight:700;letter-spacing:.1em}
+  #lvl{font-size:.65rem;color:#8888aa}
+  canvas{display:block;border-radius:10px;touch-action:none}
+  #overlay{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:10px;background:rgba(10,10,15,.85);backdrop-filter:blur(4px)}
+  #overlay h2{font-size:1.2rem}
+  #overlay p{font-size:.75rem;color:#8888aa;text-align:center;max-width:220px}
+  #btn-go{background:#5b8cff;color:#fff;border:none;padding:12px 36px;border-radius:10px;font-size:.95rem;font-weight:700;cursor:pointer;font-family:inherit}
+</style>
+</head>
+<body>
+<div id="hdr">
+  <div><div id="sc">0 : 0</div><div id="lvl">УРОВЕНЬ 1</div></div>
+</div>
+<canvas id="c"></canvas>
+<div id="overlay">
+  <h2>🏓 Пинг-понг</h2>
+  <p>Тяни ракетку пальцем или управляй мышью</p>
+  <button id="btn-go">Играть</button>
+</div>
+
+<script>
+const canvas=document.getElementById('c');
+const ctx=canvas.getContext('2d');
+const overlay=document.getElementById('overlay');
+const scEl=document.getElementById('sc');
+const lvlEl=document.getElementById('lvl');
+
+let W,H,ph,ai_y,ball,vy,vx,ps,as,spd,running=false,raf,level;
+const PW=10,PH=64,BR=7;
+
+function resize(){
+  W=Math.min(window.innerWidth,400);
+  H=window.innerHeight-56;
+  canvas.width=W; canvas.height=H;
+}
+
+function initGame(){
+  resize();
+  ph=H/2-PH/2; ai_y=H/2-PH/2;
+  ps=0; as=0; level=1; spd=4;
+  lvlEl.textContent='УРОВЕНЬ 1';
+  resetBall(); running=true; overlay.style.display='none';
+  if(raf) cancelAnimationFrame(raf);
+  raf=requestAnimationFrame(loop);
+}
+
+function resetBall(){
+  ball={x:W/2,y:H/2};
+  const angle=(Math.random()*.6-.3);
+  const dir=Math.random()<.5?1:-1;
+  vx=spd*dir;
+  vy=spd*Math.sin(angle)*2;
+}
+
+function loop(){
+  if(!running){ return; }
+  raf=requestAnimationFrame(loop);
+  update(); draw();
+}
+
+function update(){
+  ball.x+=vx; ball.y+=vy;
+
+  // Верх/низ
+  if(ball.y-BR<0){ ball.y=BR; vy=-vy; }
+  if(ball.y+BR>H){ ball.y=H-BR; vy=-vy; }
+
+  // ИИ движение (с ошибкой на низких уровнях)
+  const err=Math.max(0,(3-level)*8);
+  const aiTarget=ball.y-PH/2+(Math.random()*err*2-err);
+  ai_y+=(aiTarget-ai_y)*0.08;
+  ai_y=Math.max(0,Math.min(H-PH,ai_y));
+
+  // Ракетка игрока (левая) — hit
+  if(ball.x-BR<=20+PW&&ball.x-BR>16&&ball.y>=ph&&ball.y<=ph+PH){
+    ball.x=20+PW+BR; vx=Math.abs(vx);
+    vy+=(ball.y-(ph+PH/2))*0.08;
+    vx=Math.min(vx*1.04,14);
+  }
+  // ИИ ракетка (правая) — hit
+  if(ball.x+BR>=W-20-PW&&ball.x+BR<W-16&&ball.y>=ai_y&&ball.y<=ai_y+PH){
+    ball.x=W-20-PW-BR; vx=-Math.abs(vx);
+    vy+=(ball.y-(ai_y+PH/2))*0.08;
+    vx=Math.max(vx*1.04,-14);
+  }
+
+  // Выход за границы
+  if(ball.x+BR<0){ as++; updateScore(); }
+  if(ball.x-BR>W){ ps++; updateScore(); }
+}
+
+function updateScore(){
+  scEl.textContent=`${ps} : ${as}`;
+  level=Math.floor((ps+as)/3)+1;
+  spd=Math.min(4+level*0.6,11);
+  lvlEl.textContent=`УРОВЕНЬ ${level}`;
+  resetBall();
+}
+
+function draw(){
+  ctx.fillStyle='#111118'; ctx.fillRect(0,0,W,H);
+  // Пунктир
+  ctx.setLineDash([8,8]); ctx.strokeStyle='rgba(255,255,255,.1)'; ctx.lineWidth=2;
+  ctx.beginPath(); ctx.moveTo(W/2,0); ctx.lineTo(W/2,H); ctx.stroke(); ctx.setLineDash([]);
+
+  // Ракетки
+  function paddle(x,y,color){
+    ctx.fillStyle=color;
+    ctx.beginPath(); ctx.roundRect(x,y,PW,PH,5); ctx.fill();
+  }
+  paddle(20,'#5b8cff'); paddle(20,ph,'#5b8cff');
+  paddle(W-20-PW,ai_y,'#ff8c42');
+
+  // Мяч
+  ctx.fillStyle='#00e5a0';
+  ctx.beginPath(); ctx.arc(ball.x,ball.y,BR,0,Math.PI*2); ctx.fill();
+}
+
+// Touch управление
+canvas.addEventListener('touchmove',e=>{
+  e.preventDefault();
+  const r=canvas.getBoundingClientRect();
+  ph=e.touches[0].clientY-r.top-PH/2;
+  ph=Math.max(0,Math.min(H-PH,ph));
+},{passive:false});
+
+// Mouse управление
+canvas.addEventListener('mousemove',e=>{
+  if(!running) return;
+  const r=canvas.getBoundingClientRect();
+  ph=e.clientY-r.top-PH/2;
+  ph=Math.max(0,Math.min(H-PH,ph));
+});
+
+// Клавиши
+document.addEventListener('keydown',e=>{
+  if(!running) return;
+  if(e.key==='ArrowUp') ph=Math.max(0,ph-20);
+  if(e.key==='ArrowDown') ph=Math.min(H-PH,ph+20);
+});
+
+document.getElementById('btn-go').addEventListener('click',initGame);
+window.addEventListener('resize',()=>{ if(running) initGame(); });
+resize();
+</script>
+</body>
+</html>
