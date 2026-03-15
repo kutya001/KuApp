@@ -1,19 +1,45 @@
-[
-  { "id": "snake",       "name": "Змейка",             "icon": "🐍", "desc": "Классика. Ешь, расти, не врезайся.",       "file": "snake.html"       },
-  { "id": "tictac",      "name": "Крестики-нолики",     "icon": "✕○", "desc": "Три в ряд против ИИ.",                    "file": "tictac.html"      },
-  { "id": "2048",        "name": "2048",                "icon": "🔢", "desc": "Складывай плитки до 2048.",               "file": "2048.html"        },
-  { "id": "pong",        "name": "Пинг-понг",           "icon": "🏓", "desc": "Отбивай мяч. Быстрее и быстрее.",        "file": "pong.html"        },
-  { "id": "tetris",      "name": "Тетрис",              "icon": "🟦", "desc": "Собирай линии, не переполняй.",           "file": "tetris.html"      },
-  { "id": "sudoku",      "name": "Судоку",              "icon": "🔲", "desc": "Заполни сетку 9×9 без повторов.",         "file": "sudoku.html"      },
-  { "id": "fifteen",     "name": "Пятнашки",            "icon": "🔀", "desc": "Собери числа по порядку за ходы.",        "file": "fifteen.html"     },
-  { "id": "minesweeper", "name": "Сапёр",               "icon": "💣", "desc": "Открывай клетки, не попади на мину.",     "file": "minesweeper.html" },
-  { "id": "memory",      "name": "Найди пару",          "icon": "🃏", "desc": "Открывай карты, запоминай, сопоставляй.", "file": "memory.html"      },
-  { "id": "watersort",   "name": "Сортировка цветов",   "icon": "🧪", "desc": "Переливай жидкости по цвету.",            "file": "watersort.html"   },
-  { "id": "wordle",      "name": "Слово",               "icon": "🔤", "desc": "Угадай слово за 6 попыток.",              "file": "wordle.html"      },
-  { "id": "breakout",    "name": "Арканоид",            "icon": "🧱", "desc": "Разбивай блоки ракеткой и мячом.",        "file": "breakout.html"    },
-  { "id": "flappy",      "name": "Флаппи",              "icon": "🐦", "desc": "Один тап — лети. Не врезайся в трубы.",  "file": "flappy.html"      },
-  { "id": "dino",        "name": "Дино",                "icon": "🦕", "desc": "Бесконечный бег, прыгай через кактусы.",  "file": "dino.html"        },
-  { "id": "reversi",     "name": "Реверси",             "icon": "⚫", "desc": "Переворачивай фишки, захватывай поле.",   "file": "reversi.html"     },
-  { "id": "clicker",     "name": "Атлет",               "icon": "💪", "desc": "Кликер: качай атлета, прокачивай навыки.","file": "clicker.html"     },
-  { "id": "basketball",  "name": "Баскетбол",           "icon": "🏀", "desc": "Кидай мяч в кольцо, набирай очки.",      "file": "basketball.html"  }
-]
+{
+  "categories": [
+    {
+      "id": "arcade",
+      "label": "🕹️ Аркады",
+      "games": [
+        { "id": "snake",      "name": "Змейка",      "icon": "🐍", "desc": "Классика. Ешь, расти, не врезайся.",      "file": "snake.html"      },
+        { "id": "pong",       "name": "Пинг-понг",   "icon": "🏓", "desc": "Отбивай мяч. Быстрее и быстрее.",         "file": "pong.html"       },
+        { "id": "breakout",   "name": "Арканоид",    "icon": "🧱", "desc": "Разбивай блоки ракеткой и мячом.",        "file": "breakout.html"   },
+        { "id": "flappy",     "name": "Флаппи",      "icon": "🐦", "desc": "Один тап — лети. Не врезайся в трубы.",   "file": "flappy.html"     },
+        { "id": "dino",       "name": "Дино",        "icon": "🦕", "desc": "Бесконечный бег, прыгай через кактусы.",  "file": "dino.html"       },
+        { "id": "basketball", "name": "Баскетбол",   "icon": "🏀", "desc": "Кидай мяч в кольцо, набирай очки.",       "file": "basketball.html" }
+      ]
+    },
+    {
+      "id": "puzzle",
+      "label": "🧩 Головоломки",
+      "games": [
+        { "id": "2048",        "name": "2048",              "icon": "🔢", "desc": "Складывай плитки до 2048.",               "file": "2048.html"        },
+        { "id": "fifteen",     "name": "Пятнашки",          "icon": "🔀", "desc": "Собери числа по порядку за ходы.",        "file": "fifteen.html"     },
+        { "id": "sudoku",      "name": "Судоку",            "icon": "🔲", "desc": "Заполни сетку 9×9 без повторов.",         "file": "sudoku.html"      },
+        { "id": "minesweeper", "name": "Сапёр",             "icon": "💣", "desc": "Открывай клетки, не попади на мину.",     "file": "minesweeper.html" },
+        { "id": "watersort",   "name": "Сортировка цветов", "icon": "🧪", "desc": "Переливай жидкости по цвету.",            "file": "watersort.html"   },
+        { "id": "memory",      "name": "Найди пару",        "icon": "🃏", "desc": "Открывай карты, запоминай, сопоставляй.", "file": "memory.html"      }
+      ]
+    },
+    {
+      "id": "logic",
+      "label": "🧠 Логика",
+      "games": [
+        { "id": "tictac",  "name": "Крестики-нолики", "icon": "✕○", "desc": "Три в ряд против ИИ.",           "file": "tictac.html"  },
+        { "id": "reversi", "name": "Реверси",         "icon": "⚫", "desc": "Переворачивай фишки, захватывай поле.", "file": "reversi.html" },
+        { "id": "wordle",  "name": "Слово",           "icon": "🔤", "desc": "Угадай слово за 6 попыток.",      "file": "wordle.html"  }
+      ]
+    },
+    {
+      "id": "other",
+      "label": "🎯 Другое",
+      "games": [
+        { "id": "tetris",  "name": "Тетрис", "icon": "🟦", "desc": "Собирай линии, не переполняй.",            "file": "tetris.html"  },
+        { "id": "clicker", "name": "Атлет",  "icon": "💪", "desc": "Кликер: качай атлета, прокачивай навыки.", "file": "clicker.html" }
+      ]
+    }
+  ]
+}
