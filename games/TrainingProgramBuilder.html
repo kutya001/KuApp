@@ -419,7 +419,13 @@ const IndexEditor = ({ gh, cfg, notify, indexKey }) => {
       if (!f) { setRaw('[]'); setParsed([]); setSha(null); notify('info', 'Файл не найден — создан новый'); setLoading(false); return; }
       const content = b64dec(f.content);
       setRaw(content); setSha(f.sha);
-      try { setParsed(JSON.parse(content)); setParseErr(null); } catch(e) { setParseErr(e.message); }
+      try {
+        const p = JSON.parse(content);
+        // Нормализуем в массив — защита от объектов и неожиданных форматов
+        const asArr = Array.isArray(p) ? p : (p && typeof p === 'object' ? [p] : []);
+        setParsed(asArr);
+        setParseErr(null);
+      } catch(e) { setParseErr(e.message); setParsed([]); }
     } catch(e) { notify('error', e.message); }
     setLoading(false);
   };
@@ -503,7 +509,7 @@ const IndexEditor = ({ gh, cfg, notify, indexKey }) => {
           {parseErr && <div style={{background:'rgba(248,113,113,.1)',border:'1px solid rgba(248,113,113,.2)',borderRadius:8,padding:'8px 12px',fontSize:12,color:'var(--red)',marginBottom:8}}>{parseErr}</div>}
           <div className="json-container" style={{border:'1.5px solid var(--accent)',flex:1}}>
             <textarea className="json-ta" spellCheck="false" value={raw}
-              onChange={e=>{setRaw(e.target.value); try{setParsed(JSON.parse(e.target.value));setParseErr(null);}catch(ex){setParseErr(ex.message);}}}
+              onChange={e=>{setRaw(e.target.value); try{ const p=JSON.parse(e.target.value); setParsed(Array.isArray(p)?p:(p&&typeof p==='object'?[p]:[])); setParseErr(null); }catch(ex){setParseErr(ex.message);}}}
               onScroll={e=>{ if(preRef.current){preRef.current.scrollTop=e.target.scrollTop;preRef.current.scrollLeft=e.target.scrollLeft;}}}
             />
             <pre className="json-pre" ref={preRef} aria-hidden><code dangerouslySetInnerHTML={{__html:hlJson(raw)}}/></pre>
