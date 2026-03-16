@@ -398,39 +398,46 @@ const JsonPanel = ({ json, onChange, editing, setEditing, onApply, error }) => {
 
 // ═══ INDEX EDITOR ════════════════════════════════════════
 const IndexEditor = ({ gh, cfg, notify, indexKey }) => {
-  const paths = {
-    workouts: 'workouts/index.json',
-    games:    'games/index.json',
-  };
+  const paths = { workouts: 'workouts/index.json', games: 'games/index.json' };
   const path = paths[indexKey];
-  const [raw, setRaw]       = useState('');
-  const [sha, setSha]       = useState(null);
-  const [parsed, setParsed] = useState([]);
+
+  const [raw,      setRaw]      = useState('');
+  const [sha,      setSha]      = useState(null);
+  const [parsed,   setParsed]   = useState(null); // null = ещё не загружено
   const [parseErr, setParseErr] = useState(null);
-  const [loading, setLoading]   = useState(false);
-  const [saving, setSaving]     = useState(false);
+  const [loading,  setLoading]  = useState(false);
+  const [saving,   setSaving]   = useState(false);
   const [jsonMode, setJsonMode] = useState(false);
+  const [expandedCat, setExpandedCat] = useState({});
   const preRef = useRef(null);
+
+  // Определяем формат: массив [] или объект с категориями {categories:[]}
+  const isCatFormat = parsed !== null && !Array.isArray(parsed) && parsed?.categories;
+  const isArrayFormat = Array.isArray(parsed);
 
   const load = async () => {
     setLoading(true);
     try {
       const f = await gh.getFile(path);
-      if (!f) { setRaw('[]'); setParsed([]); setSha(null); notify('info', 'Файл не найден — создан новый'); setLoading(false); return; }
+      if (!f) {
+        const empty = indexKey === 'games' ? '{\n  "categories": []\n}' : '[]';
+        setRaw(empty); setParsed(indexKey === 'games' ? { categories: [] } : []); setSha(null);
+        notify('info', 'Файл не найден — создан новый');
+        setLoading(false); return;
+      }
       const content = b64dec(f.content);
       setRaw(content); setSha(f.sha);
       try {
         const p = JSON.parse(content);
-        // Нормализуем в массив — защита от объектов и неожиданных форматов
-        const asArr = Array.isArray(p) ? p : (p && typeof p === 'object' ? [p] : []);
-        setParsed(asArr);
-        setParseErr(null);
+        setParsed(p); setParseErr(null);
       } catch(e) { setParseErr(e.message); setParsed([]); }
     } catch(e) { notify('error', e.message); }
     setLoading(false);
   };
 
-  useEffect(() => { load(); }, [path]);
+  useEffect(() => { setParsed(null); setRaw(''); setJsonMode(false); load(); }, [path]);
+
+  const syncRaw = (next) => { setParsed(next); setRaw(JSON.stringify(next, null, 2)); };
 
   const save = async () => {
     setSaving(true);
@@ -438,145 +445,284 @@ const IndexEditor = ({ gh, cfg, notify, indexKey }) => {
       const content = jsonMode ? raw : JSON.stringify(parsed, null, 2);
       const res = await gh.putFile(path, content, sha, `CMS: Update ${path}`);
       setSha(res.content.sha);
-      notify('success', 'index.json сохранён');
+      notify('success', `${path} сохранён`);
     } catch(e) { notify('error', e.message); }
     setSaving(false);
   };
 
-  const updateItem = (i, field, val) => {
+  // ── Операции для формата МАССИВ (workouts) ──────────────
+  const arrUpdate = (i, field, val) => {
     const next = parsed.map((item, idx) => {
       if (idx !== i) return item;
-      if (typeof item === 'string') return item; // old format — keep as string
+      if (typeof item === 'string') return item;
       return { ...item, [field]: val };
     });
-    setParsed(next);
-    setRaw(JSON.stringify(next, null, 2));
+    syncRaw(next);
   };
+  const arrAdd    = () => syncRaw([...parsed, { id: uid(), title: '', file: '', category: '', description: '' }]);
+  const arrRemove = i  => syncRaw(parsed.filter((_,idx) => idx !== i));
 
-  const addItem = () => {
-    const next = [...parsed, { id: uid(), title: '', file: '', description: '' }];
-    setParsed(next); setRaw(JSON.stringify(next, null, 2));
-  };
-
-  const removeItem = i => {
-    const next = parsed.filter((_,idx)=>idx!==i);
-    setParsed(next); setRaw(JSON.stringify(next, null, 2));
-  };
-
-  // Drag reorder
-  const dragIdx = useRef(null);
-  const [dragOver, setDragOver] = useState(null);
-  const handleDragStart = (i) => { dragIdx.current = i; };
-  const handleDragEnd = () => {
-    if (dragIdx.current !== null && dragOver !== null && dragIdx.current !== dragOver) {
+  // Drag reorder (массив)
+  const dragArrIdx = useRef(null);
+  const [dragArrOver, setDragArrOver] = useState(null);
+  const arrDragEnd = () => {
+    if (dragArrIdx.current !== null && dragArrOver !== null && dragArrIdx.current !== dragArrOver) {
       const next = [...parsed];
-      const [item] = next.splice(dragIdx.current, 1);
-      next.splice(dragOver, 0, item);
-      setParsed(next); setRaw(JSON.stringify(next, null, 2));
+      const [item] = next.splice(dragArrIdx.current, 1);
+      next.splice(dragArrOver, 0, item);
+      syncRaw(next);
     }
-    dragIdx.current = null; setDragOver(null);
+    dragArrIdx.current = null; setDragArrOver(null);
   };
 
-  const isObjectArray = parsed.length === 0 || parsed.some(i => typeof i === 'object' && i !== null);
+  // ── Операции для формата КАТЕГОРИИ (games) ──────────────
+  const catUpdateField = (ci, field, val) => {
+    const cats = parsed.categories.map((c,i) => i===ci ? {...c,[field]:val} : c);
+    syncRaw({...parsed, categories: cats});
+  };
+  const catAddGame = (ci) => {
+    const cats = parsed.categories.map((c,i) => i===ci
+      ? {...c, games: [...(c.games||[]), {id:uid(), name:'', icon:'', desc:'', file:''}]}
+      : c);
+    syncRaw({...parsed, categories: cats});
+  };
+  const catUpdateGame = (ci, gi, field, val) => {
+    const cats = parsed.categories.map((c,i) => i!==ci ? c : {
+      ...c, games: c.games.map((g,j) => j!==gi ? g : {...g,[field]:val})
+    });
+    syncRaw({...parsed, categories: cats});
+  };
+  const catRemoveGame = (ci, gi) => {
+    const cats = parsed.categories.map((c,i) => i!==ci ? c : {
+      ...c, games: c.games.filter((_,j) => j!==gi)
+    });
+    syncRaw({...parsed, categories: cats});
+  };
+  const catAdd    = () => syncRaw({...parsed, categories:[...(parsed.categories||[]), {id:uid(),label:'',games:[]}]});
+  const catRemove = ci => syncRaw({...parsed, categories: parsed.categories.filter((_,i)=>i!==ci)});
 
+  // Drag reorder games внутри категории
+  const dragGame = useRef(null);
+  const [dragGameOver, setDragGameOver] = useState(null);
+  const gameDragEnd = (ci) => {
+    if (dragGame.current!==null && dragGameOver!==null && dragGame.current!==dragGameOver) {
+      const games = [...parsed.categories[ci].games];
+      const [item] = games.splice(dragGame.current, 1);
+      games.splice(dragGameOver, 0, item);
+      const cats = parsed.categories.map((c,i) => i===ci ? {...c,games} : c);
+      syncRaw({...parsed, categories: cats});
+    }
+    dragGame.current = null; setDragGameOver(null);
+  };
+
+  // ── FIELD LABEL ─────────────────────────────────────────
+  const FL = ({label}) => <div style={{fontSize:10,textTransform:'uppercase',letterSpacing:'.5px',color:'var(--text3)',fontWeight:700,marginBottom:4}}>{label}</div>;
+
+  // ── РЕНДЕР КАТЕГОРИАЛЬНОГО ФОРМАТА (games) ───────────────
+  const renderCatFormat = () => {
+    const cats = parsed.categories || [];
+    return (
+      <div style={{flex:1,overflowY:'auto',padding:'12px 16px 24px'}}>
+        {cats.length === 0 && (
+          <div style={{textAlign:'center',padding:'40px 0',color:'var(--text3)'}}>
+            <div style={{fontSize:36,marginBottom:8}}>🎮</div>
+            <div style={{fontSize:13}}>Нет категорий. Нажмите «Добавить категорию»</div>
+          </div>
+        )}
+        {cats.map((cat, ci) => {
+          const isOpen = expandedCat[ci] !== false; // по умолчанию открыто
+          return (
+            <div key={ci} style={{background:'var(--bg2)',border:'1px solid var(--border)',borderRadius:14,marginBottom:12,overflow:'hidden'}}>
+              {/* Шапка категории */}
+              <div style={{display:'flex',alignItems:'center',gap:8,padding:'10px 14px',background:'var(--bg3)',borderBottom:'1px solid var(--border)'}}>
+                <button className="btn-icon" style={{fontSize:16}} onClick={()=>setExpandedCat(p=>({...p,[ci]:!isOpen}))}>
+                  {isOpen ? '▾' : '▸'}
+                </button>
+                <input className="inp" style={{flex:1,fontWeight:700,fontSize:14,padding:'6px 10px'}}
+                  value={cat.label||''} onChange={e=>catUpdateField(ci,'label',e.target.value)}
+                  placeholder="🕹️ Название категории"/>
+                <input className="inp mono" style={{width:90,fontSize:11,padding:'6px 8px'}}
+                  value={cat.id||''} onChange={e=>catUpdateField(ci,'id',e.target.value)}
+                  placeholder="id"/>
+                <span style={{fontSize:12,color:'var(--text3)',flexShrink:0}}>{(cat.games||[]).length} игр</span>
+                <button className="btn-icon" style={{color:'var(--red)'}} onClick={()=>catRemove(ci)}>
+                  <Ico name="Trash2" size={15}/>
+                </button>
+              </div>
+
+              {isOpen && (
+                <div style={{padding:'10px 14px 14px'}}>
+                  {/* Список игр */}
+                  {(cat.games||[]).map((game, gi) => (
+                    <div key={gi}
+                      className={dragGameOver===gi&&dragGame.current!==null?'is-dragging':''}
+                      onDragOver={e=>{e.preventDefault();setDragGameOver(gi);}}
+                      onDrop={()=>gameDragEnd(ci)}
+                      style={{display:'grid',gridTemplateColumns:'24px 44px 1fr 1fr 1fr 36px',gap:6,alignItems:'center',
+                        padding:'8px 10px',background:'var(--bg3)',border:'1px solid var(--border)',
+                        borderRadius:10,marginBottom:6}}>
+                      <div className="drag-handle btn-icon" draggable
+                        onDragStart={()=>{dragGame.current=gi;}}
+                        onDragEnd={()=>gameDragEnd(ci)}>
+                        <Ico name="GripVertical" size={14}/>
+                      </div>
+                      {/* Иконка */}
+                      <input className="inp" style={{textAlign:'center',fontSize:20,padding:'4px',height:38}}
+                        value={game.icon||''} onChange={e=>catUpdateGame(ci,gi,'icon',e.target.value)}
+                        placeholder="🎮" title="Иконка (эмодзи)"/>
+                      {/* Название */}
+                      <input className="inp" style={{fontSize:13,padding:'6px 10px'}}
+                        value={game.name||''} onChange={e=>catUpdateGame(ci,gi,'name',e.target.value)}
+                        placeholder="Название игры"/>
+                      {/* Описание */}
+                      <input className="inp" style={{fontSize:12,padding:'6px 10px',color:'var(--text2)'}}
+                        value={game.desc||''} onChange={e=>catUpdateGame(ci,gi,'desc',e.target.value)}
+                        placeholder="Короткое описание"/>
+                      {/* Файл */}
+                      <input className="inp mono" style={{fontSize:11,padding:'6px 8px'}}
+                        value={game.file||''} onChange={e=>catUpdateGame(ci,gi,'file',e.target.value)}
+                        placeholder="game.html"/>
+                      <button className="btn-icon" style={{color:'var(--red)'}} onClick={()=>catRemoveGame(ci,gi)}>
+                        <Ico name="X" size={15}/>
+                      </button>
+                    </div>
+                  ))}
+                  <button className="btn btn-ghost btn-sm" style={{marginTop:4,width:'100%',justifyContent:'center'}}
+                    onClick={()=>catAddGame(ci)}>
+                    <Ico name="Plus" size={13}/>Добавить игру
+                  </button>
+                </div>
+              )}
+            </div>
+          );
+        })}
+      </div>
+    );
+  };
+
+  // ── РЕНДЕР МАССИВА (workouts) ────────────────────────────
+  const renderArrayFormat = () => {
+    const arr = Array.isArray(parsed) ? parsed : [];
+    return (
+      <div style={{flex:1,overflowY:'auto',padding:'8px 16px 24px'}}>
+        {arr.length === 0 && (
+          <div style={{textAlign:'center',padding:'40px 0',color:'var(--text3)'}}>
+            <div style={{fontSize:36,marginBottom:8}}>📋</div>
+            <div style={{fontSize:13}}>Список пуст. Нажмите «Добавить»</div>
+          </div>
+        )}
+        {arr.map((item, i) => {
+          const isStr = typeof item === 'string';
+          return (
+            <div key={i}
+              className={dragArrOver===i?'is-dragging':''}
+              onDragOver={e=>{e.preventDefault();setDragArrOver(i);}}
+              onDrop={arrDragEnd}
+              style={{background:'var(--bg2)',border:'1px solid var(--border)',borderRadius:12,marginBottom:8,overflow:'hidden'}}>
+              <div style={{display:'flex',alignItems:'center',gap:8,padding:'8px 12px',borderBottom:'1px solid var(--border)',background:'var(--bg3)'}}>
+                <div className="drag-handle btn-icon" draggable
+                  onDragStart={()=>{dragArrIdx.current=i;}}
+                  onDragEnd={arrDragEnd} style={{cursor:'grab'}}>
+                  <Ico name="GripVertical" size={16}/>
+                </div>
+                <span style={{fontSize:12,color:'var(--text3)',fontWeight:700,flex:1}}>
+                  #{i+1} {isStr ? item : (item.title||item.file||'—')}
+                </span>
+                <button className="btn-icon" style={{color:'var(--red)'}} onClick={()=>arrRemove(i)}>
+                  <Ico name="Trash2" size={15}/>
+                </button>
+              </div>
+              {isStr ? (
+                <div style={{padding:'10px 12px'}}>
+                  <input className="inp" value={item}
+                    onChange={e=>{const n=[...arr];n[i]=e.target.value;syncRaw(n);}}
+                    placeholder="file.json"/>
+                </div>
+              ) : (
+                <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fit,minmax(170px,1fr))',gap:8,padding:12}}>
+                  <div><FL label="ID"/><input className="inp mono" style={{fontSize:11}} value={item.id||''} onChange={e=>arrUpdate(i,'id',e.target.value)} placeholder="auto"/></div>
+                  <div><FL label="Название"/><input className="inp" value={item.title||item.name||''} onChange={e=>arrUpdate(i,'title',e.target.value)} placeholder="Название"/></div>
+                  <div><FL label="Файл"/><input className="inp mono" style={{fontSize:11}} value={item.file||item.filename||''} onChange={e=>arrUpdate(i,'file',e.target.value)} placeholder="file.json"/></div>
+                  <div><FL label="Категория"/><input className="inp" style={{fontSize:12}} value={item.category||''} onChange={e=>arrUpdate(i,'category',e.target.value)} placeholder="rehab / hiit / ..."/></div>
+                  <div style={{gridColumn:'1/-1'}}><FL label="Описание"/>
+                    <textarea className="inp" style={{resize:'vertical',minHeight:52,fontSize:12}}
+                      value={item.description||''} onChange={e=>arrUpdate(i,'description',e.target.value)} placeholder="Описание..."/>
+                  </div>
+                </div>
+              )}
+            </div>
+          );
+        })}
+      </div>
+    );
+  };
+
+  // ── TOOLBAR ──────────────────────────────────────────────
+  const toolbarAddBtn = () => {
+    if (jsonMode) return null;
+    if (isCatFormat) return (
+      <button className="btn btn-ghost btn-sm" onClick={catAdd}>
+        <Ico name="Plus" size={13}/>Категорию
+      </button>
+    );
+    if (isArrayFormat) return (
+      <button className="btn btn-ghost btn-sm" onClick={arrAdd}>
+        <Ico name="Plus" size={13}/>Добавить
+      </button>
+    );
+    return null;
+  };
+
+  // ── MAIN RENDER ──────────────────────────────────────────
   return (
     <div style={{display:'flex',flexDirection:'column',height:'100%',overflow:'hidden'}}>
-      {/* Toolbar */}
       <div style={{display:'flex',gap:8,alignItems:'center',padding:'12px 16px',borderBottom:'1px solid var(--border)',flexShrink:0,flexWrap:'wrap'}}>
-        <div className="title-font" style={{fontSize:13,fontWeight:600,flex:1}}>{path}</div>
-        <div style={{display:'flex',gap:6,alignItems:'center',flexWrap:'wrap'}}>
+        <div className="title-font" style={{fontSize:13,fontWeight:600,flex:1,minWidth:0,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>{path}</div>
+        <div style={{display:'flex',gap:6,alignItems:'center',flexWrap:'wrap',flexShrink:0}}>
           <button className="btn btn-ghost btn-sm" onClick={()=>setJsonMode(!jsonMode)}>
             <Ico name={jsonMode?'Table':'Code2'} size={13}/>{jsonMode?'Таблица':'JSON'}
           </button>
           <button className="btn btn-ghost btn-sm" onClick={load} disabled={loading}>
             <Ico name="RefreshCw" size={13} cls={loading?'spin':''}/>
           </button>
-          {!jsonMode && isObjectArray && <button className="btn btn-ghost btn-sm" onClick={addItem}><Ico name="Plus" size={13}/>Добавить</button>}
-          <button className="btn btn-primary btn-sm" onClick={save} disabled={saving}>
+          {toolbarAddBtn()}
+          <button className="btn btn-primary btn-sm" onClick={save} disabled={saving||loading}>
             <Ico name={saving?'Loader2':'Save'} size={13} cls={saving?'spin':''}/>
-            {saving?'Сохранение...':'Сохранить'}
+            {saving?'Сохр...':'Сохранить'}
           </button>
         </div>
       </div>
 
       {loading ? (
-        <div style={{flex:1,display:'flex',alignItems:'center',justifyContent:'center',color:'var(--text3)'}}>
+        <div style={{flex:1,display:'flex',alignItems:'center',justifyContent:'center',color:'var(--text3)',flexDirection:'column',gap:10}}>
           <Ico name="Loader2" size={32} cls="spin"/>
+          <span style={{fontSize:13}}>Загрузка {path}...</span>
         </div>
       ) : jsonMode ? (
-        /* JSON VIEW */
         <div style={{flex:1,display:'flex',flexDirection:'column',overflow:'hidden',padding:16}}>
-          {parseErr && <div style={{background:'rgba(248,113,113,.1)',border:'1px solid rgba(248,113,113,.2)',borderRadius:8,padding:'8px 12px',fontSize:12,color:'var(--red)',marginBottom:8}}>{parseErr}</div>}
+          {parseErr && <div style={{background:'rgba(248,113,113,.1)',border:'1px solid rgba(248,113,113,.2)',borderRadius:8,padding:'8px 12px',fontSize:12,color:'var(--red)',marginBottom:8,flexShrink:0}}>{parseErr}</div>}
           <div className="json-container" style={{border:'1.5px solid var(--accent)',flex:1}}>
             <textarea className="json-ta" spellCheck="false" value={raw}
-              onChange={e=>{setRaw(e.target.value); try{ const p=JSON.parse(e.target.value); setParsed(Array.isArray(p)?p:(p&&typeof p==='object'?[p]:[])); setParseErr(null); }catch(ex){setParseErr(ex.message);}}}
+              onChange={e=>{
+                setRaw(e.target.value);
+                try { setParsed(JSON.parse(e.target.value)); setParseErr(null); }
+                catch(ex) { setParseErr(ex.message); }
+              }}
               onScroll={e=>{ if(preRef.current){preRef.current.scrollTop=e.target.scrollTop;preRef.current.scrollLeft=e.target.scrollLeft;}}}
             />
             <pre className="json-pre" ref={preRef} aria-hidden><code dangerouslySetInnerHTML={{__html:hlJson(raw)}}/></pre>
           </div>
         </div>
-      ) : (
-        /* TABLE VIEW */
-        <div style={{flex:1,overflowY:'auto',padding:'0 16px 16px'}}>
-          {parsed.length === 0 && (
-            <div style={{textAlign:'center',padding:'48px 0',color:'var(--text3)'}}>
-              <div style={{fontSize:40,marginBottom:12}}>📋</div>
-              <div>Список пуст. Нажмите «Добавить»</div>
-            </div>
-          )}
-          <div style={{marginTop:8}}>
-            {parsed.map((item, i) => {
-              const isStr = typeof item === 'string';
-              return (
-                <div key={i}
-                  className={dragOver===i?'is-dragging':''}
-                  onDragOver={e=>{e.preventDefault();setDragOver(i);}}
-                  onDrop={handleDragEnd}
-                  style={{background:'var(--bg2)',border:'1px solid var(--border)',borderRadius:12,marginBottom:8,overflow:'hidden'}}>
-                  <div style={{display:'flex',alignItems:'center',gap:8,padding:'8px 12px',borderBottom:'1px solid var(--border)',background:'var(--bg3)'}}>
-                    <div className="drag-handle btn-icon" draggable onDragStart={()=>handleDragStart(i)} onDragEnd={handleDragEnd} style={{cursor:'grab'}}>
-                      <Ico name="GripVertical" size={16}/>
-                    </div>
-                    <span style={{fontSize:12,color:'var(--text3)',fontWeight:700,flex:1}}>#{i+1} {isStr ? item : (item.title||item.file||'—')}</span>
-                    <button className="btn-icon" style={{color:'var(--red)'}} onClick={()=>removeItem(i)}><Ico name="Trash2" size={15}/></button>
-                  </div>
-                  {isStr ? (
-                    <div style={{padding:'10px 12px'}}>
-                      <input className="inp" value={item} onChange={e=>{const n=[...parsed];n[i]=e.target.value;setParsed(n);setRaw(JSON.stringify(n,null,2));}} placeholder="Имя файла..."/>
-                    </div>
-                  ) : (
-                    <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fit,minmax(180px,1fr))',gap:8,padding:12}}>
-                      <div>
-                        <div style={{fontSize:10,textTransform:'uppercase',letterSpacing:'.5px',color:'var(--text3)',fontWeight:700,marginBottom:4}}>ID</div>
-                        <input className="inp mono" style={{fontSize:11}} value={item.id||''} onChange={e=>updateItem(i,'id',e.target.value)} placeholder="auto"/>
-                      </div>
-                      <div>
-                        <div style={{fontSize:10,textTransform:'uppercase',letterSpacing:'.5px',color:'var(--text3)',fontWeight:700,marginBottom:4}}>Название</div>
-                        <input className="inp" value={item.title||item.name||''} onChange={e=>updateItem(i,'title',e.target.value)} placeholder="Название программы"/>
-                      </div>
-                      <div>
-                        <div style={{fontSize:10,textTransform:'uppercase',letterSpacing:'.5px',color:'var(--text3)',fontWeight:700,marginBottom:4}}>Файл</div>
-                        <input className="inp mono" style={{fontSize:11}} value={item.file||item.filename||''} onChange={e=>updateItem(i,'file',e.target.value)} placeholder="file.json"/>
-                      </div>
-                      <div style={{gridColumn:'1/-1'}}>
-                        <div style={{fontSize:10,textTransform:'uppercase',letterSpacing:'.5px',color:'var(--text3)',fontWeight:700,marginBottom:4}}>Описание</div>
-                        <textarea className="inp" style={{resize:'vertical',minHeight:56,fontSize:12}} value={item.description||''} onChange={e=>updateItem(i,'description',e.target.value)} placeholder="Описание..."/>
-                      </div>
-                      {/* Extra fields */}
-                      {Object.keys(item).filter(k=>!['id','title','name','file','filename','description'].includes(k)).map(k=>(
-                        <div key={k}>
-                          <div style={{fontSize:10,textTransform:'uppercase',letterSpacing:'.5px',color:'var(--text3)',fontWeight:700,marginBottom:4}}>{k}</div>
-                          <input className="inp" style={{fontSize:12}} value={String(item[k]||'')} onChange={e=>updateItem(i,k,e.target.value)} placeholder={k}/>
-                        </div>
-                      ))}
-                    </div>
-                  )}
-                </div>
-              );
-            })}
+      ) : parsed === null ? null
+        : isCatFormat   ? renderCatFormat()
+        : isArrayFormat ? renderArrayFormat()
+        : (
+          <div style={{flex:1,display:'flex',alignItems:'center',justifyContent:'center',flexDirection:'column',gap:8,color:'var(--text3)'}}>
+            <div style={{fontSize:36}}>⚠️</div>
+            <div style={{fontSize:13}}>Неизвестный формат. Используйте вкладку JSON для редактирования.</div>
           </div>
-        </div>
-      )}
+        )
+      }
     </div>
   );
 };
