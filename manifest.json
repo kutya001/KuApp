@@ -1,23 +1,28 @@
 {
   "name": "McGill Тренер",
   "short_name": "McGill",
-  "description": "Таймер для реабилитационного протокола Макгилла (Большая тройка).",
-  "start_url": "/McGill/",
+  "description": "Фитнес-таймер с протоколом Большой тройки МакГилла",
+  "start_url": "./",
+  "scope": "./",
   "display": "standalone",
+  "orientation": "portrait-primary",
   "background_color": "#0a0a0f",
   "theme_color": "#0a0a0f",
-  "orientation": "portrait",
+  "lang": "ru",
   "icons": [
-    { "src": "icon-256.png", "type": "image/png", "sizes": "256x256" },
-    { "src": "icon-512.png", "type": "image/png", "sizes": "512x512" }
-  ],
-  "shortcuts": [
     {
-      "name": "Большая тройка Макгилла",
-      "short_name": "Большая тройка",
-      "description": "Запустить протокол Большой тройки",
-      "url": "/McGill/?start=0",
-      "icons": [{ "src": "icon-256.png", "sizes": "256x256" }]
+      "src": "icon-256.png",
+      "sizes": "256x256",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
     }
-  ]
+  ],
+  "categories": ["health", "fitness", "sports"],
+  "prefer_related_applications": false
 }
