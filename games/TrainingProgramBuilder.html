@@ -40,7 +40,7 @@
         .dark-scroll::-webkit-scrollbar-thumb { background: #475569; }
 
         /* Drag and Drop */
-        .drag-handle { cursor: grab; touch-action: none; }
+        .drag-handle { cursor: grab; touch-action: none; -webkit-tap-highlight-color: transparent; }
         .drag-handle:active { cursor: grabbing; }
         .dragging { opacity: 0.5; border: 2px dashed #6366f1 !important; }
     </style>
@@ -250,12 +250,10 @@
             const dragExItem = React.useRef(null);
             const dragExOverItem = React.useRef(null);
             const [draggingExIdx, setDraggingExIdx] = React.useState(null);
-            const [dragEnabledExId, setDragEnabledExId] = React.useState(null); // Идентификатор блока, разрешенного к перетаскиванию
 
             const dragStepItem = React.useRef(null);
             const dragStepOverItem = React.useRef(null);
             const [draggingStepIdx, setDraggingStepIdx] = React.useState(null); // {exId, sIdx}
-            const [dragEnabledStepId, setDragEnabledStepId] = React.useState(null);
 
             React.useEffect(() => {
                 try {
@@ -319,6 +317,7 @@
             const handleExDragStart = (e, idx) => {
                 dragExItem.current = idx;
                 e.dataTransfer.effectAllowed = 'move';
+                e.dataTransfer.setData('text/plain', idx.toString()); // Для мобильного полифилла
                 setTimeout(() => setDraggingExIdx(idx), 0);
             };
             const handleExDragEnter = (e, idx) => {
@@ -326,7 +325,6 @@
             };
             const handleExDragEnd = () => {
                 setDraggingExIdx(null);
-                setDragEnabledExId(null);
                 if (dragExItem.current !== null && dragExOverItem.current !== null && dragExItem.current !== dragExOverItem.current) {
                     let _exercises = [...activeProgram.exercises];
                     const draggedItem = _exercises.splice(dragExItem.current, 1)[0];
@@ -361,6 +359,7 @@
             const handleStepDragStart = (e, exId, sIdx) => {
                 dragStepItem.current = { exId, sIdx };
                 e.dataTransfer.effectAllowed = 'move';
+                e.dataTransfer.setData('text/plain', sIdx.toString());
                 setTimeout(() => setDraggingStepIdx({ exId, sIdx }), 0);
             };
             const handleStepDragEnter = (e, exId, sIdx) => {
@@ -368,7 +367,6 @@
             };
             const handleStepDragEnd = (exId) => {
                 setDraggingStepIdx(null);
-                setDragEnabledStepId(null);
                 if (dragStepItem.current && dragStepOverItem.current && 
                     dragStepItem.current.exId === exId && dragStepOverItem.current.exId === exId &&
                     dragStepItem.current.sIdx !== dragStepOverItem.current.sIdx) {
@@ -696,20 +694,17 @@
                                                         
                                                         return (
                                                         <div key={ex.id} 
-                                                             draggable={dragEnabledExId === ex.id} 
-                                                             onDragStart={(e) => handleExDragStart(e, idx)} 
                                                              onDragEnter={(e) => handleExDragEnter(e, idx)} 
-                                                             onDragEnd={handleExDragEnd} 
                                                              onDragOver={(e) => e.preventDefault()}
                                                              className={`bg-white p-4 md:p-5 rounded-2xl border ${draggingExIdx === idx ? 'opacity-50 border-dashed border-indigo-500' : 'border-slate-200'} shadow-sm relative group transition-colors focus-within:border-indigo-300 hover:border-indigo-200`}>
                                                             
                                                             {/* Шапка блока */}
                                                             <div className="flex justify-between items-start gap-2">
                                                                 <div className="flex-1 flex gap-3 items-center">
-                                                                    <div className="drag-handle text-slate-300 hover:text-indigo-500 p-1 -ml-2" 
-                                                                         onPointerDown={() => setDragEnabledExId(ex.id)}
-                                                                         onPointerUp={() => setDragEnabledExId(null)}
-                                                                         onPointerLeave={() => setDragEnabledExId(null)}
+                                                                    <div className="drag-handle text-slate-400 hover:text-indigo-500 p-2 -ml-2 rounded-lg hover:bg-slate-50 transition" 
+                                                                         draggable={true}
+                                                                         onDragStart={(e) => handleExDragStart(e, idx)}
+                                                                         onDragEnd={handleExDragEnd}
                                                                          title="Перетащите, чтобы поменять местами"><Icon name="GripVertical" size={20}/></div>
                                                                     <div className="bg-slate-100 text-slate-400 font-bold w-8 h-8 rounded-full flex items-center justify-center text-sm shrink-0">{idx + 1}</div>
                                                                     <div className="w-full">
@@ -754,17 +749,14 @@
                                                                     <div className="pl-0 sm:pl-8 space-y-2 mt-2">
                                                                         {(ex.steps || []).map((step, sIdx) => (
                                                                             <div key={step.id} 
-                                                                                 draggable={dragEnabledStepId === step.id} 
-                                                                                 onDragStart={(e) => handleStepDragStart(e, ex.id, sIdx)} 
                                                                                  onDragEnter={(e) => handleStepDragEnter(e, ex.id, sIdx)} 
-                                                                                 onDragEnd={() => handleStepDragEnd(ex.id)} 
                                                                                  onDragOver={(e) => e.preventDefault()}
                                                                                  className={`flex flex-wrap items-center gap-2 p-2 bg-slate-50 border ${draggingStepIdx?.exId === ex.id && draggingStepIdx?.sIdx === sIdx ? 'opacity-50 border-dashed border-indigo-500' : 'border-slate-100'} rounded-lg group/step`}>
                                                                                 
-                                                                                <div className="drag-handle text-slate-300 hover:text-indigo-500 p-1 opacity-50 group-hover/step:opacity-100"
-                                                                                     onPointerDown={() => setDragEnabledStepId(step.id)}
-                                                                                     onPointerUp={() => setDragEnabledStepId(null)}
-                                                                                     onPointerLeave={() => setDragEnabledStepId(null)}>
+                                                                                <div className="drag-handle text-slate-400 hover:text-indigo-500 p-2 rounded-lg hover:bg-slate-200 transition opacity-50 group-hover/step:opacity-100"
+                                                                                     draggable={true}
+                                                                                     onDragStart={(e) => handleStepDragStart(e, ex.id, sIdx)}
+                                                                                     onDragEnd={() => handleStepDragEnd(ex.id)}>
                                                                                     <Icon name="GripVertical" size={16}/>
                                                                                 </div>
                                                                                 
