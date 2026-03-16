@@ -27,6 +27,10 @@
             --radius:    14px;
             --radius-sm: 8px;
             --accent:    var(--c-prep);
+            /* Layout */
+            --sidebar-w: 260px;
+            --header-h:  58px;
+            --tab-h:     52px;
         }
 
         *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
@@ -41,12 +45,26 @@
             overflow: hidden;
         }
 
-        /* ── ПРОГРЕСС ── */
+        /* ══════════════════════════════════════════════
+           ПРОГРЕСС
+        ══════════════════════════════════════════════ */
         #progress-bar { position: fixed; top: 0; left: 0; width: 100%; height: 3px; background: var(--border); z-index: 50; }
         #progress-fill { height: 100%; background: linear-gradient(90deg, var(--c-prep), var(--c-work)); width: 0%; transition: width 0.5s linear; }
 
-        /* ── ШАПКА ── */
-        header { flex-shrink: 0; display: flex; align-items: center; gap: 10px; padding: 14px 16px 10px; background: var(--surface); border-bottom: 1px solid var(--border); z-index: 10; }
+        /* ══════════════════════════════════════════════
+           ШАПКА
+        ══════════════════════════════════════════════ */
+        header {
+            flex-shrink: 0;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 14px 16px 10px;
+            background: var(--surface);
+            border-bottom: 1px solid var(--border);
+            z-index: 10;
+            height: var(--header-h);
+        }
         .header-left { flex: 1; min-width: 0; }
         #workout-select {
             width: 100%; background: transparent; color: var(--text); border: none;
@@ -63,14 +81,120 @@
         body.offline #offline-badge { display: block; }
 
         .header-btns { display: flex; gap: 6px; flex-shrink: 0; }
-        .btn-icon { width: 36px; height: 36px; border-radius: var(--radius-sm); border: 1px solid var(--border-hi); background: var(--surface-2); color: var(--text-2); cursor: pointer; display: flex; align-items: center; justify-content: center; transition: background 0.15s, color 0.15s; user-select: none; }
+        .btn-icon { width: 36px; height: 36px; border-radius: var(--radius-sm); border: 1px solid var(--border-hi); background: var(--surface-2); color: var(--text-2); cursor: pointer; display: flex; align-items: center; justify-content: center; transition: background 0.15s, color 0.15s; user-select: none; flex-shrink: 0; }
         .btn-icon:hover { background: var(--surface-3); color: var(--text); }
         .btn-icon svg { width: 16px; height: 16px; fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
 
-        /* ── MAIN ── */
-        main { flex: 1; overflow-y: auto; overflow-x: hidden; display: flex; flex-direction: column; align-items: center; padding: 16px 16px 20px; gap: 12px; }
+        /* Кнопка обновления */
+        #btn-update {
+            width: 36px; height: 36px; border-radius: var(--radius-sm);
+            border: 1px solid rgba(91,140,255,0.4); background: rgba(91,140,255,0.1);
+            color: var(--c-prep); cursor: pointer;
+            display: flex; align-items: center; justify-content: center;
+            transition: background 0.15s, color 0.15s, transform 0.3s;
+            user-select: none; flex-shrink: 0; position: relative;
+        }
+        #btn-update:hover { background: rgba(91,140,255,0.2); }
+        #btn-update.spinning svg { animation: spin 0.7s linear infinite; }
+        #btn-update .update-dot {
+            position: absolute; top: -3px; right: -3px; width: 8px; height: 8px;
+            background: var(--c-finish); border-radius: 50%; border: 2px solid var(--bg);
+            display: none;
+        }
+        #btn-update.has-update .update-dot { display: block; }
+        @keyframes spin { to { transform: rotate(360deg); } }
+        #btn-update svg { width: 16px; height: 16px; fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; transition: transform 0.3s; }
 
-        /* ── КОЛЬЦО ── */
+        /* ══════════════════════════════════════════════
+           АДАПТИВНЫЙ LAYOUT — ДЕСКТОП
+        ══════════════════════════════════════════════ */
+        .app-body {
+            flex: 1;
+            display: flex;
+            overflow: hidden;
+        }
+
+        /* Боковая панель (десктоп) */
+        #left-panel {
+            width: var(--sidebar-w);
+            flex-shrink: 0;
+            display: flex;
+            flex-direction: column;
+            background: var(--surface);
+            border-right: 1px solid var(--border);
+            overflow: hidden;
+        }
+
+        /* Центральная область */
+        #center-panel {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+            min-width: 0;
+        }
+
+        /* ══════════════════════════════════════════════
+           ТАБЫ (центральная область, мобильный низ)
+        ══════════════════════════════════════════════ */
+        .tab-bar {
+            display: flex;
+            flex-shrink: 0;
+            background: var(--surface);
+            border-bottom: 1px solid var(--border);
+        }
+        .tab-btn {
+            flex: 1;
+            padding: 0 8px;
+            height: var(--tab-h);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            gap: 3px;
+            cursor: pointer;
+            border: none;
+            background: transparent;
+            color: var(--text-3);
+            font-family: 'Manrope', sans-serif;
+            font-size: 0.68rem;
+            font-weight: 700;
+            letter-spacing: 0.04em;
+            transition: color 0.15s, background 0.15s;
+            position: relative;
+            user-select: none;
+        }
+        .tab-btn svg { width: 18px; height: 18px; fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; flex-shrink: 0; }
+        .tab-btn.active { color: var(--accent); }
+        .tab-btn.active::after {
+            content: '';
+            position: absolute;
+            bottom: 0; left: 50%;
+            transform: translateX(-50%);
+            width: 32px; height: 2px;
+            background: var(--accent);
+            border-radius: 2px 2px 0 0;
+        }
+        .tab-btn:hover:not(.active) { color: var(--text-2); background: var(--surface-2); }
+
+        /* Контент табов */
+        .tab-content { display: none; flex: 1; overflow: hidden; flex-direction: column; }
+        .tab-content.active { display: flex; }
+
+        /* ══════════════════════════════════════════════
+           MAIN (таб тренировки)
+        ══════════════════════════════════════════════ */
+        #tab-workout {
+            overflow-y: auto;
+            overflow-x: hidden;
+            align-items: center;
+            padding: 16px 16px 20px;
+            gap: 12px;
+        }
+
+        /* ══════════════════════════════════════════════
+           КОЛЬЦО
+        ══════════════════════════════════════════════ */
         .timer-wrap { position: relative; width: 190px; height: 190px; flex-shrink: 0; touch-action: none; }
         .ring-svg { position: absolute; top: 0; left: 0; width: 100%; height: 100%; transform: rotate(-90deg); }
         .ring-bg { fill: none; stroke: var(--border); stroke-width: 6; }
@@ -90,7 +214,9 @@
         #step-counter { font-size: 0.6rem; color: var(--text-3); margin-top: 2px; font-family: 'JetBrains Mono', monospace; letter-spacing: 0.05em; }
         #set-counter { font-size: 0.62rem; color: var(--accent); margin-top: 1px; font-family: 'JetBrains Mono', monospace; transition: color 0.3s; }
 
-        /* ── УПРАВЛЕНИЕ ── */
+        /* ══════════════════════════════════════════════
+           УПРАВЛЕНИЕ
+        ══════════════════════════════════════════════ */
         .controls { display: flex; gap: 8px; width: 100%; max-width: 380px; flex-shrink: 0; }
         .btn-ctrl { flex: 1; padding: 13px 8px; border: none; border-radius: var(--radius); font-family: 'Manrope', sans-serif; font-size: 0.9rem; font-weight: 700; color: #fff; cursor: pointer; transition: transform 0.1s, opacity 0.2s, background 0.2s; user-select: none; }
         .btn-ctrl:active { transform: scale(0.97); }
@@ -99,13 +225,17 @@
         #btn-next  { background: var(--surface-3); border: 1px solid var(--border-hi); }
         #btn-reset { background: var(--surface-3); border: 1px solid var(--border-hi); flex: 0 0 46px; padding: 13px 4px; }
 
-        /* ── ИНФО-КАРТОЧКА ── */
+        /* ══════════════════════════════════════════════
+           ИНФО-КАРТОЧКА
+        ══════════════════════════════════════════════ */
         .info-card { width: 100%; max-width: 380px; background: var(--surface-2); border: 1px solid var(--border); border-left: 3px solid var(--c-prep); border-radius: var(--radius); padding: 14px; font-size: 0.82rem; line-height: 1.55; flex-shrink: 0; max-height: 200px; overflow-y: auto; transition: border-left-color 0.3s ease; }
         .info-card .ic-row { margin-bottom: 6px; color: var(--text-2); }
         .info-card .ic-row b { color: var(--text); }
         .info-card .ic-step { padding-top: 8px; border-top: 1px solid var(--border); color: var(--c-prep); font-weight: 700; margin-bottom: 0; font-size: 0.8rem; transition: color 0.3s ease; }
 
-        /* ── TIMELINE ── */
+        /* ══════════════════════════════════════════════
+           TIMELINE
+        ══════════════════════════════════════════════ */
         .timeline { width: 100%; max-width: 380px; display: flex; flex-direction: column; gap: 2px; flex-shrink: 0; }
         .tl-item { display: flex; justify-content: space-between; align-items: center; padding: 5px 10px; border-radius: var(--radius-sm); font-size: 0.78rem; color: var(--text-3); }
         .tl-item.active { background: var(--surface-2); color: var(--text); font-weight: 700; }
@@ -115,7 +245,9 @@
         .tl-time { font-family: 'JetBrains Mono', monospace; font-size: 0.7rem; color: var(--text-3); }
         .tl-item.active .tl-time { color: var(--text-2); }
 
-        /* ── СОСТОЯНИЯ ── */
+        /* ══════════════════════════════════════════════
+           СОСТОЯНИЯ
+        ══════════════════════════════════════════════ */
         body.state-work { --accent: var(--c-work); }
         body.state-rest { --accent: var(--c-rest); }
         body.state-prep { --accent: var(--c-prep); }
@@ -132,7 +264,134 @@
         body.state-rest .info-card .ic-step { color: var(--c-rest); }
         body.state-prep .info-card .ic-step { color: var(--c-prep); }
 
-        /* ── МОДАЛЫ ── */
+        /* ══════════════════════════════════════════════
+           ТАБ ИГР
+        ══════════════════════════════════════════════ */
+        #tab-games {
+            overflow: hidden;
+            flex-direction: column;
+        }
+        .games-search-bar {
+            padding: 10px 14px 8px;
+            flex-shrink: 0;
+            background: var(--surface);
+            border-bottom: 1px solid var(--border);
+        }
+        .games-search-input {
+            width: 100%;
+            background: var(--surface-2);
+            border: 1px solid var(--border-hi);
+            border-radius: var(--radius-sm);
+            padding: 8px 12px 8px 34px;
+            color: var(--text);
+            font-family: 'Manrope', sans-serif;
+            font-size: 0.85rem;
+            outline: none;
+            transition: border-color 0.15s;
+            background-image: url("data:image/svg+xml;charset=UTF-8,%3Csvg xmlns='http://www.w3.org/2000/svg' width='14' height='14' viewBox='0 0 24 24' fill='none' stroke='%238888aa' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Ccircle cx='11' cy='11' r='8'/%3E%3Cline x1='21' y1='21' x2='16.65' y2='16.65'/%3E%3C/svg%3E");
+            background-repeat: no-repeat;
+            background-position: 10px center;
+        }
+        .games-search-input:focus { border-color: var(--c-prep); }
+
+        .games-scroll { flex: 1; overflow-y: auto; padding: 10px 10px 20px; }
+
+        /* Категория с горизонтальным скроллом (мобиль) */
+        .game-category { margin-bottom: 18px; }
+        .game-cat-label {
+            font-size: 0.65rem; letter-spacing: 0.12em; text-transform: uppercase;
+            color: var(--text-3); font-family: 'JetBrains Mono', monospace;
+            padding: 0 4px 8px;
+        }
+
+        /* Сетка карточек */
+        .games-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(130px, 1fr));
+            gap: 8px;
+        }
+        .game-tile {
+            background: var(--surface-2);
+            border: 1px solid var(--border);
+            border-radius: var(--radius);
+            padding: 14px 10px 12px;
+            cursor: pointer;
+            transition: background 0.15s, border-color 0.15s, transform 0.1s;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 8px;
+            text-align: center;
+            user-select: none;
+            position: relative;
+            overflow: hidden;
+        }
+        .game-tile::before {
+            content: '';
+            position: absolute;
+            inset: 0;
+            background: radial-gradient(ellipse at 50% 0%, rgba(91,140,255,0.06), transparent 70%);
+            opacity: 0;
+            transition: opacity 0.2s;
+        }
+        .game-tile:hover { background: var(--surface-3); border-color: var(--border-hi); transform: translateY(-1px); }
+        .game-tile:hover::before { opacity: 1; }
+        .game-tile:active { transform: scale(0.97); }
+        .game-tile-icon { font-size: 2rem; line-height: 1; }
+        .game-tile-name { font-size: 0.78rem; font-weight: 700; color: var(--text); line-height: 1.3; }
+        .game-tile-desc { font-size: 0.66rem; color: var(--text-3); line-height: 1.4; display: none; }
+        .game-tile-play {
+            display: flex; align-items: center; justify-content: center;
+            width: 28px; height: 28px; border-radius: 50%;
+            background: rgba(91,140,255,0.15); border: 1px solid rgba(91,140,255,0.3);
+            color: var(--c-prep); margin-top: 2px; flex-shrink: 0;
+        }
+        .game-tile-play svg { width: 10px; height: 10px; fill: currentColor; stroke: none; }
+
+        /* На широком экране — карточки крупнее с описанием */
+        @media (min-width: 768px) {
+            .games-grid { grid-template-columns: repeat(auto-fill, minmax(160px, 1fr)); gap: 10px; }
+            .game-tile { padding: 18px 14px 14px; gap: 10px; }
+            .game-tile-icon { font-size: 2.4rem; }
+            .game-tile-name { font-size: 0.82rem; }
+            .game-tile-desc { display: block; }
+        }
+
+        /* ══════════════════════════════════════════════
+           ТАБ НАСТРОЙКИ (десктопная боковая панель)
+        ══════════════════════════════════════════════ */
+        #tab-settings, #tab-more {
+            overflow-y: auto;
+            padding: 8px 0 24px;
+            flex-direction: column;
+        }
+
+        /* ══════════════════════════════════════════════
+           ЛЕВАЯ ПАНЕЛЬ — ДЕСКТОП НАВ
+        ══════════════════════════════════════════════ */
+        .desktop-nav {
+            flex: 1;
+            overflow-y: auto;
+            padding: 8px 0 16px;
+        }
+        .dn-section { margin-bottom: 4px; }
+        .dn-label { font-size: 0.58rem; letter-spacing: 0.12em; text-transform: uppercase; color: var(--text-3); font-family: 'JetBrains Mono', monospace; padding: 10px 14px 3px; }
+        .dn-item { display: flex; align-items: center; gap: 10px; padding: 9px 14px; cursor: pointer; color: var(--text-2); font-size: 0.85rem; transition: background 0.12s, color 0.12s; border-radius: 0; }
+        .dn-item:hover { background: var(--surface-2); color: var(--text); }
+        .dn-item.active-nav { background: rgba(91,140,255,0.1); color: var(--c-prep); }
+        .dn-item-icon { width: 30px; height: 30px; border-radius: 7px; background: var(--surface-2); border: 1px solid var(--border); display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+        .dn-item.active-nav .dn-item-icon { background: rgba(91,140,255,0.15); border-color: rgba(91,140,255,0.3); }
+        .dn-item-icon svg { width: 14px; height: 14px; fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
+        .dn-item-label { flex: 1; font-weight: 500; }
+        .dn-divider { height: 1px; background: var(--border); margin: 4px 14px; }
+        .desktop-logo { padding: 14px 14px 10px; border-bottom: 1px solid var(--border); display: flex; align-items: center; gap: 10px; flex-shrink: 0; }
+        .desktop-logo-icon { font-size: 1.4rem; line-height: 1; }
+        .desktop-logo-name { font-size: 0.9rem; font-weight: 800; }
+        .desktop-logo-sub { font-size: 0.6rem; color: var(--text-2); font-family: 'JetBrains Mono', monospace; margin-top: 1px; }
+
+        /* ══════════════════════════════════════════════
+           МОДАЛЫ
+        ══════════════════════════════════════════════ */
         .modal-backdrop { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.75); z-index: 100; align-items: flex-end; justify-content: center; }
         .modal-backdrop.open { display: flex; }
         .modal-sheet { background: var(--surface); border-radius: 20px 20px 0 0; border: 1px solid var(--border-hi); border-bottom: none; width: 100%; max-width: 600px; max-height: 88dvh; display: flex; flex-direction: column; overflow: hidden; animation: slideUp 0.22s ease; }
@@ -146,7 +405,7 @@
         .msec { margin-bottom: 20px; }
         .msec-title { font-size: 0.7rem; letter-spacing: 0.12em; text-transform: uppercase; color: var(--text-3); font-family: 'JetBrains Mono', monospace; margin-bottom: 10px; padding-bottom: 6px; border-bottom: 1px solid var(--border); }
 
-        /* ── ЗВУК ── */
+        /* Звук */
         .sound-row { display: flex; align-items: center; gap: 10px; padding: 8px 0; }
         .sound-row-label { flex: 0 0 110px; font-size: 0.82rem; color: var(--text-2); }
         .sound-row-label span { display: block; font-size: 0.7rem; color: var(--text-3); margin-top: 1px; }
@@ -163,7 +422,7 @@
         .toggle-switch input:checked + .toggle-track::after { transform: translateX(18px); background: #000; }
         .intensity-labels { display: flex; justify-content: space-between; font-size: 0.68rem; color: var(--text-3); font-family: 'JetBrains Mono', monospace; margin-top: 4px; }
 
-        /* ── СХЕМА ── */
+        /* Схема */
         .desc-prog-name { font-size: 1.1rem; font-weight: 800; margin-bottom: 4px; }
         .desc-time { font-family: 'JetBrains Mono', monospace; font-size: 0.75rem; color: var(--text-2); margin-bottom: 12px; }
         .desc-body-text { font-size: 0.83rem; color: var(--text-2); line-height: 1.55; margin-bottom: 14px; }
@@ -173,7 +432,7 @@
         .desc-ex-name { font-size: 0.85rem; font-weight: 700; margin-bottom: 2px; }
         .desc-ex-goal { font-size: 0.78rem; color: var(--text-2); }
 
-        /* ── ИСТОРИЯ ── */
+        /* История */
         .hist-streak { text-align: center; padding: 14px; background: var(--surface-2); border: 1px solid var(--border); border-radius: var(--radius-sm); margin-bottom: 14px; }
         .hist-streak-num { font-family: 'JetBrains Mono', monospace; font-size: 2.2rem; font-weight: 700; color: var(--c-finish); line-height: 1; }
         .hist-streak-lbl { font-size: 0.72rem; color: var(--text-2); margin-top: 4px; }
@@ -186,7 +445,7 @@
         .hist-meta { font-size: 0.72rem; color: var(--text-3); font-family: 'JetBrains Mono', monospace; }
         .hist-empty { font-size: 0.82rem; color: var(--text-3); text-align: center; padding: 20px 0; }
 
-        /* ── КЭШ ── */
+        /* Кэш */
         .cache-stat-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 12px; }
         .cache-stat { background: var(--surface-2); border: 1px solid var(--border); border-radius: var(--radius-sm); padding: 10px 12px; }
         .cache-stat-val { font-family: 'JetBrains Mono', monospace; font-size: 1.1rem; font-weight: 700; }
@@ -204,7 +463,7 @@
         .cache-editor-btns { display: flex; gap: 8px; }
         .cache-status { font-size: 0.75rem; color: var(--text-2); margin-top: 6px; font-family: 'JetBrains Mono', monospace; min-height: 18px; }
 
-        /* ── КНОПКИ ДЕЙСТВИЙ ── */
+        /* Кнопки действий */
         .btn-action { width: 100%; padding: 11px; background: var(--c-prep); color: #fff; border: none; border-radius: var(--radius-sm); font-family: 'Manrope', sans-serif; font-weight: 700; font-size: 0.88rem; cursor: pointer; transition: opacity 0.15s; margin-bottom: 6px; display: block; text-align: center; text-decoration: none; }
         .btn-action:hover { opacity: 0.88; }
         .btn-action.green { background: var(--c-work); color: #000; }
@@ -214,22 +473,24 @@
         .btn-action.danger:hover { background: rgba(255,68,102,0.08); opacity: 1; }
         .btn-action.sm { flex: 1; padding: 9px; font-size: 0.82rem; }
 
-        /* ── ИИ ── */
+        /* ИИ */
         .ai-steps { font-size: 0.82rem; color: var(--text-2); line-height: 1.7; margin-bottom: 12px; }
         .ai-steps code { background: var(--surface-3); padding: 1px 5px; border-radius: 4px; font-family: 'JetBrains Mono', monospace; font-size: 0.75rem; color: var(--text); }
         .prompt-box { background: var(--surface-2); border: 1px solid var(--border); border-radius: var(--radius-sm); padding: 12px; font-family: 'JetBrains Mono', monospace; font-size: 0.72rem; color: var(--text-2); line-height: 1.6; white-space: pre-wrap; word-break: break-word; margin-bottom: 10px; max-height: 220px; overflow-y: auto; user-select: text; }
 
-        /* ── ИГРЫ ── */
-        .game-card { display:flex; align-items:center; gap:12px; background:var(--surface-2); border:1px solid var(--border); border-radius:var(--radius-sm); padding:12px 14px; margin-bottom:8px; cursor:pointer; transition:background .15s; }
-        .game-card:hover { background:var(--surface-3); }
-        .game-icon { font-size:1.8rem; flex-shrink:0; width:44px; text-align:center; }
-        .game-info { flex:1; min-width:0; }
-        .game-name { font-size:.9rem; font-weight:700; margin-bottom:2px; }
-        .game-desc { font-size:.72rem; color:var(--text-2); }
-        .game-arrow { color:var(--text-3); font-size:1rem; }
+        /* ══════════════════════════════════════════════
+           ИГРА-ФРЕЙМ
+        ══════════════════════════════════════════════ */
+        #game-frame-wrap { display:none; position:fixed; inset:0; z-index:200; background:#0a0a0f; flex-direction:column; }
+        .game-frame-header { display:flex; align-items:center; gap:10px; padding:10px 14px; background:#111118; border-bottom:1px solid rgba(255,255,255,.07); flex-shrink:0; }
+        #btn-game-back { background:#22222f; border:1px solid rgba(255,255,255,.15); color:#f0f0f8; width:34px; height:34px; border-radius:8px; font-size:1rem; cursor:pointer; display:flex; align-items:center; justify-content:center; flex-shrink:0; }
+        #game-frame-title { font-family:'Manrope',sans-serif; font-weight:700; font-size:.95rem; flex:1; }
+        #game-pause-note { font-size:.65rem; color:#ff8c42; font-family:'JetBrains Mono',monospace; }
+        #game-iframe { flex:1; border:none; width:100%; background:#0a0a0f; }
 
-
-        /* ── БУРГЕР + САЙДБАР ── */
+        /* ══════════════════════════════════════════════
+           БУРГЕР + МОБИЛЬНЫЙ САЙДБАР
+        ══════════════════════════════════════════════ */
         #btn-menu { width:36px; height:36px; border-radius:var(--radius-sm); border:1px solid var(--border-hi); background:var(--surface-2); color:var(--text-2); cursor:pointer; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:4px; flex-shrink:0; user-select:none; transition:background .15s; }
         #btn-menu:hover { background:var(--surface-3); color:var(--text); }
         #btn-menu span { display:block; width:14px; height:1.5px; background:currentColor; border-radius:1px; transition:transform .22s, opacity .22s; }
@@ -250,34 +511,111 @@
         .sb-logo-sub { font-size:.6rem; color:var(--text-2); font-family:'JetBrains Mono',monospace; margin-top:1px; }
         #btn-sb-close { width:28px; height:28px; background:var(--surface-3); border:none; border-radius:50%; color:var(--text-2); font-size:1rem; cursor:pointer; display:flex; align-items:center; justify-content:center; flex-shrink:0; }
         #btn-sb-close:hover { color:var(--text); }
-
         #sidebar-body { flex:1; overflow-y:auto; padding:6px 0 24px; }
-
         .sb-group { margin-bottom:2px; }
         .sb-group-label { font-size:.58rem; letter-spacing:.12em; text-transform:uppercase; color:var(--text-3); font-family:'JetBrains Mono',monospace; padding:10px 14px 3px; }
         .sb-item { display:flex; align-items:center; gap:10px; padding:9px 14px; cursor:pointer; color:var(--text-2); font-size:.85rem; transition:background .12s; }
         .sb-item:hover { background:var(--surface-2); color:var(--text); }
-        .sb-item:active { background:var(--surface-3); }
-        .sb-item-icon { width:30px; height:30px; border-radius:7px; background:var(--surface-2); border:1px solid var(--border); display:flex; align-items:center; justify-content:center; flex-shrink:0; transition:background .12s; }
-        .sb-item:hover .sb-item-icon { background:var(--surface-3); }
+        .sb-item-icon { width:30px; height:30px; border-radius:7px; background:var(--surface-2); border:1px solid var(--border); display:flex; align-items:center; justify-content:center; flex-shrink:0; }
         .sb-item-icon svg { width:14px; height:14px; fill:none; stroke:currentColor; stroke-width:1.8; stroke-linecap:round; stroke-linejoin:round; }
         .sb-item-label { flex:1; font-weight:500; }
-
         .sb-divider { height:1px; background:var(--border); margin:4px 14px; }
 
-        /* Категории игр */
-        .sb-games-section { padding:0 8px 4px; }
-        .sb-cat-label { font-size:.58rem; letter-spacing:.1em; text-transform:uppercase; color:var(--text-3); font-family:'JetBrains Mono',monospace; padding:7px 6px 3px; }
-        .sb-game-item { display:flex; align-items:center; gap:8px; padding:6px 8px; border-radius:7px; cursor:pointer; color:var(--text-2); font-size:.8rem; transition:background .12s; }
-        .sb-game-item:hover { background:var(--surface-2); color:var(--text); }
-        .sb-game-item:active { background:var(--surface-3); }
-        .sb-game-em { font-size:1rem; width:22px; text-align:center; flex-shrink:0; }
-        .sb-game-name { flex:1; }
-        .sb-game-cat-wrap { margin-bottom:4px; }
+        /* ══════════════════════════════════════════════
+           АДАПТИВ — МОБИЛЬ / ДЕСКТОП
+        ══════════════════════════════════════════════ */
+
+        /* Мобиль (< 768px): левая панель скрыта, табы снизу */
+        @media (max-width: 767px) {
+            #left-panel { display: none; }
+            #btn-menu { display: flex; }
+
+            .app-body { flex-direction: column-reverse; }
+
+            #center-panel { flex-direction: column-reverse; }
+
+            .tab-bar {
+                border-top: 1px solid var(--border);
+                border-bottom: none;
+                flex-shrink: 0;
+                padding-bottom: env(safe-area-inset-bottom, 0);
+            }
+            .tab-btn { font-size: 0.6rem; }
+
+            /* Табы скрывают при запущенной тренировке */
+            body.timer-active .tab-bar { display: none; }
+            body.timer-active .tab-btn-workout { display: flex; }
+        }
+
+        /* Десктоп (≥ 768px): левая панель видна, нет мобильного меню и нижних табов */
+        @media (min-width: 768px) {
+            #btn-menu { display: none; }
+            #sidebar-backdrop { display: none !important; }
+            #sidebar { display: none; }
+
+            #left-panel { display: flex; }
+
+            /* Убираем нижние табы — навигация через левую панель */
+            .tab-bar { display: none; }
+
+            /* Тренировочный таб всегда виден */
+            #tab-workout { display: flex; }
+            #tab-games { display: flex; }
+            #tab-settings { display: flex; }
+            #tab-more { display: flex; }
+
+            /* Две колонки: тренировка + правая */
+            #center-panel {
+                flex-direction: row;
+            }
+            #workout-col {
+                flex: 0 0 400px;
+                display: flex;
+                flex-direction: column;
+                overflow: hidden;
+                border-right: 1px solid var(--border);
+            }
+            #right-col {
+                flex: 1;
+                display: flex;
+                flex-direction: column;
+                overflow: hidden;
+            }
+            #right-col .tab-content { display: flex; }
+            #right-col .tab-content.hidden-desktop { display: none; }
+
+            /* Вкладки внутри правой колонки */
+            .desktop-right-tabs {
+                display: flex;
+                flex-shrink: 0;
+                background: var(--surface);
+                border-bottom: 1px solid var(--border);
+            }
+            .desktop-tab-btn {
+                padding: 10px 16px;
+                cursor: pointer; border: none; background: transparent;
+                color: var(--text-3); font-family: 'Manrope', sans-serif;
+                font-size: 0.8rem; font-weight: 700;
+                transition: color 0.15s; position: relative;
+                display: flex; align-items: center; gap: 6px;
+            }
+            .desktop-tab-btn svg { width: 14px; height: 14px; fill:none; stroke:currentColor; stroke-width:1.8; stroke-linecap:round; stroke-linejoin:round; }
+            .desktop-tab-btn.active { color: var(--c-prep); }
+            .desktop-tab-btn.active::after { content:''; position:absolute; bottom:0; left:50%; transform:translateX(-50%); width:32px; height:2px; background:var(--c-prep); border-radius:2px 2px 0 0; }
+            .desktop-tab-btn:hover:not(.active) { color: var(--text-2); }
+        }
+
+        /* Очень широкий — три колонки */
+        @media (min-width: 1100px) {
+            #workout-col { flex: 0 0 440px; }
+        }
 
         ::-webkit-scrollbar { width: 4px; }
         ::-webkit-scrollbar-track { background: transparent; }
         ::-webkit-scrollbar-thumb { background: var(--border-hi); border-radius: 2px; }
+
+        /* Toast */
+        #adj-toast { position:fixed; top:60px; left:50%; transform:translateX(-50%); background:var(--surface-3); border:1px solid var(--border-hi); color:var(--text); padding:6px 16px; border-radius:20px; font-size:0.8rem; font-family:'JetBrains Mono',monospace; z-index:200; pointer-events:none; transition:opacity 0.3s; opacity:0; }
     </style>
 </head>
 <body>
@@ -291,23 +629,29 @@
         <div id="ph-title">Ожидание</div>
     </div>
     <div id="offline-badge">офлайн</div>
+
+    <!-- Кнопка обновления -->
+    <button id="btn-update" title="Обновить приложение" aria-label="Обновить приложение">
+        <svg viewBox="0 0 24 24"><polyline points="23 4 23 10 17 10"/><polyline points="1 20 1 14 7 14"/><path d="M3.51 9a9 9 0 0114.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0020.49 15"/></svg>
+        <span class="update-dot"></span>
+    </button>
+
     <button id="btn-menu" aria-label="Меню">
         <span></span><span></span><span></span>
     </button>
 </header>
 
-<!-- ═══ Сайдбар ═══ -->
+<!-- ═══ Мобильный сайдбар ═══ -->
 <div id="sidebar-backdrop"></div>
 <div id="sidebar" role="navigation" aria-label="Боковое меню">
     <div class="sb-header">
         <div class="sb-logo">
             <div class="sb-logo-icon">🏋️</div>
-            <div><div class="sb-logo-text">McGill Тренер</div><div class="sb-logo-sub">Протокол Большой тройки</div></div>
+            <div><div class="sb-logo-name">McGill Тренер</div><div class="sb-logo-sub">Протокол Большой тройки</div></div>
         </div>
         <button id="btn-sb-close" aria-label="Закрыть меню">×</button>
     </div>
     <div id="sidebar-body">
-
         <div class="sb-group">
             <div class="sb-group-label">Тренировка</div>
             <div class="sb-item" data-modal="modal-desc">
@@ -323,9 +667,7 @@
                 <span class="sb-item-label">Программы</span>
             </div>
         </div>
-
         <div class="sb-divider"></div>
-
         <div class="sb-group">
             <div class="sb-group-label">Настройки</div>
             <div class="sb-item" data-modal="modal-sound">
@@ -337,51 +679,129 @@
                 <span class="sb-item-label">Кэш и данные</span>
             </div>
         </div>
-
-        <div class="sb-divider"></div>
-
-        <div class="sb-group">
-            <div class="sb-group-label">Игры</div>
-            <div class="sb-games-section" id="sb-games-list"></div>
-        </div>
-
     </div>
 </div>
 
-<main>
-    <div class="timer-wrap" id="timer-wrap" role="timer" aria-label="Таймер" aria-live="polite">
-        <svg class="ring-svg" viewBox="0 0 190 190">
-            <circle class="ring-bg" cx="95" cy="95" r="85"/>
-            <circle class="ring-fg" id="ring-fg" cx="95" cy="95" r="85"/>
-        </svg>
-        <div class="timer-inner">
-            <div id="time-display">00</div>
-            <div id="time-label">ГОТОВ</div>
-            <div id="step-counter"></div>
-            <div id="set-counter"></div>
+<!-- ═══ APP BODY ═══ -->
+<div class="app-body">
+
+    <!-- Левая панель (только десктоп) -->
+    <div id="left-panel">
+        <div class="desktop-logo">
+            <div class="desktop-logo-icon">🏋️</div>
+            <div>
+                <div class="desktop-logo-name">McGill Тренер</div>
+                <div class="desktop-logo-sub">Протокол Большой тройки</div>
+            </div>
         </div>
-        <div class="swipe-hint">↑ свайп = пропуск</div>
+        <nav class="desktop-nav">
+            <div class="dn-section">
+                <div class="dn-label">Тренировка</div>
+                <div class="dn-item" data-modal="modal-desc">
+                    <div class="dn-item-icon"><svg viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg></div>
+                    <span class="dn-item-label">Схема тренировки</span>
+                </div>
+                <div class="dn-item" data-modal="modal-history">
+                    <div class="dn-item-icon"><svg viewBox="0 0 24 24"><polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 1 0 .49-5.27"/></svg></div>
+                    <span class="dn-item-label">История</span>
+                </div>
+                <div class="dn-item" data-modal="modal-ai">
+                    <div class="dn-item-icon"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M12 1v4M12 19v4M4.22 4.22l2.83 2.83M16.95 16.95l2.83 2.83M1 12h4M19 12h4"/></svg></div>
+                    <span class="dn-item-label">Программы</span>
+                </div>
+            </div>
+            <div class="dn-divider"></div>
+            <div class="dn-section">
+                <div class="dn-label">Настройки</div>
+                <div class="dn-item" data-modal="modal-sound">
+                    <div class="dn-item-icon"><svg viewBox="0 0 24 24"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/><path d="M19.07 4.93a10 10 0 0 1 0 14.14"/></svg></div>
+                    <span class="dn-item-label">Звук и интенсивность</span>
+                </div>
+                <div class="dn-item" data-modal="modal-cache">
+                    <div class="dn-item-icon"><svg viewBox="0 0 24 24"><ellipse cx="12" cy="5" rx="9" ry="3"/><path d="M21 12c0 1.66-4 3-9 3s-9-1.34-9-3"/><path d="M3 5v14c0 1.66 4 3 9 3s9-1.34 9-3V5"/></svg></div>
+                    <span class="dn-item-label">Кэш и данные</span>
+                </div>
+            </div>
+        </nav>
     </div>
 
-    <div class="controls">
-        <button class="btn-ctrl" id="btn-main" aria-label="Старт тренировки">Старт</button>
-        <button class="btn-ctrl" id="btn-next" disabled aria-label="Пропустить шаг">Пропуск</button>
-        <button class="btn-ctrl" id="btn-reset" title="Начать заново" aria-label="Начать заново">↺</button>
-    </div>
+    <!-- Центральная область -->
+    <div id="center-panel">
 
-    <div class="info-card" id="info-card" aria-live="polite">
-        <div style="color:var(--text-2)">Нажмите «Старт» для начала тренировки.</div>
-    </div>
+        <!-- Нижние табы (только мобиль) -->
+        <nav class="tab-bar" role="tablist">
+            <button class="tab-btn active" data-tab="tab-workout" role="tab">
+                <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+                Тренировка
+            </button>
+            <button class="tab-btn" data-tab="tab-games" role="tab">
+                <svg viewBox="0 0 24 24"><rect x="2" y="6" width="20" height="12" rx="2"/><line x1="6" y1="12" x2="10" y2="12"/><line x1="8" y1="10" x2="8" y2="14"/><circle cx="15" cy="11" r="1" fill="currentColor" stroke="none"/><circle cx="17" cy="13" r="1" fill="currentColor" stroke="none"/></svg>
+                Игры
+            </button>
+        </nav>
 
-    <div class="timeline" id="timeline" role="list" aria-label="Предстоящие шаги"></div>
-</main>
+        <!-- МОБИЛЬ: обёртка с табами -->
+        <!-- ДЕСКТОП: две колонки через CSS -->
+        <div id="workout-col" class="tab-content active" id-tab="tab-workout">
+            <main id="tab-workout" role="main" class="tab-content active">
+                <div class="timer-wrap" id="timer-wrap" role="timer" aria-label="Таймер" aria-live="polite">
+                    <svg class="ring-svg" viewBox="0 0 190 190">
+                        <circle class="ring-bg" cx="95" cy="95" r="85"/>
+                        <circle class="ring-fg" id="ring-fg" cx="95" cy="95" r="85"/>
+                    </svg>
+                    <div class="timer-inner">
+                        <div id="time-display">00</div>
+                        <div id="time-label">ГОТОВ</div>
+                        <div id="step-counter"></div>
+                        <div id="set-counter"></div>
+                    </div>
+                    <div class="swipe-hint">↑ свайп = пропуск</div>
+                </div>
+
+                <div class="controls">
+                    <button class="btn-ctrl" id="btn-main" aria-label="Старт тренировки">Старт</button>
+                    <button class="btn-ctrl" id="btn-next" disabled aria-label="Пропустить шаг">Пропуск</button>
+                    <button class="btn-ctrl" id="btn-reset" title="Начать заново" aria-label="Начать заново">↺</button>
+                </div>
+
+                <div class="info-card" id="info-card" aria-live="polite">
+                    <div style="color:var(--text-2)">Нажмите «Старт» для начала тренировки.</div>
+                </div>
+
+                <div class="timeline" id="timeline" role="list" aria-label="Предстоящие шаги"></div>
+            </main>
+        </div>
+
+        <!-- Правая колонка (десктоп) / просто таб (мобиль) -->
+        <div id="right-col">
+            <!-- Вкладки правой колонки (только десктоп) -->
+            <div class="desktop-right-tabs" id="desktop-right-tabs">
+                <button class="desktop-tab-btn active" data-dtab="tab-games">
+                    <svg viewBox="0 0 24 24"><rect x="2" y="6" width="20" height="12" rx="2"/><line x1="6" y1="12" x2="10" y2="12"/><line x1="8" y1="10" x2="8" y2="14"/><circle cx="15" cy="11" r="1" fill="currentColor" stroke="none"/><circle cx="17" cy="13" r="1" fill="currentColor" stroke="none"/></svg>
+                    Игры
+                </button>
+            </div>
+
+            <!-- ТАБ ИГР -->
+            <div id="tab-games" class="tab-content" role="tabpanel">
+                <div class="games-search-bar">
+                    <input type="search" class="games-search-input" id="games-search" placeholder="Поиск игры…" autocomplete="off">
+                </div>
+                <div class="games-scroll" id="games-scroll">
+                    <div style="color:var(--text-3);font-size:0.82rem;padding:20px 4px">Загрузка игр…</div>
+                </div>
+            </div>
+        </div>
+
+    </div>
+</div><!-- /app-body -->
 
 <!-- ═══ Игра-фрейм ═══ -->
-<div id="game-frame-wrap" style="display:none;position:fixed;inset:0;z-index:200;background:#0a0a0f;flex-direction:column">
-    <div style="display:flex;align-items:center;gap:10px;padding:10px 14px;background:#111118;border-bottom:1px solid rgba(255,255,255,.07);flex-shrink:0">
-        <button id="btn-game-back" style="background:#22222f;border:1px solid rgba(255,255,255,.15);color:#f0f0f8;width:34px;height:34px;border-radius:8px;font-size:1rem;cursor:pointer;display:flex;align-items:center;justify-content:center">←</button>
-        <span id="game-frame-title" style="font-family:'Manrope',sans-serif;font-weight:700;font-size:.95rem;flex:1"></span>
-        <span id="game-pause-note" style="font-size:.65rem;color:#ff8c42;font-family:'JetBrains Mono',monospace">⏸ тренировка на паузе</span>
+<div id="game-frame-wrap">
+    <div class="game-frame-header">
+        <button id="btn-game-back">←</button>
+        <span id="game-frame-title"></span>
+        <span id="game-pause-note">⏸ тренировка на паузе</span>
     </div>
     <iframe id="game-iframe" style="flex:1;border:none;width:100%;background:#0a0a0f" sandbox="allow-scripts allow-same-origin" allowfullscreen></iframe>
 </div>
@@ -568,6 +988,8 @@
     </div>
 </div>
 
+<div id="adj-toast"></div>
+
 <script>
 'use strict';
 // ═══════════════════════════════════════════════════════════════════
@@ -575,12 +997,12 @@
 // ═══════════════════════════════════════════════════════════════════
 const RING_C = 2 * Math.PI * 85;
 const LABELS = { work: 'УДЕРЖАНИЕ', rest: 'ОТДЫХ', prep: 'ОЖИДАНИЕ', finish: 'ФИНИШ' };
+const IS_DESKTOP = () => window.innerWidth >= 768;
 
 // ═══════════════════════════════════════════════════════════════════
 //  СОСТОЯНИЕ
 // ═══════════════════════════════════════════════════════════════════
 let state = { stepIdx: 0, timeLeft: 0, isRunning: false, sessionId: 0, programIdx: 0 };
-
 let workoutsData = [], exDetails = {}, protocol = [], rawProtocol = [], totalTime = 0;
 let rafId = null, stepStartTs = 0, wakeLock = null, _voicesPromise = null;
 
@@ -655,7 +1077,6 @@ function applyIntensity() {
 //  RAF-ТАЙМЕР
 // ═══════════════════════════════════════════════════════════════════
 function _scheduleRaf() {
-    // Единая точка запуска RAF — никогда не запускаем второй параллельный цикл
     if (rafId) { cancelAnimationFrame(rafId); rafId=null; }
     if (state.isRunning) rafId = requestAnimationFrame(_rafLoop);
 }
@@ -668,7 +1089,6 @@ function _rafLoop() {
     if (newLeft !== state.timeLeft) {
         state.timeLeft = newLeft;
         if (state.timeLeft <= 0) {
-            // БАГ 2: явно отменяем текущий RAF перед переходом к следующему шагу
             rafId = null;
             state.stepIdx++;
             loadStep();
@@ -703,15 +1123,12 @@ function startTimer() {
     if (!protocol.length) return;
     initAudio(); requestWakeLock();
     if (state.stepIdx===0&&state.timeLeft===0) {
-        // Первый старт: loadStep сам запустит RAF через _scheduleRaf
         speak('Инициализация протокола.');
         state.isRunning=true;
         btnMain.textContent='Пауза'; btnMain.style.background='var(--c-rest)'; btnNext.disabled=false;
         loadStep();
         return;
     }
-    // БАГ 3: возобновление после паузы — пересчитываем stepStartTs
-    // чтобы RAF не считал прошедшее время с момента паузы
     stepStartTs = performance.now() - ((protocol[state.stepIdx]?.time - state.timeLeft) * 1000);
     state.isRunning=true;
     btnMain.textContent='Пауза'; btnMain.style.background='var(--c-rest)'; btnNext.disabled=false;
@@ -727,7 +1144,6 @@ function loadStep() {
     if (step.voiceTxt) speak(step.voiceTxt);
     if (step.toneType) playTone(step.toneType);
     vibrate(step.type); updateUI();
-    // БАГ 1: не запускаем RAF здесь напрямую — только через _scheduleRaf
     _scheduleRaf();
 }
 
@@ -972,6 +1388,70 @@ async function forceReloadAll() {
 const formatBytes=b=>b<1024?`${b} B`:b<1048576?`${(b/1024).toFixed(1)} KB`:`${(b/1048576).toFixed(2)} MB`;
 
 // ═══════════════════════════════════════════════════════════════════
+//  ОБНОВЛЕНИЕ ПРИЛОЖЕНИЯ
+// ═══════════════════════════════════════════════════════════════════
+let swRegistration = null;
+
+async function updateApp() {
+    const btn = $('btn-update');
+    btn.classList.add('spinning');
+    btn.title = 'Обновление…';
+
+    try {
+        // 1. Обновляем Service Worker
+        if ('serviceWorker' in navigator) {
+            const reg = swRegistration || await navigator.serviceWorker.getRegistration();
+            if (reg) {
+                await reg.update();
+                // Если есть ожидающий воркер — активируем его
+                if (reg.waiting) {
+                    reg.waiting.postMessage({ type: 'SKIP_WAITING' });
+                    await new Promise(resolve => setTimeout(resolve, 500));
+                }
+            }
+        }
+
+        // 2. Очищаем старые кэши (кроме текущего)
+        const keys = await caches.keys();
+        const currentKey = keys[keys.length - 1];
+        await Promise.all(keys.slice(0, -1).map(k => caches.delete(k)));
+
+        // 3. Принудительно обновляем все файлы
+        if (currentKey) {
+            const cache = await caches.open(currentKey);
+            const cacheKeys = await cache.keys();
+            await Promise.all(cacheKeys.map(req =>
+                fetch(req, { cache: 'reload' })
+                    .then(res => { if (res.ok) cache.put(req, res); })
+                    .catch(() => {})
+            ));
+        }
+
+        showToast('✓ Обновлено!');
+        btn.classList.remove('spinning', 'has-update');
+        btn.title = 'Обновить приложение';
+
+        // Перезагрузка через секунду
+        setTimeout(() => location.reload(true), 800);
+
+    } catch(e) {
+        btn.classList.remove('spinning');
+        btn.title = 'Ошибка обновления';
+        showToast('Ошибка обновления');
+        console.error('Update error:', e);
+    }
+}
+
+// Слушаем SW — показываем точку при наличии обновления
+if ('serviceWorker' in navigator) {
+    navigator.serviceWorker.addEventListener('controllerchange', () => {
+        $('btn-update').classList.add('has-update');
+    });
+}
+
+$('btn-update').addEventListener('click', updateApp);
+
+// ═══════════════════════════════════════════════════════════════════
 //  ЭКСПОРТ / ИМПОРТ
 // ═══════════════════════════════════════════════════════════════════
 function exportProgram() {
@@ -995,49 +1475,74 @@ $('import-file').addEventListener('change', async e=>{
 });
 
 // ═══════════════════════════════════════════════════════════════════
-//  ИГРЫ + САЙДБАР
+//  ИГРЫ
 // ═══════════════════════════════════════════════════════════════════
-// Структура данных: { categories: [{ id, label, games: [{ id, name, icon, desc, file }] }] }
-// Категории читаются из games/index.json — без хардкода в коде.
-let gamesIndex = null; // { categories: [...] }
+let gamesIndex = null;
+let gamesSearchQuery = '';
 
 async function fetchGames() {
     try {
         const res = await fetch('./games/index.json');
         if (!res.ok) return;
         const data = await res.json();
-        // Поддержка обоих форматов: новый { categories } и старый плоский массив
         if (Array.isArray(data)) {
-            // Старый формат — кладём всё в одну категорию «Все игры»
             gamesIndex = { categories: [{ id: 'all', label: '🎮 Все игры', games: data }] };
         } else {
             gamesIndex = data;
         }
-        renderSidebarGames();
-    } catch(e) { console.warn('games/index.json не найден:', e); }
+        renderGamesTab();
+    } catch(e) {
+        console.warn('games/index.json не найден:', e);
+        $('games-scroll').innerHTML = '<div style="color:var(--text-3);font-size:0.82rem;padding:20px 4px">Игры не найдены</div>';
+    }
 }
 
-function renderSidebarGames() {
-    const el = $('sb-games-list');
-    if (!gamesIndex?.categories?.length) { el.innerHTML = ''; return; }
-    el.innerHTML = gamesIndex.categories.map(cat => {
-        if (!cat.games?.length) return '';
-        return `<div class="sb-game-cat-wrap">
-            <div class="sb-cat-label">${cat.label}</div>
-            ${cat.games.map(g => `
-                <div class="sb-game-item" data-file="${g.file}" data-name="${g.name}">
-                    <span class="sb-game-em">${g.icon}</span>
-                    <span class="sb-game-name">${g.name}</span>
-                </div>`).join('')}
-        </div>`;
-    }).join('');
-    el.querySelectorAll('.sb-game-item').forEach(item => {
-        item.addEventListener('click', () => {
-            closeSidebar();
-            openGame(item.dataset.file, item.dataset.name);
+function renderGamesTab() {
+    const scroll = $('games-scroll');
+    if (!gamesIndex?.categories?.length) { scroll.innerHTML = '<div style="color:var(--text-3);font-size:0.82rem;padding:20px 4px">Нет игр</div>'; return; }
+
+    const q = gamesSearchQuery.toLowerCase().trim();
+
+    let html = '';
+    gamesIndex.categories.forEach(cat => {
+        const games = q
+            ? cat.games.filter(g => g.name.toLowerCase().includes(q) || g.desc?.toLowerCase().includes(q))
+            : cat.games;
+        if (!games.length) return;
+
+        html += `<div class="game-category">
+            <div class="game-cat-label">${cat.label}</div>
+            <div class="games-grid">`;
+
+        games.forEach(g => {
+            html += `<div class="game-tile" data-file="${g.file}" data-name="${g.name}" role="button" tabindex="0" aria-label="Открыть игру ${g.name}">
+                <div class="game-tile-icon">${g.icon}</div>
+                <div class="game-tile-name">${g.name}</div>
+                <div class="game-tile-desc">${g.desc||''}</div>
+                <div class="game-tile-play">
+                    <svg viewBox="0 0 24 24"><polygon points="5 3 19 12 5 21 5 3"/></svg>
+                </div>
+            </div>`;
         });
+
+        html += '</div></div>';
+    });
+
+    if (!html) html = '<div style="color:var(--text-3);font-size:0.82rem;padding:20px 4px">Игры не найдены</div>';
+    scroll.innerHTML = html;
+
+    scroll.querySelectorAll('.game-tile').forEach(tile => {
+        const open = () => openGame(tile.dataset.file, tile.dataset.name);
+        tile.addEventListener('click', open);
+        tile.addEventListener('keydown', e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); open(); } });
     });
 }
+
+// Поиск
+$('games-search').addEventListener('input', e => {
+    gamesSearchQuery = e.target.value;
+    renderGamesTab();
+});
 
 function openGame(file, name) {
     const wasRunning = state.isRunning;
@@ -1055,21 +1560,45 @@ function closeGame() {
 
 $('btn-game-back').addEventListener('click', closeGame);
 
-// ── САЙДБАР ──
+// ═══════════════════════════════════════════════════════════════════
+//  НАВИГАЦИЯ — ТАБЫ (МОБИЛЬ)
+// ═══════════════════════════════════════════════════════════════════
+function switchTab(tabId) {
+    // Мобильные нижние табы
+    document.querySelectorAll('.tab-btn').forEach(btn => {
+        btn.classList.toggle('active', btn.dataset.tab === tabId);
+    });
+    // Контент
+    document.querySelectorAll('.tab-content').forEach(tc => {
+        tc.classList.toggle('active', tc.id === tabId);
+    });
+}
+
+document.querySelectorAll('.tab-btn[data-tab]').forEach(btn => {
+    btn.addEventListener('click', () => switchTab(btn.dataset.tab));
+});
+
+// Десктопные вкладки правой колонки
+document.querySelectorAll('.desktop-tab-btn[data-dtab]').forEach(btn => {
+    btn.addEventListener('click', () => {
+        document.querySelectorAll('.desktop-tab-btn').forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+        // Показываем нужный таб в правой колонке
+        document.querySelectorAll('#right-col .tab-content').forEach(tc => {
+            tc.classList.toggle('active', tc.id === btn.dataset.dtab);
+        });
+    });
+});
+
+// ═══════════════════════════════════════════════════════════════════
+//  САЙДБАР (МОБИЛЬ)
+// ═══════════════════════════════════════════════════════════════════
 function openSidebar()  { document.body.classList.add('sidebar-open'); }
 function closeSidebar() { document.body.classList.remove('sidebar-open'); }
 
-$('btn-menu').addEventListener('click', ()=>document.body.classList.contains('sidebar-open')?closeSidebar():openSidebar());
+$('btn-menu').addEventListener('click', () => document.body.classList.contains('sidebar-open') ? closeSidebar() : openSidebar());
 $('btn-sb-close').addEventListener('click', closeSidebar);
 $('sidebar-backdrop').addEventListener('click', closeSidebar);
-
-// Клик по пункту меню — открываем модал и закрываем сайдбар
-document.querySelectorAll('.sb-item[data-modal]').forEach(item=>{
-    item.addEventListener('click',()=>{
-        closeSidebar();
-        openModal(item.dataset.modal);
-    });
-});
 
 // ═══════════════════════════════════════════════════════════════════
 //  МОДАЛЫ
@@ -1080,33 +1609,40 @@ function openModal(id) {
     if(id==='modal-history') renderHistory();
 }
 function closeModal(id) { $(id).classList.remove('open'); }
-document.querySelectorAll('[data-close]').forEach(btn=>btn.addEventListener('click',()=>closeModal(btn.dataset.close)));
-document.querySelectorAll('.modal-backdrop').forEach(m=>m.addEventListener('click',e=>{ if(e.target===m) closeModal(m.id); }));
+document.querySelectorAll('[data-close]').forEach(btn => btn.addEventListener('click', () => closeModal(btn.dataset.close)));
+document.querySelectorAll('.modal-backdrop').forEach(m => m.addEventListener('click', e => { if(e.target===m) closeModal(m.id); }));
+
+// Все элементы с data-modal — и мобильный сайдбар и десктопная навигация
+document.querySelectorAll('[data-modal]').forEach(item => {
+    item.addEventListener('click', () => {
+        closeSidebar();
+        openModal(item.dataset.modal);
+    });
+});
 
 // ═══════════════════════════════════════════════════════════════════
 //  УПРАВЛЕНИЕ ТРЕНИРОВКОЙ
 // ═══════════════════════════════════════════════════════════════════
-btnMain.addEventListener('click', ()=>state.isRunning?pauseTimer():startTimer());
-btnNext.addEventListener('click', ()=>{ if(!btnNext.disabled) nextStep(); });
-btnReset.addEventListener('click', ()=>{
+btnMain.addEventListener('click', () => state.isRunning ? pauseTimer() : startTimer());
+btnNext.addEventListener('click', () => { if(!btnNext.disabled) nextStep(); });
+btnReset.addEventListener('click', () => {
     const inProgress = state.isRunning || state.stepIdx > 0 || (state.stepIdx === 0 && state.timeLeft > 0 && state.timeLeft < (protocol[0]?.time || 0));
     if (inProgress && !confirm('Начать тренировку заново?')) return;
-    // Записываем прерванную тренировку если хоть что-то прошло
     if ((state.stepIdx > 0 || state.timeLeft < (protocol[0]?.time || 0)) && protocol.length) saveHistory({done:false});
     _hardStop(); resetUI();
 });
-wSelect.addEventListener('change', e=>{
-    const idx=parseInt(e.target.value);
+wSelect.addEventListener('change', e => {
+    const idx = parseInt(e.target.value);
     if((state.isRunning||state.stepIdx>0)&&!confirm('Сменить программу? Прогресс сбросится.')){ e.target.value=state.programIdx; return; }
     if(state.stepIdx>0&&!state.isRunning) saveHistory({done:false});
     loadProgram(idx);
 });
 
-// Свайп, длинное нажатие и двойной тап — единый обработчик касаний
+// Свайп / длинный тап / двойной тап
 (()=>{
     const w=$('timer-wrap');
     let sy=0, pt=null, lt=0, didLongPress=false;
-    w.addEventListener('touchstart',e=>{
+    w.addEventListener('touchstart', e=>{
         sy=e.touches[0].clientY; didLongPress=false;
         pt=setTimeout(()=>{
             if(state.isRunning&&state.stepIdx<protocol.length){
@@ -1114,7 +1650,7 @@ wSelect.addEventListener('change', e=>{
             }
         },600);
     },{passive:true});
-    w.addEventListener('touchend',e=>{
+    w.addEventListener('touchend', e=>{
         clearTimeout(pt);
         const deltaY=sy-e.changedTouches[0].clientY;
         if(deltaY>55&&state.isRunning){ lt=0; nextStep(); return; }
@@ -1129,9 +1665,9 @@ wSelect.addEventListener('change', e=>{
 })();
 
 function showToast(msg) {
-    let t=$('adj-toast');
-    if(!t){ t=document.createElement('div'); t.id='adj-toast'; Object.assign(t.style,{position:'fixed',top:'60px',left:'50%',transform:'translateX(-50%)',background:'var(--surface-3)',border:'1px solid var(--border-hi)',color:'var(--text)',padding:'6px 16px',borderRadius:'20px',fontSize:'0.8rem',fontFamily:"'JetBrains Mono',monospace",zIndex:'200',pointerEvents:'none',transition:'opacity 0.3s'}); document.body.appendChild(t); }
-    t.textContent=msg; t.style.opacity='1'; clearTimeout(t._to); t._to=setTimeout(()=>{ t.style.opacity='0'; },900);
+    const t = $('adj-toast');
+    t.textContent = msg; t.style.opacity = '1';
+    clearTimeout(t._to); t._to = setTimeout(() => { t.style.opacity = '0'; }, 900);
 }
 
 // ═══════════════════════════════════════════════════════════════════
@@ -1147,7 +1683,10 @@ bindToggle('tts-enabled','ttsEnabled'); bindToggle('tone-enabled','toneEnabled')
 
 const intSl=$('intensity-slider'), intV=$('intensity-val');
 intSl.value=soundCfg.intensity; intV.textContent=soundCfg.intensity+'%';
-intSl.addEventListener('input',()=>{ soundCfg.intensity=parseInt(intSl.value); intV.textContent=soundCfg.intensity+'%'; saveSoundCfg(); if(!state.isRunning){ applyIntensity(); renderTimeline(); } });
+intSl.addEventListener('input', () => {
+    soundCfg.intensity=parseInt(intSl.value); intV.textContent=soundCfg.intensity+'%'; saveSoundCfg();
+    if(!state.isRunning){ applyIntensity(); renderTimeline(); }
+});
 
 // ═══════════════════════════════════════════════════════════════════
 //  КЭШ / ИИ — БИНДИНГИ
@@ -1159,7 +1698,7 @@ $('btn-save-cache').addEventListener('click',    saveCacheEdit);
 $('btn-delete-cache').addEventListener('click',  deleteCacheEntry);
 $('btn-cancel-edit').addEventListener('click',   closeEditor);
 $('btn-export-prog').addEventListener('click',   exportProgram);
-$('btn-copy-prompt').addEventListener('click', async ()=>{
+$('btn-copy-prompt').addEventListener('click', async () => {
     const text=$('ai-prompt-text').textContent;
     try { await navigator.clipboard.writeText(text); } catch { const ta=document.createElement('textarea'); ta.value=text; document.body.appendChild(ta); ta.select(); document.execCommand('copy'); ta.remove(); }
     $('btn-copy-prompt').textContent='✓ Скопировано'; setTimeout(()=>{ $('btn-copy-prompt').textContent='Скопировать промпт'; },2000);
@@ -1176,7 +1715,27 @@ document.addEventListener('visibilitychange', resumeAudioOnVisible);
 loadSoundCfg();
 fetchWorkouts();
 fetchGames();
-if('serviceWorker' in navigator) window.addEventListener('load',()=>navigator.serviceWorker.register('./sw.js').then(r=>console.log('SW:',r.scope)).catch(e=>console.error('SW error:',e)));
+
+if ('serviceWorker' in navigator) {
+    window.addEventListener('load', () => {
+        navigator.serviceWorker.register('./sw.js')
+            .then(reg => {
+                swRegistration = reg;
+                console.log('SW:', reg.scope);
+                // Показываем точку обновления если есть ожидающий воркер
+                if (reg.waiting) $('btn-update').classList.add('has-update');
+                reg.addEventListener('updatefound', () => {
+                    const newWorker = reg.installing;
+                    newWorker.addEventListener('statechange', () => {
+                        if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
+                            $('btn-update').classList.add('has-update');
+                        }
+                    });
+                });
+            })
+            .catch(e => console.error('SW error:', e));
+    });
+}
 </script>
 </body>
 </html>
