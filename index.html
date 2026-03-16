@@ -27,7 +27,6 @@
             --radius:    14px;
             --radius-sm: 8px;
             --accent:    var(--c-prep);
-            /* Layout */
             --sidebar-w: 260px;
             --header-h:  58px;
             --tab-h:     52px;
@@ -45,15 +44,9 @@
             overflow: hidden;
         }
 
-        /* ══════════════════════════════════════════════
-           ПРОГРЕСС
-        ══════════════════════════════════════════════ */
         #progress-bar { position: fixed; top: 0; left: 0; width: 100%; height: 3px; background: var(--border); z-index: 50; }
         #progress-fill { height: 100%; background: linear-gradient(90deg, var(--c-prep), var(--c-work)); width: 0%; transition: width 0.5s linear; }
 
-        /* ══════════════════════════════════════════════
-           ШАПКА
-        ══════════════════════════════════════════════ */
         header {
             flex-shrink: 0;
             display: flex;
@@ -85,7 +78,6 @@
         .btn-icon:hover { background: var(--surface-3); color: var(--text); }
         .btn-icon svg { width: 16px; height: 16px; fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
 
-        /* Кнопка обновления */
         #btn-update {
             width: 36px; height: 36px; border-radius: var(--radius-sm);
             border: 1px solid rgba(91,140,255,0.4); background: rgba(91,140,255,0.1);
@@ -105,101 +97,34 @@
         @keyframes spin { to { transform: rotate(360deg); } }
         #btn-update svg { width: 16px; height: 16px; fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; transition: transform 0.3s; }
 
-        /* ══════════════════════════════════════════════
-           АДАПТИВНЫЙ LAYOUT — ДЕСКТОП
-        ══════════════════════════════════════════════ */
-        .app-body {
-            flex: 1;
-            display: flex;
-            overflow: hidden;
-        }
+        .app-body { flex: 1; display: flex; overflow: hidden; }
 
-        /* Боковая панель (десктоп) */
         #left-panel {
-            width: var(--sidebar-w);
-            flex-shrink: 0;
-            display: flex;
-            flex-direction: column;
-            background: var(--surface);
-            border-right: 1px solid var(--border);
-            overflow: hidden;
+            width: var(--sidebar-w); flex-shrink: 0; display: flex; flex-direction: column;
+            background: var(--surface); border-right: 1px solid var(--border); overflow: hidden;
         }
 
-        /* Центральная область */
-        #center-panel {
-            flex: 1;
-            display: flex;
-            flex-direction: column;
-            overflow: hidden;
-            min-width: 0;
-        }
+        #center-panel { flex: 1; display: flex; flex-direction: column; overflow: hidden; min-width: 0; }
 
-        /* ══════════════════════════════════════════════
-           ТАБЫ (центральная область, мобильный низ)
-        ══════════════════════════════════════════════ */
-        .tab-bar {
-            display: flex;
-            flex-shrink: 0;
-            background: var(--surface);
-            border-bottom: 1px solid var(--border);
-        }
+        .tab-bar { display: flex; flex-shrink: 0; background: var(--surface); border-bottom: 1px solid var(--border); }
         .tab-btn {
-            flex: 1;
-            padding: 0 8px;
-            height: var(--tab-h);
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            justify-content: center;
-            gap: 3px;
-            cursor: pointer;
-            border: none;
-            background: transparent;
-            color: var(--text-3);
-            font-family: 'Manrope', sans-serif;
-            font-size: 0.68rem;
-            font-weight: 700;
-            letter-spacing: 0.04em;
-            transition: color 0.15s, background 0.15s;
-            position: relative;
-            user-select: none;
+            flex: 1; padding: 0 8px; height: var(--tab-h);
+            display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 3px;
+            cursor: pointer; border: none; background: transparent; color: var(--text-3);
+            font-family: 'Manrope', sans-serif; font-size: 0.68rem; font-weight: 700;
+            letter-spacing: 0.04em; transition: color 0.15s, background 0.15s; position: relative; user-select: none;
         }
         .tab-btn svg { width: 18px; height: 18px; fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; flex-shrink: 0; }
         .tab-btn.active { color: var(--accent); }
-        .tab-btn.active::after {
-            content: '';
-            position: absolute;
-            bottom: 0; left: 50%;
-            transform: translateX(-50%);
-            width: 32px; height: 2px;
-            background: var(--accent);
-            border-radius: 2px 2px 0 0;
-        }
+        .tab-btn.active::after { content: ''; position: absolute; bottom: 0; left: 50%; transform: translateX(-50%); width: 32px; height: 2px; background: var(--accent); border-radius: 2px 2px 0 0; }
         .tab-btn:hover:not(.active) { color: var(--text-2); background: var(--surface-2); }
 
-        /* Контент табов */
         .tab-pane { display: none; flex: 1; overflow: hidden; flex-direction: column; }
         .tab-pane.active { display: flex; }
 
-        /* ══════════════════════════════════════════════
-           MAIN (таб тренировки)
-        ══════════════════════════════════════════════ */
-        #tab-workout {
-            overflow-y: auto;
-            overflow-x: hidden;
-        }
-        .workout-main {
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            padding: 16px 16px 20px;
-            gap: 12px;
-            min-height: 100%;
-        }
+        #tab-workout { overflow-y: auto; overflow-x: hidden; }
+        .workout-main { display: flex; flex-direction: column; align-items: center; padding: 16px 16px 20px; gap: 12px; min-height: 100%; }
 
-        /* ══════════════════════════════════════════════
-           КОЛЬЦО
-        ══════════════════════════════════════════════ */
         .timer-wrap { position: relative; width: 190px; height: 190px; flex-shrink: 0; touch-action: none; }
         .ring-svg { position: absolute; top: 0; left: 0; width: 100%; height: 100%; transform: rotate(-90deg); }
         .ring-bg { fill: none; stroke: var(--border); stroke-width: 6; }
@@ -219,9 +144,6 @@
         #step-counter { font-size: 0.6rem; color: var(--text-3); margin-top: 2px; font-family: 'JetBrains Mono', monospace; letter-spacing: 0.05em; }
         #set-counter { font-size: 0.62rem; color: var(--accent); margin-top: 1px; font-family: 'JetBrains Mono', monospace; transition: color 0.3s; }
 
-        /* ══════════════════════════════════════════════
-           УПРАВЛЕНИЕ
-        ══════════════════════════════════════════════ */
         .controls { display: flex; gap: 8px; width: 100%; max-width: 380px; flex-shrink: 0; }
         .btn-ctrl { flex: 1; padding: 13px 8px; border: none; border-radius: var(--radius); font-family: 'Manrope', sans-serif; font-size: 0.9rem; font-weight: 700; color: #fff; cursor: pointer; transition: transform 0.1s, opacity 0.2s, background 0.2s; user-select: none; }
         .btn-ctrl:active { transform: scale(0.97); }
@@ -230,17 +152,11 @@
         #btn-next  { background: var(--surface-3); border: 1px solid var(--border-hi); }
         #btn-reset { background: var(--surface-3); border: 1px solid var(--border-hi); flex: 0 0 46px; padding: 13px 4px; }
 
-        /* ══════════════════════════════════════════════
-           ИНФО-КАРТОЧКА
-        ══════════════════════════════════════════════ */
         .info-card { width: 100%; max-width: 380px; background: var(--surface-2); border: 1px solid var(--border); border-left: 3px solid var(--c-prep); border-radius: var(--radius); padding: 14px; font-size: 0.82rem; line-height: 1.55; flex-shrink: 0; max-height: 200px; overflow-y: auto; transition: border-left-color 0.3s ease; }
         .info-card .ic-row { margin-bottom: 6px; color: var(--text-2); }
         .info-card .ic-row b { color: var(--text); }
         .info-card .ic-step { padding-top: 8px; border-top: 1px solid var(--border); color: var(--c-prep); font-weight: 700; margin-bottom: 0; font-size: 0.8rem; transition: color 0.3s ease; }
 
-        /* ══════════════════════════════════════════════
-           TIMELINE
-        ══════════════════════════════════════════════ */
         .timeline { width: 100%; max-width: 380px; display: flex; flex-direction: column; gap: 2px; flex-shrink: 0; }
         .tl-item { display: flex; justify-content: space-between; align-items: center; padding: 5px 10px; border-radius: var(--radius-sm); font-size: 0.78rem; color: var(--text-3); }
         .tl-item.active { background: var(--surface-2); color: var(--text); font-weight: 700; }
@@ -250,9 +166,6 @@
         .tl-time { font-family: 'JetBrains Mono', monospace; font-size: 0.7rem; color: var(--text-3); }
         .tl-item.active .tl-time { color: var(--text-2); }
 
-        /* ══════════════════════════════════════════════
-           СОСТОЯНИЯ
-        ══════════════════════════════════════════════ */
         body.state-work { --accent: var(--c-work); }
         body.state-rest { --accent: var(--c-rest); }
         body.state-prep { --accent: var(--c-prep); }
@@ -269,91 +182,34 @@
         body.state-rest .info-card .ic-step { color: var(--c-rest); }
         body.state-prep .info-card .ic-step { color: var(--c-prep); }
 
-        /* ══════════════════════════════════════════════
-           ТАБ ИГР
-        ══════════════════════════════════════════════ */
-        #tab-games {
-            overflow: hidden;
-            flex-direction: column;
-        }
-        .games-search-bar {
-            padding: 10px 14px 8px;
-            flex-shrink: 0;
-            background: var(--surface);
-            border-bottom: 1px solid var(--border);
-        }
+        /* ── ТАБ ИГР ── */
+        #tab-games { overflow: hidden; flex-direction: column; }
+        .games-search-bar { padding: 10px 14px 8px; flex-shrink: 0; background: var(--surface); border-bottom: 1px solid var(--border); }
         .games-search-input {
-            width: 100%;
-            background: var(--surface-2);
-            border: 1px solid var(--border-hi);
-            border-radius: var(--radius-sm);
-            padding: 8px 12px 8px 34px;
-            color: var(--text);
-            font-family: 'Manrope', sans-serif;
-            font-size: 0.85rem;
-            outline: none;
-            transition: border-color 0.15s;
+            width: 100%; background: var(--surface-2); border: 1px solid var(--border-hi); border-radius: var(--radius-sm);
+            padding: 8px 12px 8px 34px; color: var(--text); font-family: 'Manrope', sans-serif; font-size: 0.85rem; outline: none; transition: border-color 0.15s;
             background-image: url("data:image/svg+xml;charset=UTF-8,%3Csvg xmlns='http://www.w3.org/2000/svg' width='14' height='14' viewBox='0 0 24 24' fill='none' stroke='%238888aa' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Ccircle cx='11' cy='11' r='8'/%3E%3Cline x1='21' y1='21' x2='16.65' y2='16.65'/%3E%3C/svg%3E");
-            background-repeat: no-repeat;
-            background-position: 10px center;
+            background-repeat: no-repeat; background-position: 10px center;
         }
         .games-search-input:focus { border-color: var(--c-prep); }
-
         .games-scroll { flex: 1; overflow-y: auto; padding: 10px 10px 20px; }
-
-        /* Категория с горизонтальным скроллом (мобиль) */
         .game-category { margin-bottom: 18px; }
-        .game-cat-label {
-            font-size: 0.65rem; letter-spacing: 0.12em; text-transform: uppercase;
-            color: var(--text-3); font-family: 'JetBrains Mono', monospace;
-            padding: 0 4px 8px;
-        }
-
-        /* Сетка карточек */
-        .games-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fill, minmax(130px, 1fr));
-            gap: 8px;
-        }
+        .game-cat-label { font-size: 0.65rem; letter-spacing: 0.12em; text-transform: uppercase; color: var(--text-3); font-family: 'JetBrains Mono', monospace; padding: 0 4px 8px; }
+        .games-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(130px, 1fr)); gap: 8px; }
         .game-tile {
-            background: var(--surface-2);
-            border: 1px solid var(--border);
-            border-radius: var(--radius);
-            padding: 14px 10px 12px;
-            cursor: pointer;
-            transition: background 0.15s, border-color 0.15s, transform 0.1s;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            gap: 8px;
-            text-align: center;
-            user-select: none;
-            position: relative;
-            overflow: hidden;
+            background: var(--surface-2); border: 1px solid var(--border); border-radius: var(--radius);
+            padding: 14px 10px 12px; cursor: pointer; transition: background 0.15s, border-color 0.15s, transform 0.1s;
+            display: flex; flex-direction: column; align-items: center; gap: 8px; text-align: center; user-select: none; position: relative; overflow: hidden;
         }
-        .game-tile::before {
-            content: '';
-            position: absolute;
-            inset: 0;
-            background: radial-gradient(ellipse at 50% 0%, rgba(91,140,255,0.06), transparent 70%);
-            opacity: 0;
-            transition: opacity 0.2s;
-        }
+        .game-tile::before { content: ''; position: absolute; inset: 0; background: radial-gradient(ellipse at 50% 0%, rgba(91,140,255,0.06), transparent 70%); opacity: 0; transition: opacity 0.2s; }
         .game-tile:hover { background: var(--surface-3); border-color: var(--border-hi); transform: translateY(-1px); }
         .game-tile:hover::before { opacity: 1; }
         .game-tile:active { transform: scale(0.97); }
         .game-tile-icon { font-size: 2rem; line-height: 1; }
         .game-tile-name { font-size: 0.78rem; font-weight: 700; color: var(--text); line-height: 1.3; }
         .game-tile-desc { font-size: 0.66rem; color: var(--text-3); line-height: 1.4; display: none; }
-        .game-tile-play {
-            display: flex; align-items: center; justify-content: center;
-            width: 28px; height: 28px; border-radius: 50%;
-            background: rgba(91,140,255,0.15); border: 1px solid rgba(91,140,255,0.3);
-            color: var(--c-prep); margin-top: 2px; flex-shrink: 0;
-        }
+        .game-tile-play { display: flex; align-items: center; justify-content: center; width: 28px; height: 28px; border-radius: 50%; background: rgba(91,140,255,0.15); border: 1px solid rgba(91,140,255,0.3); color: var(--c-prep); margin-top: 2px; flex-shrink: 0; }
         .game-tile-play svg { width: 10px; height: 10px; fill: currentColor; stroke: none; }
-
-        /* На широком экране — карточки крупнее с описанием */
         @media (min-width: 768px) {
             .games-grid { grid-template-columns: repeat(auto-fill, minmax(160px, 1fr)); gap: 10px; }
             .game-tile { padding: 18px 14px 14px; gap: 10px; }
@@ -362,23 +218,9 @@
             .game-tile-desc { display: block; }
         }
 
-        /* ══════════════════════════════════════════════
-           ТАБ НАСТРОЙКИ (десктопная боковая панель)
-        ══════════════════════════════════════════════ */
-        #tab-settings, #tab-more {
-            overflow-y: auto;
-            padding: 8px 0 24px;
-            flex-direction: column;
-        }
+        #tab-settings, #tab-more { overflow-y: auto; padding: 8px 0 24px; flex-direction: column; }
 
-        /* ══════════════════════════════════════════════
-           ЛЕВАЯ ПАНЕЛЬ — ДЕСКТОП НАВ
-        ══════════════════════════════════════════════ */
-        .desktop-nav {
-            flex: 1;
-            overflow-y: auto;
-            padding: 8px 0 16px;
-        }
+        .desktop-nav { flex: 1; overflow-y: auto; padding: 8px 0 16px; }
         .dn-section { margin-bottom: 4px; }
         .dn-label { font-size: 0.58rem; letter-spacing: 0.12em; text-transform: uppercase; color: var(--text-3); font-family: 'JetBrains Mono', monospace; padding: 10px 14px 3px; }
         .dn-item { display: flex; align-items: center; gap: 10px; padding: 9px 14px; cursor: pointer; color: var(--text-2); font-size: 0.85rem; transition: background 0.12s, color 0.12s; border-radius: 0; }
@@ -394,9 +236,7 @@
         .desktop-logo-name { font-size: 0.9rem; font-weight: 800; }
         .desktop-logo-sub { font-size: 0.6rem; color: var(--text-2); font-family: 'JetBrains Mono', monospace; margin-top: 1px; }
 
-        /* ══════════════════════════════════════════════
-           МОДАЛЫ
-        ══════════════════════════════════════════════ */
+        /* ── МОДАЛЫ ── */
         .modal-backdrop { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.75); z-index: 100; align-items: flex-end; justify-content: center; }
         .modal-backdrop.open { display: flex; }
         .modal-sheet { background: var(--surface); border-radius: 20px 20px 0 0; border: 1px solid var(--border-hi); border-bottom: none; width: 100%; max-width: 600px; max-height: 88dvh; display: flex; flex-direction: column; overflow: hidden; animation: slideUp 0.22s ease; }
@@ -410,7 +250,6 @@
         .msec { margin-bottom: 20px; }
         .msec-title { font-size: 0.7rem; letter-spacing: 0.12em; text-transform: uppercase; color: var(--text-3); font-family: 'JetBrains Mono', monospace; margin-bottom: 10px; padding-bottom: 6px; border-bottom: 1px solid var(--border); }
 
-        /* Звук */
         .sound-row { display: flex; align-items: center; gap: 10px; padding: 8px 0; }
         .sound-row-label { flex: 0 0 110px; font-size: 0.82rem; color: var(--text-2); }
         .sound-row-label span { display: block; font-size: 0.7rem; color: var(--text-3); margin-top: 1px; }
@@ -427,7 +266,6 @@
         .toggle-switch input:checked + .toggle-track::after { transform: translateX(18px); background: #000; }
         .intensity-labels { display: flex; justify-content: space-between; font-size: 0.68rem; color: var(--text-3); font-family: 'JetBrains Mono', monospace; margin-top: 4px; }
 
-        /* Схема */
         .desc-prog-name { font-size: 1.1rem; font-weight: 800; margin-bottom: 4px; }
         .desc-time { font-family: 'JetBrains Mono', monospace; font-size: 0.75rem; color: var(--text-2); margin-bottom: 12px; }
         .desc-body-text { font-size: 0.83rem; color: var(--text-2); line-height: 1.55; margin-bottom: 14px; }
@@ -437,7 +275,6 @@
         .desc-ex-name { font-size: 0.85rem; font-weight: 700; margin-bottom: 2px; }
         .desc-ex-goal { font-size: 0.78rem; color: var(--text-2); }
 
-        /* История */
         .hist-streak { text-align: center; padding: 14px; background: var(--surface-2); border: 1px solid var(--border); border-radius: var(--radius-sm); margin-bottom: 14px; }
         .hist-streak-num { font-family: 'JetBrains Mono', monospace; font-size: 2.2rem; font-weight: 700; color: var(--c-finish); line-height: 1; }
         .hist-streak-lbl { font-size: 0.72rem; color: var(--text-2); margin-top: 4px; }
@@ -450,7 +287,6 @@
         .hist-meta { font-size: 0.72rem; color: var(--text-3); font-family: 'JetBrains Mono', monospace; }
         .hist-empty { font-size: 0.82rem; color: var(--text-3); text-align: center; padding: 20px 0; }
 
-        /* Кэш */
         .cache-stat-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 12px; }
         .cache-stat { background: var(--surface-2); border: 1px solid var(--border); border-radius: var(--radius-sm); padding: 10px 12px; }
         .cache-stat-val { font-family: 'JetBrains Mono', monospace; font-size: 1.1rem; font-weight: 700; }
@@ -468,7 +304,6 @@
         .cache-editor-btns { display: flex; gap: 8px; }
         .cache-status { font-size: 0.75rem; color: var(--text-2); margin-top: 6px; font-family: 'JetBrains Mono', monospace; min-height: 18px; }
 
-        /* Кнопки действий */
         .btn-action { width: 100%; padding: 11px; background: var(--c-prep); color: #fff; border: none; border-radius: var(--radius-sm); font-family: 'Manrope', sans-serif; font-weight: 700; font-size: 0.88rem; cursor: pointer; transition: opacity 0.15s; margin-bottom: 6px; display: block; text-align: center; text-decoration: none; }
         .btn-action:hover { opacity: 0.88; }
         .btn-action.green { background: var(--c-work); color: #000; }
@@ -478,14 +313,10 @@
         .btn-action.danger:hover { background: rgba(255,68,102,0.08); opacity: 1; }
         .btn-action.sm { flex: 1; padding: 9px; font-size: 0.82rem; }
 
-        /* ИИ */
         .ai-steps { font-size: 0.82rem; color: var(--text-2); line-height: 1.7; margin-bottom: 12px; }
         .ai-steps code { background: var(--surface-3); padding: 1px 5px; border-radius: 4px; font-family: 'JetBrains Mono', monospace; font-size: 0.75rem; color: var(--text); }
         .prompt-box { background: var(--surface-2); border: 1px solid var(--border); border-radius: var(--radius-sm); padding: 12px; font-family: 'JetBrains Mono', monospace; font-size: 0.72rem; color: var(--text-2); line-height: 1.6; white-space: pre-wrap; word-break: break-word; margin-bottom: 10px; max-height: 220px; overflow-y: auto; user-select: text; }
 
-        /* ══════════════════════════════════════════════
-           ИГРА-ФРЕЙМ
-        ══════════════════════════════════════════════ */
         #game-frame-wrap { display:none; position:fixed; inset:0; z-index:200; background:#0a0a0f; flex-direction:column; }
         .game-frame-header { display:flex; align-items:center; gap:10px; padding:10px 14px; background:#111118; border-bottom:1px solid rgba(255,255,255,.07); flex-shrink:0; }
         #btn-game-back { background:#22222f; border:1px solid rgba(255,255,255,.15); color:#f0f0f8; width:34px; height:34px; border-radius:8px; font-size:1rem; cursor:pointer; display:flex; align-items:center; justify-content:center; flex-shrink:0; }
@@ -493,9 +324,6 @@
         #game-pause-note { font-size:.65rem; color:#ff8c42; font-family:'JetBrains Mono',monospace; }
         #game-iframe { flex:1; border:none; width:100%; background:#0a0a0f; }
 
-        /* ══════════════════════════════════════════════
-           БУРГЕР + МОБИЛЬНЫЙ САЙДБАР
-        ══════════════════════════════════════════════ */
         #btn-menu { width:36px; height:36px; border-radius:var(--radius-sm); border:1px solid var(--border-hi); background:var(--surface-2); color:var(--text-2); cursor:pointer; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:4px; flex-shrink:0; user-select:none; transition:background .15s; }
         #btn-menu:hover { background:var(--surface-3); color:var(--text); }
         #btn-menu span { display:block; width:14px; height:1.5px; background:currentColor; border-radius:1px; transition:transform .22s, opacity .22s; }
@@ -526,68 +354,85 @@
         .sb-item-label { flex:1; font-weight:500; }
         .sb-divider { height:1px; background:var(--border); margin:4px 14px; }
 
-        /* ══════════════════════════════════════════════
-           АДАПТИВ — МОБИЛЬ / ДЕСКТОП
-        ══════════════════════════════════════════════ */
+        /* ══════════════════════════════════
+           КАТЕГОРИИ ТРЕНИРОВОК
+        ══════════════════════════════════ */
+        /* Кнопка выбора программы под select */
+        #btn-select-program {
+            display: none; /* показывается только когда данные загружены */
+            align-items: center; gap: 6px;
+            background: rgba(91,140,255,0.12); border: 1px solid rgba(91,140,255,0.3);
+            color: var(--c-prep); border-radius: var(--radius-sm);
+            padding: 5px 10px; font-size: 0.72rem; font-weight: 700;
+            cursor: pointer; transition: background 0.15s; flex-shrink: 0; white-space: nowrap;
+        }
+        #btn-select-program:hover { background: rgba(91,140,255,0.2); }
 
-        /* Мобиль (< 768px): левая панель скрыта, табы снизу */
+        /* Экран категорий внутри модала */
+        .wcat-grid {
+            display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 4px;
+        }
+        .wcat-card {
+            background: var(--surface-2); border: 1px solid var(--border);
+            border-radius: var(--radius); padding: 16px 12px; cursor: pointer;
+            transition: border-color 0.15s, background 0.15s, transform 0.1s;
+            display: flex; flex-direction: column; gap: 6px; position: relative; overflow: hidden;
+        }
+        .wcat-card::before { content:''; position:absolute; inset:0; background:var(--_c,var(--c-prep)); opacity:0.06; }
+        .wcat-card:hover { border-color: var(--border-hi); background: var(--surface-3); transform: translateY(-1px); }
+        .wcat-card:active { transform: scale(0.97); }
+        .wcat-icon { font-size: 1.8rem; line-height: 1; }
+        .wcat-title { font-size: 0.88rem; font-weight: 800; }
+        .wcat-desc { font-size: 0.7rem; color: var(--text-3); line-height: 1.4; }
+        .wcat-count { font-size: 0.65rem; font-weight: 700; padding: 2px 7px; border-radius: 99px; border: 1px solid; width: fit-content; margin-top: auto; }
+
+        /* Список программ внутри категории */
+        .wprog-list { display: flex; flex-direction: column; gap: 8px; }
+        .wprog-item {
+            background: var(--surface-2); border: 1px solid var(--border); border-radius: var(--radius);
+            padding: 14px; cursor: pointer; transition: border-color 0.15s, background 0.15s;
+        }
+        .wprog-item:hover { border-color: var(--border-hi); background: var(--surface-3); }
+        .wprog-item:active { transform: scale(0.98); }
+        .wprog-item-title { font-size: 0.88rem; font-weight: 700; margin-bottom: 5px; }
+        .wprog-item-desc { font-size: 0.75rem; color: var(--text-3); line-height: 1.5; }
+        .wprog-item-meta { display: flex; gap: 6px; margin-top: 8px; flex-wrap: wrap; }
+        .wprog-tag { font-size: 0.65rem; padding: 2px 8px; border-radius: 99px; background: var(--surface-3); color: var(--text-3); font-family: 'JetBrains Mono', monospace; }
+
+        /* Кнопка назад внутри модала */
+        .modal-back-btn {
+            display: flex; align-items: center; gap: 6px; background: none; border: none;
+            color: var(--c-prep); font-size: 0.8rem; font-weight: 700; cursor: pointer;
+            padding: 0 0 12px; font-family: 'Manrope', sans-serif;
+        }
+        .modal-back-btn:hover { opacity: 0.8; }
+
         @media (max-width: 767px) {
             #left-panel { display: none; }
             #btn-menu { display: flex; }
-
             #center-panel { flex-direction: column; }
-
-            /* Таб-бар всегда снизу */
-            .tab-bar {
-                order: 10;
-                border-top: 1px solid var(--border);
-                border-bottom: none;
-                flex-shrink: 0;
-                padding-bottom: env(safe-area-inset-bottom, 0);
-            }
-
-            /* Пейны занимают всё пространство */
+            .tab-bar { order: 10; border-top: 1px solid var(--border); border-bottom: none; flex-shrink: 0; padding-bottom: env(safe-area-inset-bottom, 0); }
             .tab-pane { order: 1; }
         }
 
-        /* Десктоп (≥ 768px): левая панель видна, нет мобильного меню и нижних табов */
         @media (min-width: 768px) {
             #btn-menu { display: none; }
             #sidebar-backdrop { display: none !important; }
             #sidebar { display: none; }
-
             #left-panel { display: flex; }
-
-            /* Убираем нижние табы */
             .tab-bar { display: none; }
-
-            /* Оба таба видны рядом */
-            #tab-workout,
-            #tab-games { display: flex !important; }
-
-            /* Горизонтальное расположение */
+            #tab-workout, #tab-games { display: flex !important; }
             #center-panel { flex-direction: row; }
-
-            /* Тренировка — фиксированная ширина */
-            #tab-workout {
-                flex: 0 0 400px;
-                border-right: 1px solid var(--border);
-            }
-
-            /* Игры — остаток */
+            #tab-workout { flex: 0 0 400px; border-right: 1px solid var(--border); }
             #tab-games { flex: 1; }
         }
 
-        /* Очень широкий — тренировка шире */
-        @media (min-width: 1100px) {
-            #tab-workout { flex: 0 0 440px; }
-        }
+        @media (min-width: 1100px) { #tab-workout { flex: 0 0 440px; } }
 
         ::-webkit-scrollbar { width: 4px; }
         ::-webkit-scrollbar-track { background: transparent; }
         ::-webkit-scrollbar-thumb { background: var(--border-hi); border-radius: 2px; }
 
-        /* Toast */
         #adj-toast { position:fixed; top:60px; left:50%; transform:translateX(-50%); background:var(--surface-3); border:1px solid var(--border-hi); color:var(--text); padding:6px 16px; border-radius:20px; font-size:0.8rem; font-family:'JetBrains Mono',monospace; z-index:200; pointer-events:none; transition:opacity 0.3s; opacity:0; }
     </style>
 </head>
@@ -598,46 +443,51 @@
 <header>
     <div class="header-left">
         <div id="ex-title-header"></div>
-        <select id="workout-select"><option value="">Загрузка…</option></select>
+        <div style="display:flex;align-items:center;gap:8px;">
+            <select id="workout-select"><option value="">Загрузка…</option></select>
+            <button id="btn-select-program" title="Выбрать программу">
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="9 18 15 12 9 6"/></svg>
+            </button>
+        </div>
         <div id="ph-title">Ожидание</div>
     </div>
     <div id="offline-badge">офлайн</div>
-
-    <!-- Кнопка обновления -->
-    <button id="btn-update" title="Обновить приложение" aria-label="Обновить приложение">
+    <button id="btn-update" title="Обновить приложение">
         <svg viewBox="0 0 24 24"><polyline points="23 4 23 10 17 10"/><polyline points="1 20 1 14 7 14"/><path d="M3.51 9a9 9 0 0114.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0020.49 15"/></svg>
         <span class="update-dot"></span>
     </button>
-
     <button id="btn-menu" aria-label="Меню">
         <span></span><span></span><span></span>
     </button>
 </header>
 
-<!-- ═══ Мобильный сайдбар ═══ -->
 <div id="sidebar-backdrop"></div>
-<div id="sidebar" role="navigation" aria-label="Боковое меню">
+<div id="sidebar">
     <div class="sb-header">
         <div class="sb-logo">
             <div class="sb-logo-icon">🏋️</div>
             <div><div class="sb-logo-name">McGill Тренер</div><div class="sb-logo-sub">Протокол Большой тройки</div></div>
         </div>
-        <button id="btn-sb-close" aria-label="Закрыть меню">×</button>
+        <button id="btn-sb-close">×</button>
     </div>
     <div id="sidebar-body">
         <div class="sb-group">
             <div class="sb-group-label">Тренировка</div>
+            <div class="sb-item" data-modal="modal-programs">
+                <div class="sb-item-icon"><svg viewBox="0 0 24 24"><path d="M4 6h16M4 10h16M4 14h10"/></svg></div>
+                <span class="sb-item-label">Выбрать программу</span>
+            </div>
             <div class="sb-item" data-modal="modal-desc">
                 <div class="sb-item-icon"><svg viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg></div>
                 <span class="sb-item-label">Схема тренировки</span>
             </div>
             <div class="sb-item" data-modal="modal-history">
-                <div class="sb-item-icon"><svg viewBox="0 0 24 24"><polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 1 0 .49-5.27"/><line x1="12" y1="7" x2="12" y2="12"/><polyline points="12 12 15 14"/></svg></div>
+                <div class="sb-item-icon"><svg viewBox="0 0 24 24"><polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 1 0 .49-5.27"/></svg></div>
                 <span class="sb-item-label">История</span>
             </div>
             <div class="sb-item" data-modal="modal-ai">
                 <div class="sb-item-icon"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M12 1v4M12 19v4M4.22 4.22l2.83 2.83M16.95 16.95l2.83 2.83M1 12h4M19 12h4M4.22 19.78l2.83-2.83M16.95 7.05l2.83-2.83"/></svg></div>
-                <span class="sb-item-label">Программы</span>
+                <span class="sb-item-label">Программы (JSON)</span>
             </div>
         </div>
         <div class="sb-divider"></div>
@@ -655,10 +505,7 @@
     </div>
 </div>
 
-<!-- ═══ APP BODY ═══ -->
 <div class="app-body">
-
-    <!-- Левая панель (только десктоп) -->
     <div id="left-panel">
         <div class="desktop-logo">
             <div class="desktop-logo-icon">🏋️</div>
@@ -670,6 +517,10 @@
         <nav class="desktop-nav">
             <div class="dn-section">
                 <div class="dn-label">Тренировка</div>
+                <div class="dn-item" data-modal="modal-programs">
+                    <div class="dn-item-icon"><svg viewBox="0 0 24 24"><path d="M4 6h16M4 10h16M4 14h10"/></svg></div>
+                    <span class="dn-item-label">Выбрать программу</span>
+                </div>
                 <div class="dn-item" data-modal="modal-desc">
                     <div class="dn-item-icon"><svg viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg></div>
                     <span class="dn-item-label">Схема тренировки</span>
@@ -679,8 +530,8 @@
                     <span class="dn-item-label">История</span>
                 </div>
                 <div class="dn-item" data-modal="modal-ai">
-                    <div class="dn-item-icon"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M12 1v4M12 19v4M4.22 4.22l2.83 2.83M16.95 16.95l2.83 2.83M1 12h4M19 12h4"/></svg></div>
-                    <span class="dn-item-label">Программы</span>
+                    <div class="dn-item-icon"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M12 1v4M12 19v4M4.22 4.22l2.83 2.83"/></svg></div>
+                    <span class="dn-item-label">Программы (JSON)</span>
                 </div>
             </div>
             <div class="dn-divider"></div>
@@ -698,10 +549,7 @@
         </nav>
     </div>
 
-    <!-- Центральная область -->
     <div id="center-panel">
-
-        <!-- Нижние табы (только мобиль) -->
         <nav class="tab-bar" role="tablist">
             <button class="tab-btn active" data-tab="tab-workout" role="tab">
                 <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
@@ -713,10 +561,9 @@
             </button>
         </nav>
 
-        <!-- ТАБ ТРЕНИРОВКИ -->
-        <div id="tab-workout" class="tab-pane active" role="main">
+        <div id="tab-workout" class="tab-pane active">
             <main class="workout-main">
-                <div class="timer-wrap" id="timer-wrap" role="timer" aria-label="Таймер" aria-live="polite">
+                <div class="timer-wrap" id="timer-wrap">
                     <svg class="ring-svg" viewBox="0 0 190 190">
                         <circle class="ring-bg" cx="95" cy="95" r="85"/>
                         <circle class="ring-fg" id="ring-fg" cx="95" cy="95" r="85"/>
@@ -729,23 +576,19 @@
                     </div>
                     <div class="swipe-hint">↑ свайп = пропуск</div>
                 </div>
-
                 <div class="controls">
-                    <button class="btn-ctrl" id="btn-main" aria-label="Старт тренировки">Старт</button>
-                    <button class="btn-ctrl" id="btn-next" disabled aria-label="Пропустить шаг">Пропуск</button>
-                    <button class="btn-ctrl" id="btn-reset" title="Начать заново" aria-label="Начать заново">↺</button>
+                    <button class="btn-ctrl" id="btn-main">Старт</button>
+                    <button class="btn-ctrl" id="btn-next" disabled>Пропуск</button>
+                    <button class="btn-ctrl" id="btn-reset" title="Начать заново">↺</button>
                 </div>
-
-                <div class="info-card" id="info-card" aria-live="polite">
+                <div class="info-card" id="info-card">
                     <div style="color:var(--text-2)">Нажмите «Старт» для начала тренировки.</div>
                 </div>
-
-                <div class="timeline" id="timeline" role="list" aria-label="Предстоящие шаги"></div>
+                <div class="timeline" id="timeline"></div>
             </main>
         </div>
 
-        <!-- ТАБ ИГР -->
-        <div id="tab-games" class="tab-pane" role="tabpanel">
+        <div id="tab-games" class="tab-pane">
             <div class="games-search-bar">
                 <input type="search" class="games-search-input" id="games-search" placeholder="Поиск игры…" autocomplete="off">
             </div>
@@ -753,11 +596,9 @@
                 <div style="color:var(--text-3);font-size:0.82rem;padding:20px 4px">Загрузка игр…</div>
             </div>
         </div>
-
     </div>
-</div><!-- /app-body -->
+</div>
 
-<!-- ═══ Игра-фрейм ═══ -->
 <div id="game-frame-wrap">
     <div class="game-frame-header">
         <button id="btn-game-back">←</button>
@@ -767,8 +608,22 @@
     <iframe id="game-iframe" style="flex:1;border:none;width:100%;background:#0a0a0f" sandbox="allow-scripts allow-same-origin" allowfullscreen></iframe>
 </div>
 
+<!-- ═══ МОДАЛ: ВЫБОР ПРОГРАММЫ (КАТЕГОРИИ) ═══ -->
+<div class="modal-backdrop" id="modal-programs">
+    <div class="modal-sheet">
+        <div class="modal-handle"></div>
+        <div class="modal-header">
+            <h2 id="programs-modal-title">Выбрать программу</h2>
+            <button class="btn-close" data-close="modal-programs">×</button>
+        </div>
+        <div class="modal-body" id="programs-body">
+            <div style="color:var(--text-3);font-size:0.82rem;text-align:center;padding:24px 0">Загрузка…</div>
+        </div>
+    </div>
+</div>
+
 <!-- ═══ Схема ═══ -->
-<div class="modal-backdrop" id="modal-desc" role="dialog" aria-label="Схема тренировки">
+<div class="modal-backdrop" id="modal-desc">
     <div class="modal-sheet">
         <div class="modal-handle"></div>
         <div class="modal-header"><h2>Схема тренировки</h2><button class="btn-close" data-close="modal-desc">×</button></div>
@@ -777,7 +632,7 @@
 </div>
 
 <!-- ═══ История ═══ -->
-<div class="modal-backdrop" id="modal-history" role="dialog" aria-label="История тренировок">
+<div class="modal-backdrop" id="modal-history">
     <div class="modal-sheet">
         <div class="modal-handle"></div>
         <div class="modal-header"><h2>История тренировок</h2><button class="btn-close" data-close="modal-history">×</button></div>
@@ -786,7 +641,7 @@
 </div>
 
 <!-- ═══ Звук ═══ -->
-<div class="modal-backdrop" id="modal-sound" role="dialog" aria-label="Настройки звука">
+<div class="modal-backdrop" id="modal-sound">
     <div class="modal-sheet">
         <div class="modal-handle"></div>
         <div class="modal-header"><h2>Настройки звука</h2><button class="btn-close" data-close="modal-sound">×</button></div>
@@ -853,7 +708,7 @@
 </div>
 
 <!-- ═══ Кэш ═══ -->
-<div class="modal-backdrop" id="modal-cache" role="dialog" aria-label="Настройки кэша">
+<div class="modal-backdrop" id="modal-cache">
     <div class="modal-sheet">
         <div class="modal-handle"></div>
         <div class="modal-header"><h2>Настройки кэша</h2><button class="btn-close" data-close="modal-cache">×</button></div>
@@ -891,10 +746,10 @@
 </div>
 
 <!-- ═══ Программы / ИИ ═══ -->
-<div class="modal-backdrop" id="modal-ai" role="dialog" aria-label="Управление программами">
+<div class="modal-backdrop" id="modal-ai">
     <div class="modal-sheet">
         <div class="modal-handle"></div>
-        <div class="modal-header"><h2>Программы</h2><button class="btn-close" data-close="modal-ai">×</button></div>
+        <div class="modal-header"><h2>Программы (JSON)</h2><button class="btn-close" data-close="modal-ai">×</button></div>
         <div class="modal-body">
             <div class="msec">
                 <div class="msec-title">Экспорт / Импорт</div>
@@ -953,39 +808,24 @@
 
 <script>
 'use strict';
-// ═══════════════════════════════════════════════════════════════════
-//  КОНСТАНТЫ
-// ═══════════════════════════════════════════════════════════════════
 const RING_C = 2 * Math.PI * 85;
 const LABELS = { work: 'УДЕРЖАНИЕ', rest: 'ОТДЫХ', prep: 'ОЖИДАНИЕ', finish: 'ФИНИШ' };
 const IS_DESKTOP = () => window.innerWidth >= 768;
 
-// ═══════════════════════════════════════════════════════════════════
-//  СОСТОЯНИЕ
-// ═══════════════════════════════════════════════════════════════════
 let state = { stepIdx: 0, timeLeft: 0, isRunning: false, sessionId: 0, programIdx: 0 };
-let workoutsData = [], exDetails = {}, protocol = [], rawProtocol = [], totalTime = 0;
+let workoutsData = [], workoutsIndex = [], categoriesData = [], exDetails = {}, protocol = [], rawProtocol = [], totalTime = 0;
 let rafId = null, stepStartTs = 0, wakeLock = null, _voicesPromise = null;
 
-// ═══════════════════════════════════════════════════════════════════
-//  ЗВУК-КОНФИГ
-// ═══════════════════════════════════════════════════════════════════
 const soundCfg = { ttsEnabled:true, toneEnabled:true, hapticEnabled:true, volTTS:0.85, rateTTS:1.1, volWork:0.8, volRest:0.8, volPrep:0.6, volTick:0.4, intensity:100 };
 const saveSoundCfg = () => { try { localStorage.setItem('mcgill_sound', JSON.stringify(soundCfg)); } catch {} };
 const loadSoundCfg = () => { try { const s = JSON.parse(localStorage.getItem('mcgill_sound')||'null'); if(s) Object.assign(soundCfg,s); } catch {} };
 
-// ═══════════════════════════════════════════════════════════════════
-//  DOM
-// ═══════════════════════════════════════════════════════════════════
 const $ = id => document.getElementById(id);
 const uiTime=$('time-display'), uiLabel=$('time-label'), uiCounter=$('step-counter'), uiSet=$('set-counter');
 const uiPhTitle=$('ph-title'), uiExTH=$('ex-title-header'), wSelect=$('workout-select');
 const infoCard=$('info-card'), timeline=$('timeline'), progressFill=$('progress-fill'), ringFg=$('ring-fg');
 const btnMain=$('btn-main'), btnNext=$('btn-next'), btnReset=$('btn-reset');
 
-// ═══════════════════════════════════════════════════════════════════
-//  ОФЛАЙН
-// ═══════════════════════════════════════════════════════════════════
 const syncOffline = () => document.body.classList.toggle('offline', !navigator.onLine);
 window.addEventListener('online', syncOffline); window.addEventListener('offline', syncOffline); syncOffline();
 
@@ -997,32 +837,74 @@ async function fetchWorkouts() {
         const idxRes = await fetch('./workouts/index.json');
         if (!idxRes.ok) throw new Error('index.json не найден');
         const raw = await idxRes.json();
-        workoutsData = [];
-        // index.json может содержать строки "file.json" ИЛИ объекты {file:"...", ...}
-        // Нормализуем: берём только имя файла
-        const files = raw.map(entry => typeof entry === 'string' ? entry : entry.file).filter(Boolean);
-        // Убираем дубли (один и тот же файл может быть и строкой и объектом)
-        const uniqueFiles = [...new Set(files)];
+        workoutsIndex = Array.isArray(raw) ? raw : [];
+        workoutsData  = [];
+
+        // Нормализуем: строка → {file:...}, объект остаётся как есть
+        const normalized = workoutsIndex.map(e => typeof e === 'string' ? { file: e, title: e.replace('.json','').replace(/_/g,' ') } : e);
+
+        // Уникальные файлы без дублей
+        const seen  = new Set();
+        const files = normalized.filter(e => { if (!e.file || seen.has(e.file)) return false; seen.add(e.file); return true; });
+
         const results = await Promise.allSettled(
-            uniqueFiles.map(f => fetch(`./workouts/${f}`).then(r => { if(!r.ok) throw new Error(`HTTP ${r.status}`); return r.json(); }))
+            files.map(entry => fetch(`./workouts/${entry.file}`).then(r => { if(!r.ok) throw new Error(`HTTP ${r.status}`); return r.json(); }))
         );
-        results.forEach((res,i) => {
-            if (res.status==='fulfilled' && res.value?.programs) workoutsData = workoutsData.concat(res.value.programs);
-            else console.warn(`Не загружен ${uniqueFiles[i]}:`, res.reason);
+
+        results.forEach((res, i) => {
+            if (res.status === 'fulfilled' && res.value?.programs) {
+                // Прикрепляем мета-данные из index (category и т.д.) к программе
+                res.value.programs.forEach(prog => {
+                    prog._category = files[i].category || '';
+                    prog._file     = files[i].file || '';
+                    workoutsData.push(prog);
+                });
+            } else {
+                console.warn(`Не загружен ${files[i].file}:`, res.reason);
+            }
         });
+
         if (!workoutsData.length) throw new Error('Нет программ');
-        populateSelect(); loadProgram(0);
+        populateSelect();
+        loadProgram(0);
+
+        // Показываем кнопку выбора программы
+        $('btn-select-program').style.display = 'flex';
+
+        // Загружаем категории для модала
+        fetchCategories();
+
     } catch(e) {
         console.error(e);
-        wSelect.innerHTML='<option value="">Ошибка загрузки</option>';
-        uiPhTitle.textContent='Нет данных';
-        infoCard.innerHTML=`<div style="color:var(--c-danger)">Не удалось загрузить workouts/index.json</div>`;
+        wSelect.innerHTML = '<option value="">Ошибка загрузки</option>';
+        uiPhTitle.textContent = 'Нет данных';
+        infoCard.innerHTML = `<div style="color:var(--c-danger)">Не удалось загрузить workouts/index.json</div>`;
+    }
+}
+
+async function fetchCategories() {
+    try {
+        const res = await fetch('./workouts/categories.json');
+        if (res.ok) {
+            categoriesData = await res.json();
+        }
+    } catch(e) {
+        // categories.json не обязателен — строим из данных
+    }
+    // Если файла нет — собираем уникальные категории из workoutsIndex
+    if (!categoriesData.length) {
+        const catSet = new Set(workoutsIndex.map(e => typeof e === 'object' ? (e.category || '') : '').filter(Boolean));
+        categoriesData = [...catSet].map(id => ({ id, title: id, icon: '📋', color: '#5b8cff', description: '' }));
     }
 }
 
 function populateSelect() {
-    wSelect.innerHTML='';
-    workoutsData.forEach((p,i) => { const o=document.createElement('option'); o.value=i; o.textContent=p.name; wSelect.appendChild(o); });
+    wSelect.innerHTML = '';
+    workoutsData.forEach((p, i) => {
+        const o = document.createElement('option');
+        o.value = i; o.textContent = p.name;
+        wSelect.appendChild(o);
+    });
 }
 
 function loadProgram(idx) {
@@ -1032,7 +914,7 @@ function loadProgram(idx) {
     exDetails   = prog.exercisesDetails || {};
     rawProtocol = prog.protocol || [];
     applyIntensity();
-    const etStr = typeof prog.estimatedTime==='number' ? `${prog.estimatedTime} минут` : (prog.estimatedTime||'');
+    const etStr = typeof prog.estimatedTime === 'number' ? `${prog.estimatedTime} минут` : (prog.estimatedTime || '');
     uiPhTitle.textContent = prog.name;
     updateDescModal(prog, etStr);
     resetUI();
@@ -1040,30 +922,146 @@ function loadProgram(idx) {
 
 function applyIntensity() {
     const f = soundCfg.intensity / 100;
-    protocol  = rawProtocol.map(s => ({...s, time: Math.max(1, Math.round(s.time*f))}));
-    totalTime = protocol.reduce((a,s)=>a+s.time,0);
+    protocol  = rawProtocol.map(s => ({...s, time: Math.max(1, Math.round(s.time * f))}));
+    totalTime = protocol.reduce((a, s) => a + s.time, 0);
 }
+
+// ═══════════════════════════════════════════════════════════════════
+//  МОДАЛ ВЫБОРА ПРОГРАММЫ — КАТЕГОРИИ
+// ═══════════════════════════════════════════════════════════════════
+let programsModalScreen = 'categories'; // 'categories' | 'list'
+let programsActiveCat = null;
+
+function renderProgramsModal() {
+    const body   = $('programs-body');
+    const titleEl = $('programs-modal-title');
+
+    if (programsModalScreen === 'categories') {
+        titleEl.textContent = 'Выбрать программу';
+
+        // Собираем категории + программы без категории
+        const indexed = workoutsIndex
+            .filter(e => typeof e === 'object' && e.file)
+            .map(entry => ({ ...entry }));
+
+        // Определяем категории которые реально используются
+        const usedCats = new Set(indexed.map(e => e.category).filter(Boolean));
+
+        // Программы без категории
+        const uncategorized = indexed.filter(e => !e.category);
+
+        // Если всё без категорий или одна категория — показываем сразу список
+        if (usedCats.size === 0) {
+            programsModalScreen = 'list';
+            programsActiveCat   = null;
+            renderProgramsModal();
+            return;
+        }
+
+        let html = '<div class="wcat-grid">';
+        categoriesData.filter(c => usedCats.has(c.id)).forEach(cat => {
+            const count = indexed.filter(e => e.category === cat.id).length;
+            html += `<div class="wcat-card" data-cat="${cat.id}" style="--_c:${cat.color||'#5b8cff'};">
+                <div class="wcat-icon">${cat.icon || '📋'}</div>
+                <div class="wcat-title">${cat.title}</div>
+                <div class="wcat-desc">${cat.description || ''}</div>
+                <div class="wcat-count" style="color:${cat.color||'#5b8cff'};border-color:${cat.color||'#5b8cff'}40;">${count} прогр.</div>
+            </div>`;
+        });
+        html += '</div>';
+
+        // Добавляем кнопку "Все программы" если есть некатегоризованные или хочется видеть всё
+        html += `<button class="btn-action outline" style="margin-top:12px;" data-cat="__all">Все программы (${workoutsData.length})</button>`;
+
+        body.innerHTML = html;
+
+        body.querySelectorAll('[data-cat]').forEach(el => {
+            el.addEventListener('click', () => {
+                programsActiveCat   = el.dataset.cat === '__all' ? null : el.dataset.cat;
+                programsModalScreen = 'list';
+                renderProgramsModal();
+            });
+        });
+
+    } else {
+        // СПИСОК ПРОГРАММ в категории
+        const cat = categoriesData.find(c => c.id === programsActiveCat);
+        titleEl.textContent = cat ? cat.title : 'Все программы';
+
+        const filtered = programsActiveCat
+            ? workoutsData.filter(p => p._category === programsActiveCat)
+            : workoutsData;
+
+        let html = `<button class="modal-back-btn" id="programs-back-btn">← Назад</button>
+            <div class="wprog-list">`;
+
+        filtered.forEach(prog => {
+            const idx = workoutsData.indexOf(prog);
+            const isCurrent = idx === state.programIdx;
+            // Найти мета из index
+            const meta = workoutsIndex.find(e => typeof e === 'object' && e.file === prog._file) || {};
+            html += `<div class="wprog-item ${isCurrent ? 'wprog-item-active' : ''}" data-idx="${idx}" style="${isCurrent ? 'border-color:var(--c-prep);' : ''}">
+                <div class="wprog-item-title">${prog.name}${isCurrent ? ' ✓' : ''}</div>
+                <div class="wprog-item-desc">${meta.description || prog.description || ''}</div>
+                <div class="wprog-item-meta">
+                    ${prog.estimatedTime ? `<span class="wprog-tag">⏱ ${prog.estimatedTime}</span>` : ''}
+                    ${meta.category ? `<span class="wprog-tag">${meta.category}</span>` : ''}
+                </div>
+            </div>`;
+        });
+
+        html += '</div>';
+
+        if (!filtered.length) {
+            html += '<div style="color:var(--text-3);font-size:0.82rem;text-align:center;padding:24px 0">Нет программ</div>';
+        }
+
+        body.innerHTML = html;
+
+        $('programs-back-btn').addEventListener('click', () => {
+            programsModalScreen = 'categories';
+            renderProgramsModal();
+        });
+
+        body.querySelectorAll('.wprog-item[data-idx]').forEach(el => {
+            el.addEventListener('click', () => {
+                const idx = parseInt(el.dataset.idx);
+                if ((state.isRunning || state.stepIdx > 0) && !confirm('Сменить программу? Прогресс сбросится.')) return;
+                if (state.stepIdx > 0 && !state.isRunning) saveHistory({ done: false });
+                closeModal('modal-programs');
+                loadProgram(idx);
+            });
+        });
+    }
+}
+
+// Открытие модала программ — сбрасываем на экран категорий
+function openProgramsModal() {
+    programsModalScreen = 'categories';
+    programsActiveCat   = null;
+    renderProgramsModal();
+    openModal('modal-programs');
+}
+
+$('btn-select-program').addEventListener('click', openProgramsModal);
 
 // ═══════════════════════════════════════════════════════════════════
 //  RAF-ТАЙМЕР
 // ═══════════════════════════════════════════════════════════════════
 function _scheduleRaf() {
-    if (rafId) { cancelAnimationFrame(rafId); rafId=null; }
+    if (rafId) { cancelAnimationFrame(rafId); rafId = null; }
     if (state.isRunning) rafId = requestAnimationFrame(_rafLoop);
 }
 
 function _rafLoop() {
-    if (!state.isRunning) { rafId=null; return; }
+    if (!state.isRunning) { rafId = null; return; }
     const step = protocol[state.stepIdx];
     if (!step) { handleFinish(); return; }
     const newLeft = Math.max(0, step.time - Math.floor((performance.now() - stepStartTs) / 1000));
     if (newLeft !== state.timeLeft) {
         state.timeLeft = newLeft;
         if (state.timeLeft <= 0) {
-            rafId = null;
-            state.stepIdx++;
-            loadStep();
-            return;
+            rafId = null; state.stepIdx++; loadStep(); return;
         }
         updateUI();
         if (state.timeLeft <= 3 && step.time > 5) playTone('tick');
@@ -1073,136 +1071,133 @@ function _rafLoop() {
 
 function _hardStop() {
     state.isRunning = false; state.sessionId++;
-    if (rafId) { cancelAnimationFrame(rafId); rafId=null; }
+    if (rafId) { cancelAnimationFrame(rafId); rafId = null; }
     releaseWakeLock();
     if (window.speechSynthesis) window.speechSynthesis.cancel();
 }
 
 function resetUI() {
-    const sid=state.sessionId, pidx=state.programIdx;
+    const sid = state.sessionId, pidx = state.programIdx;
     Object.assign(state, { stepIdx:0, timeLeft:0, isRunning:false, sessionId:sid, programIdx:pidx });
-    btnMain.textContent='Старт'; btnMain.style.background=''; btnNext.disabled=true;
-    progressFill.style.width='0%'; ringFg.style.strokeDashoffset=RING_C; ringFg.style.stroke='var(--c-prep)';
-    document.body.className='';
-    uiTime.textContent='00'; uiLabel.textContent='ГОТОВ'; uiCounter.textContent=''; uiSet.textContent='';
+    btnMain.textContent = 'Старт'; btnMain.style.background = ''; btnNext.disabled = true;
+    progressFill.style.width = '0%'; ringFg.style.strokeDashoffset = RING_C; ringFg.style.stroke = 'var(--c-prep)';
+    document.body.className = '';
+    uiTime.textContent = '00'; uiLabel.textContent = 'ГОТОВ'; uiCounter.textContent = ''; uiSet.textContent = '';
     setHeaderRunning(false);
-    infoCard.innerHTML=`<div style="color:var(--text-2)">Нажмите «Старт» для начала тренировки.</div>`;
+    infoCard.innerHTML = `<div style="color:var(--text-2)">Нажмите «Старт» для начала тренировки.</div>`;
     renderTimeline();
 }
 
 function startTimer() {
     if (!protocol.length) return;
     initAudio(); requestWakeLock();
-    if (state.stepIdx===0&&state.timeLeft===0) {
+    if (state.stepIdx === 0 && state.timeLeft === 0) {
         speak('Инициализация протокола.');
-        state.isRunning=true;
-        btnMain.textContent='Пауза'; btnMain.style.background='var(--c-rest)'; btnNext.disabled=false;
-        loadStep();
-        return;
+        state.isRunning = true;
+        btnMain.textContent = 'Пауза'; btnMain.style.background = 'var(--c-rest)'; btnNext.disabled = false;
+        loadStep(); return;
     }
     stepStartTs = performance.now() - ((protocol[state.stepIdx]?.time - state.timeLeft) * 1000);
-    state.isRunning=true;
-    btnMain.textContent='Пауза'; btnMain.style.background='var(--c-rest)'; btnNext.disabled=false;
+    state.isRunning = true;
+    btnMain.textContent = 'Пауза'; btnMain.style.background = 'var(--c-rest)'; btnNext.disabled = false;
     _scheduleRaf();
 }
 
-function pauseTimer() { _hardStop(); btnMain.textContent='Продолжить'; btnMain.style.background='var(--c-work)'; btnNext.disabled=true; }
+function pauseTimer() { _hardStop(); btnMain.textContent = 'Продолжить'; btnMain.style.background = 'var(--c-work)'; btnNext.disabled = true; }
 
 function loadStep() {
-    if (state.stepIdx>=protocol.length) { handleFinish(); return; }
-    const step=protocol[state.stepIdx];
-    state.timeLeft=step.time; stepStartTs=performance.now();
+    if (state.stepIdx >= protocol.length) { handleFinish(); return; }
+    const step = protocol[state.stepIdx];
+    state.timeLeft = step.time; stepStartTs = performance.now();
     if (step.voiceTxt) speak(step.voiceTxt);
     if (step.toneType) playTone(step.toneType);
-    vibrate(step.type); updateUI();
-    _scheduleRaf();
+    vibrate(step.type); updateUI(); _scheduleRaf();
 }
 
-function nextStep() { if (state.stepIdx<protocol.length) { state.stepIdx++; loadStep(); } }
+function nextStep() { if (state.stepIdx < protocol.length) { state.stepIdx++; loadStep(); } }
 
 function handleFinish() {
-    saveHistory({ done:true }); _hardStop(); setHeaderRunning(false);
-    uiTime.textContent='✓'; uiLabel.textContent='ФИНИШ'; uiCounter.textContent=''; uiSet.textContent='';
-    document.body.className='state-finish'; progressFill.style.width='100%';
-    ringFg.style.strokeDashoffset='0'; ringFg.style.stroke='var(--c-finish)';
-    infoCard.innerHTML=buildInfoCard('Финиш','Комплекс успешно завершён!');
-    renderTimeline(); btnMain.textContent='Старт'; btnMain.style.background=''; btnNext.disabled=true;
+    saveHistory({ done: true }); _hardStop(); setHeaderRunning(false);
+    uiTime.textContent = '✓'; uiLabel.textContent = 'ФИНИШ'; uiCounter.textContent = ''; uiSet.textContent = '';
+    document.body.className = 'state-finish'; progressFill.style.width = '100%';
+    ringFg.style.strokeDashoffset = '0'; ringFg.style.stroke = 'var(--c-finish)';
+    infoCard.innerHTML = buildInfoCard('Финиш', 'Комплекс успешно завершён!');
+    renderTimeline(); btnMain.textContent = 'Старт'; btnMain.style.background = ''; btnNext.disabled = true;
 }
 
 function updateUI() {
-    if (!protocol.length||state.stepIdx>=protocol.length) return;
-    const step=protocol[state.stepIdx];
+    if (!protocol.length || state.stepIdx >= protocol.length) return;
+    const step = protocol[state.stepIdx];
     setHeaderRunning(true);
-    uiExTH.textContent=step.ex; uiTime.textContent=state.timeLeft;
-    uiLabel.textContent=LABELS[step.type]||'РАБОТА'; uiCounter.textContent=`${state.stepIdx+1} / ${protocol.length}`;
-    uiSet.textContent=getSetInfo(state.stepIdx)||'';
-    document.body.className=`state-${step.type}`;
-    let done=0;
-    for(let i=0;i<state.stepIdx;i++) done+=protocol[i].time;
-    done+=(step.time-state.timeLeft);
-    progressFill.style.width=`${totalTime?Math.min(100,(done/totalTime)*100):0}%`;
-    const frac=step.time>0?(state.timeLeft/step.time):0;
-    ringFg.style.strokeDashoffset=RING_C*frac;
-    const cmap={work:'var(--c-work)',rest:'var(--c-rest)',prep:'var(--c-prep)',finish:'var(--c-finish)'};
-    ringFg.style.stroke=cmap[step.type]||'var(--c-prep)';
-    infoCard.innerHTML=buildInfoCard(step.ex,step.stepDesc);
+    uiExTH.textContent = step.ex; uiTime.textContent = state.timeLeft;
+    uiLabel.textContent = LABELS[step.type] || 'РАБОТА'; uiCounter.textContent = `${state.stepIdx + 1} / ${protocol.length}`;
+    uiSet.textContent = getSetInfo(state.stepIdx) || '';
+    document.body.className = `state-${step.type}`;
+    let done = 0;
+    for (let i = 0; i < state.stepIdx; i++) done += protocol[i].time;
+    done += (step.time - state.timeLeft);
+    progressFill.style.width = `${totalTime ? Math.min(100, (done / totalTime) * 100) : 0}%`;
+    const frac = step.time > 0 ? (state.timeLeft / step.time) : 0;
+    ringFg.style.strokeDashoffset = RING_C * frac;
+    const cmap = { work:'var(--c-work)', rest:'var(--c-rest)', prep:'var(--c-prep)', finish:'var(--c-finish)' };
+    ringFg.style.stroke = cmap[step.type] || 'var(--c-prep)';
+    infoCard.innerHTML = buildInfoCard(step.ex, step.stepDesc);
     renderTimeline();
 }
 
 function getSetInfo(idx) {
-    const step=protocol[idx];
-    if (!step||step.type!=='work') return '';
-    let total=0, current=0;
-    protocol.forEach((s,i)=>{ if(s.ex===step.ex&&s.type==='work'){ total++; if(i<=idx) current++; } });
-    return total>1?`Подход ${current} / ${total}`:'';
+    const step = protocol[idx];
+    if (!step || step.type !== 'work') return '';
+    let total = 0, current = 0;
+    protocol.forEach((s, i) => { if (s.ex === step.ex && s.type === 'work') { total++; if (i <= idx) current++; } });
+    return total > 1 ? `Подход ${current} / ${total}` : '';
 }
 
 function buildInfoCard(exName, stepDesc) {
-    const d=exDetails[exName]||{goal:'—',start:'—',move:'—'};
+    const d = exDetails[exName] || { goal:'—', start:'—', move:'—' };
     return `<div class="ic-row"><b>Цель:</b> ${d.goal}</div>
-        ${d.start&&d.start!=='—'&&d.start!=='-'?`<div class="ic-row"><b>Исходное положение:</b> ${d.start}</div>`:''}
+        ${d.start && d.start !== '—' && d.start !== '-' ? `<div class="ic-row"><b>Исходное положение:</b> ${d.start}</div>` : ''}
         <div class="ic-row"><b>Движение:</b> ${d.move}</div>
-        <div class="ic-step">${stepDesc||''}</div>`;
+        <div class="ic-step">${stepDesc || ''}</div>`;
 }
 
 function renderTimeline() {
-    timeline.innerHTML='';
+    timeline.innerHTML = '';
     if (!protocol.length) return;
-    const end=Math.min(state.stepIdx+5,protocol.length);
-    for(let i=state.stepIdx;i<end;i++){
-        const s=protocol[i], div=document.createElement('div');
-        div.className=`tl-item${i===state.stepIdx?' active':''}`;
-        div.setAttribute('role','listitem');
-        div.innerHTML=`<span class="tl-name"><span class="tl-dot"></span>${s.ex} — ${s.phase}</span><span class="tl-time">${s.time}с</span>`;
+    const end = Math.min(state.stepIdx + 5, protocol.length);
+    for (let i = state.stepIdx; i < end; i++) {
+        const s = protocol[i], div = document.createElement('div');
+        div.className = `tl-item${i === state.stepIdx ? ' active' : ''}`;
+        div.innerHTML = `<span class="tl-name"><span class="tl-dot"></span>${s.ex} — ${s.phase}</span><span class="tl-time">${s.time}с</span>`;
         timeline.appendChild(div);
     }
 }
 
-function setHeaderRunning(running) { wSelect.style.display=running?'none':''; uiExTH.style.display=running?'block':'none'; }
+function setHeaderRunning(running) { wSelect.style.display = running ? 'none' : ''; uiExTH.style.display = running ? 'block' : 'none'; $('btn-select-program').style.display = running ? 'none' : (workoutsData.length ? 'flex' : 'none'); }
 
 // ═══════════════════════════════════════════════════════════════════
 //  АУДИО
 // ═══════════════════════════════════════════════════════════════════
 let audioCtx;
-function initAudio() { const AC=window.AudioContext||window.webkitAudioContext; if(!audioCtx) audioCtx=new AC(); if(audioCtx.state==='suspended') audioCtx.resume(); }
-function resumeAudioOnVisible() { if(!document.hidden&&audioCtx?.state==='suspended') audioCtx.resume(); if(!document.hidden&&state.isRunning) requestWakeLock(); }
+function initAudio() { const AC = window.AudioContext || window.webkitAudioContext; if (!audioCtx) audioCtx = new AC(); if (audioCtx.state === 'suspended') audioCtx.resume(); }
+function resumeAudioOnVisible() { if (!document.hidden && audioCtx?.state === 'suspended') audioCtx.resume(); if (!document.hidden && state.isRunning) requestWakeLock(); }
 
 function playTone(type) {
-    if (!soundCfg.toneEnabled||!audioCtx||audioCtx.state==='closed') return;
-    if (audioCtx.state==='suspended') { audioCtx.resume(); return; }
-    const now=audioCtx.currentTime;
-    const mk=(freq,vol,dur,wave='sine')=>{ const o=audioCtx.createOscillator(),g=audioCtx.createGain(); o.type=wave; o.frequency.setValueAtTime(freq,now); g.gain.setValueAtTime(vol,now); g.gain.exponentialRampToValueAtTime(0.001,now+dur); o.connect(g); g.connect(audioCtx.destination); o.start(now); o.stop(now+dur); };
-    if (type==='work') mk(880,soundCfg.volWork,0.6);
-    else if (type==='rest') mk(440,soundCfg.volRest,0.5,'triangle');
+    if (!soundCfg.toneEnabled || !audioCtx || audioCtx.state === 'closed') return;
+    if (audioCtx.state === 'suspended') { audioCtx.resume(); return; }
+    const now = audioCtx.currentTime;
+    const mk = (freq, vol, dur, wave='sine') => { const o=audioCtx.createOscillator(),g=audioCtx.createGain(); o.type=wave; o.frequency.setValueAtTime(freq,now); g.gain.setValueAtTime(vol,now); g.gain.exponentialRampToValueAtTime(0.001,now+dur); o.connect(g); g.connect(audioCtx.destination); o.start(now); o.stop(now+dur); };
+    if (type==='work') mk(880, soundCfg.volWork, 0.6);
+    else if (type==='rest') mk(440, soundCfg.volRest, 0.5, 'triangle');
     else if (type==='prep') {
         const o=audioCtx.createOscillator(),g=audioCtx.createGain(); o.type='square'; o.frequency.setValueAtTime(660,now); g.gain.setValueAtTime(soundCfg.volPrep*0.5,now); g.gain.exponentialRampToValueAtTime(0.001,now+0.15); o.connect(g); g.connect(audioCtx.destination); o.start(now); o.stop(now+0.15);
         const o2=audioCtx.createOscillator(),g2=audioCtx.createGain(); o2.type='square'; o2.frequency.setValueAtTime(660,now+0.2); g2.gain.setValueAtTime(soundCfg.volPrep*0.5,now+0.2); g2.gain.exponentialRampToValueAtTime(0.001,now+0.35); o2.connect(g2); g2.connect(audioCtx.destination); o2.start(now+0.2); o2.stop(now+0.35);
-    } else if (type==='tick') mk(1000,soundCfg.volTick*0.4,0.1);
-    else if (type==='finish') [440,554,659,880].forEach((f,i)=>{ const t=now+i*0.2,o=audioCtx.createOscillator(),g=audioCtx.createGain(); o.frequency.setValueAtTime(f,t); g.gain.setValueAtTime(soundCfg.volWork,t); g.gain.exponentialRampToValueAtTime(0.001,t+0.5); o.connect(g); g.connect(audioCtx.destination); o.start(t); o.stop(t+0.5); });
+    } else if (type==='tick') mk(1000, soundCfg.volTick*0.4, 0.1);
+    else if (type==='finish') [440,554,659,880].forEach((f,i) => { const t=now+i*0.2,o=audioCtx.createOscillator(),g=audioCtx.createGain(); o.frequency.setValueAtTime(f,t); g.gain.setValueAtTime(soundCfg.volWork,t); g.gain.exponentialRampToValueAtTime(0.001,t+0.5); o.connect(g); g.connect(audioCtx.destination); o.start(t); o.stop(t+0.5); });
 }
 
 function vibrate(type) {
-    if (!soundCfg.hapticEnabled||!navigator.vibrate) return;
+    if (!soundCfg.hapticEnabled || !navigator.vibrate) return;
     if (type==='work') navigator.vibrate([60]);
     else if (type==='rest') navigator.vibrate([30]);
     else if (type==='finish') navigator.vibrate([40,60,40,60,80]);
@@ -1211,152 +1206,160 @@ function vibrate(type) {
 function ensureVoices() {
     return new Promise(resolve => {
         if (window.speechSynthesis.getVoices().length) { resolve(); return; }
-        window.speechSynthesis.onvoiceschanged=()=>{ window.speechSynthesis.onvoiceschanged=null; resolve(); };
-        setTimeout(resolve,1500);
+        window.speechSynthesis.onvoiceschanged = () => { window.speechSynthesis.onvoiceschanged = null; resolve(); };
+        setTimeout(resolve, 1500);
     });
 }
 
 function speak(text) {
-    if (!soundCfg.ttsEnabled||!window.speechSynthesis||!text) return;
-    if (!_voicesPromise) _voicesPromise=ensureVoices();
-    _voicesPromise.then(()=>{
+    if (!soundCfg.ttsEnabled || !window.speechSynthesis || !text) return;
+    if (!_voicesPromise) _voicesPromise = ensureVoices();
+    _voicesPromise.then(() => {
         window.speechSynthesis.cancel();
         try { window.speechSynthesis.resume(); } catch {}
-        const u=new SpeechSynthesisUtterance(text);
+        const u = new SpeechSynthesisUtterance(text);
         u.lang='ru-RU'; u.rate=soundCfg.rateTTS; u.volume=soundCfg.volTTS;
-        u.onerror=e=>console.warn('TTS:',e.error);
+        u.onerror = e => console.warn('TTS:', e.error);
         window.speechSynthesis.speak(u);
     });
 }
 
-// ═══════════════════════════════════════════════════════════════════
-//  WAKELLOCK
-// ═══════════════════════════════════════════════════════════════════
-async function requestWakeLock() { try { if('wakeLock' in navigator) wakeLock=await navigator.wakeLock.request('screen'); } catch {} }
-function releaseWakeLock() { if(wakeLock){ wakeLock.release().catch(()=>{}); wakeLock=null; } }
+async function requestWakeLock() { try { if ('wakeLock' in navigator) wakeLock = await navigator.wakeLock.request('screen'); } catch {} }
+function releaseWakeLock() { if (wakeLock) { wakeLock.release().catch(() => {}); wakeLock = null; } }
 
 // ═══════════════════════════════════════════════════════════════════
 //  ИСТОРИЯ
 // ═══════════════════════════════════════════════════════════════════
 function saveHistory({ done }) {
     try {
-        const prog=workoutsData[state.programIdx]; if(!prog) return;
-        const hist=JSON.parse(localStorage.getItem('mcgill_history')||'[]');
-        hist.unshift({ name:prog.name, date:new Date().toISOString(), done, duration:Math.round(totalTime*(soundCfg.intensity/100)) });
-        if(hist.length>100) hist.splice(100);
-        localStorage.setItem('mcgill_history',JSON.stringify(hist));
+        const prog = workoutsData[state.programIdx]; if (!prog) return;
+        const hist = JSON.parse(localStorage.getItem('mcgill_history') || '[]');
+        hist.unshift({ name: prog.name, date: new Date().toISOString(), done, duration: Math.round(totalTime * (soundCfg.intensity / 100)) });
+        if (hist.length > 100) hist.splice(100);
+        localStorage.setItem('mcgill_history', JSON.stringify(hist));
     } catch {}
 }
 
 function calcStreak(hist) {
-    const days=new Set(hist.filter(h=>h.done).map(h=>h.date.slice(0,10)));
-    let streak=0, d=new Date();
-    while(true) { const k=d.toISOString().slice(0,10); if(days.has(k)){ streak++; d.setDate(d.getDate()-1); } else break; }
+    const days = new Set(hist.filter(h => h.done).map(h => h.date.slice(0, 10)));
+    let streak = 0, d = new Date();
+    while (true) { const k = d.toISOString().slice(0, 10); if (days.has(k)) { streak++; d.setDate(d.getDate() - 1); } else break; }
     return streak;
 }
 
 function renderHistory() {
-    const body=$('history-body');
-    let hist; try { hist=JSON.parse(localStorage.getItem('mcgill_history')||'[]'); } catch { hist=[]; }
-    const streak=calcStreak(hist);
-    let html=`<div class="hist-streak"><div class="hist-streak-num">${streak}</div><div class="hist-streak-lbl">дней подряд 🔥</div></div>`;
-    if (!hist.length) { html+=`<div class="hist-empty">Тренировок ещё не было. Начните прямо сейчас!</div>`; }
+    const body = $('history-body');
+    let hist; try { hist = JSON.parse(localStorage.getItem('mcgill_history') || '[]'); } catch { hist = []; }
+    const streak = calcStreak(hist);
+    let html = `<div class="hist-streak"><div class="hist-streak-num">${streak}</div><div class="hist-streak-lbl">дней подряд 🔥</div></div>`;
+    if (!hist.length) { html += `<div class="hist-empty">Тренировок ещё не было. Начните прямо сейчас!</div>`; }
     else {
-        html+=hist.slice(0,30).map(h=>{
-            const dt=new Date(h.date);
-            const dts=dt.toLocaleDateString('ru-RU',{day:'numeric',month:'short'})+' '+dt.toLocaleTimeString('ru-RU',{hour:'2-digit',minute:'2-digit'});
-            const dur=h.duration?`${Math.floor(h.duration/60)}мин ${h.duration%60}с`:'';
+        html += hist.slice(0, 30).map(h => {
+            const dt = new Date(h.date);
+            const dts = dt.toLocaleDateString('ru-RU',{day:'numeric',month:'short'}) + ' ' + dt.toLocaleTimeString('ru-RU',{hour:'2-digit',minute:'2-digit'});
+            const dur = h.duration ? `${Math.floor(h.duration/60)}мин ${h.duration%60}с` : '';
             return `<div class="hist-item"><div class="hist-top"><div class="hist-name">${h.name}</div><div class="hist-status ${h.done?'done':'interrupted'}">${h.done?'✓ завершено':'✗ прервано'}</div></div><div class="hist-meta">${dts}${dur?' · '+dur:''}</div></div>`;
         }).join('');
-        html+=`<button class="btn-action danger" style="margin-top:10px" id="btn-clear-hist">Очистить историю</button>`;
+        html += `<button class="btn-action danger" style="margin-top:10px" id="btn-clear-hist">Очистить историю</button>`;
     }
-    body.innerHTML=html;
-    const clr=$('btn-clear-hist');
-    if(clr) clr.addEventListener('click',()=>{ if(confirm('Очистить всю историю?')){ localStorage.removeItem('mcgill_history'); renderHistory(); } });
+    body.innerHTML = html;
+    const clr = $('btn-clear-hist');
+    if (clr) clr.addEventListener('click', () => { if (confirm('Очистить всю историю?')) { localStorage.removeItem('mcgill_history'); renderHistory(); } });
 }
 
-// ═══════════════════════════════════════════════════════════════════
-//  СХЕМА
-// ═══════════════════════════════════════════════════════════════════
 function updateDescModal(prog, etStr) {
-    let exHtml='';
-    Object.keys(prog.exercisesDetails||{}).forEach(k=>{
-        if(['Переход','Финиш','Подготовка'].includes(k)) return;
-        exHtml+=`<div class="desc-ex-item"><div class="desc-ex-name">${k}</div><div class="desc-ex-goal">${prog.exercisesDetails[k].goal}</div></div>`;
+    let exHtml = '';
+    Object.keys(prog.exercisesDetails || {}).forEach(k => {
+        if (['Переход','Финиш','Подготовка'].includes(k)) return;
+        exHtml += `<div class="desc-ex-item"><div class="desc-ex-name">${k}</div><div class="desc-ex-goal">${prog.exercisesDetails[k].goal}</div></div>`;
     });
-    $('desc-body').innerHTML=`<div class="desc-prog-name">${prog.name}</div><div class="desc-time">⏱ ${etStr}</div><div class="desc-body-text">${prog.description||''}</div><div class="desc-ex-title">Упражнения</div>${exHtml}`;
+    $('desc-body').innerHTML = `<div class="desc-prog-name">${prog.name}</div><div class="desc-time">⏱ ${etStr}</div><div class="desc-body-text">${prog.description||''}</div><div class="desc-ex-title">Упражнения</div>${exHtml}`;
 }
 
 // ═══════════════════════════════════════════════════════════════════
 //  КЭШ
 // ═══════════════════════════════════════════════════════════════════
-let editingUrl=null;
-async function getCacheName() { if(!('caches' in window)) return null; const keys=await caches.keys(); return keys.length?keys[keys.length-1]:null; }
+let editingUrl = null;
+async function getCacheName() { if (!('caches' in window)) return null; const keys = await caches.keys(); return keys.length ? keys[keys.length - 1] : null; }
 
 async function refreshCacheList() {
     const sEl=$('cache-status'), lEl=$('cache-file-list'), cc=$('cs-count'), cs=$('cs-size');
     sEl.textContent='Загрузка…'; lEl.innerHTML=''; closeEditor();
-    if(!('caches' in window)){ sEl.textContent='Cache API недоступен.'; cc.textContent=cs.textContent='—'; return; }
-    const cn=await getCacheName();
-    if(!cn){ sEl.textContent='Кэш пуст.'; cc.textContent='0'; cs.textContent='0 B'; return; }
-    const cache=await caches.open(cn), keys=await cache.keys(); let bytes=0;
-    const items=await Promise.all(keys.map(async req=>{ const res=await cache.match(req),blob=res?await res.clone().blob():null; bytes+=blob?.size||0; return {url:req.url,size:blob?.size||0,type:blob?.type||''}; }));
+    if (!('caches' in window)) { sEl.textContent='Cache API недоступен.'; cc.textContent=cs.textContent='—'; return; }
+    const cn = await getCacheName();
+    if (!cn) { sEl.textContent='Кэш пуст.'; cc.textContent='0'; cs.textContent='0 B'; return; }
+    const cache = await caches.open(cn), keys = await cache.keys(); let bytes = 0;
+    const items = await Promise.all(keys.map(async req => { const res=await cache.match(req),blob=res?await res.clone().blob():null; bytes+=blob?.size||0; return {url:req.url,size:blob?.size||0,type:blob?.type||''}; }));
     cc.textContent=items.length; cs.textContent=formatBytes(bytes); sEl.textContent=`Кэш: ${cn}`;
-    items.forEach(item=>{
+    items.forEach(item => {
         const div=document.createElement('div'); div.className='cache-file-item';
         const name=item.url.split('/').pop()||item.url, isJson=item.url.endsWith('.json');
         div.innerHTML=`<span class="cache-file-name" title="${item.url}">${name}</span><span class="cache-file-type">${isJson?'JSON':item.type.split('/')[1]||'file'}</span><span style="font-size:0.65rem;color:var(--text-3)">${formatBytes(item.size)}</span>${isJson?`<span class="cache-file-edit" data-url="${item.url}">✏ Ред.</span>`:''}`;
-        if(isJson) div.querySelector('.cache-file-edit').addEventListener('click',e=>{e.stopPropagation();openCacheEditor(item.url);});
+        if (isJson) div.querySelector('.cache-file-edit').addEventListener('click', e => { e.stopPropagation(); openCacheEditor(item.url); });
         lEl.appendChild(div);
     });
 }
 
 async function openCacheEditor(url) {
-    editingUrl=url;
-    const cn=await getCacheName(); if(!cn) return;
-    const cache=await caches.open(cn), res=await cache.match(url); if(!res) return;
-    $('cache-editor-label').textContent='✏ '+url.split('/').pop();
-    $('cache-editor-ta').value=await res.text(); $('cache-editor-err').textContent='';
+    editingUrl = url;
+    const cn = await getCacheName(); if (!cn) return;
+    const cache = await caches.open(cn), res = await cache.match(url); if (!res) return;
+    $('cache-editor-label').textContent = '✏ ' + url.split('/').pop();
+    $('cache-editor-ta').value = await res.text(); $('cache-editor-err').textContent = '';
     $('cache-editor').classList.add('open'); $('cache-editor').scrollIntoView({behavior:'smooth',block:'start'});
 }
 
-function closeEditor() { editingUrl=null; $('cache-editor').classList.remove('open'); $('cache-editor-ta').value=''; $('cache-editor-err').textContent=''; }
+function closeEditor() { editingUrl = null; $('cache-editor').classList.remove('open'); $('cache-editor-ta').value = ''; $('cache-editor-err').textContent = ''; }
 
 async function saveCacheEdit() {
     if (!editingUrl) return;
-    const raw=$('cache-editor-ta').value;
-    try { JSON.parse(raw); } catch(e){ $('cache-editor-err').textContent='Невалидный JSON: '+e.message; return; }
-    const cn=await getCacheName(); if(!cn) return;
-    await (await caches.open(cn)).put(editingUrl, new Response(raw,{headers:{'Content-Type':'application/json'}}));
-    $('cache-status').textContent=`✓ Сохранено: ${editingUrl.split('/').pop()}`; closeEditor(); refreshCacheList();
+    const raw = $('cache-editor-ta').value;
+    try { JSON.parse(raw); } catch(e) { $('cache-editor-err').textContent = 'Невалидный JSON: ' + e.message; return; }
+    const cn = await getCacheName(); if (!cn) return;
+    await (await caches.open(cn)).put(editingUrl, new Response(raw, {headers:{'Content-Type':'application/json'}}));
+    $('cache-status').textContent = `✓ Сохранено: ${editingUrl.split('/').pop()}`; closeEditor(); refreshCacheList();
 }
 
 async function deleteCacheEntry() {
     if (!editingUrl) return;
-    const cn=await getCacheName(); if(!cn) return;
+    const cn = await getCacheName(); if (!cn) return;
     if (!confirm(`Удалить из кэша: ${editingUrl.split('/').pop()}?`)) return;
     await (await caches.open(cn)).delete(editingUrl);
-    $('cache-status').textContent='✓ Удалено'; closeEditor(); refreshCacheList();
+    $('cache-status').textContent = '✓ Удалено'; closeEditor(); refreshCacheList();
 }
 
 async function clearAllCache() {
     if (!confirm('Очистить весь кэш? Страница перезагрузится.')) return;
-    await Promise.all((await caches.keys()).map(k=>caches.delete(k)));
-    $('cache-status').textContent='Кэш очищен. Перезагрузка…'; setTimeout(()=>location.reload(),800);
+    await Promise.all((await caches.keys()).map(k => caches.delete(k)));
+    $('cache-status').textContent = 'Кэш очищен. Перезагрузка…'; setTimeout(() => location.reload(), 800);
 }
 
+// ✅ ИСПРАВЛЕНО: нормализуем файлы из index.json перед итерацией
 async function forceReloadAll() {
-    $('cache-status').textContent='Обновление…';
+    $('cache-status').textContent = 'Обновление…';
     try {
-        if('serviceWorker' in navigator){ const r=await navigator.serviceWorker.getRegistration(); if(r) await r.update(); }
-        const files=await fetch('./workouts/index.json',{cache:'reload'}).then(r=>r.json());
-        const cn=await getCacheName();
-        if(cn){ const cache=await caches.open(cn); await Promise.all(files.map(f=>fetch(`./workouts/${f}`,{cache:'reload'}).then(r=>r.ok?cache.put(`./workouts/${f}`,r):null).catch(()=>{}))); }
-        $('cache-status').textContent='✓ Все файлы обновлены'; refreshCacheList();
-    } catch(e){ $('cache-status').textContent='Ошибка: '+e.message; }
+        if ('serviceWorker' in navigator) { const r = await navigator.serviceWorker.getRegistration(); if (r) await r.update(); }
+
+        const rawIdx = await fetch('./workouts/index.json', {cache:'reload'}).then(r => r.json());
+        // Нормализуем: строка → имя файла, объект → берём .file
+        const files = (Array.isArray(rawIdx) ? rawIdx : [])
+            .map(e => typeof e === 'string' ? e : e.file)
+            .filter(Boolean);
+
+        const cn = await getCacheName();
+        if (cn) {
+            const cache = await caches.open(cn);
+            await Promise.all(
+                files.map(f => fetch(`./workouts/${f}`, {cache:'reload'})
+                    .then(r => r.ok ? cache.put(`./workouts/${f}`, r) : null)
+                    .catch(() => {}))
+            );
+        }
+        $('cache-status').textContent = '✓ Все файлы обновлены'; refreshCacheList();
+    } catch(e) { $('cache-status').textContent = 'Ошибка: ' + e.message; }
 }
 
-const formatBytes=b=>b<1024?`${b} B`:b<1048576?`${(b/1024).toFixed(1)} KB`:`${(b/1048576).toFixed(2)} MB`;
+const formatBytes = b => b < 1024 ? `${b} B` : b < 1048576 ? `${(b/1024).toFixed(1)} KB` : `${(b/1048576).toFixed(2)} MB`;
 
 // ═══════════════════════════════════════════════════════════════════
 //  ОБНОВЛЕНИЕ ПРИЛОЖЕНИЯ
@@ -1365,105 +1368,46 @@ let swRegistration = null;
 
 async function updateApp() {
     const btn = $('btn-update');
-    btn.classList.add('spinning');
-    btn.title = 'Обновление…';
-
+    btn.classList.add('spinning'); btn.title = 'Обновление…';
     try {
-        // 1. Обновляем Service Worker
         if ('serviceWorker' in navigator) {
             const reg = swRegistration || await navigator.serviceWorker.getRegistration();
-            if (reg) {
-                await reg.update();
-                // Если есть ожидающий воркер — активируем его
-                if (reg.waiting) {
-                    reg.waiting.postMessage({ type: 'SKIP_WAITING' });
-                    await new Promise(resolve => setTimeout(resolve, 500));
-                }
-            }
+            if (reg) { await reg.update(); if (reg.waiting) { reg.waiting.postMessage({type:'SKIP_WAITING'}); await new Promise(r => setTimeout(r, 500)); } }
         }
-
-        // 2. Очищаем старые кэши (кроме текущего)
-        const keys = await caches.keys();
-        const currentKey = keys[keys.length - 1];
+        const keys = await caches.keys(); const currentKey = keys[keys.length - 1];
         await Promise.all(keys.slice(0, -1).map(k => caches.delete(k)));
-
-        // 3. Принудительно обновляем все файлы
-        if (currentKey) {
-            const cache = await caches.open(currentKey);
-            const cacheKeys = await cache.keys();
-            await Promise.all(cacheKeys.map(req =>
-                fetch(req, { cache: 'reload' })
-                    .then(res => { if (res.ok) cache.put(req, res); })
-                    .catch(() => {})
-            ));
-        }
-
-        showToast('✓ Обновлено!');
-        btn.classList.remove('spinning', 'has-update');
-        btn.title = 'Обновить приложение';
-
-        // Перезагрузка через секунду
+        if (currentKey) { const cache = await caches.open(currentKey); const cacheKeys = await cache.keys(); await Promise.all(cacheKeys.map(req => fetch(req, {cache:'reload'}).then(res => { if (res.ok) cache.put(req, res); }).catch(() => {}))); }
+        showToast('✓ Обновлено!'); btn.classList.remove('spinning', 'has-update'); btn.title = 'Обновить приложение';
         setTimeout(() => location.reload(true), 800);
-
-    } catch(e) {
-        btn.classList.remove('spinning');
-        btn.title = 'Ошибка обновления';
-        showToast('Ошибка обновления');
-        console.error('Update error:', e);
-    }
+    } catch(e) { btn.classList.remove('spinning'); btn.title = 'Ошибка'; showToast('Ошибка обновления'); }
 }
 
-// Слушаем SW — показываем точку при наличии обновления
 if ('serviceWorker' in navigator) {
-    navigator.serviceWorker.addEventListener('controllerchange', () => {
-        $('btn-update').classList.add('has-update');
-    });
+    navigator.serviceWorker.addEventListener('controllerchange', () => { $('btn-update').classList.add('has-update'); });
 }
-
 $('btn-update').addEventListener('click', updateApp);
-
-// ═══════════════════════════════════════════════════════════════════
-//  ЭКСПОРТ / ИМПОРТ
-// ═══════════════════════════════════════════════════════════════════
-function exportProgram() {
-    const prog=workoutsData[state.programIdx]; if(!prog) return;
-    const a=document.createElement('a');
-    a.href=URL.createObjectURL(new Blob([JSON.stringify({programs:[prog]},null,2)],{type:'application/json'}));
-    a.download=`${prog.id||'workout'}.json`; a.click(); URL.revokeObjectURL(a.href);
-}
-
-$('import-file').addEventListener('change', async e=>{
-    const file=e.target.files[0]; if(!file) return;
-    const sEl=$('import-status');
-    try {
-        const text=await file.text(), data=JSON.parse(text);
-        if (!data.programs?.length) throw new Error('Нет массива programs');
-        workoutsData=workoutsData.concat(data.programs); populateSelect();
-        sEl.textContent=`✓ Добавлено: ${data.programs.map(p=>p.name).join(', ')}`;
-        if('caches' in window){ const cn=await getCacheName(); if(cn){ const cache=await caches.open(cn); await cache.put(location.origin+'/workouts/import_'+Date.now()+'.json',new Response(text,{headers:{'Content-Type':'application/json'}})); } }
-    } catch(err){ sEl.textContent='Ошибка: '+err.message; }
-    e.target.value='';
-});
 
 // ═══════════════════════════════════════════════════════════════════
 //  ИГРЫ
 // ═══════════════════════════════════════════════════════════════════
-let gamesIndex = null;
-let gamesSearchQuery = '';
+let gamesIndex = null, gamesSearchQuery = '';
 
 async function fetchGames() {
     try {
         const res = await fetch('./games/index.json');
         if (!res.ok) return;
         const data = await res.json();
+        // Поддержка обоих форматов: {categories:[...]} и массив []
         if (Array.isArray(data)) {
-            gamesIndex = { categories: [{ id: 'all', label: '🎮 Все игры', games: data }] };
-        } else {
+            gamesIndex = { categories: [{ id:'all', label:'🎮 Все игры', games: data }] };
+        } else if (data.categories) {
             gamesIndex = data;
+        } else {
+            gamesIndex = { categories: [] };
         }
         renderGamesTab();
     } catch(e) {
-        console.warn('games/index.json не найден:', e);
+        console.warn('games/index.json:', e);
         $('games-scroll').innerHTML = '<div style="color:var(--text-3);font-size:0.82rem;padding:20px 4px">Игры не найдены</div>';
     }
 }
@@ -1471,49 +1415,32 @@ async function fetchGames() {
 function renderGamesTab() {
     const scroll = $('games-scroll');
     if (!gamesIndex?.categories?.length) { scroll.innerHTML = '<div style="color:var(--text-3);font-size:0.82rem;padding:20px 4px">Нет игр</div>'; return; }
-
     const q = gamesSearchQuery.toLowerCase().trim();
-
     let html = '';
     gamesIndex.categories.forEach(cat => {
-        const games = q
-            ? cat.games.filter(g => g.name.toLowerCase().includes(q) || g.desc?.toLowerCase().includes(q))
-            : cat.games;
+        const games = q ? cat.games.filter(g => g.name.toLowerCase().includes(q) || g.desc?.toLowerCase().includes(q)) : cat.games;
         if (!games.length) return;
-
-        html += `<div class="game-category">
-            <div class="game-cat-label">${cat.label}</div>
-            <div class="games-grid">`;
-
+        html += `<div class="game-category"><div class="game-cat-label">${cat.label}</div><div class="games-grid">`;
         games.forEach(g => {
-            html += `<div class="game-tile" data-file="${g.file}" data-name="${g.name}" role="button" tabindex="0" aria-label="Открыть игру ${g.name}">
+            html += `<div class="game-tile" data-file="${g.file}" data-name="${g.name}" role="button" tabindex="0">
                 <div class="game-tile-icon">${g.icon}</div>
                 <div class="game-tile-name">${g.name}</div>
                 <div class="game-tile-desc">${g.desc||''}</div>
-                <div class="game-tile-play">
-                    <svg viewBox="0 0 24 24"><polygon points="5 3 19 12 5 21 5 3"/></svg>
-                </div>
+                <div class="game-tile-play"><svg viewBox="0 0 24 24"><polygon points="5 3 19 12 5 21 5 3"/></svg></div>
             </div>`;
         });
-
         html += '</div></div>';
     });
-
     if (!html) html = '<div style="color:var(--text-3);font-size:0.82rem;padding:20px 4px">Игры не найдены</div>';
     scroll.innerHTML = html;
-
     scroll.querySelectorAll('.game-tile').forEach(tile => {
         const open = () => openGame(tile.dataset.file, tile.dataset.name);
         tile.addEventListener('click', open);
-        tile.addEventListener('keydown', e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); open(); } });
+        tile.addEventListener('keydown', e => { if (e.key==='Enter'||e.key===' ') { e.preventDefault(); open(); } });
     });
 }
 
-// Поиск
-$('games-search').addEventListener('input', e => {
-    gamesSearchQuery = e.target.value;
-    renderGamesTab();
-});
+$('games-search').addEventListener('input', e => { gamesSearchQuery = e.target.value; renderGamesTab(); });
 
 function openGame(file, name) {
     const wasRunning = state.isRunning;
@@ -1524,32 +1451,18 @@ function openGame(file, name) {
     $('game-frame-wrap').style.display = 'flex';
 }
 
-function closeGame() {
-    $('game-frame-wrap').style.display = 'none';
-    $('game-iframe').src = 'about:blank';
-}
-
-$('btn-game-back').addEventListener('click', closeGame);
+$('btn-game-back').addEventListener('click', () => { $('game-frame-wrap').style.display = 'none'; $('game-iframe').src = 'about:blank'; });
 
 // ═══════════════════════════════════════════════════════════════════
-//  НАВИГАЦИЯ — ТАБЫ (МОБИЛЬ)
+//  НАВИГАЦИЯ
 // ═══════════════════════════════════════════════════════════════════
-function switchTab(tabId) {
-    document.querySelectorAll('.tab-btn').forEach(btn => {
-        btn.classList.toggle('active', btn.dataset.tab === tabId);
-    });
-    document.querySelectorAll('.tab-pane').forEach(pane => {
-        pane.classList.toggle('active', pane.id === tabId);
-    });
-}
-
 document.querySelectorAll('.tab-btn[data-tab]').forEach(btn => {
-    btn.addEventListener('click', () => switchTab(btn.dataset.tab));
+    btn.addEventListener('click', () => {
+        document.querySelectorAll('.tab-btn').forEach(b => b.classList.toggle('active', b === btn));
+        document.querySelectorAll('.tab-pane').forEach(p => p.classList.toggle('active', p.id === btn.dataset.tab));
+    });
 });
 
-// ═══════════════════════════════════════════════════════════════════
-//  САЙДБАР (МОБИЛЬ)
-// ═══════════════════════════════════════════════════════════════════
 function openSidebar()  { document.body.classList.add('sidebar-open'); }
 function closeSidebar() { document.body.classList.remove('sidebar-open'); }
 
@@ -1562,18 +1475,19 @@ $('sidebar-backdrop').addEventListener('click', closeSidebar);
 // ═══════════════════════════════════════════════════════════════════
 function openModal(id) {
     $(id).classList.add('open');
-    if(id==='modal-cache') refreshCacheList();
-    if(id==='modal-history') renderHistory();
+    if (id === 'modal-cache') refreshCacheList();
+    if (id === 'modal-history') renderHistory();
 }
 function closeModal(id) { $(id).classList.remove('open'); }
-document.querySelectorAll('[data-close]').forEach(btn => btn.addEventListener('click', () => closeModal(btn.dataset.close)));
-document.querySelectorAll('.modal-backdrop').forEach(m => m.addEventListener('click', e => { if(e.target===m) closeModal(m.id); }));
 
-// Все элементы с data-modal — и мобильный сайдбар и десктопная навигация
+document.querySelectorAll('[data-close]').forEach(btn => btn.addEventListener('click', () => closeModal(btn.dataset.close)));
+document.querySelectorAll('.modal-backdrop').forEach(m => m.addEventListener('click', e => { if (e.target === m) closeModal(m.id); }));
+
 document.querySelectorAll('[data-modal]').forEach(item => {
     item.addEventListener('click', () => {
         closeSidebar();
-        openModal(item.dataset.modal);
+        if (item.dataset.modal === 'modal-programs') { openProgramsModal(); }
+        else { openModal(item.dataset.modal); }
     });
 });
 
@@ -1581,58 +1495,44 @@ document.querySelectorAll('[data-modal]').forEach(item => {
 //  УПРАВЛЕНИЕ ТРЕНИРОВКОЙ
 // ═══════════════════════════════════════════════════════════════════
 btnMain.addEventListener('click', () => state.isRunning ? pauseTimer() : startTimer());
-btnNext.addEventListener('click', () => { if(!btnNext.disabled) nextStep(); });
+btnNext.addEventListener('click', () => { if (!btnNext.disabled) nextStep(); });
 btnReset.addEventListener('click', () => {
-    const inProgress = state.isRunning || state.stepIdx > 0 || (state.stepIdx === 0 && state.timeLeft > 0 && state.timeLeft < (protocol[0]?.time || 0));
+    const inProgress = state.isRunning || state.stepIdx > 0;
     if (inProgress && !confirm('Начать тренировку заново?')) return;
     if ((state.stepIdx > 0 || state.timeLeft < (protocol[0]?.time || 0)) && protocol.length) saveHistory({done:false});
     _hardStop(); resetUI();
 });
 wSelect.addEventListener('change', e => {
     const idx = parseInt(e.target.value);
-    if((state.isRunning||state.stepIdx>0)&&!confirm('Сменить программу? Прогресс сбросится.')){ e.target.value=state.programIdx; return; }
-    if(state.stepIdx>0&&!state.isRunning) saveHistory({done:false});
+    if ((state.isRunning || state.stepIdx > 0) && !confirm('Сменить программу? Прогресс сбросится.')) { e.target.value = state.programIdx; return; }
+    if (state.stepIdx > 0 && !state.isRunning) saveHistory({done:false});
     loadProgram(idx);
 });
 
-// Свайп / длинный тап / двойной тап
-(()=>{
-    const w=$('timer-wrap');
-    let sy=0, pt=null, lt=0, didLongPress=false;
-    w.addEventListener('touchstart', e=>{
-        sy=e.touches[0].clientY; didLongPress=false;
-        pt=setTimeout(()=>{
-            if(state.isRunning&&state.stepIdx<protocol.length){
-                didLongPress=true; protocol[state.stepIdx].time+=5; totalTime+=5; stepStartTs-=5000; showToast('+5с');
-            }
-        },600);
-    },{passive:true});
-    w.addEventListener('touchend', e=>{
+// Свайп
+(() => {
+    const w = $('timer-wrap');
+    let sy = 0, pt = null, lt = 0, didLongPress = false;
+    w.addEventListener('touchstart', e => { sy = e.touches[0].clientY; didLongPress = false; pt = setTimeout(() => { if (state.isRunning && state.stepIdx < protocol.length) { didLongPress = true; protocol[state.stepIdx].time += 5; totalTime += 5; stepStartTs -= 5000; showToast('+5с'); } }, 600); }, {passive:true});
+    w.addEventListener('touchend', e => {
         clearTimeout(pt);
-        const deltaY=sy-e.changedTouches[0].clientY;
-        if(deltaY>55&&state.isRunning){ lt=0; nextStep(); return; }
-        if(didLongPress){ lt=0; return; }
-        const now=Date.now();
-        if(now-lt<300&&state.isRunning&&state.stepIdx<protocol.length&&state.timeLeft>6){
-            protocol[state.stepIdx].time=Math.max(1,protocol[state.stepIdx].time-5);
-            totalTime=Math.max(0,totalTime-5); stepStartTs+=5000; showToast('-5с');
-        }
-        lt=now;
-    },{passive:true});
+        const deltaY = sy - e.changedTouches[0].clientY;
+        if (deltaY > 55 && state.isRunning) { lt = 0; nextStep(); return; }
+        if (didLongPress) { lt = 0; return; }
+        const now = Date.now();
+        if (now - lt < 300 && state.isRunning && state.stepIdx < protocol.length && state.timeLeft > 6) { protocol[state.stepIdx].time = Math.max(1, protocol[state.stepIdx].time - 5); totalTime = Math.max(0, totalTime - 5); stepStartTs += 5000; showToast('-5с'); }
+        lt = now;
+    }, {passive:true});
 })();
 
-function showToast(msg) {
-    const t = $('adj-toast');
-    t.textContent = msg; t.style.opacity = '1';
-    clearTimeout(t._to); t._to = setTimeout(() => { t.style.opacity = '0'; }, 900);
-}
+function showToast(msg) { const t = $('adj-toast'); t.textContent = msg; t.style.opacity = '1'; clearTimeout(t._to); t._to = setTimeout(() => { t.style.opacity = '0'; }, 900); }
 
 // ═══════════════════════════════════════════════════════════════════
-//  ЗВУК — БИНДИНГИ
+//  ЗВУК
 // ═══════════════════════════════════════════════════════════════════
-function bindSlider(id,lbl,key,fmt){ const sl=$(id),lb=$(lbl); sl.value=soundCfg[key]; lb.textContent=fmt(soundCfg[key]); sl.addEventListener('input',()=>{ soundCfg[key]=parseFloat(sl.value); lb.textContent=fmt(soundCfg[key]); saveSoundCfg(); }); }
-function bindToggle(id,key){ const cb=$(id); cb.checked=soundCfg[key]; cb.addEventListener('change',()=>{ soundCfg[key]=cb.checked; saveSoundCfg(); }); }
-const pct=v=>Math.round(v*100)+'%', numFmt=v=>parseFloat(v).toFixed(1);
+function bindSlider(id, lbl, key, fmt) { const sl=$(id),lb=$(lbl); sl.value=soundCfg[key]; lb.textContent=fmt(soundCfg[key]); sl.addEventListener('input',()=>{ soundCfg[key]=parseFloat(sl.value); lb.textContent=fmt(soundCfg[key]); saveSoundCfg(); }); }
+function bindToggle(id, key) { const cb=$(id); cb.checked=soundCfg[key]; cb.addEventListener('change',()=>{ soundCfg[key]=cb.checked; saveSoundCfg(); }); }
+const pct = v => Math.round(v*100)+'%', numFmt = v => parseFloat(v).toFixed(1);
 bindSlider('vol-tts','lbl-tts','volTTS',pct); bindSlider('vol-tts-rate','lbl-tts-rate','rateTTS',numFmt);
 bindSlider('vol-work','lbl-work','volWork',pct); bindSlider('vol-rest','lbl-rest','volRest',pct);
 bindSlider('vol-prep','lbl-prep','volPrep',pct); bindSlider('vol-tick','lbl-tick','volTick',pct);
@@ -1640,30 +1540,46 @@ bindToggle('tts-enabled','ttsEnabled'); bindToggle('tone-enabled','toneEnabled')
 
 const intSl=$('intensity-slider'), intV=$('intensity-val');
 intSl.value=soundCfg.intensity; intV.textContent=soundCfg.intensity+'%';
-intSl.addEventListener('input', () => {
-    soundCfg.intensity=parseInt(intSl.value); intV.textContent=soundCfg.intensity+'%'; saveSoundCfg();
-    if(!state.isRunning){ applyIntensity(); renderTimeline(); }
-});
+intSl.addEventListener('input', () => { soundCfg.intensity=parseInt(intSl.value); intV.textContent=soundCfg.intensity+'%'; saveSoundCfg(); if (!state.isRunning) { applyIntensity(); renderTimeline(); } });
 
 // ═══════════════════════════════════════════════════════════════════
-//  КЭШ / ИИ — БИНДИНГИ
+//  ЭКСПОРТ / ИМПОРТ
 // ═══════════════════════════════════════════════════════════════════
+function exportProgram() {
+    const prog = workoutsData[state.programIdx]; if (!prog) return;
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(new Blob([JSON.stringify({programs:[prog]},null,2)],{type:'application/json'}));
+    a.download = `${prog.id||'workout'}.json`; a.click(); URL.revokeObjectURL(a.href);
+}
+
+$('btn-export-prog').addEventListener('click', exportProgram);
+$('import-file').addEventListener('change', async e => {
+    const file = e.target.files[0]; if (!file) return;
+    const sEl = $('import-status');
+    try {
+        const text = await file.text(), data = JSON.parse(text);
+        if (!data.programs?.length) throw new Error('Нет массива programs');
+        data.programs.forEach(p => { p._category = ''; p._file = file.name; });
+        workoutsData = workoutsData.concat(data.programs); populateSelect();
+        sEl.textContent = `✓ Добавлено: ${data.programs.map(p => p.name).join(', ')}`;
+        if ('caches' in window) { const cn = await getCacheName(); if (cn) { const cache = await caches.open(cn); await cache.put(location.origin+'/workouts/import_'+Date.now()+'.json', new Response(text,{headers:{'Content-Type':'application/json'}})); } }
+    } catch(err) { sEl.textContent = 'Ошибка: ' + err.message; }
+    e.target.value = '';
+});
+
 $('btn-cache-refresh').addEventListener('click', refreshCacheList);
-$('btn-cache-reload').addEventListener('click',  forceReloadAll);
-$('btn-cache-clear').addEventListener('click',   clearAllCache);
-$('btn-save-cache').addEventListener('click',    saveCacheEdit);
-$('btn-delete-cache').addEventListener('click',  deleteCacheEntry);
-$('btn-cancel-edit').addEventListener('click',   closeEditor);
-$('btn-export-prog').addEventListener('click',   exportProgram);
+$('btn-cache-reload').addEventListener('click', forceReloadAll);
+$('btn-cache-clear').addEventListener('click', clearAllCache);
+$('btn-save-cache').addEventListener('click', saveCacheEdit);
+$('btn-delete-cache').addEventListener('click', deleteCacheEntry);
+$('btn-cancel-edit').addEventListener('click', closeEditor);
+
 $('btn-copy-prompt').addEventListener('click', async () => {
-    const text=$('ai-prompt-text').textContent;
+    const text = $('ai-prompt-text').textContent;
     try { await navigator.clipboard.writeText(text); } catch { const ta=document.createElement('textarea'); ta.value=text; document.body.appendChild(ta); ta.select(); document.execCommand('copy'); ta.remove(); }
-    $('btn-copy-prompt').textContent='✓ Скопировано'; setTimeout(()=>{ $('btn-copy-prompt').textContent='Скопировать промпт'; },2000);
+    $('btn-copy-prompt').textContent = '✓ Скопировано'; setTimeout(() => { $('btn-copy-prompt').textContent = 'Скопировать промпт'; }, 2000);
 });
 
-// ═══════════════════════════════════════════════════════════════════
-//  СИСТЕМНЫЕ СОБЫТИЯ
-// ═══════════════════════════════════════════════════════════════════
 document.addEventListener('visibilitychange', resumeAudioOnVisible);
 
 // ═══════════════════════════════════════════════════════════════════
@@ -1679,14 +1595,11 @@ if ('serviceWorker' in navigator) {
             .then(reg => {
                 swRegistration = reg;
                 console.log('SW:', reg.scope);
-                // Показываем точку обновления если есть ожидающий воркер
                 if (reg.waiting) $('btn-update').classList.add('has-update');
                 reg.addEventListener('updatefound', () => {
-                    const newWorker = reg.installing;
-                    newWorker.addEventListener('statechange', () => {
-                        if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
-                            $('btn-update').classList.add('has-update');
-                        }
+                    const nw = reg.installing;
+                    nw.addEventListener('statechange', () => {
+                        if (nw.state === 'installed' && navigator.serviceWorker.controller) $('btn-update').classList.add('has-update');
                     });
                 });
             })
