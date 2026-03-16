@@ -515,6 +515,25 @@ const IndexEditor = ({ gh, cfg, notify, indexKey }) => {
     dragGame.current = null; setDragGameOver(null);
   };
 
+  // Drag reorder самих категорий
+  const dragCat = useRef(null);
+  const [dragCatOver, setDragCatOver] = useState(null);
+  const catDragEnd = () => {
+    if (dragCat.current !== null && dragCatOver !== null && dragCat.current !== dragCatOver) {
+      const cats = [...parsed.categories];
+      const [item] = cats.splice(dragCat.current, 1);
+      cats.splice(dragCatOver, 0, item);
+      syncRaw({...parsed, categories: cats});
+      // Сохраняем состояние раскрытия под новыми индексами
+      setExpandedCat(prev => {
+        const next = {};
+        cats.forEach((_, ni) => { next[ni] = prev[ni] !== undefined ? prev[ni] : true; });
+        return next;
+      });
+    }
+    dragCat.current = null; setDragCatOver(null);
+  };
+
   // ── FIELD LABEL ─────────────────────────────────────────
   const FL = ({label}) => <div style={{fontSize:10,textTransform:'uppercase',letterSpacing:'.5px',color:'var(--text3)',fontWeight:700,marginBottom:4}}>{label}</div>;
 
@@ -530,12 +549,24 @@ const IndexEditor = ({ gh, cfg, notify, indexKey }) => {
           </div>
         )}
         {cats.map((cat, ci) => {
-          const isOpen = expandedCat[ci] !== false; // по умолчанию открыто
+          const isOpen = expandedCat[ci] !== false;
+          const isDraggingOver = dragCatOver === ci && dragCat.current !== null && dragCat.current !== ci;
           return (
-            <div key={ci} style={{background:'var(--bg2)',border:'1px solid var(--border)',borderRadius:14,marginBottom:12,overflow:'hidden'}}>
+            <div key={ci}
+              onDragOver={e=>{e.preventDefault();setDragCatOver(ci);}}
+              onDrop={catDragEnd}
+              style={{background:'var(--bg2)',border:`1px solid ${isDraggingOver?'var(--accent)':'var(--border)'}`,borderRadius:14,marginBottom:12,overflow:'hidden',opacity:dragCat.current===ci?0.45:1,transition:'border-color .15s,opacity .15s'}}>
               {/* Шапка категории */}
               <div style={{display:'flex',alignItems:'center',gap:8,padding:'10px 14px',background:'var(--bg3)',borderBottom:'1px solid var(--border)'}}>
-                <button className="btn-icon" style={{fontSize:16}} onClick={()=>setExpandedCat(p=>({...p,[ci]:!isOpen}))}>
+                <div className="drag-handle btn-icon"
+                  draggable
+                  onDragStart={()=>{dragCat.current=ci;}}
+                  onDragEnd={catDragEnd}
+                  style={{cursor:'grab',flexShrink:0}}
+                  title="Перетащить категорию">
+                  <Ico name="GripVertical" size={16}/>
+                </div>
+                <button className="btn-icon" style={{fontSize:16,flexShrink:0}} onClick={()=>setExpandedCat(p=>({...p,[ci]:!isOpen}))}>
                   {isOpen ? '▾' : '▸'}
                 </button>
                 <input className="inp" style={{flex:1,fontWeight:700,fontSize:14,padding:'6px 10px'}}
