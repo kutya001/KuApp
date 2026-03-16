@@ -1,853 +1,1138 @@
 <!DOCTYPE html>
 <html lang="ru">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Конструктор Тренировок (GitHub Sync)</title>
-    <!-- Tailwind CSS -->
-    <script src="https://cdn.tailwindcss.com"></script>
-    <!-- React & ReactDOM -->
-    <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
-    <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
-    <!-- Babel for JSX -->
-    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
-    <!-- Lucide Icons -->
-    <script src="https://unpkg.com/lucide@latest"></script>
-    <!-- Drag and Drop Touch Polyfill (для работы перетаскивания на телефонах) -->
-    <script src="https://unpkg.com/drag-drop-touch"></script>
-    <style>
-        body { font-family: system-ui, -apple-system, sans-serif; background-color: #f8fafc; overflow: hidden; }
-        .spinner { animation: spin 1s linear infinite; }
-        @keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
-        
-        /* Стили для Live JSON */
-        .json-editor-container { position: relative; width: 100%; flex: 1; display: flex; flex-direction: column; overflow: hidden;}
-        .json-textarea, .json-pre { font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace; font-size: 13px; line-height: 1.5; padding: 1rem; width: 100%; flex: 1; border: none; margin: 0; white-space: pre; overflow: auto; tab-size: 2; }
-        .json-textarea { position: absolute; top: 0; left: 0; bottom: 0; right: 0; background: transparent; color: transparent; caret-color: #cbd5e1; outline: none; resize: none; z-index: 10; }
-        .json-pre { position: absolute; top: 0; left: 0; bottom: 0; right: 0; pointer-events: none; background-color: #0f172a; color: #cbd5e1; }
-        
-        /* Подсветка синтаксиса JSON */
-        .json-key { color: #c4b5fd; font-weight: 600; }
-        .json-string { color: #6ee7b7; }
-        .json-number { color: #93c5fd; }
-        .json-boolean { color: #fcd34d; font-weight: bold; }
-        .json-null { color: #64748b; font-style: italic; }
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>CMS Тренировок</title>
+<script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+<script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+<script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+<script src="https://unpkg.com/lucide@latest"></script>
+<script src="https://unpkg.com/drag-drop-touch"></script>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600&family=Unbounded:wght@400;600;700&family=Onest:wght@400;500;600&display=swap');
 
-        /* Скроллбары */
-        ::-webkit-scrollbar { width: 6px; height: 6px; }
-        ::-webkit-scrollbar-track { background: transparent; }
-        ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 3px; }
-        .dark-scroll::-webkit-scrollbar-thumb { background: #475569; }
+  *, *::before, *::after { box-sizing: border-box; }
+  :root {
+    --bg:      #0e0e10;
+    --bg2:     #16161a;
+    --bg3:     #1e1e24;
+    --bg4:     #26262e;
+    --border:  rgba(255,255,255,0.07);
+    --border2: rgba(255,255,255,0.12);
+    --text:    #e8e6e0;
+    --text2:   #8e8c86;
+    --text3:   #5e5c58;
+    --accent:  #7c6af7;
+    --accent2: #5b4fd4;
+    --green:   #4ade80;
+    --red:     #f87171;
+    --yellow:  #fbbf24;
+    --blue:    #60a5fa;
+    --orange:  #fb923c;
+    --radius:  10px;
+    --radius2: 16px;
+  }
 
-        /* Drag and Drop */
-        .drag-handle { cursor: grab; touch-action: none; -webkit-tap-highlight-color: transparent; }
-        .drag-handle:active { cursor: grabbing; }
-        .dragging { opacity: 0.5; border: 2px dashed #6366f1 !important; }
-    </style>
+  body {
+    font-family: 'Onest', sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    overflow: hidden;
+    height: 100vh;
+    -webkit-tap-highlight-color: transparent;
+    font-size: 14px;
+  }
+
+  /* JSON EDITOR */
+  .json-container { position: relative; flex: 1; display: flex; flex-direction: column; overflow: hidden; border-radius: var(--radius); }
+  .json-ta, .json-pre {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 12.5px; line-height: 1.6;
+    padding: 14px; width: 100%; flex: 1;
+    border: none; margin: 0; white-space: pre; overflow: auto;
+    tab-size: 2; position: absolute; inset: 0;
+  }
+  .json-ta  { background: transparent; color: transparent; caret-color: var(--text); outline: none; resize: none; z-index: 10; }
+  .json-pre { pointer-events: none; background: var(--bg2); color: var(--text2); }
+  .jk  { color: #c4b5fd; font-weight: 600; }
+  .js  { color: #6ee7b7; }
+  .jn  { color: #93c5fd; }
+  .jb  { color: #fcd34d; font-weight: bold; }
+  .jnl { color: #64748b; font-style: italic; }
+
+  /* SCROLLBARS */
+  ::-webkit-scrollbar { width: 5px; height: 5px; }
+  ::-webkit-scrollbar-track { background: transparent; }
+  ::-webkit-scrollbar-thumb { background: var(--bg4); border-radius: 3px; }
+  ::-webkit-scrollbar-thumb:hover { background: var(--border2); }
+
+  /* SPINNER */
+  .spin { animation: spin 1s linear infinite; }
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  /* DRAG */
+  .drag-handle { cursor: grab; touch-action: none; }
+  .drag-handle:active { cursor: grabbing; }
+  .is-dragging { opacity: .4; outline: 2px dashed var(--accent); outline-offset: 2px; }
+
+  /* TABS */
+  .tab-btn { padding: 8px 16px; border-radius: 8px; font-size: 13px; font-weight: 600; cursor: pointer; transition: all .15s; border: none; white-space: nowrap; }
+  .tab-btn.active { background: var(--accent); color: #fff; }
+  .tab-btn:not(.active) { background: transparent; color: var(--text2); }
+  .tab-btn:not(.active):hover { background: var(--bg4); color: var(--text); }
+
+  /* INPUTS */
+  .inp {
+    background: var(--bg3); border: 1.5px solid var(--border);
+    color: var(--text); border-radius: var(--radius);
+    padding: 8px 12px; outline: none; transition: border-color .15s;
+    font-family: 'Onest', sans-serif; font-size: 13px; width: 100%;
+  }
+  .inp:focus { border-color: var(--accent); background: var(--bg2); }
+  .inp::placeholder { color: var(--text3); }
+  select.inp { cursor: pointer; }
+
+  /* BUTTONS */
+  .btn {
+    display: inline-flex; align-items: center; gap: 6px;
+    padding: 8px 14px; border-radius: var(--radius); font-size: 13px;
+    font-weight: 600; cursor: pointer; border: none; transition: all .15s;
+    white-space: nowrap; font-family: 'Onest', sans-serif;
+  }
+  .btn-primary { background: var(--accent); color: #fff; }
+  .btn-primary:hover { background: var(--accent2); }
+  .btn-ghost { background: var(--bg4); color: var(--text2); border: 1px solid var(--border); }
+  .btn-ghost:hover { color: var(--text); border-color: var(--border2); }
+  .btn-danger { background: rgba(248,113,113,.15); color: var(--red); border: 1px solid rgba(248,113,113,.2); }
+  .btn-danger:hover { background: rgba(248,113,113,.25); }
+  .btn-success { background: rgba(74,222,128,.15); color: var(--green); border: 1px solid rgba(74,222,128,.2); }
+  .btn-sm { padding: 5px 10px; font-size: 12px; }
+  .btn-icon { padding: 6px; border-radius: 8px; background: transparent; border: none; cursor: pointer; color: var(--text2); transition: all .15s; display: inline-flex; align-items: center; justify-content: center; }
+  .btn-icon:hover { background: var(--bg4); color: var(--text); }
+  .btn:disabled { opacity: .45; cursor: not-allowed; }
+
+  /* BADGE */
+  .badge { display: inline-flex; align-items: center; padding: 2px 8px; border-radius: 99px; font-size: 11px; font-weight: 600; }
+  .badge-work { background: rgba(96,165,250,.15); color: var(--blue); }
+  .badge-rest { background: rgba(74,222,128,.15); color: var(--green); }
+  .badge-prep { background: rgba(251,191,36,.15); color: var(--yellow); }
+  .badge-finish { background: rgba(248,113,113,.15); color: var(--red); }
+
+  /* STEP ROW */
+  .step-row {
+    display: flex; align-items: center; flex-wrap: wrap; gap: 6px;
+    padding: 8px 10px; background: var(--bg3);
+    border: 1px solid var(--border); border-radius: var(--radius);
+  }
+  .step-row:hover { border-color: var(--border2); }
+
+  /* EXERCISE CARD */
+  .ex-card {
+    background: var(--bg2); border: 1px solid var(--border);
+    border-radius: var(--radius2); overflow: hidden;
+    transition: border-color .2s;
+  }
+  .ex-card:focus-within { border-color: rgba(124,106,247,.3); }
+
+  /* SIDEBAR ITEM */
+  .prog-item {
+    padding: 10px 12px; border-radius: var(--radius); cursor: pointer;
+    transition: background .12s; border: 1px solid transparent;
+  }
+  .prog-item:hover { background: var(--bg3); }
+  .prog-item.active { background: rgba(124,106,247,.15); border-color: rgba(124,106,247,.3); }
+
+  /* NOTIF */
+  .notif {
+    position: fixed; top: 16px; left: 50%; transform: translateX(-50%);
+    padding: 10px 20px; border-radius: 99px; font-size: 13px; font-weight: 600;
+    z-index: 9999; display: flex; align-items: center; gap: 8px;
+    animation: notifIn .2s ease; pointer-events: none;
+    box-shadow: 0 8px 32px rgba(0,0,0,.4);
+  }
+  .notif-success { background: #166534; color: var(--green); border: 1px solid rgba(74,222,128,.3); }
+  .notif-error   { background: #7f1d1d; color: var(--red);   border: 1px solid rgba(248,113,113,.3); }
+  .notif-info    { background: #1e3a5f; color: var(--blue);  border: 1px solid rgba(96,165,250,.3); }
+  @keyframes notifIn { from { opacity:0; transform: translateX(-50%) translateY(-10px); } to { opacity:1; transform: translateX(-50%) translateY(0); } }
+
+  /* MODAL */
+  .modal-bg { position: fixed; inset: 0; background: rgba(0,0,0,.65); backdrop-filter: blur(4px); z-index: 500; display: flex; align-items: flex-end; justify-content: center; padding: 0; }
+  @media (min-width: 640px) { .modal-bg { align-items: center; padding: 24px; } }
+  .modal-box {
+    background: var(--bg2); border: 1px solid var(--border2);
+    border-radius: var(--radius2) var(--radius2) 0 0;
+    width: 100%; max-width: 520px; max-height: 90vh; overflow-y: auto;
+    animation: modalUp .22s cubic-bezier(.32,.72,0,1);
+  }
+  @media (min-width: 640px) { .modal-box { border-radius: var(--radius2); } }
+  @keyframes modalUp { from { transform: translateY(30px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
+
+  /* INDEX EDITOR TABLE */
+  .idx-row {
+    display: grid; gap: 0;
+    border-bottom: 1px solid var(--border);
+    transition: background .12s;
+  }
+  .idx-row:hover { background: var(--bg3); }
+  .idx-row:last-child { border-bottom: none; }
+  .idx-cell { padding: 10px 12px; font-size: 13px; display: flex; align-items: center; min-width: 0; }
+  .idx-cell input { background: transparent; border: none; outline: none; color: var(--text); font-family: 'Onest',sans-serif; font-size: 13px; width: 100%; }
+  .idx-cell input:focus { color: #fff; }
+
+  /* PROG STATS */
+  .stat-pill { display: flex; align-items: center; gap: 5px; padding: 4px 10px; border-radius: 99px; background: var(--bg3); border: 1px solid var(--border); font-size: 12px; color: var(--text2); font-weight: 500; }
+
+  /* MOBILE NAV */
+  .mobile-nav { display: none; }
+  @media (max-width: 767px) {
+    .mobile-nav { display: flex; position: fixed; bottom: 0; left: 0; right: 0; background: var(--bg2); border-top: 1px solid var(--border); z-index: 100; padding-bottom: env(safe-area-inset-bottom); }
+    .mobile-nav-btn { flex: 1; display: flex; flex-direction: column; align-items: center; gap: 3px; padding: 10px 4px; color: var(--text3); font-size: 10px; font-weight: 600; cursor: pointer; border: none; background: none; transition: color .15s; }
+    .mobile-nav-btn.active { color: var(--accent); }
+    body { padding-bottom: 60px; }
+  }
+
+  /* RESPONSIVE LAYOUT */
+  @media (max-width: 767px) {
+    .sidebar-col { display: none !important; }
+    .sidebar-col.open { display: flex !important; position: fixed; inset: 0; z-index: 200; width: 100% !important; max-width: 100% !important; }
+  }
+  @media (max-width: 1023px) {
+    .json-col { display: none !important; }
+    .json-col.open { display: flex !important; }
+  }
+
+  .title-font { font-family: 'Unbounded', sans-serif; }
+  @media (max-width: 767px) { .desktop-only { display: none !important; } }
+  .mono { font-family: 'JetBrains Mono', monospace; }
+
+  /* GENERATOR */
+  .gen-row { display: flex; flex-wrap: wrap; gap: 8px; align-items: flex-end; background: rgba(124,106,247,.06); border: 1px solid rgba(124,106,247,.15); border-radius: var(--radius); padding: 12px; }
+  .gen-field label { display: block; font-size: 10px; text-transform: uppercase; letter-spacing: .5px; color: var(--text3); font-weight: 700; margin-bottom: 4px; }
+  .gen-field input { background: var(--bg2); border: 1.5px solid var(--border); color: var(--text); border-radius: 8px; padding: 6px 8px; outline: none; font-family: monospace; font-size: 13px; width: 68px; text-align: center; }
+  .gen-field input:focus { border-color: var(--accent); }
+</style>
 </head>
 <body>
-    <div id="root"></div>
+<div id="root"></div>
 
-    <script type="text/babel">
-        // --- УТИЛИТЫ ---
-        const generateId = () => Math.random().toString(36).substring(2, 10);
-        
-        const b64EncodeUnicode = (str) => btoa(encodeURIComponent(str).replace(/%([0-9A-F]{2})/g, (m, p1) => String.fromCharCode('0x' + p1)));
-        const b64DecodeUnicode = (str) => decodeURIComponent(atob(str).split('').map(c => '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2)).join(''));
+<script type="text/babel">
+const { useState, useEffect, useRef, useMemo, useCallback } = React;
 
-        const createEmptyProgram = () => ({ id: generateId(), title: 'Новая программа', filename: `program_${generateId()}.json`, description: '', exercises: [] });
-        
-        const createEmptyExercise = () => ({ 
-            id: generateId(), 
-            name: 'Новое упражнение', 
-            details: { goal: '', start: '', move: '' },
-            steps: [
-                { id: generateId(), type: 'prep', phase: 'Подготовка', time: 15, voiceTxt: 'Приготовьтесь' },
-                { id: generateId(), type: 'work', phase: 'Подход 1', time: 60, voiceTxt: 'Начали' }
-            ]
-        });
+// ═══ UTILS ═══════════════════════════════════════════════
+const uid = () => Math.random().toString(36).slice(2, 10);
+const b64enc = s => btoa(encodeURIComponent(s).replace(/%([0-9A-F]{2})/g, (_, p) => String.fromCharCode('0x'+p)));
+const b64dec = s => decodeURIComponent(atob(s).split('').map(c => '%' + ('00'+c.charCodeAt(0).toString(16)).slice(-2)).join(''));
+const fmtTime = s => { if(!s) return '0с'; const m = Math.floor(s/60), r = s%60; return m ? `${m}м${r?` ${r}с`:''}` : `${r}с`; };
 
-        const highlightJson = (json) => {
-            if (!json) return '';
-            const escaped = json.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
-            return escaped.replace(/("(\\u[a-zA-Z0-9]{4}|\\[^u]|[^\\"])*"(\s*:)?|\b(true|false|null)\b|-?\d+(?:\.\d*)?(?:[eE][+\-]?\d+)?)/g, (match) => {
-                let cls = 'json-number';
-                if (/^"/.test(match)) {
-                    if (/:$/.test(match)) cls = 'json-key';
-                    else cls = 'json-string';
-                } else if (/true|false/.test(match)) cls = 'json-boolean';
-                else if (/null/.test(match)) cls = 'json-null';
-                return `<span class="${cls}">${match}</span>`;
-            });
-        };
+const hlJson = json => {
+  if (!json) return '';
+  return json
+    .replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')
+    .replace(/("(\\u[a-zA-Z0-9]{4}|\\[^u]|[^\\"])*"(\s*:)?|\b(true|false|null)\b|-?\d+(?:\.\d*)?(?:[eE][+\-]?\d+)?)/g, m => {
+      let c = 'jn';
+      if (/^"/.test(m)) c = /:$/.test(m) ? 'jk' : 'js';
+      else if (/true|false/.test(m)) c = 'jb';
+      else if (/null/.test(m)) c = 'jnl';
+      return `<span class="${c}">${m}</span>`;
+    });
+};
 
-        const formatTime = (seconds) => {
-            if (!seconds) return '0с';
-            const m = Math.floor(seconds / 60);
-            const s = seconds % 60;
-            return m > 0 ? `${m}м ${s > 0 ? s + 'с' : ''}` : `${s}с`;
-        };
+const newProg  = () => ({ id: uid(), title: 'Новая программа', filename: `program_${uid()}.json`, description: '', exercises: [] });
+const newEx    = () => ({ id: uid(), name: 'Новый блок', details: { goal:'', start:'', move:'' }, steps: [
+  { id: uid(), type:'prep', phase:'Подготовка', time:15, voiceTxt:'Приготовьтесь' },
+  { id: uid(), type:'work', phase:'Подход 1',   time:60, voiceTxt:'Начали' }
+]});
 
-        // --- АДАПТЕРЫ ФОРМАТА ---
-        const convertToGitHubFormat = (prog) => {
-            const protocol = [];
-            const details = {};
-            
-            if (!prog.exercises || prog.exercises.length === 0) {
-                 return { programs: [{ id: prog.filename.replace('.json', ''), name: prog.title, description: prog.description, estimatedTime: `0 минут`, exercisesDetails: {}, protocol: [] }] };
-            }
+// ═══ FORMAT CONVERTERS ═══════════════════════════════════
+const toGH = prog => {
+  const protocol = [], details = {};
+  (prog.exercises||[]).forEach((ex, i) => {
+    const name = ex.name || `Блок ${i+1}`;
+    details[name] = { goal: ex.details?.goal||'-', start: ex.details?.start||'-', move: ex.details?.move||'-' };
+    (ex.steps||[]).forEach(s => protocol.push({
+      ex: name, phase: s.phase||'', type: s.type||'work',
+      time: Number(s.time)||0, voiceTxt: s.voiceTxt||'',
+      toneType: s.toneType||s.type||'work', stepDesc: s.stepDesc||name
+    }));
+  });
+  const mins = Math.ceil(protocol.reduce((a,s)=>a+(s.time||0),0)/60);
+  return { programs: [{ id: prog.filename.replace('.json',''), name: prog.title, description: prog.description, estimatedTime: `${mins} минут`, exercisesDetails: details, protocol }] };
+};
 
-            prog.exercises.forEach((ex, index) => {
-                const exName = ex.name || `Блок ${index + 1}`;
-                details[exName] = { goal: ex.details?.goal || "-", start: ex.details?.start || "-", move: ex.details?.move || "-" };
-                
-                (ex.steps || []).forEach(step => {
-                    protocol.push({
-                        ex: exName,
-                        phase: step.phase || '',
-                        type: step.type || 'work',
-                        time: Number(step.time) || 0,
-                        voiceTxt: step.voiceTxt || '',
-                        toneType: step.toneType || step.type || 'work',
-                        stepDesc: step.stepDesc || exName
-                    });
-                });
-            });
-            
-            const estTimeMin = Math.ceil(protocol.reduce((acc, step) => acc + (step.time || 0), 0) / 60);
-
-            return {
-                programs: [{
-                    id: prog.filename.replace('.json', ''),
-                    name: prog.title,
-                    description: prog.description,
-                    estimatedTime: `${estTimeMin} минут`,
-                    exercisesDetails: details,
-                    protocol: protocol
-                }]
-            };
-        };
-
-        const parseFromGitHubFormat = (fullProgram) => {
-            let extractedExercises = [];
-            let parsedTitle = 'Без названия';
-            let parsedDesc = '';
-
-            if (fullProgram.programs && Array.isArray(fullProgram.programs) && fullProgram.programs.length > 0) {
-                const srcProg = fullProgram.programs[0];
-                parsedTitle = srcProg.name || parsedTitle;
-                parsedDesc = srcProg.description || parsedDesc;
-                const legacyDetails = srcProg.exercisesDetails || {};
-
-                if (srcProg.protocol && srcProg.protocol.length > 0) {
-                    let currentEx = null;
-                    srcProg.protocol.forEach(step => {
-                        if (!currentEx || currentEx.name !== step.ex) {
-                            currentEx = {
-                                id: generateId(),
-                                name: step.ex || 'Блок',
-                                details: legacyDetails[step.ex] || { goal: '', start: '', move: '' },
-                                steps: []
-                            };
-                            extractedExercises.push(currentEx);
-                        }
-                        currentEx.steps.push({
-                            id: generateId(),
-                            type: step.type || 'work',
-                            phase: step.phase || '',
-                            time: step.time || 0,
-                            voiceTxt: step.voiceTxt || '',
-                            toneType: step.toneType || step.type,
-                            stepDesc: step.stepDesc || ''
-                        });
-                    });
-                }
-            }
-            return { title: parsedTitle, description: parsedDesc, exercises: extractedExercises };
-        };
-
-        // --- ИКОНКИ ---
-        const Icon = ({ name, size = 20, className = "" }) => {
-            const spanRef = React.useRef(null);
-            React.useEffect(() => {
-                if (spanRef.current && window.lucide) {
-                    spanRef.current.innerHTML = '';
-                    const kebabName = name.replace(/([a-z0-9])([A-Z])/g, '$1-$2').toLowerCase();
-                    const i = document.createElement('i');
-                    i.setAttribute('data-lucide', kebabName);
-                    spanRef.current.appendChild(i);
-                    window.lucide.createIcons({ root: spanRef.current });
-                    const svg = spanRef.current.querySelector('svg');
-                    if (svg) {
-                        svg.setAttribute('width', size);
-                        svg.setAttribute('height', size);
-                        if (className) svg.setAttribute('class', `${svg.getAttribute('class') || ''} ${className}`);
-                    }
-                }
-            }, [name, size, className]);
-            return <span ref={spanRef} className={`inline-flex items-center justify-center shrink-0 ${className}`}></span>;
-        };
-
-        // --- ДОП. ОКНО: ТОЛЬКО JSON (VIEWER) ---
-        const isJsonViewer = window.location.search.includes('view=json');
-        
-        if (isJsonViewer) {
-            const JsonViewerApp = () => {
-                const [liveJson, setLiveJson] = React.useState(localStorage.getItem('workout_live_json') || '{\n  "status": "Ожидание данных..."\n}');
-                
-                React.useEffect(() => {
-                    const handleStorage = (e) => {
-                        if (e.key === 'workout_live_json') setLiveJson(e.newValue);
-                    };
-                    window.addEventListener('storage', handleStorage);
-                    return () => window.removeEventListener('storage', handleStorage);
-                }, []);
-
-                return (
-                    <div className="h-screen w-screen bg-[#0f172a] flex flex-col p-4 md:p-8 text-slate-300">
-                        <div className="flex justify-between items-center mb-4 shrink-0 border-b border-slate-800 pb-4">
-                            <div>
-                                <h3 className="font-bold text-white text-xl flex items-center gap-2"><Icon name="Code2" size={24}/> Live JSON Preview (Внешнее окно)</h3>
-                                <p className="text-sm text-slate-400 mt-1">Этот код обновляется автоматически при редактировании программы в основной вкладке.</p>
-                            </div>
-                        </div>
-                        <div className="json-editor-container rounded-xl overflow-hidden border border-slate-800 flex-1">
-                            <pre className="json-pre dark-scroll h-full" aria-hidden="true" style={{position: 'relative'}}>
-                                <code dangerouslySetInnerHTML={{ __html: highlightJson(liveJson) }} />
-                            </pre>
-                        </div>
-                    </div>
-                );
-            };
-            const root = ReactDOM.createRoot(document.getElementById('root'));
-            root.render(<JsonViewerApp />);
+const fromGH = full => {
+  let exercises = [], title = 'Без названия', description = '';
+  if (full.programs?.[0]) {
+    const src = full.programs[0];
+    title = src.name || title; description = src.description || description;
+    const det = src.exercisesDetails || {};
+    if (src.protocol?.length) {
+      let cur = null;
+      src.protocol.forEach(s => {
+        if (!cur || cur.name !== s.ex) {
+          cur = { id: uid(), name: s.ex||'Блок', details: det[s.ex]||{goal:'',start:'',move:''}, steps: [] };
+          exercises.push(cur);
         }
+        cur.steps.push({ id: uid(), type: s.type||'work', phase: s.phase||'', time: s.time||0, voiceTxt: s.voiceTxt||'', toneType: s.toneType||s.type, stepDesc: s.stepDesc||'' });
+      });
+    }
+  }
+  return { title, description, exercises };
+};
 
-        // --- ОСНОВНОЙ ГЛАВНЫЙ КОМПОНЕНТ ---
-        if (!isJsonViewer) {
-        function App() {
-            const [programs, setPrograms] = React.useState([]);
-            const [activeId, setActiveId] = React.useState(null);
-            const [ghConfig, setGhConfig] = React.useState({ token: '', owner: 'kutya001', repo: 'mcgill' });
-            const [showSettings, setShowSettings] = React.useState(false);
-            const [testStatus, setTestStatus] = React.useState({ loading: false, message: null, isError: false });
-            const [sidebarOpen, setSidebarOpen] = React.useState(false);
-            
-            // JSON Редактор State
-            const [isEditingJson, setIsEditingJson] = React.useState(false);
-            const [rawJson, setRawJson] = React.useState('');
-            const [jsonError, setJsonError] = React.useState(null);
-            const preRef = React.useRef(null);
-            
-            // UI State
-            const [mobileJsonMode, setMobileJsonMode] = React.useState(false);
-            const [expandedDetails, setExpandedDetails] = React.useState({});
-            const [collapsedBlocks, setCollapsedBlocks] = React.useState({}); 
-            
-            const [syncStatus, setSyncStatus] = React.useState({ saving: false, loadingList: false, loadingProgram: false, deleting: false, error: null, successMessage: null });
+// ═══ ICON ════════════════════════════════════════════════
+const Ico = ({ name, size=18, cls='' }) => {
+  const ref = useRef(null);
+  useEffect(() => {
+    if (!ref.current || !window.lucide) return;
+    ref.current.innerHTML = '';
+    const i = document.createElement('i');
+    i.setAttribute('data-lucide', name.replace(/([a-z])([A-Z])/g,'$1-$2').toLowerCase());
+    ref.current.appendChild(i);
+    window.lucide.createIcons({ root: ref.current });
+    const svg = ref.current.querySelector('svg');
+    if (svg) { svg.setAttribute('width', size); svg.setAttribute('height', size); if(cls) svg.classList.add(...cls.split(' ')); }
+  }, [name, size, cls]);
+  return <span ref={ref} style={{display:'inline-flex',alignItems:'center',justifyContent:'center',flexShrink:0}}></span>;
+};
 
-            // Drag and Drop States & Refs
-            const dragExItem = React.useRef(null);
-            const dragExOverItem = React.useRef(null);
-            const [draggingExIdx, setDraggingExIdx] = React.useState(null);
+// ═══ NOTIFICATION ═════════════════════════════════════════
+let notifTimer;
+const Notif = ({ notif, setNotif }) => {
+  useEffect(() => {
+    if (!notif) return;
+    clearTimeout(notifTimer);
+    notifTimer = setTimeout(() => setNotif(null), 3200);
+  }, [notif]);
+  if (!notif) return null;
+  return <div className={`notif notif-${notif.type}`}><Ico name={notif.type==='success'?'CheckCircle':notif.type==='error'?'XCircle':'Info'} size={15}/>{notif.msg}</div>;
+};
 
-            const dragStepItem = React.useRef(null);
-            const dragStepOverItem = React.useRef(null);
-            const [draggingStepIdx, setDraggingStepIdx] = React.useState(null); // {exId, sIdx}
+// ═══ GITHUB API ══════════════════════════════════════════
+const useGitHub = (cfg) => {
+  const headers = useCallback(() => {
+    const h = { 'Accept':'application/vnd.github.v3+json','Content-Type':'application/json' };
+    if (cfg.token) h['Authorization'] = `token ${cfg.token}`;
+    return h;
+  }, [cfg.token]);
 
-            React.useEffect(() => {
-                try {
-                    const savedPrograms = localStorage.getItem('workout_programs');
-                    if (savedPrograms) setPrograms(JSON.parse(savedPrograms));
-                    const savedConfig = localStorage.getItem('gh_config');
-                    if (savedConfig) setGhConfig(JSON.parse(savedConfig));
-                } catch (e) {
-                    console.error("Storage error", e);
-                }
-            }, []);
+  const base = `https://api.github.com/repos/${cfg.owner}/${cfg.repo}/contents`;
 
-            React.useEffect(() => {
-                if (programs.length > 0) localStorage.setItem('workout_programs', JSON.stringify(programs));
-            }, [programs]);
+  const getFile = useCallback(async path => {
+    const r = await fetch(`${base}/${path}`, { headers: headers(), cache:'no-store' });
+    if (!r.ok) { if(r.status===404) return null; throw new Error(`${r.status} ${r.statusText}`); }
+    return r.json();
+  }, [base, headers]);
 
-            const activeProgram = programs.find(p => p.id === activeId);
+  const putFile = useCallback(async (path, content, sha, message) => {
+    const r = await fetch(`${base}/${path}`, {
+      method:'PUT', headers: headers(), cache:'no-store',
+      body: JSON.stringify({ message, content: b64enc(content), ...(sha && { sha }) })
+    });
+    if (!r.ok) throw new Error(`Ошибка сохранения: ${r.statusText}`);
+    return r.json();
+  }, [base, headers]);
 
-            React.useEffect(() => {
-                if (activeProgram && !isEditingJson) {
-                    const gitHubFormat = convertToGitHubFormat(activeProgram);
-                    const newJson = JSON.stringify(gitHubFormat, null, 2);
-                    setRawJson(newJson);
-                    localStorage.setItem('workout_live_json', newJson);
-                }
-            }, [activeProgram, isEditingJson]);
+  const deleteFile = useCallback(async (path, sha, message) => {
+    const r = await fetch(`${base}/${path}`, {
+      method:'DELETE', headers: headers(), cache:'no-store',
+      body: JSON.stringify({ message, sha })
+    });
+    if (!r.ok && r.status!==404) throw new Error(`Ошибка удаления`);
+    return true;
+  }, [base, headers]);
 
-            const updateActiveProgram = (updates) => setPrograms(prev => prev.map(p => p.id === activeId ? { ...p, ...updates } : p));
+  const listDir = useCallback(async dir => {
+    const r = await fetch(`${base}/${dir}`, { headers: headers(), cache:'no-store' });
+    if (!r.ok) throw new Error(`Директория ${dir} не найдена`);
+    return r.json();
+  }, [base, headers]);
 
-            // --- СТАТИСТИКА ---
-            const progStats = React.useMemo(() => {
-                if (!activeProgram) return { time: 0, workSets: 0, blocks: 0 };
-                let time = 0, workSets = 0;
-                (activeProgram.exercises || []).forEach(ex => {
-                    (ex.steps || []).forEach(s => { time += Number(s.time) || 0; if(s.type === 'work') workSets++; });
-                });
-                return { time, workSets, blocks: (activeProgram.exercises || []).length };
-            }, [activeProgram]);
+  return { getFile, putFile, deleteFile, listDir };
+};
 
-            const calcExStats = (ex) => {
-                let time = 0, workSets = 0;
-                (ex.steps || []).forEach(s => { time += Number(s.time) || 0; if(s.type === 'work') workSets++; });
-                return { time, workSets };
-            };
+// ═══ STEP GENERATOR ══════════════════════════════════════
+const StepGen = ({ onGenerate }) => {
+  const [sets, setSets] = useState(3);
+  const [work, setWork] = useState(60);
+  const [rest, setRest] = useState(40);
+  return (
+    <div className="gen-row">
+      <div className="gen-field"><label>Подходов</label><input type="number" min="1" value={sets} onChange={e=>setSets(+e.target.value)}/></div>
+      <div className="gen-field"><label>Работа (с)</label><input type="number" min="0" value={work} onChange={e=>setWork(+e.target.value)}/></div>
+      <div className="gen-field"><label>Отдых (с)</label><input type="number" min="0" value={rest} onChange={e=>setRest(+e.target.value)}/></div>
+      <button className="btn btn-ghost btn-sm" style={{marginLeft:'auto'}} onClick={()=>onGenerate(sets,work,rest)}><Ico name="Wand2" size={13}/>Авто-генерация</button>
+    </div>
+  );
+};
 
-            // --- УПРАЖНЕНИЯ ---
-            const addExercise = () => {
-                const newEx = createEmptyExercise();
-                updateActiveProgram({ exercises: [...(activeProgram.exercises || []), newEx] });
-                setCollapsedBlocks(prev => ({...prev, [newEx.id]: false})); 
-            };
-            const removeExercise = (id) => updateActiveProgram({ exercises: activeProgram.exercises.filter(ex => ex.id !== id) });
-            const moveExercise = (index, direction) => {
-                const newEx = [...activeProgram.exercises];
-                if (direction === 'up' && index > 0) [newEx[index - 1], newEx[index]] = [newEx[index], newEx[index - 1]];
-                else if (direction === 'down' && index < newEx.length - 1) [newEx[index + 1], newEx[index]] = [newEx[index], newEx[index + 1]];
-                updateActiveProgram({ exercises: newEx });
-            };
-            
-            // D&D Блоков
-            const handleExDragStart = (e, idx) => {
-                dragExItem.current = idx;
-                e.dataTransfer.effectAllowed = 'move';
-                e.dataTransfer.setData('text/plain', idx.toString()); // Для мобильного полифилла
-                setTimeout(() => setDraggingExIdx(idx), 0);
-            };
-            const handleExDragEnter = (e, idx) => {
-                dragExOverItem.current = idx;
-            };
-            const handleExDragEnd = () => {
-                setDraggingExIdx(null);
-                if (dragExItem.current !== null && dragExOverItem.current !== null && dragExItem.current !== dragExOverItem.current) {
-                    let _exercises = [...activeProgram.exercises];
-                    const draggedItem = _exercises.splice(dragExItem.current, 1)[0];
-                    _exercises.splice(dragExOverItem.current, 0, draggedItem);
-                    updateActiveProgram({ exercises: _exercises });
-                }
-                dragExItem.current = null;
-                dragExOverItem.current = null;
-            };
-            
-            const updateExerciseName = (id, val) => updateActiveProgram({ exercises: activeProgram.exercises.map(ex => ex.id === id ? { ...ex, name: val } : ex) });
-            const updateExerciseDetails = (id, field, val) => updateActiveProgram({ exercises: activeProgram.exercises.map(ex => ex.id === id ? { ...ex, details: {...ex.details, [field]: val} } : ex) });
+// ═══ JSON PANEL ══════════════════════════════════════════
+const JsonPanel = ({ json, onChange, editing, setEditing, onApply, error }) => {
+  const preRef = useRef(null);
+  return (
+    <div style={{flex:1,display:'flex',flexDirection:'column',overflow:'hidden',background:'var(--bg)',padding:'16px',gap:'12px'}}>
+      <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',flexShrink:0,gap:8}}>
+        <div>
+          <div className="title-font" style={{fontSize:13,color:'var(--text)',fontWeight:600,display:'flex',alignItems:'center',gap:6}}><Ico name="Code2" size={15}/>Live JSON</div>
+          <div style={{fontSize:11,color:'var(--text3)',marginTop:2}}>Формат плеера</div>
+        </div>
+        <div style={{display:'flex',gap:6}}>
+          <button className="btn btn-ghost btn-sm" onClick={()=>window.open(location.pathname+'?view=json','_blank')} title="Открыть в новом окне"><Ico name="ExternalLink" size={13}/></button>
+          {editing
+            ? <button className="btn btn-success btn-sm" onClick={onApply}><Ico name="Check" size={13}/>Применить</button>
+            : <button className="btn btn-ghost btn-sm" onClick={()=>setEditing(true)}><Ico name="Pencil" size={13}/>Изменить</button>
+          }
+        </div>
+      </div>
+      {error && <div style={{background:'rgba(248,113,113,.1)',border:'1px solid rgba(248,113,113,.2)',borderRadius:8,padding:'8px 12px',fontSize:12,color:'var(--red)',flexShrink:0}}>{error}</div>}
+      <div className="json-container" style={{border:`1.5px solid ${editing?'var(--accent)':'var(--border)'}`,flex:1}}>
+        <textarea className="json-ta" spellCheck="false" value={json} readOnly={!editing}
+          onChange={e=>onChange(e.target.value)}
+          onScroll={e=>{ if(preRef.current){ preRef.current.scrollTop=e.target.scrollTop; preRef.current.scrollLeft=e.target.scrollLeft; }}}
+        />
+        <pre className="json-pre" ref={preRef} aria-hidden><code dangerouslySetInnerHTML={{__html:hlJson(json)}}/></pre>
+      </div>
+    </div>
+  );
+};
 
-            // --- ШАГИ ---
-            const addStep = (exId, type = 'work') => {
-                const step = { id: generateId(), type, phase: type === 'rest' ? 'Отдых' : (type === 'prep' ? 'Подготовка' : 'Подход'), time: 60, voiceTxt: '' };
-                updateActiveProgram({ exercises: activeProgram.exercises.map(ex => ex.id === exId ? { ...ex, steps: [...ex.steps, step] } : ex) });
-            };
-            const updateStep = (exId, stepId, field, val) => updateActiveProgram({ exercises: activeProgram.exercises.map(ex => ex.id === exId ? { ...ex, steps: ex.steps.map(s => s.id === stepId ? { ...s, [field]: val } : s) } : ex) });
-            const removeStep = (exId, stepId) => updateActiveProgram({ exercises: activeProgram.exercises.map(ex => ex.id === exId ? { ...ex, steps: ex.steps.filter(s => s.id !== stepId) } : ex) });
-            const moveStep = (exId, stepIndex, direction) => {
-                updateActiveProgram({ exercises: activeProgram.exercises.map(ex => {
-                    if (ex.id !== exId) return ex;
-                    const newSteps = [...ex.steps];
-                    if (direction === 'up' && stepIndex > 0) [newSteps[stepIndex - 1], newSteps[stepIndex]] = [newSteps[stepIndex], newSteps[stepIndex - 1]];
-                    else if (direction === 'down' && stepIndex < newSteps.length - 1) [newSteps[stepIndex + 1], newSteps[stepIndex]] = [newSteps[stepIndex], newSteps[stepIndex + 1]];
-                    return { ...ex, steps: newSteps };
-                })});
-            };
+// ═══ INDEX EDITOR ════════════════════════════════════════
+const IndexEditor = ({ gh, cfg, notify, indexKey }) => {
+  const paths = {
+    workouts: 'workouts/index.json',
+    games:    'games/index.json',
+  };
+  const path = paths[indexKey];
+  const [raw, setRaw]       = useState('');
+  const [sha, setSha]       = useState(null);
+  const [parsed, setParsed] = useState([]);
+  const [parseErr, setParseErr] = useState(null);
+  const [loading, setLoading]   = useState(false);
+  const [saving, setSaving]     = useState(false);
+  const [jsonMode, setJsonMode] = useState(false);
+  const preRef = useRef(null);
 
-            // D&D Шагов
-            const handleStepDragStart = (e, exId, sIdx) => {
-                dragStepItem.current = { exId, sIdx };
-                e.dataTransfer.effectAllowed = 'move';
-                e.dataTransfer.setData('text/plain', sIdx.toString());
-                setTimeout(() => setDraggingStepIdx({ exId, sIdx }), 0);
-            };
-            const handleStepDragEnter = (e, exId, sIdx) => {
-                dragStepOverItem.current = { exId, sIdx };
-            };
-            const handleStepDragEnd = (exId) => {
-                setDraggingStepIdx(null);
-                if (dragStepItem.current && dragStepOverItem.current && 
-                    dragStepItem.current.exId === exId && dragStepOverItem.current.exId === exId &&
-                    dragStepItem.current.sIdx !== dragStepOverItem.current.sIdx) {
-                    
-                    const exIndex = activeProgram.exercises.findIndex(e => e.id === exId);
-                    let _steps = [...activeProgram.exercises[exIndex].steps];
-                    const draggedItem = _steps.splice(dragStepItem.current.sIdx, 1)[0];
-                    _steps.splice(dragStepOverItem.current.sIdx, 0, draggedItem);
-                    
-                    updateActiveProgram({ exercises: activeProgram.exercises.map(e => e.id === exId ? {...e, steps: _steps} : e) });
-                }
-                dragStepItem.current = null;
-                dragStepOverItem.current = null;
-            };
+  const load = async () => {
+    setLoading(true);
+    try {
+      const f = await gh.getFile(path);
+      if (!f) { setRaw('[]'); setParsed([]); setSha(null); notify('info', 'Файл не найден — создан новый'); setLoading(false); return; }
+      const content = b64dec(f.content);
+      setRaw(content); setSha(f.sha);
+      try { setParsed(JSON.parse(content)); setParseErr(null); } catch(e) { setParseErr(e.message); }
+    } catch(e) { notify('error', e.message); }
+    setLoading(false);
+  };
 
-            const handleGenerateSteps = (exId, sets, workTime, restTime) => {
-                const steps = [];
-                steps.push({ id: generateId(), type: 'prep', phase: 'Подготовка', time: 15, voiceTxt: 'Приготовьтесь' });
-                for (let i = 1; i <= sets; i++) {
-                    steps.push({ id: generateId(), type: 'work', phase: `Подход ${i}`, time: Number(workTime), voiceTxt: i === 1 ? 'Начали' : '' });
-                    if (i < sets && restTime > 0) steps.push({ id: generateId(), type: 'rest', phase: 'Отдых', time: Number(restTime), voiceTxt: 'Отдых' });
-                }
-                updateActiveProgram({ exercises: activeProgram.exercises.map(ex => ex.id === exId ? { ...ex, steps } : ex) });
-            };
+  useEffect(() => { load(); }, [path]);
 
-            const toggleCollapse = (exId) => setCollapsedBlocks(prev => ({...prev, [exId]: !prev[exId]}));
-            const toggleAllCollapse = () => {
-                const isAnyExpanded = activeProgram.exercises.some(ex => !collapsedBlocks[ex.id]);
-                const newState = {};
-                activeProgram.exercises.forEach(ex => newState[ex.id] = isAnyExpanded); 
-                setCollapsedBlocks(newState);
-            };
+  const save = async () => {
+    setSaving(true);
+    try {
+      const content = jsonMode ? raw : JSON.stringify(parsed, null, 2);
+      const res = await gh.putFile(path, content, sha, `CMS: Update ${path}`);
+      setSha(res.content.sha);
+      notify('success', 'index.json сохранён');
+    } catch(e) { notify('error', e.message); }
+    setSaving(false);
+  };
 
-            // --- API СИНХРОНИЗАЦИЯ ---
-            const showSuccess = (msg) => { setSyncStatus(s => ({ ...s, successMessage: msg, error: null })); setTimeout(() => setSyncStatus(s => ({ ...s, successMessage: null })), 3000); };
-            const getAuthHeaders = () => { const headers = { 'Accept': 'application/vnd.github.v3+json', 'Content-Type': 'application/json' }; if (ghConfig.token) headers['Authorization'] = `token ${ghConfig.token}`; return headers; };
+  const updateItem = (i, field, val) => {
+    const next = parsed.map((item, idx) => {
+      if (idx !== i) return item;
+      if (typeof item === 'string') return item; // old format — keep as string
+      return { ...item, [field]: val };
+    });
+    setParsed(next);
+    setRaw(JSON.stringify(next, null, 2));
+  };
 
-            const applyJson = () => {
-                try {
-                    const parsed = JSON.parse(rawJson);
-                    updateActiveProgram(parseFromGitHubFormat(parsed));
-                    setIsEditingJson(false); setJsonError(null);
-                    showSuccess("JSON успешно применен");
-                } catch(e) { setJsonError(`Синтаксическая ошибка: ${e.message}`); }
-            };
+  const addItem = () => {
+    const next = [...parsed, { id: uid(), title: '', file: '', description: '' }];
+    setParsed(next); setRaw(JSON.stringify(next, null, 2));
+  };
 
-            const testConnection = async () => { 
-                setTestStatus({ loading: true, message: null, isError: false });
-                if (!ghConfig.owner || !ghConfig.repo) return setTestStatus({ loading: false, message: 'Укажите Owner и Repo', isError: true });
-                try {
-                    const res = await fetch(`https://api.github.com/repos/${ghConfig.owner}/${ghConfig.repo}`, { headers: getAuthHeaders(), cache: 'no-store' });
-                    if (res.ok) {
-                        const data = await res.json();
-                        if (data.permissions && data.permissions.push) setTestStatus({ loading: false, message: 'Успешно! Доступ на запись (Push) подтвержден.', isError: false });
-                        else if (ghConfig.token) setTestStatus({ loading: false, message: 'Репозиторий найден, но нет прав на запись.', isError: true });
-                        else setTestStatus({ loading: false, message: 'Репозиторий найден. Нужен Токен для записи.', isError: true });
-                    } else setTestStatus({ loading: false, message: `Ошибка API: ${(await res.json().catch(()=>({}))).message || res.statusText}`, isError: true });
-                } catch (e) { setTestStatus({ loading: false, message: `Ошибка сети: ${e.message}`, isError: true }); }
-            };
+  const removeItem = i => {
+    const next = parsed.filter((_,idx)=>idx!==i);
+    setParsed(next); setRaw(JSON.stringify(next, null, 2));
+  };
 
-            const fetchListFromGitHub = async () => { 
-                if (!ghConfig.token || !ghConfig.owner || !ghConfig.repo) return setShowSettings(true);
-                setSyncStatus(s => ({ ...s, loadingList: true, error: null }));
-                try {
-                    const baseUrl = `https://api.github.com/repos/${ghConfig.owner}/${ghConfig.repo}/contents`;
-                    const dirRes = await fetch(`${baseUrl}/workouts`, { headers: getAuthHeaders(), cache: 'no-store' });
-                    if (!dirRes.ok) throw new Error("Не удалось прочитать директорию workouts/");
-                    
-                    const realJsonFiles = (await dirRes.json()).filter(f => f.type === 'file' && f.name.endsWith('.json') && f.name !== 'index.json');
-                    let indexData = [];
-                    try {
-                        const indexRes = await fetch(`${baseUrl}/workouts/index.json`, { headers: getAuthHeaders(), cache: 'no-store' });
-                        if (indexRes.ok) indexData = JSON.parse(b64DecodeUnicode((await indexRes.json()).content));
-                    } catch (e) {}
+  // Drag reorder
+  const dragIdx = useRef(null);
+  const [dragOver, setDragOver] = useState(null);
+  const handleDragStart = (i) => { dragIdx.current = i; };
+  const handleDragEnd = () => {
+    if (dragIdx.current !== null && dragOver !== null && dragIdx.current !== dragOver) {
+      const next = [...parsed];
+      const [item] = next.splice(dragIdx.current, 1);
+      next.splice(dragOver, 0, item);
+      setParsed(next); setRaw(JSON.stringify(next, null, 2));
+    }
+    dragIdx.current = null; setDragOver(null);
+  };
 
-                    const normalizedPrograms = realJsonFiles.map(fileObj => {
-                        const meta = Array.isArray(indexData) ? indexData.find(item => item.file === fileObj.name || item.filename === fileObj.name) || {} : {};
-                        return { id: meta.id || generateId(), title: meta.title || fileObj.name.replace('.json', '').replace(/_/g, ' '), filename: fileObj.name, description: meta.description || '', fileSha: fileObj.sha };
-                    });
-                    
-                    setPrograms(normalizedPrograms); setActiveId(null); setSyncStatus(s => ({ ...s, loadingList: false })); showSuccess(`Загружено: ${normalizedPrograms.length}`);
-                } catch (error) { setSyncStatus(s => ({ ...s, loadingList: false, error: error.message })); }
-            };
+  const isObjectArray = parsed.length === 0 || parsed.some(i => typeof i === 'object' && i !== null);
 
-            const selectProgram = async (prog) => {
-                setActiveId(prog.id); setSidebarOpen(false); setMobileJsonMode(false); setIsEditingJson(false); setCollapsedBlocks({});
-                if (prog.exercises) return;
-                if (!ghConfig.token) return alert("Для загрузки нужен токен.");
-                setSyncStatus(s => ({ ...s, loadingProgram: true, error: null }));
-                try {
-                    const res = await fetch(`https://api.github.com/repos/${ghConfig.owner}/${ghConfig.repo}/contents/workouts/${prog.filename}`, { headers: getAuthHeaders(), cache: 'no-store' });
-                    if (!res.ok) {
-                        if (res.status === 404) { setPrograms(prev => prev.map(p => p.id === prog.id ? { ...p, exercises: [] } : p)); throw new Error(`Файл не найден (404).`); }
-                        throw new Error(`Ошибка загрузки`);
-                    }
-                    const data = await res.json();
-                    const fullProgram = JSON.parse(b64DecodeUnicode(data.content));
-                    setPrograms(prev => prev.map(p => p.id === prog.id ? { ...p, ...parseFromGitHubFormat(fullProgram), fileSha: data.sha || p.fileSha } : p));
-                    setSyncStatus(s => ({ ...s, loadingProgram: false }));
-                } catch (error) { setSyncStatus(s => ({ ...s, loadingProgram: false, error: error.message })); }
-            };
+  return (
+    <div style={{display:'flex',flexDirection:'column',height:'100%',overflow:'hidden'}}>
+      {/* Toolbar */}
+      <div style={{display:'flex',gap:8,alignItems:'center',padding:'12px 16px',borderBottom:'1px solid var(--border)',flexShrink:0,flexWrap:'wrap'}}>
+        <div className="title-font" style={{fontSize:13,fontWeight:600,flex:1}}>{path}</div>
+        <div style={{display:'flex',gap:6,alignItems:'center',flexWrap:'wrap'}}>
+          <button className="btn btn-ghost btn-sm" onClick={()=>setJsonMode(!jsonMode)}>
+            <Ico name={jsonMode?'Table':'Code2'} size={13}/>{jsonMode?'Таблица':'JSON'}
+          </button>
+          <button className="btn btn-ghost btn-sm" onClick={load} disabled={loading}>
+            <Ico name="RefreshCw" size={13} cls={loading?'spin':''}/>
+          </button>
+          {!jsonMode && isObjectArray && <button className="btn btn-ghost btn-sm" onClick={addItem}><Ico name="Plus" size={13}/>Добавить</button>}
+          <button className="btn btn-primary btn-sm" onClick={save} disabled={saving}>
+            <Ico name={saving?'Loader2':'Save'} size={13} cls={saving?'spin':''}/>
+            {saving?'Сохранение...':'Сохранить'}
+          </button>
+        </div>
+      </div>
 
-            const syncToGitHub = async () => { 
-                if (!ghConfig.token || !ghConfig.owner || !ghConfig.repo) return setShowSettings(true);
-                if (!activeProgram.filename.endsWith('.json')) return alert("Имя файла должно заканчиваться на .json");
-                setSyncStatus(s => ({ ...s, saving: true, error: null }));
-                const baseUrl = `https://api.github.com/repos/${ghConfig.owner}/${ghConfig.repo}/contents`;
-                const headers = getAuthHeaders();
-                try {
-                    const filePath = `workouts/${activeProgram.filename}`;
-                    let fileSha = activeProgram.fileSha;
-                    if (!fileSha) {
-                        const fileCheckRes = await fetch(`${baseUrl}/${filePath}`, { headers, cache: 'no-store' });
-                        if (fileCheckRes.ok) fileSha = (await fileCheckRes.json()).sha;
-                    }
-                    const filePutRes = await fetch(`${baseUrl}/${filePath}`, { 
-                        method: 'PUT', headers, cache: 'no-store',
-                        body: JSON.stringify({ message: `CMS Update: ${activeProgram.title}`, content: b64EncodeUnicode(JSON.stringify(convertToGitHubFormat(activeProgram), null, 2)), ...(fileSha && { sha: fileSha }) }) 
-                    });
-                    if (!filePutRes.ok) throw new Error(`Ошибка сохранения`);
-                    updateActiveProgram({ fileSha: (await filePutRes.json()).content.sha });
-
-                    const indexPath = `workouts/index.json`;
-                    let indexSha = null, indexData = [];
-                    const indexCheckRes = await fetch(`${baseUrl}/${indexPath}`, { headers, cache: 'no-store' });
-                    if (indexCheckRes.ok) {
-                        const indexResp = await indexCheckRes.json();
-                        indexSha = indexResp.sha;
-                        try { indexData = JSON.parse(b64DecodeUnicode(indexResp.content)); } catch (e) {}
-                    }
-                    if (!Array.isArray(indexData)) indexData = [];
-                    const existingIdx = indexData.findIndex(item => item.id === activeProgram.id || item.file === activeProgram.filename || item.filename === activeProgram.filename);
-                    const newEntry = { id: activeProgram.id, title: activeProgram.title, file: activeProgram.filename, description: activeProgram.description };
-                    if (existingIdx > -1) indexData[existingIdx] = newEntry; else indexData.push(newEntry);
-
-                    const indexPutRes = await fetch(`${baseUrl}/${indexPath}`, { 
-                        method: 'PUT', headers, cache: 'no-store',
-                        body: JSON.stringify({ message: `CMS Index Update`, content: b64EncodeUnicode(JSON.stringify(indexData, null, 2)), ...(indexSha && { sha: indexSha }) }) 
-                    });
-                    if (!indexPutRes.ok) throw new Error(`Не удалось обновить index.json`);
-
-                    setSyncStatus(s => ({ ...s, saving: false })); showSuccess("Успешно сохранено");
-                } catch (error) { setSyncStatus(s => ({ ...s, saving: false, error: error.message })); }
-            };
-
-            const deleteFromGitHub = async () => { 
-                if (!confirm(`Удалить "${activeProgram.title}" навсегда?`)) return;
-                if (!ghConfig.token) { setPrograms(programs.filter(p => p.id !== activeId)); setActiveId(null); return; }
-                setSyncStatus(s => ({ ...s, deleting: true, error: null }));
-                const baseUrl = `https://api.github.com/repos/${ghConfig.owner}/${ghConfig.repo}/contents`;
-                try {
-                    let sha = activeProgram.fileSha;
-                    if (!sha) {
-                        const check = await fetch(`${baseUrl}/workouts/${activeProgram.filename}`, { headers: getAuthHeaders(), cache: 'no-store' });
-                        if (check.ok) sha = (await check.json()).sha;
-                    }
-                    if (sha) {
-                        const delRes = await fetch(`${baseUrl}/workouts/${activeProgram.filename}`, { method: 'DELETE', headers: getAuthHeaders(), cache: 'no-store', body: JSON.stringify({ message: `CMS Delete: ${activeProgram.title}`, sha: sha }) });
-                        if (!delRes.ok && delRes.status !== 404) throw new Error(`Ошибка удаления`);
-                    }
-                    const idxCheck = await fetch(`${baseUrl}/workouts/index.json`, { headers: getAuthHeaders(), cache: 'no-store' });
-                    if (idxCheck.ok) {
-                        const idxResp = await idxCheck.json();
-                        let idxData = JSON.parse(b64DecodeUnicode(idxResp.content)).filter(item => item.id !== activeProgram.id && item.file !== activeProgram.filename && item.filename !== activeProgram.filename);
-                        await fetch(`${baseUrl}/workouts/index.json`, { method: 'PUT', headers: getAuthHeaders(), cache: 'no-store', body: JSON.stringify({ message: `CMS Index Update (Delete)`, content: b64EncodeUnicode(JSON.stringify(idxData, null, 2)), sha: idxResp.sha }) });
-                    }
-                    setPrograms(prev => prev.filter(p => p.id !== activeProgram.id)); setActiveId(null); setSyncStatus(s => ({ ...s, deleting: false })); showSuccess("Удалено");
-                } catch (error) { setSyncStatus(s => ({ ...s, deleting: false, error: error.message })); }
-            };
-
-            // Мини-компонент генератора шагов
-            const StepGenerator = ({ exId }) => {
-                const [sets, setSets] = React.useState(3); const [work, setWork] = React.useState(60); const [rest, setRest] = React.useState(40);
-                return (
-                    <div className="flex flex-wrap items-end gap-2 bg-indigo-50/50 p-3 rounded-xl border border-indigo-100 mt-2">
-                        <div><label className="block text-[10px] uppercase font-bold text-slate-400 mb-1">Подходов</label><input type="number" min="1" value={sets} onChange={e => setSets(e.target.value)} className="w-14 p-1.5 text-sm border border-slate-200 rounded outline-none focus:border-indigo-500 text-center"/></div>
-                        <div><label className="block text-[10px] uppercase font-bold text-slate-400 mb-1">Работа (с)</label><input type="number" min="0" value={work} onChange={e => setWork(e.target.value)} className="w-14 p-1.5 text-sm border border-slate-200 rounded outline-none focus:border-indigo-500 text-center"/></div>
-                        <div><label className="block text-[10px] uppercase font-bold text-slate-400 mb-1">Отдых (с)</label><input type="number" min="0" value={rest} onChange={e => setRest(e.target.value)} className="w-14 p-1.5 text-sm border border-slate-200 rounded outline-none focus:border-indigo-500 text-center"/></div>
-                        <button onClick={() => handleGenerateSteps(exId, sets, work, rest)} className="bg-white hover:bg-indigo-100 text-indigo-600 px-3 py-1.5 rounded shadow-sm text-sm font-semibold transition ml-auto flex items-center gap-1"><Icon name="Wand2" size={14}/> Авто-генерация</button>
+      {loading ? (
+        <div style={{flex:1,display:'flex',alignItems:'center',justifyContent:'center',color:'var(--text3)'}}>
+          <Ico name="Loader2" size={32} cls="spin"/>
+        </div>
+      ) : jsonMode ? (
+        /* JSON VIEW */
+        <div style={{flex:1,display:'flex',flexDirection:'column',overflow:'hidden',padding:16}}>
+          {parseErr && <div style={{background:'rgba(248,113,113,.1)',border:'1px solid rgba(248,113,113,.2)',borderRadius:8,padding:'8px 12px',fontSize:12,color:'var(--red)',marginBottom:8}}>{parseErr}</div>}
+          <div className="json-container" style={{border:'1.5px solid var(--accent)',flex:1}}>
+            <textarea className="json-ta" spellCheck="false" value={raw}
+              onChange={e=>{setRaw(e.target.value); try{setParsed(JSON.parse(e.target.value));setParseErr(null);}catch(ex){setParseErr(ex.message);}}}
+              onScroll={e=>{ if(preRef.current){preRef.current.scrollTop=e.target.scrollTop;preRef.current.scrollLeft=e.target.scrollLeft;}}}
+            />
+            <pre className="json-pre" ref={preRef} aria-hidden><code dangerouslySetInnerHTML={{__html:hlJson(raw)}}/></pre>
+          </div>
+        </div>
+      ) : (
+        /* TABLE VIEW */
+        <div style={{flex:1,overflowY:'auto',padding:'0 16px 16px'}}>
+          {parsed.length === 0 && (
+            <div style={{textAlign:'center',padding:'48px 0',color:'var(--text3)'}}>
+              <div style={{fontSize:40,marginBottom:12}}>📋</div>
+              <div>Список пуст. Нажмите «Добавить»</div>
+            </div>
+          )}
+          <div style={{marginTop:8}}>
+            {parsed.map((item, i) => {
+              const isStr = typeof item === 'string';
+              return (
+                <div key={i}
+                  className={dragOver===i?'is-dragging':''}
+                  onDragOver={e=>{e.preventDefault();setDragOver(i);}}
+                  onDrop={handleDragEnd}
+                  style={{background:'var(--bg2)',border:'1px solid var(--border)',borderRadius:12,marginBottom:8,overflow:'hidden'}}>
+                  <div style={{display:'flex',alignItems:'center',gap:8,padding:'8px 12px',borderBottom:'1px solid var(--border)',background:'var(--bg3)'}}>
+                    <div className="drag-handle btn-icon" draggable onDragStart={()=>handleDragStart(i)} onDragEnd={handleDragEnd} style={{cursor:'grab'}}>
+                      <Ico name="GripVertical" size={16}/>
                     </div>
-                )
-            };
-
-            // Компонент Live JSON
-            const LiveJsonPanel = () => (
-                <div className="flex-1 flex flex-col p-4 md:p-6 overflow-hidden bg-[#0f172a] text-slate-300">
-                    <div className="flex justify-between items-start mb-4 shrink-0 gap-2">
-                        <div>
-                            <h3 className="font-bold text-white text-lg flex items-center gap-2"><Icon name="Code2" size={20}/> Live JSON Preview</h3>
-                            <p className="text-xs text-slate-400 mt-1">Отправляется в плеер.</p>
+                    <span style={{fontSize:12,color:'var(--text3)',fontWeight:700,flex:1}}>#{i+1} {isStr ? item : (item.title||item.file||'—')}</span>
+                    <button className="btn-icon" style={{color:'var(--red)'}} onClick={()=>removeItem(i)}><Ico name="Trash2" size={15}/></button>
+                  </div>
+                  {isStr ? (
+                    <div style={{padding:'10px 12px'}}>
+                      <input className="inp" value={item} onChange={e=>{const n=[...parsed];n[i]=e.target.value;setParsed(n);setRaw(JSON.stringify(n,null,2));}} placeholder="Имя файла..."/>
+                    </div>
+                  ) : (
+                    <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fit,minmax(180px,1fr))',gap:8,padding:12}}>
+                      <div>
+                        <div style={{fontSize:10,textTransform:'uppercase',letterSpacing:'.5px',color:'var(--text3)',fontWeight:700,marginBottom:4}}>ID</div>
+                        <input className="inp mono" style={{fontSize:11}} value={item.id||''} onChange={e=>updateItem(i,'id',e.target.value)} placeholder="auto"/>
+                      </div>
+                      <div>
+                        <div style={{fontSize:10,textTransform:'uppercase',letterSpacing:'.5px',color:'var(--text3)',fontWeight:700,marginBottom:4}}>Название</div>
+                        <input className="inp" value={item.title||item.name||''} onChange={e=>updateItem(i,'title',e.target.value)} placeholder="Название программы"/>
+                      </div>
+                      <div>
+                        <div style={{fontSize:10,textTransform:'uppercase',letterSpacing:'.5px',color:'var(--text3)',fontWeight:700,marginBottom:4}}>Файл</div>
+                        <input className="inp mono" style={{fontSize:11}} value={item.file||item.filename||''} onChange={e=>updateItem(i,'file',e.target.value)} placeholder="file.json"/>
+                      </div>
+                      <div style={{gridColumn:'1/-1'}}>
+                        <div style={{fontSize:10,textTransform:'uppercase',letterSpacing:'.5px',color:'var(--text3)',fontWeight:700,marginBottom:4}}>Описание</div>
+                        <textarea className="inp" style={{resize:'vertical',minHeight:56,fontSize:12}} value={item.description||''} onChange={e=>updateItem(i,'description',e.target.value)} placeholder="Описание..."/>
+                      </div>
+                      {/* Extra fields */}
+                      {Object.keys(item).filter(k=>!['id','title','name','file','filename','description'].includes(k)).map(k=>(
+                        <div key={k}>
+                          <div style={{fontSize:10,textTransform:'uppercase',letterSpacing:'.5px',color:'var(--text3)',fontWeight:700,marginBottom:4}}>{k}</div>
+                          <input className="inp" style={{fontSize:12}} value={String(item[k]||'')} onChange={e=>updateItem(i,k,e.target.value)} placeholder={k}/>
                         </div>
-                        <div className="flex flex-col gap-2 shrink-0 items-end">
-                            <button onClick={() => window.open(window.location.pathname + '?view=json', '_blank')} className="text-indigo-400 hover:text-indigo-300 text-xs font-semibold flex items-center gap-1 transition bg-indigo-900/30 px-2 py-1 rounded">
-                                <Icon name="ExternalLink" size={12}/> В новом окне
-                            </button>
-                            {isEditingJson ? (
-                                <button onClick={applyJson} className="bg-emerald-600 hover:bg-emerald-500 text-white px-3 py-1.5 rounded-lg text-sm font-bold shadow-sm transition">Применить</button>
-                            ) : (
-                                <button onClick={() => setIsEditingJson(true)} className="bg-slate-800 hover:bg-slate-700 text-white px-3 py-1.5 rounded-lg text-sm font-semibold transition">Изменить</button>
-                            )}
-                        </div>
+                      ))}
                     </div>
-                    {jsonError && <div className="bg-red-900/50 text-red-400 p-3 rounded-lg text-sm font-medium mb-4 border border-red-800/50 shrink-0">{jsonError}</div>}
-                    
-                    <div className={`json-editor-container rounded-xl overflow-hidden border ${isEditingJson ? 'border-indigo-500' : 'border-slate-800'}`}>
-                        <textarea className="json-textarea dark-scroll" spellCheck="false" value={rawJson} onChange={(e) => { setRawJson(e.target.value); if(!isEditingJson) setIsEditingJson(true); }} onScroll={(e) => { if (preRef.current) { preRef.current.scrollTop = e.target.scrollTop; preRef.current.scrollLeft = e.target.scrollLeft; } }} readOnly={!isEditingJson} />
-                        <pre className="json-pre dark-scroll" ref={preRef} aria-hidden="true"><code dangerouslySetInnerHTML={{ __html: highlightJson(rawJson) }} /></pre>
-                    </div>
+                  )}
                 </div>
-            );
+              );
+            })}
+          </div>
+        </div>
+      )}
+    </div>
+  );
+};
 
+// ═══ MAIN APP ═════════════════════════════════════════════
+const App = () => {
+  const [programs, setPrograms]   = useState([]);
+  const [activeId, setActiveId]   = useState(null);
+  const [cfg, setCfg]             = useState({ token:'', owner:'kutya001', repo:'mcgill' });
+  const [showSettings, setShowSettings] = useState(false);
+  const [notif, setNotif]         = useState(null);
+  const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [mobileTab, setMobileTab] = useState('editor'); // editor | json | sidebar
+  const [mainTab, setMainTab]     = useState('editor'); // editor | workouts-index | games-index
+
+  // JSON editor
+  const [rawJson, setRawJson]     = useState('');
+  const [jsonEditing, setJsonEditing] = useState(false);
+  const [jsonError, setJsonError] = useState(null);
+  const [showJsonCol, setShowJsonCol] = useState(false);
+
+  // Editor UI
+  const [collapsed, setCollapsed] = useState({});
+  const [detailsOpen, setDetailsOpen] = useState({});
+
+  // Sync
+  const [sync, setSync] = useState({ saving:false, loadingList:false, loadingProg:false, deleting:false });
+
+  // Drag & drop
+  const dragEx   = useRef(null);
+  const dragExTo = useRef(null);
+  const [draggingEx, setDraggingEx] = useState(null);
+  const dragStep   = useRef(null);
+  const dragStepTo = useRef(null);
+  const [draggingStep, setDraggingStep] = useState(null);
+
+  const gh = useGitHub(cfg);
+  const notify = (type, msg) => setNotif({ type, msg });
+
+  useEffect(() => {
+    try {
+      const p = localStorage.getItem('cms_programs'); if (p) setPrograms(JSON.parse(p));
+      const c = localStorage.getItem('cms_cfg');      if (c) setCfg(JSON.parse(c));
+    } catch(e) {}
+  }, []);
+
+  useEffect(() => { if (programs.length) localStorage.setItem('cms_programs', JSON.stringify(programs)); }, [programs]);
+
+  const active = programs.find(p => p.id === activeId);
+
+  useEffect(() => {
+    if (active && !jsonEditing) {
+      const j = JSON.stringify(toGH(active), null, 2);
+      setRawJson(j);
+      localStorage.setItem('cms_live_json', j);
+    }
+  }, [active, jsonEditing]);
+
+  const updateActive = upd => setPrograms(p => p.map(x => x.id === activeId ? {...x, ...upd} : x));
+
+  // STATS
+  const stats = useMemo(() => {
+    if (!active) return { time:0, sets:0, blocks:0 };
+    let time=0, sets=0;
+    (active.exercises||[]).forEach(ex => (ex.steps||[]).forEach(s => { time+=+s.time||0; if(s.type==='work') sets++; }));
+    return { time, sets, blocks: (active.exercises||[]).length };
+  }, [active]);
+
+  const exStats = ex => {
+    let time=0, sets=0;
+    (ex.steps||[]).forEach(s => { time+=+s.time||0; if(s.type==='work') sets++; });
+    return { time, sets };
+  };
+
+  // EXERCISES
+  const addEx    = () => { const e = newEx(); updateActive({ exercises:[...(active.exercises||[]),e] }); setCollapsed(p=>({...p,[e.id]:false})); };
+  const removeEx = id => updateActive({ exercises: active.exercises.filter(e=>e.id!==id) });
+  const updateExName = (id,v) => updateActive({ exercises: active.exercises.map(e=>e.id===id?{...e,name:v}:e) });
+  const updateExDetail = (id,f,v) => updateActive({ exercises: active.exercises.map(e=>e.id===id?{...e,details:{...e.details,[f]:v}}:e) });
+
+  // STEPS
+  const addStep    = (exId,type='work') => { const s={id:uid(),type,phase:type==='rest'?'Отдых':type==='prep'?'Подготовка':'Подход',time:60,voiceTxt:''}; updateActive({exercises:active.exercises.map(e=>e.id===exId?{...e,steps:[...e.steps,s]}:e)}); };
+  const updateStep = (exId,sId,f,v) => updateActive({exercises:active.exercises.map(e=>e.id===exId?{...e,steps:e.steps.map(s=>s.id===sId?{...s,[f]:v}:s)}:e)});
+  const removeStep = (exId,sId) => updateActive({exercises:active.exercises.map(e=>e.id===exId?{...e,steps:e.steps.filter(s=>s.id!==sId)}:e)});
+  const genSteps   = (exId,sets,work,rest) => {
+    const steps=[{id:uid(),type:'prep',phase:'Подготовка',time:15,voiceTxt:'Приготовьтесь'}];
+    for(let i=1;i<=sets;i++){
+      steps.push({id:uid(),type:'work',phase:`Подход ${i}`,time:+work,voiceTxt:i===1?'Начали':''});
+      if(i<sets&&rest>0) steps.push({id:uid(),type:'rest',phase:'Отдых',time:+rest,voiceTxt:'Отдых'});
+    }
+    updateActive({exercises:active.exercises.map(e=>e.id===exId?{...e,steps}:e)});
+  };
+
+  // D&D exercises
+  const exDragStart = (e,i) => { dragEx.current=i; e.dataTransfer.effectAllowed='move'; e.dataTransfer.setData('text/plain',i+''); setTimeout(()=>setDraggingEx(i),0); };
+  const exDragEnd   = () => { setDraggingEx(null); if(dragEx.current!==null&&dragExTo.current!==null&&dragEx.current!==dragExTo.current){const a=[...active.exercises];const[item]=a.splice(dragEx.current,1);a.splice(dragExTo.current,0,item);updateActive({exercises:a});} dragEx.current=null; dragExTo.current=null; };
+
+  // D&D steps
+  const stepDragStart = (e,exId,i) => { dragStep.current={exId,i}; e.dataTransfer.setData('text/plain',i+''); setTimeout(()=>setDraggingStep({exId,i}),0); };
+  const stepDragEnd   = exId => { setDraggingStep(null); if(dragStep.current&&dragStepTo.current&&dragStep.current.exId===exId&&dragStepTo.current.exId===exId&&dragStep.current.i!==dragStepTo.current.i){const eI=active.exercises.findIndex(e=>e.id===exId);const s=[...active.exercises[eI].steps];const[item]=s.splice(dragStep.current.i,1);s.splice(dragStepTo.current.i,0,item);updateActive({exercises:active.exercises.map(e=>e.id===exId?{...e,steps:s}:e)});} dragStep.current=null; dragStepTo.current=null; };
+
+  // GITHUB
+  const fetchList = async () => {
+    if (!cfg.token) { setShowSettings(true); return; }
+    setSync(s=>({...s,loadingList:true}));
+    try {
+      const files = (await gh.listDir('workouts')).filter(f=>f.type==='file'&&f.name.endsWith('.json')&&f.name!=='index.json');
+      let index = [];
+      try { const f=await gh.getFile('workouts/index.json'); if(f) index=JSON.parse(b64dec(f.content)); } catch(e){}
+      if(!Array.isArray(index)) index=[];
+      const progs = files.map(f=>{
+        const meta = index.find(m=>(typeof m==='object')&&(m.file===f.name||m.filename===f.name)) || {};
+        return { id:meta.id||uid(), title:meta.title||f.name.replace('.json','').replace(/_/g,' '), filename:f.name, description:meta.description||'', fileSha:f.sha };
+      });
+      setPrograms(progs); setActiveId(null); notify('success',`Загружено: ${progs.length} программ`);
+    } catch(e) { notify('error', e.message); }
+    setSync(s=>({...s,loadingList:false}));
+  };
+
+  const selectProg = async prog => {
+    setActiveId(prog.id); setSidebarOpen(false); setJsonEditing(false); setCollapsed({});
+    setMainTab('editor');
+    if (mobileTab === 'sidebar') setMobileTab('editor');
+    if (prog.exercises) return;
+    if (!cfg.token) { notify('info','Нужен токен для загрузки'); return; }
+    setSync(s=>({...s,loadingProg:true}));
+    try {
+      const f = await gh.getFile(`workouts/${prog.filename}`);
+      if (!f) { setPrograms(p=>p.map(x=>x.id===prog.id?{...x,exercises:[]}:x)); throw new Error('Файл не найден'); }
+      setPrograms(p=>p.map(x=>x.id===prog.id?{...x,...fromGH(JSON.parse(b64dec(f.content))),fileSha:f.sha}:x));
+    } catch(e) { notify('error',e.message); }
+    setSync(s=>({...s,loadingProg:false}));
+  };
+
+  const saveProg = async () => {
+    if (!cfg.token) { setShowSettings(true); return; }
+    setSync(s=>({...s,saving:true}));
+    try {
+      const path = `workouts/${active.filename}`;
+      let sha = active.fileSha;
+      if (!sha) { const f=await gh.getFile(path); if(f) sha=f.sha; }
+      const res = await gh.putFile(path, JSON.stringify(toGH(active),null,2), sha, `CMS: ${active.title}`);
+      updateActive({ fileSha: res.content.sha });
+
+      // Update index
+      const idxFile = await gh.getFile('workouts/index.json');
+      let idx = idxFile ? JSON.parse(b64dec(idxFile.content)) : [];
+      if (!Array.isArray(idx)) idx = [];
+      const entry = { id:active.id, title:active.title, file:active.filename, description:active.description };
+      const ei = idx.findIndex(m=>(typeof m==='object')&&(m.id===active.id||m.file===active.filename));
+      if (ei>-1) idx[ei]=entry; else idx.push(entry);
+      await gh.putFile('workouts/index.json', JSON.stringify(idx,null,2), idxFile?.sha, 'CMS: Update index');
+      notify('success','Сохранено в GitHub');
+    } catch(e) { notify('error',e.message); }
+    setSync(s=>({...s,saving:false}));
+  };
+
+  const deleteProg = async () => {
+    if (!confirm(`Удалить "${active.title}"?`)) return;
+    setSync(s=>({...s,deleting:true}));
+    try {
+      if (cfg.token && active.fileSha) {
+        await gh.deleteFile(`workouts/${active.filename}`, active.fileSha, `CMS: Delete ${active.title}`);
+        const idxFile = await gh.getFile('workouts/index.json');
+        if (idxFile) {
+          let idx = JSON.parse(b64dec(idxFile.content)).filter(m=>typeof m!=='object'||(m.id!==active.id&&m.file!==active.filename));
+          await gh.putFile('workouts/index.json', JSON.stringify(idx,null,2), idxFile.sha, 'CMS: Index after delete');
+        }
+      }
+      setPrograms(p=>p.filter(x=>x.id!==active.id)); setActiveId(null); notify('success','Удалено');
+    } catch(e) { notify('error',e.message); }
+    setSync(s=>({...s,deleting:false}));
+  };
+
+  const applyJson = () => {
+    try { updateActive(fromGH(JSON.parse(rawJson))); setJsonEditing(false); setJsonError(null); notify('success','JSON применён'); }
+    catch(e) { setJsonError(`Синтаксическая ошибка: ${e.message}`); }
+  };
+
+  const collapseAll = () => {
+    const any = active.exercises.some(e=>!collapsed[e.id]);
+    const next = {}; active.exercises.forEach(e=>next[e.id]=any);
+    setCollapsed(next);
+  };
+
+  const STEP_COLORS = { prep:{label:'Подготовка',color:'var(--yellow)'}, work:{label:'Работа',color:'var(--blue)'}, rest:{label:'Отдых',color:'var(--green)'}, finish:{label:'Финиш',color:'var(--red)'} };
+
+  // ── SIDEBAR ──────────────────────────────────────────────
+  const Sidebar = () => (
+    <div style={{display:'flex',flexDirection:'column',height:'100%',background:'var(--bg)',borderRight:'1px solid var(--border)'}}>
+      <div style={{padding:'14px 16px',borderBottom:'1px solid var(--border)',display:'flex',justifyContent:'space-between',alignItems:'center',flexShrink:0}}>
+        <div className="title-font" style={{fontSize:14,fontWeight:700,color:'var(--text)',display:'flex',alignItems:'center',gap:7}}><Ico name="Dumbbell" size={16}/>CMS</div>
+        <div style={{display:'flex',gap:4}}>
+          <button className="btn-icon" onClick={()=>setShowSettings(true)}><Ico name="Settings" size={16}/></button>
+          <button className="btn-icon desktop-only" onClick={()=>setSidebarOpen(false)}><Ico name="X" size={18}/></button>
+        </div>
+      </div>
+
+      {/* Tabs: Programs / Indexes */}
+      <div style={{padding:'8px 10px',borderBottom:'1px solid var(--border)',display:'flex',gap:4,flexShrink:0}}>
+        <button className={`tab-btn ${mainTab==='editor'?'active':''}`} style={{fontSize:12,padding:'6px 10px'}} onClick={()=>setMainTab('editor')}>Программы</button>
+        <button className={`tab-btn ${mainTab==='workouts-index'?'active':''}`} style={{fontSize:12,padding:'6px 10px'}} onClick={()=>{setMainTab('workouts-index');setSidebarOpen(false);}}>workouts/</button>
+        <button className={`tab-btn ${mainTab==='games-index'?'active':''}`} style={{fontSize:12,padding:'6px 10px'}} onClick={()=>{setMainTab('games-index');setSidebarOpen(false);}}>games/</button>
+      </div>
+
+      {mainTab === 'editor' && <>
+        <div style={{padding:'10px',display:'flex',gap:6,flexShrink:0}}>
+          <button className="btn btn-primary" style={{flex:1,justifyContent:'center'}} onClick={()=>{const p=newProg();setPrograms(x=>[...x,p]);setActiveId(p.id);setSidebarOpen(false);setMainTab('editor');}}>
+            <Ico name="Plus" size={15}/>Создать
+          </button>
+          <button className="btn btn-ghost btn-sm" onClick={fetchList} disabled={sync.loadingList} title="Загрузить список из GitHub">
+            <Ico name="RefreshCw" size={15} cls={sync.loadingList?'spin':''}/>
+          </button>
+        </div>
+        <div style={{flex:1,overflowY:'auto',padding:'0 8px 8px'}}>
+          {programs.length===0 && <div style={{textAlign:'center',padding:'32px 16px',color:'var(--text3)',fontSize:13}}>Нет программ.<br/>Создайте или загрузите из GitHub.</div>}
+          {programs.map(p=>(
+            <div key={p.id} className={`prog-item ${activeId===p.id&&mainTab==='editor'?'active':''}`} onClick={()=>selectProg(p)}>
+              <div style={{fontSize:13,fontWeight:600,marginBottom:2,whiteSpace:'nowrap',overflow:'hidden',textOverflow:'ellipsis'}}>{p.title||'Без названия'}</div>
+              <div className="mono" style={{fontSize:11,color:'var(--text3)',whiteSpace:'nowrap',overflow:'hidden',textOverflow:'ellipsis',display:'flex',alignItems:'center',gap:4}}>
+                {!p.exercises && <Ico name="Cloud" size={11}/>}
+                {p.filename}
+              </div>
+            </div>
+          ))}
+        </div>
+      </>}
+    </div>
+  );
+
+  // ── EDITOR ────────────────────────────────────────────────
+  const Editor = () => {
+    if (sync.loadingProg) return (
+      <div style={{flex:1,display:'flex',alignItems:'center',justifyContent:'center',flexDirection:'column',gap:12,color:'var(--text3)'}}>
+        <Ico name="Loader2" size={40} cls="spin"/><span>Загрузка...</span>
+      </div>
+    );
+    if (!active) return (
+      <div style={{flex:1,display:'flex',alignItems:'center',justifyContent:'center',flexDirection:'column',gap:16,color:'var(--text3)'}}>
+        <div style={{width:72,height:72,background:'var(--bg3)',borderRadius:'50%',display:'flex',alignItems:'center',justifyContent:'center'}}><Ico name="FileJson" size={32}/></div>
+        <div style={{textAlign:'center'}}>
+          <div style={{fontSize:16,fontWeight:600,color:'var(--text2)',marginBottom:4}}>Выберите программу</div>
+          <div style={{fontSize:13}}>или создайте новую</div>
+        </div>
+        <button className="btn btn-ghost" onClick={()=>setSidebarOpen(true)}><Ico name="Menu" size={16}/>Открыть список</button>
+      </div>
+    );
+
+    return (
+      <div style={{flex:1,overflowY:'auto',padding:'16px'}}>
+        <div style={{maxWidth:780,margin:'0 auto',display:'flex',flexDirection:'column',gap:16}}>
+
+          {/* Meta */}
+          <div style={{background:'var(--bg2)',border:'1px solid var(--border)',borderRadius:16,padding:'16px 20px',display:'flex',flexDirection:'column',gap:12}}>
+            <input className="inp" style={{background:'transparent',border:'none',borderBottom:'1.5px solid var(--border)',borderRadius:0,padding:'4px 0',fontSize:20,fontWeight:700,fontFamily:'Unbounded,sans-serif'}}
+              value={active.title} onChange={e=>updateActive({title:e.target.value})} placeholder="Название программы"/>
+
+            {/* Stats */}
+            <div style={{display:'flex',flexWrap:'wrap',gap:8}}>
+              <div className="stat-pill"><Ico name="Clock" size={13}/>Время: {fmtTime(stats.time)}</div>
+              <div className="stat-pill"><Ico name="Activity" size={13}/>Подходов: {stats.sets}</div>
+              <div className="stat-pill"><Ico name="Layers" size={13}/>Блоков: {stats.blocks}</div>
+            </div>
+
+            <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fit,minmax(200px,1fr))',gap:12}}>
+              <div>
+                <div style={{fontSize:11,color:'var(--text3)',fontWeight:700,textTransform:'uppercase',letterSpacing:'.4px',marginBottom:6}}>Файл (GitHub)</div>
+                <input className="inp mono" style={{fontSize:12}} value={active.filename} onChange={e=>updateActive({filename:e.target.value})} placeholder="file_name.json"/>
+              </div>
+            </div>
+
+            <div>
+              <div style={{fontSize:11,color:'var(--text3)',fontWeight:700,textTransform:'uppercase',letterSpacing:'.4px',marginBottom:6}}>Описание</div>
+              <textarea className="inp" style={{resize:'vertical',minHeight:64,fontSize:13}} value={active.description} onChange={e=>updateActive({description:e.target.value})} placeholder="Описание тренировки..."/>
+            </div>
+          </div>
+
+          {/* Exercises header */}
+          <div style={{display:'flex',justifyContent:'space-between',alignItems:'center'}}>
+            <div style={{fontSize:14,fontWeight:700,display:'flex',alignItems:'center',gap:8}}><Ico name="ListChecks" size={16} cls="text-accent"/>Блоки и упражнения</div>
+            <button className="btn btn-ghost btn-sm" onClick={collapseAll}><Ico name="UnfoldVertical" size={13}/>Свернуть/Развернуть</button>
+          </div>
+
+          {/* Exercise cards */}
+          {(active.exercises||[]).map((ex, idx) => {
+            const isC = collapsed[ex.id];
+            const es  = exStats(ex);
             return (
-                <div className="flex h-screen overflow-hidden bg-slate-50">
-                    {sidebarOpen && <div className="fixed inset-0 bg-slate-900/50 z-20 md:hidden" onClick={() => setSidebarOpen(false)}></div>}
+              <div key={ex.id} className={`ex-card ${draggingEx===idx?'is-dragging':''}`}
+                onDragOver={e=>{e.preventDefault();dragExTo.current=idx;}}>
 
-                    {/* САЙДБАР */}
-                    <div className={`fixed inset-y-0 left-0 z-30 w-80 bg-slate-900 text-slate-300 flex flex-col shrink-0 transform transition-transform duration-300 ease-in-out md:relative md:translate-x-0 ${sidebarOpen ? 'translate-x-0' : '-translate-x-full'}`}>
-                        <div className="p-4 bg-slate-950 flex justify-between items-center border-b border-slate-800 shrink-0">
-                            <h1 className="text-white font-bold flex items-center gap-2"><Icon name="Dumbbell" size={18} /> CMS Тренировок</h1>
-                            <div className="flex gap-1">
-                                <button onClick={() => setShowSettings(true)} className="text-slate-400 hover:text-white transition p-2"><Icon name="Settings" size={18} /></button>
-                                <button onClick={() => setSidebarOpen(false)} className="md:hidden text-slate-400 hover:text-white transition p-2"><Icon name="X" size={20} /></button>
-                            </div>
-                        </div>
-                        <div className="p-4 flex gap-2 shrink-0">
-                            <button onClick={() => { const newProg = createEmptyProgram(); setPrograms([...programs, newProg]); setActiveId(newProg.id); if(window.innerWidth < 768) setSidebarOpen(false); }} className="flex-1 bg-indigo-600 hover:bg-indigo-500 text-white py-2 rounded-lg flex items-center justify-center gap-2 transition text-sm font-semibold shadow-sm"><Icon name="Plus" size={16} /> Создать</button>
-                            <button onClick={fetchListFromGitHub} disabled={syncStatus.loadingList} className="bg-slate-800 hover:bg-slate-700 text-slate-300 py-2 px-3 rounded-lg flex items-center justify-center transition disabled:opacity-50"><Icon name="RefreshCw" size={16} className={syncStatus.loadingList ? "spinner" : ""} /></button>
-                        </div>
-                        <div className="flex-1 overflow-y-auto p-2 space-y-1 dark-scroll">
-                            {programs.map(p => (
-                                <div key={p.id} onClick={() => selectProgram(p)} className={`p-3 rounded-lg cursor-pointer transition flex items-center justify-between group ${activeId === p.id ? 'bg-indigo-500/20 border border-indigo-500/30 text-white' : 'hover:bg-slate-800'}`}>
-                                    <div className="overflow-hidden">
-                                        <div className="font-semibold truncate text-sm">{p.title || 'Без названия'}</div>
-                                        <div className="text-xs text-slate-500 truncate">{p.filename}</div>
-                                    </div>
-                                    {!p.exercises && <Icon name="Cloud" size={14} className="text-slate-500 group-hover:text-indigo-400 shrink-0 ml-2" />}
-                                </div>
-                            ))}
-                        </div>
+                {/* Card header */}
+                <div style={{display:'flex',alignItems:'center',gap:8,padding:'12px 14px',borderBottom:isC?'none':'1px solid var(--border)',flexWrap:'wrap'}}>
+                  <div className="drag-handle btn-icon" draggable onDragStart={e=>exDragStart(e,idx)} onDragEnd={exDragEnd}><Ico name="GripVertical" size={18}/></div>
+                  <div style={{width:26,height:26,borderRadius:'50%',background:'var(--bg4)',display:'flex',alignItems:'center',justifyContent:'center',fontSize:12,fontWeight:700,color:'var(--text2)',flexShrink:0}}>{idx+1}</div>
+                  <div style={{flex:1,minWidth:0}}>
+                    <input style={{background:'transparent',border:'none',outline:'none',color:'var(--text)',fontFamily:'Onest,sans-serif',fontSize:16,fontWeight:700,width:'100%'}}
+                      value={ex.name} onChange={e=>updateExName(ex.id,e.target.value)} placeholder="Название блока"/>
+                    <div style={{display:'flex',gap:10,marginTop:3}}>
+                      <span style={{fontSize:11,color:'var(--text3)',display:'flex',alignItems:'center',gap:3}}><Ico name="Clock" size={11}/>{fmtTime(es.time)}</span>
+                      <span style={{fontSize:11,color:'var(--text3)',display:'flex',alignItems:'center',gap:3}}><Ico name="Activity" size={11}/>{es.sets} подх.</span>
                     </div>
-
-                    {/* РАБОЧАЯ ОБЛАСТЬ */}
-                    <div className="flex-1 flex flex-col min-w-0 relative">
-                        {activeProgram ? (
-                            <>
-                                {/* Верхняя панель */}
-                                <div className="bg-white border-b border-slate-200 p-3 md:p-4 flex justify-between items-center shadow-sm z-10 shrink-0 gap-2">
-                                    <div className="flex items-center gap-3 shrink-0 min-w-0">
-                                        <button onClick={() => setSidebarOpen(true)} className="md:hidden text-slate-500 hover:text-slate-800 p-1"><Icon name="Menu" size={24} /></button>
-                                        <div className="flex flex-col hidden sm:flex truncate">
-                                            <span className="text-sm font-semibold text-slate-500 truncate">Редактор программы</span>
-                                            <span className="text-xs text-slate-400 truncate">{activeProgram.filename}</span>
-                                        </div>
-                                    </div>
-                                    <div className="flex items-center gap-2 md:gap-3 shrink-0">
-                                        {syncStatus.error && <span className="text-red-500 text-xs md:text-sm font-medium hidden md:inline">{syncStatus.error}</span>}
-                                        {syncStatus.successMessage && <span className="text-emerald-500 text-xs md:text-sm font-medium flex items-center gap-1 hidden sm:flex"><Icon name="CheckCircle" size={16} /> {syncStatus.successMessage}</span>}
-                                        
-                                        <button onClick={() => setMobileJsonMode(!mobileJsonMode)} className="lg:hidden bg-slate-100 hover:bg-slate-200 text-slate-700 px-3 py-2 rounded-lg text-sm font-medium flex items-center gap-2 transition">
-                                            <Icon name={mobileJsonMode ? "List" : "Code"} size={18} />
-                                        </button>
-
-                                        <button onClick={syncToGitHub} disabled={syncStatus.saving || syncStatus.loadingProgram || !activeProgram.exercises} className="bg-slate-900 hover:bg-slate-800 text-white px-3 md:px-4 py-2 rounded-lg text-sm font-medium flex items-center gap-2 transition disabled:opacity-70">
-                                            {syncStatus.saving ? <Icon name="Loader2" className="spinner" size={18} /> : <Icon name="Github" size={18} />}
-                                            <span className="hidden sm:inline">{syncStatus.saving ? 'Сохранение...' : 'Сохранить'}</span>
-                                        </button>
-                                        <button onClick={deleteFromGitHub} disabled={syncStatus.deleting || syncStatus.loadingProgram} title="Удалить программу" className="text-red-500 hover:bg-red-50 p-2 rounded-lg transition disabled:opacity-50">
-                                            {syncStatus.deleting ? <Icon name="Loader2" className="spinner" size={20} /> : <Icon name="Trash2" size={20} />}
-                                        </button>
-                                    </div>
-                                </div>
-
-                                {syncStatus.loadingProgram ? (
-                                    <div className="flex-1 flex flex-col items-center justify-center text-slate-400 bg-white">
-                                        <Icon name="Loader2" size={48} className="spinner text-indigo-500 mb-4" />
-                                        <p className="text-lg font-medium text-slate-600">Загрузка данных...</p>
-                                    </div>
-                                ) : (
-                                    <div className="flex-1 flex overflow-hidden">
-                                        
-                                        {/* ВИЗУАЛЬНЫЙ РЕДАКТОР */}
-                                        <div className={`flex-1 overflow-y-auto p-4 md:p-6 ${mobileJsonMode ? 'hidden lg:block' : 'block'}`}>
-                                            <div className="max-w-4xl mx-auto space-y-4 md:space-y-6">
-                                                
-                                                {/* Метаданные и СТАТИСТИКА ПРОГРАММЫ */}
-                                                <div className="bg-white p-4 md:p-6 rounded-2xl shadow-sm border border-slate-200 space-y-4">
-                                                    <input type="text" value={activeProgram.title} onChange={e => updateActiveProgram({title: e.target.value})} className="w-full p-2 border-b-2 border-transparent hover:border-slate-200 focus:border-indigo-500 outline-none font-bold text-xl md:text-2xl transition-colors" placeholder="Название программы"/>
-                                                    
-                                                    {/* ПЛАШКА СТАТИСТИКИ */}
-                                                    <div className="flex flex-wrap items-center gap-4 py-3 border-y border-slate-100 text-sm text-slate-600 font-medium">
-                                                        <div className="flex items-center gap-1.5"><Icon name="Clock" size={16} className="text-blue-500"/>Общее время: {formatTime(progStats.time)}</div>
-                                                        <div className="flex items-center gap-1.5"><Icon name="Activity" size={16} className="text-emerald-500"/>Рабочих подходов: {progStats.workSets}</div>
-                                                        <div className="flex items-center gap-1.5"><Icon name="ListChecks" size={16} className="text-indigo-500"/>Блоков: {progStats.blocks}</div>
-                                                    </div>
-
-                                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                                        <div>
-                                                            <label className="block text-xs font-bold text-slate-500 mb-1">Имя файла (для GitHub)</label>
-                                                            <div className="flex items-center gap-2">
-                                                                <span className="text-slate-400 font-mono text-sm hidden sm:inline">workouts/</span>
-                                                                <input type="text" value={activeProgram.filename} onChange={e => updateActiveProgram({filename: e.target.value})} className="w-full p-2 bg-slate-50 border border-slate-200 rounded-lg outline-none focus:border-indigo-500 font-mono text-sm" placeholder="file_name.json"/>
-                                                            </div>
-                                                        </div>
-                                                    </div>
-                                                    <div>
-                                                        <label className="block text-xs font-bold text-slate-500 mb-1">Описание</label>
-                                                        <textarea value={activeProgram.description} onChange={e => updateActiveProgram({description: e.target.value})} className="w-full p-3 bg-slate-50 border border-slate-200 rounded-xl focus:border-indigo-500 outline-none resize-none h-20 text-sm" placeholder="Описание тренировки..."></textarea>
-                                                    </div>
-                                                </div>
-
-                                                {/* Блоки упражнений */}
-                                                <div className="space-y-4">
-                                                    <div className="flex justify-between items-center px-2">
-                                                        <h3 className="text-base md:text-lg font-bold text-slate-800 flex items-center gap-2">
-                                                            <Icon name="ListChecks" size={20} className="text-indigo-500"/> Блоки и Упражнения
-                                                        </h3>
-                                                        <button onClick={toggleAllCollapse} className="text-sm font-semibold text-indigo-600 hover:text-indigo-800 transition flex items-center gap-1">
-                                                            <Icon name="UnfoldVertical" size={16}/> Свернуть/Развернуть
-                                                        </button>
-                                                    </div>
-                                                    
-                                                    {activeProgram.exercises && activeProgram.exercises.map((ex, idx) => {
-                                                        const isCollapsed = collapsedBlocks[ex.id];
-                                                        const exStats = calcExStats(ex);
-                                                        
-                                                        return (
-                                                        <div key={ex.id} 
-                                                             onDragEnter={(e) => handleExDragEnter(e, idx)} 
-                                                             onDragOver={(e) => e.preventDefault()}
-                                                             className={`bg-white p-4 md:p-5 rounded-2xl border ${draggingExIdx === idx ? 'opacity-50 border-dashed border-indigo-500' : 'border-slate-200'} shadow-sm relative group transition-colors focus-within:border-indigo-300 hover:border-indigo-200`}>
-                                                            
-                                                            {/* Шапка блока */}
-                                                            <div className="flex justify-between items-start gap-2">
-                                                                <div className="flex-1 flex gap-3 items-center">
-                                                                    <div className="drag-handle text-slate-400 hover:text-indigo-500 p-2 -ml-2 rounded-lg hover:bg-slate-50 transition" 
-                                                                         draggable={true}
-                                                                         onDragStart={(e) => handleExDragStart(e, idx)}
-                                                                         onDragEnd={handleExDragEnd}
-                                                                         title="Перетащите, чтобы поменять местами"><Icon name="GripVertical" size={20}/></div>
-                                                                    <div className="bg-slate-100 text-slate-400 font-bold w-8 h-8 rounded-full flex items-center justify-center text-sm shrink-0">{idx + 1}</div>
-                                                                    <div className="w-full">
-                                                                        <input type="text" value={ex.name} onChange={e => updateExerciseName(ex.id, e.target.value)} placeholder="Название блока/упражнения" className="w-full text-lg md:text-xl font-bold bg-transparent outline-none placeholder-slate-300"/>
-                                                                        {/* Статистика блока */}
-                                                                        <div className="flex gap-3 text-xs text-slate-500 mt-1 font-medium">
-                                                                            <span className="flex items-center gap-1"><Icon name="Clock" size={12}/> {formatTime(exStats.time)}</span>
-                                                                            <span className="flex items-center gap-1"><Icon name="Activity" size={12}/> {exStats.workSets} подходов</span>
-                                                                        </div>
-                                                                    </div>
-                                                                </div>
-                                                                <div className="flex flex-col sm:flex-row gap-1 shrink-0 mt-1 items-center">
-                                                                    <button onClick={() => toggleCollapse(ex.id)} className="p-1.5 text-indigo-500 hover:bg-indigo-50 rounded transition" title={isCollapsed ? "Развернуть" : "Свернуть"}>
-                                                                        <Icon name={isCollapsed ? "EyeOff" : "Eye"} size={18} />
-                                                                    </button>
-                                                                    {!isCollapsed && (
-                                                                        <>
-                                                                            <div className="hidden sm:flex border-l border-slate-200 h-6 mx-1"></div>
-                                                                            <button onClick={() => moveExercise(idx, 'up')} disabled={idx === 0} className="p-1 text-slate-400 hover:bg-slate-100 rounded disabled:opacity-30 hidden sm:block"><Icon name="ChevronUp" size={18} /></button>
-                                                                            <button onClick={() => moveExercise(idx, 'down')} disabled={idx === activeProgram.exercises.length - 1} className="p-1 text-slate-400 hover:bg-slate-100 rounded disabled:opacity-30 hidden sm:block"><Icon name="ChevronDown" size={18} /></button>
-                                                                            <button onClick={() => removeExercise(ex.id)} className="text-red-400 hover:bg-red-50 p-1.5 rounded transition ml-1"><Icon name="Trash2" size={18} /></button>
-                                                                        </>
-                                                                    )}
-                                                                </div>
-                                                            </div>
-
-                                                            {!isCollapsed && (
-                                                                <div className="mt-4 border-t border-slate-100 pt-4">
-                                                                    <button onClick={() => toggleDetails(ex.id)} className="text-xs text-indigo-500 font-semibold mb-3 flex items-center gap-1 hover:text-indigo-600 transition pl-8">
-                                                                        <Icon name={expandedDetails[ex.id] ? "ChevronUp" : "ChevronDown"} size={14}/> 
-                                                                        {expandedDetails[ex.id] ? "Скрыть детали" : "Детали упражнения (Цель, позиция...)"}
-                                                                    </button>
-
-                                                                    {expandedDetails[ex.id] && (
-                                                                        <div className="pl-8 mb-4 grid grid-cols-1 sm:grid-cols-3 gap-3">
-                                                                            <div><label className="block text-[10px] uppercase font-bold text-slate-400 mb-1">Цель</label><input type="text" value={ex.details?.goal} onChange={e=>updateExerciseDetails(ex.id, 'goal', e.target.value)} className="w-full p-2 text-xs border border-slate-200 rounded bg-slate-50 outline-none focus:border-indigo-500" placeholder="..."/></div>
-                                                                            <div><label className="block text-[10px] uppercase font-bold text-slate-400 mb-1">Старт. позиция</label><input type="text" value={ex.details?.start} onChange={e=>updateExerciseDetails(ex.id, 'start', e.target.value)} className="w-full p-2 text-xs border border-slate-200 rounded bg-slate-50 outline-none focus:border-indigo-500" placeholder="..."/></div>
-                                                                            <div><label className="block text-[10px] uppercase font-bold text-slate-400 mb-1">Движение</label><input type="text" value={ex.details?.move} onChange={e=>updateExerciseDetails(ex.id, 'move', e.target.value)} className="w-full p-2 text-xs border border-slate-200 rounded bg-slate-50 outline-none focus:border-indigo-500" placeholder="..."/></div>
-                                                                        </div>
-                                                                    )}
-
-                                                                    <div className="pl-0 sm:pl-8 space-y-2 mt-2">
-                                                                        {(ex.steps || []).map((step, sIdx) => (
-                                                                            <div key={step.id} 
-                                                                                 onDragEnter={(e) => handleStepDragEnter(e, ex.id, sIdx)} 
-                                                                                 onDragOver={(e) => e.preventDefault()}
-                                                                                 className={`flex flex-wrap items-center gap-2 p-2 bg-slate-50 border ${draggingStepIdx?.exId === ex.id && draggingStepIdx?.sIdx === sIdx ? 'opacity-50 border-dashed border-indigo-500' : 'border-slate-100'} rounded-lg group/step`}>
-                                                                                
-                                                                                <div className="drag-handle text-slate-400 hover:text-indigo-500 p-2 rounded-lg hover:bg-slate-200 transition opacity-50 group-hover/step:opacity-100"
-                                                                                     draggable={true}
-                                                                                     onDragStart={(e) => handleStepDragStart(e, ex.id, sIdx)}
-                                                                                     onDragEnd={() => handleStepDragEnd(ex.id)}>
-                                                                                    <Icon name="GripVertical" size={16}/>
-                                                                                </div>
-                                                                                
-                                                                                <select value={step.type} onChange={e=>updateStep(ex.id, step.id, 'type', e.target.value)} className="text-xs p-1.5 border border-slate-200 rounded bg-white outline-none focus:border-indigo-500 font-medium">
-                                                                                    <option value="prep">Подготовка</option>
-                                                                                    <option value="work">Работа (Подход)</option>
-                                                                                    <option value="rest">Отдых</option>
-                                                                                    <option value="finish">Финиш</option>
-                                                                                </select>
-                                                                                
-                                                                                <input type="text" value={step.phase} onChange={e=>updateStep(ex.id, step.id, 'phase', e.target.value)} placeholder="Напр: Подход 1" className="w-24 text-xs p-1.5 border border-slate-200 rounded outline-none focus:border-indigo-500"/>
-                                                                                
-                                                                                <div className="flex items-center gap-1">
-                                                                                    <Icon name="Timer" size={14} className="text-slate-400"/>
-                                                                                    <input type="number" min="0" value={step.time} onChange={e=>updateStep(ex.id, step.id, 'time', e.target.value)} className="w-14 text-xs p-1.5 border border-slate-200 rounded outline-none focus:border-indigo-500 text-center"/>
-                                                                                    <span className="text-xs text-slate-400">сек</span>
-                                                                                </div>
-                                                                                
-                                                                                <div className="flex items-center gap-1 flex-1 min-w-[150px]">
-                                                                                    <Icon name="Volume2" size={14} className="text-slate-400"/>
-                                                                                    <input type="text" value={step.voiceTxt} onChange={e=>updateStep(ex.id, step.id, 'voiceTxt', e.target.value)} placeholder="Голос озвучки..." className="w-full text-xs p-1.5 border border-slate-200 rounded outline-none focus:border-indigo-500 text-indigo-700"/>
-                                                                                </div>
-
-                                                                                <button onClick={()=>removeStep(ex.id, step.id)} className="text-slate-300 hover:text-red-500 p-1 transition ml-auto"><Icon name="X" size={16}/></button>
-                                                                            </div>
-                                                                        ))}
-
-                                                                        <div className="flex flex-wrap items-center gap-2 mt-3 pl-7">
-                                                                            <button onClick={()=>addStep(ex.id, 'prep')} className="text-[11px] uppercase font-bold text-slate-500 bg-slate-100 hover:bg-slate-200 px-2 py-1 rounded transition">+ Разминка</button>
-                                                                            <button onClick={()=>addStep(ex.id, 'work')} className="text-[11px] uppercase font-bold text-blue-600 bg-blue-50 hover:bg-blue-100 px-2 py-1 rounded transition">+ Подход</button>
-                                                                            <button onClick={()=>addStep(ex.id, 'rest')} className="text-[11px] uppercase font-bold text-emerald-600 bg-emerald-50 hover:bg-emerald-100 px-2 py-1 rounded transition">+ Отдых</button>
-                                                                        </div>
-                                                                        <div className="pl-7"><StepGenerator exId={ex.id} /></div>
-                                                                    </div>
-                                                                </div>
-                                                            )}
-                                                        </div>
-                                                    )})}
-
-                                                    <button onClick={addExercise} className="w-full py-4 border-2 border-dashed border-slate-300 text-slate-500 rounded-2xl hover:border-indigo-500 hover:text-indigo-600 hover:bg-indigo-50 transition-all flex justify-center items-center gap-2 font-bold text-sm md:text-base">
-                                                        <Icon name="Plus" size={20} /> Добавить новый блок
-                                                    </button>
-                                                </div>
-                                            </div>
-                                        </div>
-
-                                        {/* ЖИВОЙ ПРОСМОТР JSON */}
-                                        <div className={`lg:flex lg:w-[400px] xl:w-[500px] border-l border-slate-300 z-10 ${mobileJsonMode ? 'flex w-full' : 'hidden'}`}>
-                                            <LiveJsonPanel />
-                                        </div>
-                                    </div>
-                                )}
-                            </>
-                        ) : (
-                            <div className="h-full flex flex-col items-center justify-center text-slate-400 p-4">
-                                <div className="md:hidden mb-6 text-indigo-500"><button onClick={() => setSidebarOpen(true)} className="flex items-center gap-2 bg-white px-6 py-3 rounded-full shadow-md font-bold text-slate-700"><Icon name="Menu" size={20}/> Открыть список программ</button></div>
-                                <div className="w-20 h-20 md:w-24 md:h-24 bg-slate-200 rounded-full flex items-center justify-center mb-4 md:mb-6 shadow-inner text-slate-300"><Icon name="FileJson" size={40} /></div>
-                                <p className="text-lg md:text-xl font-bold text-slate-600 text-center">Выберите или скачайте программу</p>
-                            </div>
-                        )}
-                    </div>
-
-                    {/* НАСТРОЙКИ */}
-                    {showSettings && (
-                        <div className="fixed inset-0 bg-slate-900/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-                            <div className="bg-white rounded-2xl shadow-xl w-full max-w-md overflow-hidden flex flex-col max-h-full">
-                                <div className="p-4 border-b border-slate-100 flex justify-between items-center bg-slate-50 shrink-0">
-                                    <h3 className="font-bold flex items-center gap-2 text-sm md:text-base"><Icon name="Github" size={18}/> Настройки</h3>
-                                    <button onClick={() => setShowSettings(false)} className="text-slate-400 hover:text-slate-700"><Icon name="X" size={20}/></button>
-                                </div>
-                                <div className="p-4 md:p-6 space-y-4 overflow-y-auto dark-scroll">
-                                    <div><label className="block text-xs font-bold text-slate-500 mb-1">Owner</label><input type="text" value={ghConfig.owner} onChange={e => setGhConfig({...ghConfig, owner: e.target.value})} className="w-full p-2 border border-slate-300 rounded-lg outline-none focus:border-indigo-500 font-mono text-sm"/></div>
-                                    <div><label className="block text-xs font-bold text-slate-500 mb-1">Repo</label><input type="text" value={ghConfig.repo} onChange={e => setGhConfig({...ghConfig, repo: e.target.value})} className="w-full p-2 border border-slate-300 rounded-lg outline-none focus:border-indigo-500 font-mono text-sm"/></div>
-                                    <div><label className="block text-xs font-bold text-slate-500 mb-1">Token (PAT)</label><input type="password" value={ghConfig.token} onChange={e => setGhConfig({...ghConfig, token: e.target.value})} className="w-full p-2 border border-slate-300 rounded-lg outline-none focus:border-indigo-500 font-mono text-sm"/></div>
-                                    
-                                    <div className="bg-slate-50 p-3 rounded-lg border border-slate-200 mt-2">
-                                        <button onClick={testConnection} disabled={testStatus.loading} className="w-full bg-indigo-100 hover:bg-indigo-200 text-indigo-700 py-2 rounded-lg font-semibold text-sm transition flex items-center justify-center gap-2"><Icon name="Wifi" size={16}/> Проверить соединение</button>
-                                        {testStatus.message && <p className={`text-xs mt-2 text-center font-medium ${testStatus.isError ? 'text-red-500' : 'text-emerald-600'}`}>{testStatus.message}</p>}
-                                    </div>
-                                    <button onClick={() => { localStorage.setItem('gh_config', JSON.stringify(ghConfig)); setShowSettings(false); }} className="w-full bg-slate-900 hover:bg-slate-800 text-white py-3 rounded-xl font-bold transition mt-4 text-sm md:text-base">Сохранить</button>
-                                </div>
-                            </div>
-                        </div>
-                    )}
+                  </div>
+                  <div style={{display:'flex',gap:4,alignItems:'center',flexShrink:0}}>
+                    <button className="btn-icon" onClick={()=>setCollapsed(p=>({...p,[ex.id]:!p[ex.id]}))} title={isC?'Развернуть':'Свернуть'}><Ico name={isC?'ChevronDown':'ChevronUp'} size={18}/></button>
+                    {!isC && <button className="btn-icon" style={{color:'var(--red)'}} onClick={()=>removeEx(ex.id)}><Ico name="Trash2" size={16}/></button>}
+                  </div>
                 </div>
-            );
-        }
 
-        const root = ReactDOM.createRoot(document.getElementById('root'));
-        root.render(<App />);
-        }
-    </script>
+                {/* Card body */}
+                {!isC && (
+                  <div style={{padding:'12px 14px',display:'flex',flexDirection:'column',gap:10}}>
+
+                    {/* Details toggle */}
+                    <button style={{background:'none',border:'none',color:'var(--accent)',fontSize:12,fontWeight:600,cursor:'pointer',display:'flex',alignItems:'center',gap:5,padding:0,paddingLeft:4}}
+                      onClick={()=>setDetailsOpen(p=>({...p,[ex.id]:!p[ex.id]}))}>
+                      <Ico name={detailsOpen[ex.id]?'ChevronUp':'ChevronDown'} size={13}/>
+                      {detailsOpen[ex.id]?'Скрыть детали':'Детали (цель, позиция, движение)'}
+                    </button>
+
+                    {detailsOpen[ex.id] && (
+                      <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fit,minmax(140px,1fr))',gap:8,paddingLeft:4,paddingBottom:4}}>
+                        {['goal','start','move'].map(f=>(
+                          <div key={f}>
+                            <div style={{fontSize:10,color:'var(--text3)',fontWeight:700,textTransform:'uppercase',letterSpacing:'.4px',marginBottom:4}}>{{goal:'Цель',start:'Позиция',move:'Движение'}[f]}</div>
+                            <input className="inp" style={{fontSize:12}} value={ex.details?.[f]||''} onChange={e=>updateExDetail(ex.id,f,e.target.value)} placeholder="..."/>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+
+                    {/* Steps */}
+                    <div style={{display:'flex',flexDirection:'column',gap:6}}>
+                      {(ex.steps||[]).map((s,si)=>{
+                        const sc = STEP_COLORS[s.type] || STEP_COLORS.work;
+                        const isDS = draggingStep?.exId===ex.id && draggingStep?.si===si;
+                        return (
+                          <div key={s.id} className={`step-row ${isDS?'is-dragging':''}`}
+                            onDragOver={e=>{e.preventDefault();dragStepTo.current={exId:ex.id,i:si};}}>
+                            <div className="drag-handle btn-icon" draggable onDragStart={e=>stepDragStart(e,ex.id,si)} onDragEnd={()=>stepDragEnd(ex.id)} style={{flexShrink:0}}>
+                              <Ico name="GripVertical" size={14}/>
+                            </div>
+
+                            {/* Type select */}
+                            <select className="inp" style={{width:110,padding:'5px 8px',fontSize:12,flexShrink:0,border:'none',color:sc.color,background:'var(--bg4)',fontWeight:600}}
+                              value={s.type} onChange={e=>updateStep(ex.id,s.id,'type',e.target.value)}>
+                              <option value="prep">⏱ Подготовка</option>
+                              <option value="work">💪 Работа</option>
+                              <option value="rest">😴 Отдых</option>
+                              <option value="finish">🏁 Финиш</option>
+                            </select>
+
+                            {/* Phase name */}
+                            <input className="inp" style={{width:100,padding:'5px 8px',fontSize:12,flexShrink:0}} value={s.phase} onChange={e=>updateStep(ex.id,s.id,'phase',e.target.value)} placeholder="Подход 1"/>
+
+                            {/* Time */}
+                            <div style={{display:'flex',alignItems:'center',gap:4,flexShrink:0}}>
+                              <Ico name="Timer" size={13} cls=""/>
+                              <input className="inp" style={{width:54,padding:'5px 6px',fontSize:12,textAlign:'center'}} type="number" min="0" value={s.time} onChange={e=>updateStep(ex.id,s.id,'time',e.target.value)}/>
+                              <span style={{fontSize:11,color:'var(--text3)'}}>с</span>
+                            </div>
+
+                            {/* Voice */}
+                            <div style={{display:'flex',alignItems:'center',gap:4,flex:1,minWidth:100}}>
+                              <Ico name="Volume2" size={13}/>
+                              <input className="inp" style={{fontSize:12,padding:'5px 8px'}} value={s.voiceTxt} onChange={e=>updateStep(ex.id,s.id,'voiceTxt',e.target.value)} placeholder="Текст озвучки..."/>
+                            </div>
+
+                            <button className="btn-icon" style={{color:'var(--text3)',flexShrink:0}} onClick={()=>removeStep(ex.id,s.id)}><Ico name="X" size={15}/></button>
+                          </div>
+                        );
+                      })}
+                    </div>
+
+                    {/* Add step buttons */}
+                    <div style={{display:'flex',flexWrap:'wrap',gap:6,paddingLeft:4}}>
+                      {[['prep','⏱ Разминка'],['work','💪 Подход'],['rest','😴 Отдых'],['finish','🏁 Финиш']].map(([t,l])=>(
+                        <button key={t} className="btn btn-ghost btn-sm" style={{fontSize:11}} onClick={()=>addStep(ex.id,t)}>+{l}</button>
+                      ))}
+                    </div>
+
+                    <StepGen onGenerate={(sets,work,rest)=>genSteps(ex.id,sets,work,rest)}/>
+                  </div>
+                )}
+              </div>
+            );
+          })}
+
+          {/* Add exercise */}
+          <button style={{width:'100%',padding:'16px',border:'2px dashed var(--border)',borderRadius:16,color:'var(--text3)',background:'transparent',cursor:'pointer',display:'flex',alignItems:'center',justifyContent:'center',gap:8,fontSize:14,fontWeight:600,transition:'all .15s'}}
+            onMouseEnter={e=>{e.target.style.borderColor='var(--accent)';e.target.style.color='var(--accent)';}}
+            onMouseLeave={e=>{e.target.style.borderColor='var(--border)';e.target.style.color='var(--text3)';}}
+            onClick={addEx}>
+            <Ico name="Plus" size={20}/>Добавить блок
+          </button>
+        </div>
+      </div>
+    );
+  };
+
+  // ── RENDER ────────────────────────────────────────────────
+  return (
+    <div style={{display:'flex',height:'100vh',overflow:'hidden',position:'relative'}}>
+      <Notif notif={notif} setNotif={setNotif}/>
+
+      {/* SIDEBAR — desktop always visible, mobile = overlay */}
+      {(sidebarOpen || window.innerWidth >= 768) && (
+        <div style={{width:240,flexShrink:0,height:'100%',overflow:'hidden',display:'flex',flexDirection:'column',zIndex:sidebarOpen?200:1,
+          ...(window.innerWidth<768 ? {position:'fixed',top:0,left:0,bottom:0,right:0,width:'100%'} : {})}}>
+          {sidebarOpen && window.innerWidth < 768 && <div onClick={()=>setSidebarOpen(false)} style={{position:'fixed',inset:0,background:'rgba(0,0,0,.6)',zIndex:-1}}/>}
+          <div style={{...(window.innerWidth<768?{width:'85%',maxWidth:320,height:'100%',position:'relative',zIndex:1}:{width:'100%',height:'100%'})}}>
+            <Sidebar/>
+          </div>
+        </div>
+      )}
+
+      {/* MAIN AREA */}
+      <div style={{flex:1,display:'flex',flexDirection:'column',overflow:'hidden',minWidth:0}}>
+
+        {/* Top bar */}
+        {active && mainTab==='editor' && (
+          <div style={{background:'var(--bg2)',borderBottom:'1px solid var(--border)',padding:'10px 14px',display:'flex',alignItems:'center',gap:10,flexShrink:0,flexWrap:'wrap'}}>
+            <button className="btn-icon" onClick={()=>setSidebarOpen(true)} style={{display:'flex'}}><Ico name="Menu" size={20}/></button>
+
+            <div style={{flex:1,minWidth:0,display:'flex',alignItems:'center',gap:8}}>
+              <div className="mono" style={{fontSize:11,color:'var(--text3)',whiteSpace:'nowrap',overflow:'hidden',textOverflow:'ellipsis'}}>{active.filename}</div>
+            </div>
+
+            <div style={{display:'flex',gap:6,alignItems:'center',flexWrap:'wrap'}}>
+              {/* JSON toggle on tablet */}
+              <button className="btn btn-ghost btn-sm" onClick={()=>setShowJsonCol(p=>!p)} title="JSON Preview">
+                <Ico name="Code2" size={14}/><span style={{display:'none'}}>JSON</span>
+              </button>
+              <button className="btn btn-ghost btn-sm" onClick={saveProg} disabled={sync.saving||sync.loadingProg||!active.exercises}>
+                <Ico name={sync.saving?'Loader2':'Github'} size={15} cls={sync.saving?'spin':''}/>{sync.saving?'Сохр...':'Сохранить'}
+              </button>
+              <button className="btn btn-danger btn-sm" onClick={deleteProg} disabled={sync.deleting}>
+                <Ico name={sync.deleting?'Loader2':'Trash2'} size={14} cls={sync.deleting?'spin':''}/>
+              </button>
+            </div>
+          </div>
+        )}
+
+        {/* Content area */}
+        <div style={{flex:1,display:'flex',overflow:'hidden'}}>
+
+          {/* Main tab content */}
+          {mainTab === 'workouts-index' || mainTab === 'games-index' ? (
+            <div style={{flex:1,overflow:'hidden',display:'flex',flexDirection:'column'}}>
+              <div style={{padding:'12px 16px',borderBottom:'1px solid var(--border)',display:'flex',gap:8,alignItems:'center',flexShrink:0}}>
+                <button className="btn-icon" onClick={()=>setSidebarOpen(true)}><Ico name="Menu" size={18}/></button>
+                <div style={{display:'flex',gap:6}}>
+                  <button className={`tab-btn ${mainTab==='workouts-index'?'active':''}`} style={{fontSize:12}} onClick={()=>setMainTab('workouts-index')}>workouts/index.json</button>
+                  <button className={`tab-btn ${mainTab==='games-index'?'active':''}`} style={{fontSize:12}} onClick={()=>setMainTab('games-index')}>games/index.json</button>
+                </div>
+              </div>
+              <div style={{flex:1,overflow:'hidden'}}>
+                <IndexEditor gh={gh} cfg={cfg} notify={notify} indexKey={mainTab==='workouts-index'?'workouts':'games'}/>
+              </div>
+            </div>
+          ) : (
+            <>
+              {/* Editor */}
+              {(mobileTab==='editor'||window.innerWidth>=768) && (
+                <div style={{flex:1,display:'flex',flexDirection:'column',overflow:'hidden'}}>
+                  <Editor/>
+                </div>
+              )}
+
+              {/* JSON col */}
+              {(showJsonCol || mobileTab==='json') && active && (
+                <div style={{
+                  width: showJsonCol && window.innerWidth>=768 ? 400 : '100%',
+                  borderLeft:'1px solid var(--border)',
+                  display:'flex', flexDirection:'column', flexShrink:0,
+                  ...(mobileTab==='json'&&window.innerWidth<768 ? {position:'absolute',inset:0,zIndex:50} : {})
+                }}>
+                  <JsonPanel
+                    json={rawJson} onChange={setRawJson}
+                    editing={jsonEditing} setEditing={setJsonEditing}
+                    onApply={applyJson} error={jsonError}
+                  />
+                </div>
+              )}
+            </>
+          )}
+        </div>
+      </div>
+
+      {/* MOBILE BOTTOM NAV */}
+      <nav className="mobile-nav">
+        <button className={`mobile-nav-btn ${(mobileTab==='sidebar'||sidebarOpen)?'active':''}`} onClick={()=>{setSidebarOpen(!sidebarOpen); setMobileTab('sidebar');}}>
+          <Ico name="Menu" size={20}/><span>Меню</span>
+        </button>
+        <button className={`mobile-nav-btn ${mobileTab==='editor'&&mainTab==='editor'?'active':''}`} onClick={()=>{setMobileTab('editor');setMainTab('editor');setSidebarOpen(false);}}>
+          <Ico name="Edit3" size={20}/><span>Редактор</span>
+        </button>
+        <button className={`mobile-nav-btn ${mobileTab==='json'&&mainTab==='editor'?'active':''}`} onClick={()=>{setMobileTab('json');setMainTab('editor');setSidebarOpen(false);}}>
+          <Ico name="Code2" size={20}/><span>JSON</span>
+        </button>
+        <button className={`mobile-nav-btn ${mainTab==='workouts-index'?'active':''}`} onClick={()=>{setMainTab('workouts-index');setSidebarOpen(false);setMobileTab('editor');}}>
+          <Ico name="List" size={20}/><span>Индексы</span>
+        </button>
+        <button className={`mobile-nav-btn`} onClick={()=>setShowSettings(true)}>
+          <Ico name="Settings" size={20}/><span>Настройки</span>
+        </button>
+      </nav>
+
+      {/* SETTINGS MODAL */}
+      {showSettings && (
+        <div className="modal-bg" onClick={e=>{if(e.target===e.currentTarget)setShowSettings(false);}}>
+          <div className="modal-box">
+            <div style={{padding:'16px 20px',borderBottom:'1px solid var(--border)',display:'flex',justifyContent:'space-between',alignItems:'center'}}>
+              <div className="title-font" style={{fontSize:14,fontWeight:700,display:'flex',alignItems:'center',gap:8}}><Ico name="Github" size={16}/>Настройки GitHub</div>
+              <button className="btn-icon" onClick={()=>setShowSettings(false)}><Ico name="X" size={18}/></button>
+            </div>
+            <div style={{padding:20,display:'flex',flexDirection:'column',gap:14}}>
+              {['owner','repo'].map(k=>(
+                <div key={k}>
+                  <div style={{fontSize:11,fontWeight:700,color:'var(--text3)',textTransform:'uppercase',letterSpacing:'.4px',marginBottom:6}}>{k}</div>
+                  <input className="inp mono" style={{fontSize:13}} value={cfg[k]} onChange={e=>setCfg(p=>({...p,[k]:e.target.value}))} placeholder={k}/>
+                </div>
+              ))}
+              <div>
+                <div style={{fontSize:11,fontWeight:700,color:'var(--text3)',textTransform:'uppercase',letterSpacing:'.4px',marginBottom:6}}>Token (PAT)</div>
+                <input className="inp mono" style={{fontSize:13}} type="password" value={cfg.token} onChange={e=>setCfg(p=>({...p,token:e.target.value}))} placeholder="ghp_..."/>
+              </div>
+              <button className="btn btn-primary" style={{justifyContent:'center'}} onClick={()=>{localStorage.setItem('cms_cfg',JSON.stringify(cfg));setShowSettings(false);notify('success','Настройки сохранены');}}>
+                <Ico name="Save" size={15}/>Сохранить
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+};
+
+// JSON VIEWER MODE
+if (new URLSearchParams(location.search).get('view') === 'json') {
+  const Viewer = () => {
+    const [json, setJson] = useState(localStorage.getItem('cms_live_json') || '{}');
+    useEffect(()=>{
+      const h = e => { if(e.key==='cms_live_json') setJson(e.newValue); };
+      window.addEventListener('storage', h);
+      return ()=>window.removeEventListener('storage',h);
+    },[]);
+    const preRef = useRef(null);
+    return (
+      <div style={{height:'100vh',display:'flex',flexDirection:'column',background:'var(--bg)',padding:16,gap:12}}>
+        <div className="title-font" style={{fontSize:14,fontWeight:700,color:'var(--text)',display:'flex',alignItems:'center',gap:8,flexShrink:0}}><span style={{color:'var(--accent)'}}>◆</span>Live JSON — Внешнее окно</div>
+        <div className="json-container" style={{flex:1,border:'1px solid var(--border)'}}>
+          <textarea className="json-ta" readOnly value={json} onScroll={e=>{if(preRef.current){preRef.current.scrollTop=e.target.scrollTop;preRef.current.scrollLeft=e.target.scrollLeft;}}}/>
+          <pre className="json-pre" ref={preRef} aria-hidden><code dangerouslySetInnerHTML={{__html:hlJson(json)}}/></pre>
+        </div>
+      </div>
+    );
+  };
+  ReactDOM.createRoot(document.getElementById('root')).render(<Viewer/>);
+} else {
+  ReactDOM.createRoot(document.getElementById('root')).render(<App/>);
+}
+</script>
 </body>
 </html>
