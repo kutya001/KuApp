@@ -30,7 +30,8 @@
       display: flex;
       flex-direction: column;
       align-items: center;
-      min-height: 100vh;
+      height: 100vh;
+      width: 100vw;
       background-color: var(--bg-color-light);
       color: var(--text-color-light);
       transition: background-color 0.3s, color 0.3s;
@@ -84,6 +85,11 @@
       gap: 20px;
       margin-top: 10px;
       flex-grow: 1;
+      width: 100%;
+      max-width: 1000px;
+      padding: 0 10px 10px 10px;
+      box-sizing: border-box;
+      overflow: hidden;
     }
 
     /* Боковые панели */
@@ -92,6 +98,7 @@
       flex-direction: column;
       gap: 15px;
       width: 120px;
+      flex-shrink: 0;
     }
 
     .panel-box {
@@ -187,6 +194,7 @@
       .game-container {
         flex-direction: column;
         align-items: center;
+        justify-content: flex-start;
         gap: 10px;
       }
       
@@ -194,9 +202,9 @@
       .side-panel {
         flex-direction: row;
         width: 100%;
-        max-width: 300px;
-        justify-content: space-around;
-        gap: 5px;
+        max-width: 100%;
+        justify-content: center;
+        gap: 10px;
       }
 
       .panel-box {
@@ -246,7 +254,7 @@
     <div class="side-panel" id="left-panel">
       <div class="panel-box">
         <h3>Hold (Shift)</h3>
-        <canvas id="holdCanvas" class="mini-canvas" width="80" height="80"></canvas>
+        <canvas id="holdCanvas" class="mini-canvas"></canvas>
       </div>
       <div class="panel-box">
         <h3>Score</h3>
@@ -260,7 +268,7 @@
 
     <!-- Игровое поле -->
     <div class="board-container" id="board-container">
-      <canvas id="gameBoard" width="300" height="600"></canvas>
+      <canvas id="gameBoard"></canvas>
       <div class="overlay" id="overlay">
         <h2 id="overlayTitle">Paused</h2>
         <p id="overlayText">Press P to resume</p>
@@ -272,7 +280,7 @@
     <div class="side-panel" id="right-panel">
       <div class="panel-box">
         <h3>Next</h3>
-        <canvas id="nextCanvas" class="mini-canvas" width="80" height="240"></canvas>
+        <canvas id="nextCanvas" class="mini-canvas"></canvas>
       </div>
       <div class="panel-box">
         <h3>Level</h3>
@@ -289,7 +297,8 @@
     // --- КОНСТАНТЫ И НАСТРОЙКИ ---
     const COLS = 10;
     const ROWS = 20;
-    const BLOCK_SIZE = 30; // 10 * 30 = 300, 20 * 30 = 600
+    let BLOCK_SIZE = 30; // Will be calculated dynamically
+    let MINI_BLOCK_SIZE = 20;
 
     // Формы тетромино (I, J, L, O, S, T, Z)
     const TETROMINOS = {
@@ -636,65 +645,86 @@
 
       const osc = audioCtx.createOscillator();
       const gainNode = audioCtx.createGain();
+      const filter = audioCtx.createBiquadFilter();
 
-      osc.connect(gainNode);
+      // Настройка фильтра для смягчения звука
+      filter.type = 'lowpass';
+      filter.frequency.value = 1000;
+
+      osc.connect(filter);
+      filter.connect(gainNode);
       gainNode.connect(audioCtx.destination);
 
       const now = audioCtx.currentTime;
 
       switch(type) {
         case 'move':
-          osc.type = 'square';
-          osc.frequency.setValueAtTime(150, now);
-          osc.frequency.exponentialRampToValueAtTime(100, now + 0.05);
-          gainNode.gain.setValueAtTime(0.1, now);
-          gainNode.gain.exponentialRampToValueAtTime(0.01, now + 0.05);
+          osc.type = 'sine'; // Мягкий звук
+          osc.frequency.setValueAtTime(250, now);
+          osc.frequency.exponentialRampToValueAtTime(150, now + 0.05);
+          gainNode.gain.setValueAtTime(0, now);
+          gainNode.gain.linearRampToValueAtTime(0.15, now + 0.01); // Атака
+          gainNode.gain.exponentialRampToValueAtTime(0.001, now + 0.05); // Спад
           osc.start(now);
           osc.stop(now + 0.05);
           break;
         case 'rotate':
-          osc.type = 'triangle';
+          osc.type = 'triangle'; // Треугольная волна мягче пилы/квадрата
           osc.frequency.setValueAtTime(300, now);
-          osc.frequency.linearRampToValueAtTime(400, now + 0.1);
-          gainNode.gain.setValueAtTime(0.1, now);
-          gainNode.gain.exponentialRampToValueAtTime(0.01, now + 0.1);
+          osc.frequency.exponentialRampToValueAtTime(450, now + 0.1);
+          gainNode.gain.setValueAtTime(0, now);
+          gainNode.gain.linearRampToValueAtTime(0.15, now + 0.02);
+          gainNode.gain.exponentialRampToValueAtTime(0.001, now + 0.1);
           osc.start(now);
           osc.stop(now + 0.1);
           break;
         case 'drop':
-          osc.type = 'sawtooth';
-          osc.frequency.setValueAtTime(100, now);
+          osc.type = 'sine';
+          filter.frequency.value = 500; // Более низкочастотный звук
+          osc.frequency.setValueAtTime(150, now);
           osc.frequency.exponentialRampToValueAtTime(50, now + 0.1);
-          gainNode.gain.setValueAtTime(0.2, now);
-          gainNode.gain.exponentialRampToValueAtTime(0.01, now + 0.1);
+          gainNode.gain.setValueAtTime(0, now);
+          gainNode.gain.linearRampToValueAtTime(0.2, now + 0.01);
+          gainNode.gain.exponentialRampToValueAtTime(0.001, now + 0.1);
           osc.start(now);
           osc.stop(now + 0.1);
           break;
         case 'clear':
-          osc.type = 'square';
+          osc.type = 'triangle';
+          filter.frequency.value = 2000;
           osc.frequency.setValueAtTime(400, now);
-          osc.frequency.setValueAtTime(600, now + 0.1);
-          gainNode.gain.setValueAtTime(0.2, now);
-          gainNode.gain.exponentialRampToValueAtTime(0.01, now + 0.3);
+          osc.frequency.exponentialRampToValueAtTime(800, now + 0.15);
+          // Двойной пинг
+          gainNode.gain.setValueAtTime(0, now);
+          gainNode.gain.linearRampToValueAtTime(0.2, now + 0.02);
+          gainNode.gain.exponentialRampToValueAtTime(0.05, now + 0.07);
+          gainNode.gain.linearRampToValueAtTime(0.2, now + 0.09);
+          gainNode.gain.exponentialRampToValueAtTime(0.001, now + 0.3);
           osc.start(now);
           osc.stop(now + 0.3);
           break;
         case 'levelUp':
           osc.type = 'sine';
-          osc.frequency.setValueAtTime(300, now);
-          osc.frequency.linearRampToValueAtTime(800, now + 0.2);
-          osc.frequency.linearRampToValueAtTime(1200, now + 0.4);
-          gainNode.gain.setValueAtTime(0.2, now);
-          gainNode.gain.linearRampToValueAtTime(0.01, now + 0.5);
+          filter.frequency.value = 3000;
+          osc.frequency.setValueAtTime(400, now);
+          osc.frequency.linearRampToValueAtTime(600, now + 0.2);
+          osc.frequency.linearRampToValueAtTime(1000, now + 0.4);
+          gainNode.gain.setValueAtTime(0, now);
+          gainNode.gain.linearRampToValueAtTime(0.2, now + 0.05);
+          gainNode.gain.linearRampToValueAtTime(0.1, now + 0.2);
+          gainNode.gain.linearRampToValueAtTime(0.2, now + 0.3);
+          gainNode.gain.exponentialRampToValueAtTime(0.001, now + 0.6);
           osc.start(now);
-          osc.stop(now + 0.5);
+          osc.stop(now + 0.6);
           break;
         case 'gameover':
-          osc.type = 'sawtooth';
-          osc.frequency.setValueAtTime(200, now);
-          osc.frequency.exponentialRampToValueAtTime(50, now + 1.0);
-          gainNode.gain.setValueAtTime(0.3, now);
-          gainNode.gain.linearRampToValueAtTime(0.01, now + 1.0);
+          osc.type = 'triangle';
+          filter.frequency.value = 800;
+          osc.frequency.setValueAtTime(300, now);
+          osc.frequency.exponentialRampToValueAtTime(50, now + 0.8);
+          gainNode.gain.setValueAtTime(0, now);
+          gainNode.gain.linearRampToValueAtTime(0.2, now + 0.05);
+          gainNode.gain.exponentialRampToValueAtTime(0.001, now + 1.0);
           osc.start(now);
           osc.stop(now + 1.0);
           break;
@@ -742,42 +772,141 @@
       return getComputedStyle(document.body).getPropertyValue(name).trim();
     }
 
-    // Отрисовка блока
+    function resizeCanvas() {
+      const headerHeight = document.querySelector('.header-controls').offsetHeight || 50;
+      // margin top + game-container gap + padding bottom ~ 40px
+      const verticalPadding = 60;
+
+      const availableHeight = window.innerHeight - headerHeight - verticalPadding;
+      let availableWidth = window.innerWidth - 40; // 40 is max container padding
+
+      let isMobile = window.innerWidth <= 600;
+
+      if (isMobile) {
+        // On mobile, panels are stacked top and bottom (flex-direction: column)
+        // We need to reserve height for panels. Rough estimate: ~180px for panels
+        const panelHeight = 180;
+        const maxBoardHeight = availableHeight - panelHeight;
+
+        // Calculate BLOCK_SIZE constrained by height and width
+        const sizeByHeight = Math.floor(maxBoardHeight / ROWS);
+        const sizeByWidth = Math.floor(availableWidth / COLS);
+
+        BLOCK_SIZE = Math.min(sizeByHeight, sizeByWidth);
+        MINI_BLOCK_SIZE = Math.min(15, Math.floor(BLOCK_SIZE * 0.7)); // smaller blocks for panels
+      } else {
+        // On desktop, panels are on sides
+        // We need to reserve width for side panels (120px * 2) + gaps (20px * 2) = 280px
+        const panelWidth = 280;
+        const maxBoardWidth = availableWidth - panelWidth;
+
+        const sizeByHeight = Math.floor(availableHeight / ROWS);
+        const sizeByWidth = Math.floor(maxBoardWidth / COLS);
+
+        BLOCK_SIZE = Math.min(sizeByHeight, sizeByWidth);
+        MINI_BLOCK_SIZE = 20; // Default size for desktop panels
+      }
+
+      // Ensure a minimum block size so it's somewhat playable
+      if (BLOCK_SIZE < 10) BLOCK_SIZE = 10;
+
+      canvas.width = BLOCK_SIZE * COLS;
+      canvas.height = BLOCK_SIZE * ROWS;
+
+      // Update mini canvas sizes (Hold: 4x4 blocks, Next: 4x12 blocks)
+      holdCanvas.width = MINI_BLOCK_SIZE * 4;
+      holdCanvas.height = MINI_BLOCK_SIZE * 4;
+
+      nextCanvas.width = MINI_BLOCK_SIZE * 4;
+      nextCanvas.height = MINI_BLOCK_SIZE * 12;
+
+      if (game) {
+        render(); // redraw with new sizes
+      }
+    }
+
+    window.addEventListener('resize', resizeCanvas);
+
+    // Отрисовка блока (скругления + неоновый градиент/объем)
     function drawBlock(context, x, y, color, blockSize = BLOCK_SIZE) {
-      context.fillStyle = color;
-      context.fillRect(x * blockSize, y * blockSize, blockSize, blockSize);
+      const px = x * blockSize;
+      const py = y * blockSize;
+      const radius = Math.max(2, blockSize * 0.15); // динамический радиус скругления
+      const padding = 1; // отступ между блоками
+
+      // Внутренние размеры блока
+      const bw = blockSize - padding * 2;
+      const bh = blockSize - padding * 2;
+      const bx = px + padding;
+      const by = py + padding;
+
+      // Рисуем скругленный прямоугольник (основной фон)
+      context.beginPath();
+      context.moveTo(bx + radius, by);
+      context.lineTo(bx + bw - radius, by);
+      context.quadraticCurveTo(bx + bw, by, bx + bw, by + radius);
+      context.lineTo(bx + bw, by + bh - radius);
+      context.quadraticCurveTo(bx + bw, by + bh, bx + bw - radius, by + bh);
+      context.lineTo(bx + radius, by + bh);
+      context.quadraticCurveTo(bx, by + bh, bx, by + bh - radius);
+      context.lineTo(bx, by + radius);
+      context.quadraticCurveTo(bx, by, bx + radius, by);
+      context.closePath();
+
+      // Создаем градиент для эффекта объема и свечения
+      const gradient = context.createLinearGradient(bx, by, bx + bw, by + bh);
+      gradient.addColorStop(0, color); // Основной цвет вверху-слева
       
-      // Эффект объема (светлый край сверху и слева, темный снизу и справа)
-      context.fillStyle = 'rgba(255, 255, 255, 0.3)';
-      context.fillRect(x * blockSize, y * blockSize, blockSize, 4);
-      context.fillRect(x * blockSize, y * blockSize, 4, blockSize);
+      // Высветляем цвет для эффекта (если цвет задан как HEX, делаем простой хак)
+      // Можно просто наложить полупрозрачный белый/черный
+      context.fillStyle = gradient;
+      context.fill();
 
-      context.fillStyle = 'rgba(0, 0, 0, 0.3)';
-      context.fillRect(x * blockSize, y * blockSize + blockSize - 4, blockSize, 4);
-      context.fillRect(x * blockSize + blockSize - 4, y * blockSize, 4, blockSize);
+      // Эффект блика (светлый край сверху-слева)
+      context.beginPath();
+      context.moveTo(bx + radius, by);
+      context.lineTo(bx + bw - radius, by);
+      context.quadraticCurveTo(bx + bw, by, bx + bw, by + radius);
+      context.lineTo(bx, by + radius);
+      context.quadraticCurveTo(bx, by, bx + radius, by);
+      context.closePath();
+      context.fillStyle = 'rgba(255, 255, 255, 0.4)';
+      context.fill();
 
-      // Обводка
+      // Эффект тени (темный край снизу-справа)
+      context.beginPath();
+      context.moveTo(bx + bw, by + bh - radius);
+      context.quadraticCurveTo(bx + bw, by + bh, bx + bw - radius, by + bh);
+      context.lineTo(bx + radius, by + bh);
+      context.quadraticCurveTo(bx, by + bh, bx, by + bh - radius);
+      context.lineTo(bx + bw, by + bh - radius);
+      context.closePath();
+      context.fillStyle = 'rgba(0, 0, 0, 0.4)';
+      context.fill();
+
+      // Легкая обводка в цвет борда
       context.strokeStyle = getCSSVar('--board-bg-' + (document.body.classList.contains('dark-mode') ? 'dark' : 'light'));
       context.lineWidth = 1;
-      context.strokeRect(x * blockSize, y * blockSize, blockSize, blockSize);
+      context.stroke();
     }
 
     function drawGrid(context, width, height, blockSize) {
+      // Делаем сетку более тонкой и менее контрастной
       context.strokeStyle = getCSSVar(document.body.classList.contains('dark-mode') ? '--grid-color-dark' : '--grid-color-light');
+      context.globalAlpha = 0.5; // прозрачность сетки
       context.lineWidth = 0.5;
       
+      context.beginPath();
       for (let x = 0; x <= width; x += blockSize) {
-        context.beginPath();
         context.moveTo(x, 0);
         context.lineTo(x, height);
-        context.stroke();
       }
       for (let y = 0; y <= height; y += blockSize) {
-        context.beginPath();
         context.moveTo(0, y);
         context.lineTo(width, y);
-        context.stroke();
       }
+      context.stroke();
+      context.globalAlpha = 1.0;
     }
 
     // Отрисовка основной доски
@@ -839,13 +968,14 @@
     function drawMiniPiece(context, piece, offsetY = 0) {
       if (!piece) return;
       
-      const bSize = 20; // Уменьшенный размер блока для панелей
+      const bSize = MINI_BLOCK_SIZE;
       // Вычисляем смещение для центрирования фигуры
       const shapeWidth = piece.shape[0].length * bSize;
       const shapeHeight = piece.shape.length * bSize;
       
       const startX = (context.canvas.width - shapeWidth) / 2;
-      const startY = (context.canvas.width - shapeHeight) / 2 + offsetY; // Используем width как базовый квадрат для центрирования 
+      // Используем width (или MINI_BLOCK_SIZE*4) как базовый квадрат для центрирования
+      const startY = (MINI_BLOCK_SIZE * 4 - shapeHeight) / 2 + offsetY;
 
       for (let r = 0; r < piece.shape.length; r++) {
         for (let c = 0; c < piece.shape[r].length; c++) {
@@ -867,7 +997,7 @@
 
       // Next pieces (3 штуки)
       for (let i = 0; i < game.nextPieces.length; i++) {
-        drawMiniPiece(nextCtx, game.nextPieces[i], i * 80); // Смещение вниз для каждой следующей фигуры
+        drawMiniPiece(nextCtx, game.nextPieces[i], i * MINI_BLOCK_SIZE * 4); // Смещение вниз для каждой следующей фигуры
       }
     }
 
@@ -1109,6 +1239,7 @@
     });
 
     // Инициализация
+    resizeCanvas();
     game.loadState();
     if(game.isPaused) {
         showOverlay("Paused", "Press P to resume");
