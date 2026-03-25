@@ -500,6 +500,11 @@
                 <div class="sb-item-icon"><svg viewBox="0 0 24 24"><ellipse cx="12" cy="5" rx="9" ry="3"/><path d="M21 12c0 1.66-4 3-9 3s-9-1.34-9-3"/><path d="M3 5v14c0 1.66 4 3 9 3s9-1.34 9-3V5"/></svg></div>
                 <span class="sb-item-label">Кэш и данные</span>
             </div>
+            <div class="sb-divider"></div>
+            <div class="sb-item" id="sb-update-app" style="color:var(--c-prep)">
+                <div class="sb-item-icon" style="background:rgba(91,140,255,0.15);border-color:rgba(91,140,255,0.3)"><svg viewBox="0 0 24 24"><polyline points="23 4 23 10 17 10"/><polyline points="1 20 1 14 7 14"/><path d="M3.51 9a9 9 0 0114.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0020.49 15"/></svg></div>
+                <span class="sb-item-label">Обновить приложение</span>
+            </div>
         </div>
     </div>
 </div>
@@ -543,6 +548,11 @@
                 <div class="dn-item" data-modal="modal-cache">
                     <div class="dn-item-icon"><svg viewBox="0 0 24 24"><ellipse cx="12" cy="5" rx="9" ry="3"/><path d="M21 12c0 1.66-4 3-9 3s-9-1.34-9-3"/><path d="M3 5v14c0 1.66 4 3 9 3s9-1.34 9-3V5"/></svg></div>
                     <span class="dn-item-label">Кэш и данные</span>
+                </div>
+                <div class="dn-divider"></div>
+                <div class="dn-item" id="dn-update-app" style="color:var(--c-prep)">
+                    <div class="dn-item-icon" style="background:rgba(91,140,255,0.15);border-color:rgba(91,140,255,0.3)"><svg viewBox="0 0 24 24"><polyline points="23 4 23 10 17 10"/><polyline points="1 20 1 14 7 14"/><path d="M3.51 9a9 9 0 0114.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0020.49 15"/></svg></div>
+                    <span class="dn-item-label">Обновить приложение</span>
                 </div>
             </div>
         </nav>
@@ -737,8 +747,7 @@
             <div class="msec">
                 <div class="msec-title">Управление</div>
                 <button class="btn-action outline" id="btn-cache-refresh">↻ Обновить список</button>
-                <button class="btn-action outline" id="btn-cache-reload">⟳ Принудительно обновить все файлы</button>
-                <button class="btn-action danger" id="btn-cache-clear">✕ Очистить весь кэш</button>
+
                 <div class="cache-status" id="cache-status"></div>
             </div>
         </div>
@@ -1370,37 +1379,6 @@ async function deleteCacheEntry() {
     $('cache-status').textContent = '✓ Удалено'; closeEditor(); refreshCacheList();
 }
 
-async function clearAllCache() {
-    if (!confirm('Очистить весь кэш? Страница перезагрузится.')) return;
-    await Promise.all((await caches.keys()).map(k => caches.delete(k)));
-    $('cache-status').textContent = 'Кэш очищен. Перезагрузка…'; setTimeout(() => location.reload(), 800);
-}
-
-// ✅ ИСПРАВЛЕНО: нормализуем файлы из index.json перед итерацией
-async function forceReloadAll() {
-    $('cache-status').textContent = 'Обновление…';
-    try {
-        if ('serviceWorker' in navigator) { const r = await navigator.serviceWorker.getRegistration(); if (r) await r.update(); }
-
-        const rawIdx = await fetch('./workouts/index.json', {cache:'reload'}).then(r => r.json());
-        // Нормализуем: строка → имя файла, объект → берём .file
-        const files = (Array.isArray(rawIdx) ? rawIdx : [])
-            .map(e => typeof e === 'string' ? e : e.file)
-            .filter(Boolean);
-
-        const cn = await getCacheName();
-        if (cn) {
-            const cache = await caches.open(cn);
-            await Promise.all(
-                files.map(f => fetch(`./workouts/${f}`, {cache:'reload'})
-                    .then(r => r.ok ? cache.put(`./workouts/${f}`, r) : null)
-                    .catch(() => {}))
-            );
-        }
-        $('cache-status').textContent = '✓ Все файлы обновлены'; refreshCacheList();
-    } catch(e) { $('cache-status').textContent = 'Ошибка: ' + e.message; }
-}
-
 const formatBytes = b => b < 1024 ? `${b} B` : b < 1048576 ? `${(b/1024).toFixed(1)} KB` : `${(b/1048576).toFixed(2)} MB`;
 
 // ═══════════════════════════════════════════════════════════════════
@@ -1414,13 +1392,12 @@ async function updateApp() {
     try {
         if ('serviceWorker' in navigator) {
             const reg = swRegistration || await navigator.serviceWorker.getRegistration();
-            if (reg) { await reg.update(); if (reg.waiting) { reg.waiting.postMessage({type:'SKIP_WAITING'}); await new Promise(r => setTimeout(r, 500)); } }
+            if (reg) await reg.unregister();
         }
-        const keys = await caches.keys(); const currentKey = keys[keys.length - 1];
-        await Promise.all(keys.slice(0, -1).map(k => caches.delete(k)));
-        if (currentKey) { const cache = await caches.open(currentKey); const cacheKeys = await cache.keys(); await Promise.all(cacheKeys.map(req => fetch(req, {cache:'reload'}).then(res => { if (res.ok) cache.put(req, res); }).catch(() => {}))); }
-        showToast('✓ Обновлено!'); btn.classList.remove('spinning', 'has-update'); btn.title = 'Обновить приложение';
-        setTimeout(() => location.reload(true), 800);
+        await Promise.all((await caches.keys()).map(k => caches.delete(k)));
+        showToast('✓ Обновлено! Перезагрузка…');
+        btn.classList.remove('spinning', 'has-update');
+        setTimeout(() => location.reload(true), 600);
     } catch(e) { btn.classList.remove('spinning'); btn.title = 'Ошибка'; showToast('Ошибка обновления'); }
 }
 
@@ -1428,6 +1405,8 @@ if ('serviceWorker' in navigator) {
     navigator.serviceWorker.addEventListener('controllerchange', () => { $('btn-update').classList.add('has-update'); });
 }
 $('btn-update').addEventListener('click', updateApp);
+if ($('sb-update-app')) $('sb-update-app').addEventListener('click', updateApp);
+if ($('dn-update-app')) $('dn-update-app').addEventListener('click', updateApp);
 
 // ═══════════════════════════════════════════════════════════════════
 //  ИГРЫ
@@ -1609,8 +1588,6 @@ $('import-file').addEventListener('change', async e => {
 });
 
 $('btn-cache-refresh').addEventListener('click', refreshCacheList);
-$('btn-cache-reload').addEventListener('click', forceReloadAll);
-$('btn-cache-clear').addEventListener('click', clearAllCache);
 $('btn-save-cache').addEventListener('click', saveCacheEdit);
 $('btn-delete-cache').addEventListener('click', deleteCacheEntry);
 $('btn-cancel-edit').addEventListener('click', closeEditor);
