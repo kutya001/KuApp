@@ -432,6 +432,15 @@ let qz={words:[],index:0,score:0,answered:false,total:10};
 function init(){
   loadConfig();
   loadSA();
+  // Migrate old config: if apiKey looks like JSON, move it to SA
+  if(cfg.apiKey){
+    try{
+      const parsed=JSON.parse(cfg.apiKey);
+      if(parsed.client_email&&parsed.private_key){sa=parsed;saveSA()}
+    }catch(e){}
+    delete cfg.apiKey; delete cfg.clientId;
+    saveCfg();
+  }
   loadProgress();
   loadCache();
   if(!sa||!cfg.spreadsheetId){

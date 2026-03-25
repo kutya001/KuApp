@@ -3,7 +3,7 @@
 // Cache First для оболочки, Network First для внешних API
 // ═══════════════════════════════════════════════════════════════════════════════
 
-const CACHE_NAME = 'app-v2';
+const CACHE_NAME = 'app-v3';
 
 const SHELL = [
   './',
@@ -51,6 +51,9 @@ self.addEventListener('fetch', event => {
   const externalHosts = [
     'script.google.com',
     'script.googleusercontent.com',
+    'sheets.googleapis.com',
+    'oauth2.googleapis.com',
+    'accounts.google.com',
     'api.github.com',
     'unpkg.com',
     'cdn.jsdelivr.net',
