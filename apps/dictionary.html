@@ -250,22 +250,51 @@ main{flex:1;overflow:hidden;position:relative}
 
 /* ===== PC / DESKTOP ADAPTATION ===== */
 @media (min-width:680px){
-  body{
-    align-items:center;
-    background:radial-gradient(ellipse at 20% 25%,rgba(91,140,255,.09) 0%,transparent 52%),radial-gradient(ellipse at 80% 75%,rgba(0,229,160,.06) 0%,transparent 52%),var(--bg);
-  }
-  header,main,#bnav{width:min(680px,100%);box-shadow:0 0 0 1px var(--bd)}
-  header{border-radius:var(--r) var(--r) 0 0}
-  #bnav{border-radius:0 0 var(--r) var(--r)}
   .card-grid{grid-template-columns:repeat(3,1fr)}
   .view{padding:20px 24px}
   .modal-bg{align-items:center}
   .modal{border-radius:var(--r);max-width:500px;max-height:85vh}
   #toast{top:24px}
 }
-@media (min-width:1100px){
-  header,main,#bnav{width:min(860px,100%)}
-  .card-grid{grid-template-columns:repeat(4,1fr)}
+@media (min-width:1024px){
+  body{
+    display:grid;
+    grid-template-columns:250px minmax(0,1fr);
+    grid-template-rows:64px minmax(0,1fr);
+    align-items:stretch;
+    background:radial-gradient(ellipse at 18% 20%,rgba(91,140,255,.12) 0%,transparent 48%),radial-gradient(ellipse at 80% 82%,rgba(0,229,160,.08) 0%,transparent 46%),var(--bg);
+  }
+  header{grid-column:2;grid-row:1;padding:14px 20px;min-height:64px;border-bottom:1px solid var(--bd)}
+  main{grid-column:2;grid-row:2;min-height:0}
+  #bnav{
+    grid-column:1;
+    grid-row:1 / span 2;
+    flex-direction:column;
+    justify-content:flex-start;
+    gap:6px;
+    padding:14px 10px;
+    border-top:none;
+    border-right:1px solid var(--bd);
+    background:var(--sf);
+  }
+  #bnav button{
+    flex:0 0 auto;
+    flex-direction:row;
+    justify-content:flex-start;
+    gap:10px;
+    padding:10px 12px;
+    border-radius:10px;
+    font-size:.85rem;
+  }
+  #bnav button .ico{font-size:1rem}
+  #bnav button.active{background:rgba(91,140,255,.12)}
+  .view{padding:24px 28px}
+  .card-grid{grid-template-columns:repeat(auto-fill,minmax(170px,1fr))}
+  .lang-pair{max-width:760px}
+  .stats-row{max-width:760px}
+  .search-bar{max-width:760px}
+  #words-list{max-width:920px}
+  .modal{max-width:680px}
 }
 </style>
 </head>
@@ -458,7 +487,37 @@ let _pendingImport=null;
 /* ===== INIT ===== */
 const Platform = window.parent?.PlatformAPI || null;
 
-function init(){
+function normalizeRole(role){
+  const r=String(role||'').trim().toLowerCase();
+  return (r==='admin'||r==='administrator'||r==='superadmin')?'admin':'user';
+}
+
+function isAdmin(){
+  return normalizeRole(currentUser?.role)==='admin';
+}
+
+function normalizeProfile(profile){
+  const login=String(profile?.login||profile?.email||profile?.username||'').trim()||'user';
+  const role=normalizeRole(profile?.role||profile?.userRole||profile?.user_role);
+  const status=String(profile?.status||'active');
+  return {login,role,status};
+}
+
+async function resolveCurrentUser(profile){
+  const user=normalizeProfile(profile);
+  if(user.role==='admin'||!Platform?.db?.read) return user;
+  try{
+    const res=await Platform.db.read('sys_Users!B2:D5000');
+    const rows=res.values||[];
+    const found=rows.find(r=>String(r[0]||'').trim().toLowerCase()===user.login.toLowerCase());
+    if(found?.[2]) user.role=normalizeRole(found[2]);
+  }catch(e){
+    console.warn('resolveCurrentUser:',e);
+  }
+  return user;
+}
+
+async function init(){
   loadConfig();
   loadProgress();
   loadCache();
@@ -475,7 +534,7 @@ function init(){
     if(el) el.innerHTML='<div style="padding:60px 20px;text-align:center"><div style="font-size:2.5rem;margin-bottom:16px">📖</div><p style="color:#ff6b6b;font-size:.9rem">Войдите в платформу McGill</p></div>';
     showView('setup'); return;
   }
-  currentUser = { login: profile.login, role: profile.role, status: 'active' };
+  currentUser = await resolveCurrentUser(profile);
   afterLogin();
   initLangSelectors();
   document.getElementById('sel-from').addEventListener('change',onLangChange);
@@ -579,7 +638,7 @@ function openUserMenu(){
   if(!currentUser)return;
   showModal(`
     <h3>${esc(currentUser.login)}</h3>
-    <p style="color:var(--tx2);font-size:.82rem;margin-bottom:16px">Роль: ${esc(currentUser.role)}</p>
+    <p style="color:var(--tx2);font-size:.82rem;margin-bottom:16px">Роль: ${esc(normalizeRole(currentUser.role))}</p>
     <button class="btn btn-ghost mb8" onclick="Platform?.ui?.openSettings?.();closeModal()">⚙️ Настройки платформы</button>
   `);
 }
@@ -1092,7 +1151,7 @@ function renderSettingsGeneral(c){
 }
 
 function renderSettingsLangs(c){
-  if(currentUser?.role!=='admin'){c.innerHTML=adminOnly();return}
+  if(!isAdmin()){c.innerHTML=adminOnly();return}
   let html='<div class="set-section"><h3>🌍 Языки</h3><div class="tag-list">';
   data.languages.forEach((l,i)=>{
     html+=`<span class="tag">${esc(l.name)} (${esc(l.code)}) <button class="edit" onclick="openEditLang(${i})">✏</button></span>`;
@@ -1102,7 +1161,7 @@ function renderSettingsLangs(c){
 }
 
 function renderSettingsCats(c){
-  if(currentUser?.role!=='admin'){c.innerHTML=adminOnly();return}
+  if(!isAdmin()){c.innerHTML=adminOnly();return}
   let html='<div class="set-section"><h3>📂 Категории</h3><div class="tag-list">';
   data.categories.forEach((cat,i)=>{
     html+=`<span class="tag">${esc(cat.icon)} ${esc(cat.name)} <button class="edit" onclick="openEditCat(${i})">✏</button></span>`;
@@ -1112,7 +1171,7 @@ function renderSettingsCats(c){
 }
 
 function renderSettingsData(c){
-  if(currentUser?.role!=='admin'){c.innerHTML=adminOnly();return}
+  if(!isAdmin()){c.innerHTML=adminOnly();return}
   const catsOpts=data.categories.map(cat=>`<option value="${esc(cat.id)}">${esc(cat.icon+' '+cat.name)}</option>`).join('');
   c.innerHTML=`
     <div class="set-section">
@@ -1124,10 +1183,12 @@ function renderSettingsData(c){
     </div>`;
 }
 
-function adminOnly(){return'<div class="empty"><div class="em-icon">🔒</div><p style="color:var(--tx2)">Только для администраторов</p></div>'}
+function adminOnly(){
+  return `<div class="empty"><div class="em-icon">🔒</div><p style="color:var(--tx2)">Только для администраторов</p><p style="font-size:.72rem;color:var(--tx3)">Текущая роль: ${esc(normalizeRole(currentUser?.role))}</p></div>`;
+}
 
 function renderSettingsImpExp(c){
-  if(currentUser?.role!=='admin'){c.innerHTML=adminOnly();return}
+  if(!isAdmin()){c.innerHTML=adminOnly();return}
   const langsOpts=data.languages.map(l=>`<option value="${esc(l.code)}">${esc(l.name)}</option>`).join('');
   const catsOpts='<option value="">Все категории</option>'+data.categories.map(cat=>`<option value="${esc(cat.id)}">${esc(cat.icon+' '+cat.name)}</option>`).join('');
   const promptCatsOpts='<option value="">— выбрать —</option>'+data.categories.map(cat=>`<option value="${esc(cat.id)}">${esc(cat.icon+' '+cat.name)}</option>`).join('');
