@@ -690,8 +690,8 @@ async function apiGetSheets(){
 }
 
 /* ===== INIT SHEETS ===== */
-async function initSheets(){
-  showLoader(true);
+async function initSheets(silent=false){
+  if(!silent) showLoader(true);
   try{
     const existing=await apiGetSheets();
     const reqs=[];
@@ -703,9 +703,9 @@ async function initSheets(){
     }
     const users=await apiRead('users!A2:D');
     if(!users.values||!users.values.length)await apiAppend('users!A:D',[['Kutman','123','admin','active']]);
-    toast('Таблицы инициализированы','ok');
-  }catch(e){toast('Ошибка: '+e.message,'err')}
-  showLoader(false);
+    if(!silent) toast('Таблицы инициализированы','ok');
+  }catch(e){toast('Ошибка инициализации: '+e.message,'err')}
+  if(!silent) showLoader(false);
 }
 
 /* ===== AUTH ===== */
@@ -803,13 +803,27 @@ function doLogout(){currentUser=null;saveUser();closeModal();showLogin()}
 async function syncData(){
   showLoader(true);
   try{
-    const results=await Promise.allSettled([
+    let results=await Promise.allSettled([
       apiRead('languages!A2:B100'),
       apiRead('categories!A2:C100'),
       apiRead('words!A2:F5000'),
       apiRead('users!A2:D'),
       apiRead('ratings!A2:E')
     ]);
+    // Auto-init if any sheet is missing or users table is empty
+    const needsInit=results.some(r=>r.status==='rejected')||
+      (results[3].status==='fulfilled'&&!(results[3].value.values?.length));
+    if(needsInit){
+      toast('Инициализация таблиц...','');
+      await initSheets(true);
+      results=await Promise.allSettled([
+        apiRead('languages!A2:B100'),
+        apiRead('categories!A2:C100'),
+        apiRead('words!A2:F5000'),
+        apiRead('users!A2:D'),
+        apiRead('ratings!A2:E')
+      ]);
+    }
     if(results[0].status==='fulfilled'){const v=results[0].value;data.languages=(v.values||[]).map(r=>({code:(r[0]||'').trim(),name:(r[1]||'').trim()})).filter(l=>l.code&&l.name)}
     if(results[1].status==='fulfilled'){const v=results[1].value;data.categories=(v.values||[]).map(r=>({id:(r[0]||'').trim(),name:(r[1]||'').trim(),icon:(r[2]||'📁').trim()})).filter(c=>c.id&&c.name)}
     if(results[2].status==='fulfilled'){const v=results[2].value;data.words=(v.values||[]).map(r=>({
