@@ -467,8 +467,8 @@ function init(){
     if(el) el.innerHTML='<div style="padding:60px 20px;text-align:center"><div style="font-size:2.5rem;margin-bottom:16px">📖</div><p style="color:#ff6b6b;font-size:.9rem">Откройте приложение через платформу McGill</p></div>';
     showView('setup'); return;
   }
-  // Register dictionary’s required sheets with the platform
-  Platform.db.registerAppSchema('dictionary', DICT_SCHEMA);
+  // Ensure dictionary tables exist (non-blocking)
+  Platform.db.ensureTables(DICT_TABLES).catch(e=>console.warn('ensureTables:',e));
   const profile = Platform.user.getProfile();
   if (!profile) {
     const el=document.getElementById('v-setup');
