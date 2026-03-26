@@ -464,26 +464,53 @@ async function apiBatchStructural(requests) {
 }
 
 /* ── USER AUTH AGAINST SHEETS ── */
-async function ensureUsersSheet() {
-    try {
-        const res = await apiRead('users!A1:E1');
-        if (!res.values?.length) {
-            await apiAppend('users!A:E', [['login','password','role','status','total_xp']]);
-        }
-    } catch {}
+/* ── DB SCHEMA REGISTRY ── */
+// System sheets always created on first connect
+const DB_SYSTEM_SCHEMA = {
+    users:  { headers: ['login','password','role','status','total_xp'] },
+    Scores: { headers: ['timestamp','login','app_id','raw_score','xp_earned'] },
+    Logs:   { headers: ['timestamp','login','app_id','duration_sec'] }
+};
+
+const _dbAppSchemas = {};  // appId → { sheetName: { headers:[...], seedRows?:[[...]] } }
+
+function dbRegisterAppSchema(appId, sheets) {
+    _dbAppSchemas[appId] = sheets;
 }
 
-async function ensureScoresLogs() {
-    // Create Scores sheet header if it doesn't exist
-    try {
-        const r = await apiRead('Scores!A1:E1');
-        if (!r.values?.length) await apiAppend('Scores!A:E', [['timestamp','login','app_id','raw_score','xp_earned']]);
-    } catch {}
-    // Create Logs sheet header if it doesn't exist
-    try {
-        const r = await apiRead('Logs!A1:D1');
-        if (!r.values?.length) await apiAppend('Logs!A:D', [['timestamp','login','app_id','duration_sec']]);
-    } catch {}
+async function dbInitAllSheets() {
+    // 1. Fetch existing sheet names from spreadsheet metadata
+    const token   = await ensureAuth();
+    const metaUrl = `${SHEETS_BASE}/${encodeURIComponent(cfg.spreadsheetId)}?fields=sheets.properties.title`;
+    const metaRes = await fetch(metaUrl, { headers:{ 'Authorization':'Bearer '+token } });
+    if (!metaRes.ok) throw new Error('Ошибка получения метаданных таблицы');
+    const existing = new Set((await metaRes.json()).sheets?.map(s => s.properties.title) || []);
+
+    // 2. Merge system schema + all registered app schemas
+    const allSchemas = { ...DB_SYSTEM_SCHEMA };
+    for (const appSheets of Object.values(_dbAppSchemas)) {
+        Object.assign(allSchemas, appSheets);
+    }
+
+    // 3. Create missing sheets in one structural batch
+    const createReqs = Object.keys(allSchemas)
+        .filter(name => !existing.has(name))
+        .map(name => ({ addSheet:{ properties:{ title:name } } }));
+    if (createReqs.length) await apiBatchStructural(createReqs);
+
+    // 4. Write headers for each sheet where row 1 is still empty
+    for (const [sheetName, desc] of Object.entries(allSchemas)) {
+        try {
+            const r = await apiRead(`${sheetName}!A1:Z1`);
+            if (!r.values?.length) await apiAppend(`${sheetName}!A1`, [desc.headers]);
+            if (desc.seedRows) {
+                const check = await apiRead(`${sheetName}!A2:A2`);
+                if (!check.values?.length) {
+                    for (const row of desc.seedRows) await apiAppend(`${sheetName}!A:Z`, [row]);
+                }
+            }
+        } catch {}
+    }
 }
 
 async function loginUser(login, password) {
@@ -509,11 +536,14 @@ window.PlatformAPI = {
         getProfile: () => currentUser
     },
     db: {
-        read:            async (range)         => await apiRead(range),
-        append:          async (range, values) => await apiAppend(range, values),
-        update:          async (range, values) => await apiUpdate(range, values),
-        batchValues:     async (data)          => await apiBatchValues(data),
-        batchStructural: async (requests)      => await apiBatchStructural(requests)
+        read:              async (range)         => await apiRead(range),
+        append:            async (range, values) => await apiAppend(range, values),
+        update:            async (range, values) => await apiUpdate(range, values),
+        batchValues:       async (data)          => await apiBatchValues(data),
+        batchStructural:   async (requests)      => await apiBatchStructural(requests),
+        registerAppSchema: (appId, sheets)       => dbRegisterAppSchema(appId, sheets),
+        initAllSheets:     async ()              => { showLoader(true); try { await dbInitAllSheets(); toast('✓ Таблицы инициализированы','ok'); } catch(e) { toast('Ошибка БД: '+e.message,'err'); throw e; } finally { showLoader(false); } },
+        getSpreadsheetId:  ()                    => cfg.spreadsheetId
     },
     gameplay: {
         submitScore: async (appId, rawScore, xpEarned) => {
@@ -648,8 +678,7 @@ $('btn-setup-save').addEventListener('click', async () => {
     showLoader(true);
     try {
         await ensureAuth();
-        await ensureUsersSheet();
-        await ensureScoresLogs();
+        await dbInitAllSheets();
         showLoader(false);
         toast('✓ Подключено!', 'ok');
         showView('login');

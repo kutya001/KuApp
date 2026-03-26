@@ -290,68 +290,12 @@ main{flex:1;overflow:hidden;position:relative}
 
 <!-- Content -->
 <main>
-  <!-- === LOGIN VIEW === -->
-  <section id="v-login" class="view">
-    <div class="login-wrap">
-      <div class="login-box">
-        <div class="login-logo"><div class="em">📖</div><h2>Словарь</h2><p>Войдите для продолжения</p></div>
-        <div class="input-group"><label>Логин</label><input type="text" id="inp-login" placeholder="Имя пользователя" autocomplete="username"></div>
-        <div class="input-group"><label>Пароль</label><input type="password" id="inp-pass" placeholder="Пароль" autocomplete="current-password"></div>
-        <button class="btn btn-primary mt8" onclick="doLogin()">Войти</button>
-        <button class="btn btn-ghost mt8" onclick="showRegister()">Регистрация</button>
-      </div>
-    </div>
-  </section>
-
-  <!-- === REGISTER VIEW === -->
-  <section id="v-register" class="view">
-    <div class="login-wrap">
-      <div class="login-box">
-        <div class="login-logo"><div class="em">📝</div><h2>Регистрация</h2><p>Создайте аккаунт</p></div>
-        <div class="input-group"><label>Логин</label><input type="text" id="inp-reg-login" placeholder="Имя пользователя" autocomplete="username"></div>
-        <div class="input-group"><label>Пароль</label><input type="password" id="inp-reg-pass" placeholder="Пароль" autocomplete="new-password"></div>
-        <div class="input-group"><label>Пароль ещё раз</label><input type="password" id="inp-reg-pass2" placeholder="Подтвердите пароль" autocomplete="new-password"></div>
-        <button class="btn btn-primary mt8" onclick="doRegister()">Зарегистрироваться</button>
-        <button class="btn btn-ghost mt8" onclick="showLogin()">Уже есть аккаунт</button>
-      </div>
-    </div>
-  </section>
-
-  <!-- === SETUP VIEW === -->
+  <!-- === NO-PLATFORM / ERROR VIEW === -->
+  <!-- init() fills this dynamically when Platform is unavailable -->
   <section id="v-setup" class="view">
-    <div style="text-align:center;padding:20px 0 30px">
-      <div style="font-size:3rem;margin-bottom:10px">📖</div>
-      <h2 style="font-size:1.2rem;margin-bottom:6px">Словарь</h2>
-      <p style="font-size:.82rem;color:var(--tx2)">Учи слова на разных языках<br>с помощью Google Таблиц</p>
-    </div>
-    <div class="input-group">
-      <label>ID Google Таблицы</label>
-      <input type="text" id="inp-sid" placeholder="1BxiMVs0XRA5nFMdKvBd...">
-    </div>
-    <div class="input-group">
-      <label>JSON сервисного аккаунта</label>
-      <textarea id="inp-sa" rows="6" placeholder='Вставьте содержимое .json файла сервисного аккаунта...'></textarea>
-    </div>
-    <button class="btn btn-primary mt8" onclick="saveSetup()">Подключиться</button>
-    <button class="btn btn-orange mt8" onclick="initSheets()">🗃 Инициализировать таблицы</button>
-    <p style="font-size:.68rem;color:var(--tx3);margin-top:6px;text-align:center">Создаст листы languages, categories, words, users, ratings если их нет</p>
-    <button class="help-toggle mt8" onclick="toggleHelp()">📋 Инструкция по настройке</button>
-    <div class="help-box" id="help-box" style="display:none">
-      <b>1.</b> Создайте Google Таблицу с 3 листами:<br>
-      &nbsp;&nbsp;• <code>languages</code> — столбцы: code, name<br>
-      &nbsp;&nbsp;• <code>categories</code> — столбцы: id, name, icon<br>
-      &nbsp;&nbsp;• <code>words</code> — столбцы: category, lang_from, word_from, lang_to, word_to, transcription<br><br>
-      <b>2.</b> Первая строка каждого листа — заголовки<br><br>
-      <b>3.</b> Пример данных в листе <code>words</code>:<br>
-      &nbsp;&nbsp;<code>food | ru | Яблоко | en | Apple | ˈæpəl</code><br><br>
-      <b>4.</b> Откройте <code>console.cloud.google.com</code><br>
-      &nbsp;&nbsp;• Создайте проект → Включите Google Sheets API<br>
-      &nbsp;&nbsp;• Создайте Service Account (IAM → Service Accounts)<br>
-      &nbsp;&nbsp;• Создайте JSON ключ для сервисного аккаунта<br><br>
-      <b>5.</b> Откройте доступ к таблице для email сервисного аккаунта:<br>
-      &nbsp;&nbsp;<code>...@...iam.gserviceaccount.com</code> — Редактор<br><br>
-      <b>6.</b> ID таблицы — часть URL:<br>
-      &nbsp;&nbsp;<code>docs.google.com/spreadsheets/d/<b>{ID}</b>/edit</code>
+    <div style="padding:60px 20px;text-align:center">
+      <div style="font-size:2.5rem;margin-bottom:16px">📖</div>
+      <p style="font-size:.9rem;color:var(--tx2)">Откройте приложение через платформу McGill</p>
     </div>
   </section>
 
@@ -485,23 +429,24 @@ main{flex:1;overflow:hidden;position:relative}
 
 <script>
 /* ===== CONSTANTS ===== */
-const LS_CFG='wl_config', LS_CACHE='wl_cache', LS_PROG='wl_progress', LS_SA='wl_sa', LS_USER='wl_user';
-const SHEETS_BASE='https://sheets.googleapis.com/v4/spreadsheets';
-const TOKEN_URI='https://oauth2.googleapis.com/token';
-const SCOPE='https://www.googleapis.com/auth/spreadsheets';
+const LS_CFG='wl_config', LS_CACHE='wl_cache', LS_PROG='wl_progress', LS_USER='wl_user';
 const LANG_CODES={ru:'ru-RU',en:'en-US',ko:'ko-KR',fr:'fr-FR',de:'de-DE',es:'es-ES',it:'it-IT',ja:'ja-JP',zh:'zh-CN',ar:'ar-SA',tr:'tr-TR',pt:'pt-BR',hi:'hi-IN',pl:'pl-PL',uk:'uk-UA',kk:'kk-KZ',ky:'ky-KG'};
-const ALL_SHEETS=['languages','categories','words','users','ratings','logs'];
-const SHEET_HEADERS={languages:['code','name'],categories:['id','name','icon'],words:['category','lang_from','word_from','lang_to','word_to','transcription'],users:['login','password','role','status'],ratings:['login','words_learned','quizzes_done','quiz_score','last_active'],logs:['timestamp','user','action','details','type']};
+
+// Dictionary-specific DB schema — registered with the platform on init
+const DICT_SCHEMA = {
+  languages:  { headers: ['code','name'] },
+  categories: { headers: ['id','name','icon'] },
+  words:      { headers: ['category','lang_from','word_from','lang_to','word_to','transcription'] },
+  ratings:    { headers: ['login','words_learned','quizzes_done','quiz_score','last_active'] },
+  logs:       { headers: ['timestamp','user','action','details','type'] }
+};
 
 /* ===== STATE ===== */
-let cfg={spreadsheetId:''};
-let sa=null; // service account parsed JSON
+let cfg={langFrom:'ru',langTo:'en'};
 let data={languages:[],categories:[],words:[],users:[],ratings:[],logs:[]};
 let ui={view:'home',langFrom:'ru',langTo:'en',category:null,settingsTab:'general'};
 let progress={};
 let currentUser=null;
-let accessToken=null;
-let tokenExpiry=0;
 let navStack=['home'];
 
 /* Cards state */
@@ -520,13 +465,15 @@ function init(){
   loadCache();
   if (!Platform) {
     const el=document.getElementById('v-setup');
-    if(el) el.innerHTML='<div style="padding:40px;text-align:center;color:#ff6b6b">Откройте приложение через платформу McGill</div>';
+    if(el) el.innerHTML='<div style="padding:60px 20px;text-align:center"><div style="font-size:2.5rem;margin-bottom:16px">📖</div><p style="color:#ff6b6b;font-size:.9rem">Откройте приложение через платформу McGill</p></div>';
     showView('setup'); return;
   }
+  // Register dictionary’s required sheets with the platform
+  Platform.db.registerAppSchema('dictionary', DICT_SCHEMA);
   const profile = Platform.user.getProfile();
   if (!profile) {
     const el=document.getElementById('v-setup');
-    if(el) el.innerHTML='<div style="padding:40px;text-align:center;color:#ff6b6b">Войдите в платформу McGill</div>';
+    if(el) el.innerHTML='<div style="padding:60px 20px;text-align:center"><div style="font-size:2.5rem;margin-bottom:16px">📖</div><p style="color:#ff6b6b;font-size:.9rem">Войдите в платформу McGill</p></div>';
     showView('setup'); return;
   }
   currentUser = { login: profile.login, role: profile.role, status: 'active' };
@@ -550,7 +497,7 @@ function init(){
 
 /* ===== CONFIG ===== */
 function loadConfig(){
-  try{const s=localStorage.getItem(LS_CFG);if(s)cfg=JSON.parse(s)}catch(e){}
+  try{const s=localStorage.getItem(LS_CFG);if(s){const p=JSON.parse(s);if(p.langFrom)cfg.langFrom=p.langFrom;if(p.langTo)cfg.langTo=p.langTo;}}catch(e){}
   if(cfg.langFrom) ui.langFrom=cfg.langFrom;
   if(cfg.langTo) ui.langTo=cfg.langTo;
 }
@@ -558,23 +505,12 @@ function saveCfg(){
   cfg.langFrom=ui.langFrom; cfg.langTo=ui.langTo;
   localStorage.setItem(LS_CFG,JSON.stringify(cfg));
 }
-function loadSA(){
-  try{const s=localStorage.getItem(LS_SA);if(s)sa=JSON.parse(s)}catch(e){}
-}
-function saveSA(){
-  if(sa) localStorage.setItem(LS_SA,JSON.stringify(sa));
-  else localStorage.removeItem(LS_SA);
-}
-function loadProgress(){
-  try{const s=localStorage.getItem(LS_PROG);if(s)progress=JSON.parse(s)}catch(e){}
-}
+function loadProgress(){try{const s=localStorage.getItem(LS_PROG);if(s)progress=JSON.parse(s)}catch(e){}}
 function saveProgress(){localStorage.setItem(LS_PROG,JSON.stringify(progress))}
 function loadCache(){
   try{const s=localStorage.getItem(LS_CACHE);if(s) data=JSON.parse(s)}catch(e){}
 }
 function saveCache(){localStorage.setItem(LS_CACHE,JSON.stringify(data))}
-function loadUser(){try{const s=localStorage.getItem(LS_USER);if(s)currentUser=JSON.parse(s)}catch(e){}}
-function saveUser(){if(currentUser)localStorage.setItem(LS_USER,JSON.stringify(currentUser));else localStorage.removeItem(LS_USER)}
 
 function afterLogin(){
   document.getElementById('hdr-user').textContent=currentUser.login;
@@ -592,7 +528,7 @@ function showView(name){
   document.querySelectorAll('.view').forEach(v=>{v.classList.remove('active');v.style.display='';});
   const el=document.getElementById('v-'+name);
   if(el){el.classList.add('active');if(name==='cards')el.style.display='flex';}
-  const noNav=['login','register','setup'];
+  const noNav=['setup'];
   document.getElementById('bnav').style.display=noNav.includes(name)?'none':'flex';
 }
 
@@ -633,91 +569,32 @@ async function apiRead(range){ return Platform.db.read(range); }
 async function apiAppend(range,values){ return Platform.db.append(range,values); }
 async function apiUpdate(range,values){ return Platform.db.update(range,values); }
 async function apiClearRow(sheet,rowIndex){
-  const headers=SHEET_HEADERS[sheet]||[];
+  const headers=DICT_SCHEMA[sheet]?.headers||[];
   return Platform.db.update(sheet+'!'+rowIndex+':'+rowIndex,[new Array(headers.length||8).fill('')]);
 }
 async function apiBatchUpdate(requests){ return Platform.db.batchStructural(requests); }
 async function apiBatchValueUpdate(batchData){ return Platform.db.batchValues(batchData); }
-async function apiGetSheets(){
-  const found=[];
-  for(const name of ALL_SHEETS){
-    try{ await Platform.db.read(name+'!A1'); found.push(name); }catch{}
-  }
-  return found;
+
+
+/* ===== DB INIT (delegated to platform) ===== */
+function initSheetsFromSettings(){
+  Platform?.db?.initAllSheets?.();
 }
 
-
-/* ===== INIT SHEETS ===== */
-async function initSheets(silent=false){
-  if(!silent) showLoader(true);
-  try{
-    const existing=await apiGetSheets();
-    const reqs=[];
-    for(const name of ALL_SHEETS){if(!existing.includes(name))reqs.push({addSheet:{properties:{title:name}}})}
-    if(reqs.length)await apiBatchUpdate(reqs);
-    for(const name of ALL_SHEETS){
-      const rows=await apiRead(name+'!1:1');
-      if(!rows.values||!rows.values.length)await apiAppend(name+'!A1',[SHEET_HEADERS[name]]);
-    }
-    const users=await apiRead('users!A2:D');
-    if(!users.values||!users.values.length)await apiAppend('users!A:D',[['Kutman','123','admin','active']]);
-    if(!silent) toast('Таблицы инициализированы','ok');
-  }catch(e){toast('Ошибка инициализации: '+e.message,'err')}
-  if(!silent) showLoader(false);
-}
-
-/* ===== AUTH ===== */
-function showLogin(){showView('login')}
-function showRegister(){showView('register')}
+/* ===== AUTH helpers (delegated to platform) ===== */
+// Login/register is handled by the platform.
+// Dictionary only uses Platform.user.getProfile() during init.
 
 async function ensureUsersLoaded(){
   if(data.users.length)return;
   try{
-    const res=await apiRead('users!A2:D');
+    const res=await apiRead('users!A2:E');
     if(res.values&&res.values.length){
       data.users=res.values.filter(r=>r[0]).map(r=>({login:r[0],password:r[1]||'',role:r[2]||'user',status:r[3]||'active'}));
       saveCache();
     }
   }catch(e){}
-  if(!data.users.length){data.users=[{login:'Kutman',password:'123',role:'admin',status:'active'}]}
-}
-
-async function doLogin(){
-  const login=document.getElementById('inp-login').value.trim();
-  const pass=document.getElementById('inp-pass').value.trim();
-  if(!login||!pass){toast('Введите логин и пароль','err');return}
-  showLoader(true);
-  try{
-    await ensureUsersLoaded();
-    const u=data.users.find(x=>x.login.toLowerCase()===login.toLowerCase());
-    if(!u){toast('Пользователь не найден','err');showLoader(false);return}
-    if(u.password!==pass){toast('Неверный пароль','err');showLoader(false);return}
-    if(u.status==='pending'){toast('Аккаунт ожидает подтверждения','err');showLoader(false);return}
-    if(u.status==='rejected'){toast('Аккаунт отклонён','err');showLoader(false);return}
-    currentUser={login:u.login,role:u.role};saveUser();
-    logToSheet('login','Вход: '+u.login,'ok');
-    toast('Добро пожаловать, '+u.login+'!','ok');
-    afterLogin();
-  }catch(e){toast('Ошибка: '+e.message,'err')}
-  showLoader(false);
-}
-
-async function doRegister(){
-  const login=document.getElementById('inp-reg-login').value.trim();
-  const pass=document.getElementById('inp-reg-pass').value.trim();
-  const pass2=document.getElementById('inp-reg-pass2').value.trim();
-  if(!login||!pass){toast('Заполните все поля','err');return}
-  if(pass!==pass2){toast('Пароли не совпадают','err');return}
-  showLoader(true);
-  try{
-    await ensureUsersLoaded();
-    if(data.users.find(x=>x.login.toLowerCase()===login.toLowerCase())){toast('Логин занят','err');showLoader(false);return}
-    await apiAppend('users!A:D',[[login,pass,'user','pending']]);
-    data.users.push({login,password:pass,role:'user',status:'pending'});saveCache();
-    toast('Регистрация отправлена. Ожидайте подтверждения.','ok');
-    showLogin();
-  }catch(e){toast('Ошибка: '+e.message,'err')}
-  showLoader(false);
+  if(!data.users.length){data.users=[]}
 }
 
 function openUserMenu(){
@@ -726,7 +603,6 @@ function openUserMenu(){
     <h3>${esc(currentUser.login)}</h3>
     <p style="color:var(--tx2);font-size:.82rem;margin-bottom:16px">Роль: ${esc(currentUser.role)}</p>
     <button class="btn btn-ghost mb8" onclick="openChangePass()">Сменить пароль</button>
-    <button class="btn btn-red" onclick="doLogout()">Выйти</button>
   `);
 }
 
@@ -781,12 +657,11 @@ async function syncData(){
       apiRead('users!A2:D'),
       apiRead('ratings!A2:E')
     ]);
-    // Auto-init if any sheet is missing or users table is empty
-    const needsInit=results.some(r=>r.status==='rejected')||
-      (results[3].status==='fulfilled'&&!(results[3].value.values?.length));
+    // If sheets are missing, trigger platform-level DB init and retry once
+    const needsInit=results.some(r=>r.status==='rejected');
     if(needsInit){
       toast('Инициализация таблиц...','');
-      await initSheets(true);
+      await Platform.db.initAllSheets();
       results=await Promise.allSettled([
         apiRead('languages!A2:B100'),
         apiRead('categories!A2:C100'),
@@ -1266,13 +1141,12 @@ function renderSettings(){
 }
 
 function renderSettingsGeneral(c){
+  const sid = Platform?.db?.getSpreadsheetId?.() || '—';
   c.innerHTML=`
     <div class="set-section">
       <h3>📋 Подключение</h3>
-      <div class="set-row"><span>Spreadsheet ID</span><span class="badge">${cfg.spreadsheetId?cfg.spreadsheetId.slice(0,12)+'…':'Не задан'}</span></div>
-      <div class="set-row"><span>Сервисный аккаунт</span><span class="badge">${sa?.client_email||'Не настроен'}</span></div>
-      <button class="btn btn-sm btn-ghost mt8" onclick="openChangeSID()">Изменить ID</button>
-      <button class="btn btn-sm btn-ghost mt8" onclick="openChangeSA()">Изменить SA</button>
+      <div class="set-row"><span>Spreadsheet ID</span><span class="badge">${sid ? sid.slice(0,14)+'…' : '—'}</span></div>
+      <div class="set-row"><span>Подключение</span><span class="badge">Через платформу McGill</span></div>
       <button class="btn btn-sm btn-orange mt8" onclick="initSheetsFromSettings()">🗃 Инициализировать таблицы</button>
     </div>
     <div class="set-section">
@@ -1557,21 +1431,11 @@ async function renderSettingsLogs(c){
   }
 }
 
-function openChangeSID(){
-  showModal(`
-    <h3>Spreadsheet ID</h3>
-    <div class="input-group"><label>ID таблицы</label><input type="text" id="m-new-sid" value="${esc(cfg.spreadsheetId||'')}"></div>
-    <button class="btn btn-primary" onclick="saveSID()">Сохранить</button>
-    <button class="btn btn-ghost mt8" onclick="closeModal()">Отмена</button>
-  `);
-}
-function saveSID(){
-  cfg.spreadsheetId=document.getElementById('m-new-sid').value.trim();
-  saveCfg();accessToken=null;tokenExpiry=0;
-  toast('ID сохранён','ok');closeModal();syncData();
-}
-
-function initSheetsFromSettings(){initSheets()}
+function openChangeSA(){ toast('Управление подключением в платформе McGill','info'); }
+function updateSA(){ closeModal(); }
+function openChangeSID(){ toast('Управление подключением в платформе McGill','info'); }
+function saveSID(){ closeModal(); }
+function saveSetup(){}  // no-op: setup handled by platform
 
 /* ===== ADMIN FUNCTIONS ===== */
 async function approveUser(idx){
@@ -1619,44 +1483,6 @@ async function deleteUser(idx){
     toast('Пользователь удалён','ok');renderSettings();
   }catch(e){toast('Ошибка','err')}
   showLoader(false);
-}
-
-function openChangeSA(){
-  showModal(`
-    <h3>Сервисный аккаунт</h3>
-    <div class="input-group"><label>JSON сервисного аккаунта</label>
-    <textarea id="m-sa-json" rows="8" placeholder='Вставьте содержимое .json...'></textarea></div>
-    <button class="btn btn-primary" onclick="updateSA()">Сохранить</button>
-    <button class="btn btn-ghost mt8" onclick="closeModal()">Отмена</button>
-  `);
-}
-
-function updateSA(){
-  const raw=document.getElementById('m-sa-json').value.trim();
-  if(!raw){toast('Вставьте JSON','err');return}
-  try{
-    const parsed=JSON.parse(raw);
-    if(!parsed.client_email||!parsed.private_key){toast('Некорректный JSON: нет client_email/private_key','err');return}
-    sa=parsed; saveSA();
-    accessToken=null; tokenExpiry=0;
-    toast('Сервисный аккаунт обновлён','ok');
-    closeModal(); renderSettings();
-  }catch(e){toast('Ошибка парсинга JSON','err')}
-}
-
-function saveSetup(){
-  const sid=document.getElementById('inp-sid').value.trim();
-  const saRaw=document.getElementById('inp-sa').value.trim();
-  if(!sid){toast('Введите ID таблицы','err');return}
-  if(!saRaw){toast('Вставьте JSON сервисного аккаунта','err');return}
-  try{
-    const parsed=JSON.parse(saRaw);
-    if(!parsed.client_email||!parsed.private_key){toast('Некорректный JSON: нет client_email/private_key','err');return}
-    sa=parsed; saveSA();
-  }catch(e){toast('Ошибка парсинга JSON','err');return}
-  cfg.spreadsheetId=sid;
-  saveCfg();
-  showLogin();
 }
 
 function clearProgress(){
