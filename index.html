@@ -215,6 +215,23 @@
         ::-webkit-scrollbar { width: 4px; }
         ::-webkit-scrollbar-track { background: transparent; }
         ::-webkit-scrollbar-thumb { background: var(--border-hi); border-radius: 2px; }
+
+        /* ── PLATFORM SETTINGS PANEL ── */
+        #psett-bg{position:fixed;inset:0;background:rgba(10,10,15,.75);z-index:5000;display:none;align-items:flex-end;justify-content:center;backdrop-filter:blur(4px);-webkit-backdrop-filter:blur(4px)}
+        #psett-bg.show{display:flex}
+        #psett-panel{width:100%;max-width:480px;max-height:85vh;background:var(--surface);border-radius:var(--radius) var(--radius) 0 0;border-top:1px solid var(--border-hi);display:flex;flex-direction:column;overflow:hidden}
+        .psett-hdr{display:flex;align-items:center;justify-content:space-between;padding:16px 18px 14px;border-bottom:1px solid var(--border);flex-shrink:0}
+        .psett-hdr h2{font-size:.95rem;font-weight:700}
+        .psett-close{width:30px;height:30px;border-radius:50%;background:var(--surface-2);border:none;color:var(--text-2);cursor:pointer;font-size:1rem;display:flex;align-items:center;justify-content:center}
+        .psett-body{overflow-y:auto;flex:1;padding:0 0 max(16px,env(safe-area-inset-bottom))}
+        .psett-sec{padding:14px 18px;border-bottom:1px solid var(--border)}
+        .psett-sec h3{font-size:.7rem;font-weight:700;color:var(--text-3);letter-spacing:.08em;text-transform:uppercase;margin-bottom:10px}
+        .psett-row{display:flex;align-items:center;justify-content:space-between;padding:5px 0;font-size:.82rem;color:var(--text-2)}
+        .psett-badge{font-size:.7rem;background:var(--surface-2);border:1px solid var(--border-hi);border-radius:4px;padding:2px 8px;color:var(--text);font-family:'JetBrains Mono',monospace;max-width:180px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+        .psett-btn{width:100%;padding:10px 14px;margin-top:8px;border-radius:var(--radius-sm);border:1px solid var(--border-hi);background:var(--surface-2);color:var(--text);font-family:'Manrope',sans-serif;font-size:.82rem;font-weight:600;cursor:pointer;text-align:left;transition:background .15s;display:block}
+        .psett-btn:hover{background:var(--surface-3)}
+        .psett-btn.accent{background:rgba(91,140,255,.12);color:var(--c-prep);border-color:rgba(91,140,255,.3)}
+        .psett-btn.danger{color:var(--c-danger);border-color:rgba(255,68,102,.3)}
     </style>
 </head>
 <body>
@@ -299,6 +316,9 @@
             <div class="hdr-logo-name">McGill</div>
         </div>
         <span class="hdr-user" id="hdr-user-name"></span>
+        <button class="btn-icon" id="btn-platform-settings" title="Настройки платформы" onclick="openPlatformSettings()">
+            <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 10 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 5.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+        </button>
         <button class="btn-icon" id="btn-logout" title="Выйти из аккаунта">
             <svg viewBox="0 0 24 24"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
         </button>
@@ -315,6 +335,17 @@
 <div id="immersive-container">
     <button id="btn-float-back" title="Закрыть приложение">←</button>
     <iframe id="app-iframe" sandbox="allow-scripts allow-same-origin" allowfullscreen></iframe>
+</div>
+
+<!-- ═══ PLATFORM SETTINGS ═══ -->
+<div id="psett-bg" onclick="if(event.target===this)closePlatformSettings()">
+    <div id="psett-panel">
+        <div class="psett-hdr">
+            <h2>⚙️ Настройки платформы</h2>
+            <button class="psett-close" onclick="closePlatformSettings()">✕</button>
+        </div>
+        <div class="psett-body" id="psett-body"></div>
+    </div>
 </div>
 
 <div id="toast"></div>
@@ -467,9 +498,9 @@ async function apiBatchStructural(requests) {
 /* ── DB SCHEMA REGISTRY ── */
 // System sheets always created on first connect
 const DB_SYSTEM_SCHEMA = {
-    users:  { headers: ['login','password','role','status','total_xp'] },
-    Scores: { headers: ['timestamp','login','app_id','raw_score','xp_earned'] },
-    Logs:   { headers: ['timestamp','login','app_id','duration_sec'] }
+    users:    { headers: ['login','password','role','status','total_xp'] },
+    scores:   { headers: ['timestamp','login','app_id','raw_score','xp_earned'] },
+    sessions: { headers: ['timestamp','login','app_id','duration_sec'] }
 };
 
 const _dbAppSchemas = {};  // appId → { sheetName: { headers:[...], seedRows?:[[...]] } }
@@ -549,7 +580,7 @@ window.PlatformAPI = {
         submitScore: async (appId, rawScore, xpEarned) => {
             if (!currentUser) return;
             const ts = new Date().toISOString();
-            await apiAppend('Scores!A:E', [[ts, currentUser.login, appId, rawScore, xpEarned]]).catch(()=>{});
+            await apiAppend('scores!A:E', [[ts, currentUser.login, appId, rawScore, xpEarned]]).catch(()=>{});
             // Best-effort XP increment in Users sheet
             try {
                 const res  = await apiRead('users!A2:E5000');
@@ -570,13 +601,14 @@ window.PlatformAPI = {
             if (!currentUser) return;
             try {
                 const ts = new Date().toISOString();
-                await apiAppend('Logs!A:D', [[ts, currentUser.login, appId, durationSec]]);
+                await apiAppend('sessions!A:D', [[ts, currentUser.login, appId, durationSec]]);
             } catch {}
         }
     },
     ui: {
-        showToast:  (msg, type) => toast(msg, type),
-        showLoader: (on)        => showLoader(on)
+        showToast:    (msg, type) => toast(msg, type),
+        showLoader:   (on)        => showLoader(on),
+        openSettings: ()          => openPlatformSettings()
     }
 };
 
@@ -796,6 +828,82 @@ function afterLogin() {
 })();
 
 /* ── SERVICE WORKER ── */
+/* ── PLATFORM SETTINGS ── */
+function openPlatformSettings() {
+    renderPlatformSettings();
+    $('psett-bg').classList.add('show');
+}
+function closePlatformSettings() {
+    $('psett-bg').classList.remove('show');
+}
+function renderPlatformSettings() {
+    const sid      = cfg.spreadsheetId || '';
+    const saEmail  = sa?.client_email  || '';
+    const appCount = Object.keys(_dbAppSchemas).length;
+    let lsBytes = 0;
+    try { for (const k of Object.keys(localStorage)) lsBytes += (localStorage.getItem(k)||'').length * 2; } catch {}
+    const lsKb = (lsBytes / 1024).toFixed(1);
+    $('psett-body').innerHTML = `
+        <div class="psett-sec">
+            <h3>🔌 Подключение</h3>
+            <div class="psett-row"><span>Spreadsheet ID</span><span class="psett-badge">${sid ? sid.slice(0,18)+'…' : '—'}</span></div>
+            <div class="psett-row"><span>Сервисный аккаунт</span><span class="psett-badge">${saEmail ? saEmail.split('@')[0] : '—'}</span></div>
+            <button class="psett-btn" onclick="closePlatformSettings();showView('setup')">✏️ Изменить подключение</button>
+        </div>
+        <div class="psett-sec">
+            <h3>🗄 База данных</h3>
+            <div class="psett-row"><span>Системных таблиц</span><span class="psett-badge">${Object.keys(DB_SYSTEM_SCHEMA).length}</span></div>
+            <div class="psett-row"><span>Схемы приложений</span><span class="psett-badge">${appCount}</span></div>
+            <button class="psett-btn accent" onclick="closePlatformSettings();PlatformAPI.db.initAllSheets()">🗃 Инициализировать таблицы</button>
+        </div>
+        <div class="psett-sec">
+            <h3>🗑 Кэш и данные</h3>
+            <div class="psett-row"><span>LocalStorage</span><span class="psett-badge">~${lsKb} КБ</span></div>
+            <button class="psett-btn" onclick="clearPlatformCache()">🧹 Очистить кэш приложений</button>
+            <button class="psett-btn danger" onclick="resetPlatformData()">⚠️ Сбросить все данные</button>
+        </div>
+        <div class="psett-sec">
+            <h3>🔄 Обновление приложения</h3>
+            <div class="psett-row"><span>Service Worker</span><span class="psett-badge" id="psett-sw-badge">…</span></div>
+            <button class="psett-btn" onclick="checkForUpdate()">🔍 Проверить обновление</button>
+            <button class="psett-btn" onclick="location.reload()">↺ Перезагрузить приложение</button>
+        </div>`;
+    if ('serviceWorker' in navigator) {
+        navigator.serviceWorker.getRegistration().then(reg => {
+            const el = $('psett-sw-badge'); if (!el) return;
+            if (!reg) { el.textContent = 'Не активен'; return; }
+            if (reg.waiting) { el.textContent = '⚡ Обновление ждёт'; el.style.color = 'var(--c-work)'; return; }
+            el.textContent = '✓ Актуально';
+        }).catch(() => { const el = $('psett-sw-badge'); if (el) el.textContent = '—'; });
+    } else {
+        const el = $('psett-sw-badge'); if (el) el.textContent = 'Не поддерживается';
+    }
+}
+function clearPlatformCache() {
+    const keep = new Set([LS_CFG, LS_SA, LS_USER]);
+    for (const k of Object.keys(localStorage)) if (!keep.has(k)) localStorage.removeItem(k);
+    if ('caches' in window) caches.keys().then(names => names.forEach(n => caches.delete(n)));
+    toast('Кэш приложений очищен', 'ok');
+    closePlatformSettings();
+}
+function resetPlatformData() {
+    if (!confirm('Удалить ВСЕ данные платформы? Потребуется настройка заново.')) return;
+    localStorage.clear();
+    if ('caches' in window) caches.keys().then(names => names.forEach(n => caches.delete(n)));
+    location.reload();
+}
+async function checkForUpdate() {
+    if (!swRegistration) { toast('Service Worker не активен', ''); return; }
+    try {
+        showLoader(true);
+        await swRegistration.update();
+        showLoader(false);
+        if (swRegistration.waiting) toast('Обновление готово — перезагрузите приложение', 'ok');
+        else toast('Версия актуальна', 'ok');
+        renderPlatformSettings();
+    } catch(e) { showLoader(false); toast('Ошибка: ' + e.message, 'err'); }
+}
+
 if ('serviceWorker' in navigator) {
     window.addEventListener('load', () => {
         navigator.serviceWorker.register('./sw.js')

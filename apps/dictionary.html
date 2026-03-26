@@ -434,11 +434,11 @@ const LANG_CODES={ru:'ru-RU',en:'en-US',ko:'ko-KR',fr:'fr-FR',de:'de-DE',es:'es-
 
 // Dictionary-specific DB schema — registered with the platform on init
 const DICT_SCHEMA = {
-  languages:  { headers: ['code','name'] },
-  categories: { headers: ['id','name','icon'] },
-  words:      { headers: ['category','lang_from','word_from','lang_to','word_to','transcription'] },
-  ratings:    { headers: ['login','words_learned','quizzes_done','quiz_score','last_active'] },
-  logs:       { headers: ['timestamp','user','action','details','type'] }
+  dict_languages:  { headers: ['code','name'] },
+  dict_categories: { headers: ['id','name','icon'] },
+  dict_words:      { headers: ['category','lang_from','word_from','lang_to','word_to','transcription'] },
+  dict_ratings:    { headers: ['login','words_learned','quizzes_done','quiz_score','last_active'] },
+  dict_logs:       { headers: ['timestamp','user','action','details','type'] }
 };
 
 /* ===== STATE ===== */
@@ -643,7 +643,7 @@ function logToSheet(action,details,type='info'){
   if(!Platform) return;
   const user=currentUser?.login||'system';
   const row=[new Date().toISOString(),user,action,String(details),type];
-  apiAppend('logs!A:E',[row]).catch(()=>{});
+  apiAppend('dict_logs!A:E',[row]).catch(()=>{});
 }
 
 /* ===== SYNC ===== */
@@ -651,11 +651,11 @@ async function syncData(){
   showLoader(true);
   try{
     let results=await Promise.allSettled([
-      apiRead('languages!A2:B100'),
-      apiRead('categories!A2:C100'),
-      apiRead('words!A2:F5000'),
+      apiRead('dict_languages!A2:B100'),
+      apiRead('dict_categories!A2:C100'),
+      apiRead('dict_words!A2:F5000'),
       apiRead('users!A2:D'),
-      apiRead('ratings!A2:E')
+      apiRead('dict_ratings!A2:E')
     ]);
     // If sheets are missing, trigger platform-level DB init and retry once
     const needsInit=results.some(r=>r.status==='rejected');
@@ -663,11 +663,11 @@ async function syncData(){
       toast('Инициализация таблиц...','');
       await Platform.db.initAllSheets();
       results=await Promise.allSettled([
-        apiRead('languages!A2:B100'),
-        apiRead('categories!A2:C100'),
-        apiRead('words!A2:F5000'),
+        apiRead('dict_languages!A2:B100'),
+        apiRead('dict_categories!A2:C100'),
+        apiRead('dict_words!A2:F5000'),
         apiRead('users!A2:D'),
-        apiRead('ratings!A2:E')
+        apiRead('dict_ratings!A2:E')
       ]);
     }
     if(results[0].status==='fulfilled'){const v=results[0].value;data.languages=(v.values||[]).map(r=>({code:(r[0]||'').trim(),name:(r[1]||'').trim()})).filter(l=>l.code&&l.name)}
@@ -1141,14 +1141,7 @@ function renderSettings(){
 }
 
 function renderSettingsGeneral(c){
-  const sid = Platform?.db?.getSpreadsheetId?.() || '—';
   c.innerHTML=`
-    <div class="set-section">
-      <h3>📋 Подключение</h3>
-      <div class="set-row"><span>Spreadsheet ID</span><span class="badge">${sid ? sid.slice(0,14)+'…' : '—'}</span></div>
-      <div class="set-row"><span>Подключение</span><span class="badge">Через платформу McGill</span></div>
-      <button class="btn btn-sm btn-orange mt8" onclick="initSheetsFromSettings()">🗃 Инициализировать таблицы</button>
-    </div>
     <div class="set-section">
       <h3>📊 Статистика</h3>
       <div class="set-row"><span>Слов в кэше</span><span class="badge">${data.words.length}</span></div>
@@ -1156,6 +1149,7 @@ function renderSettingsGeneral(c){
       <div class="set-row"><span>Языки</span><span class="badge">${data.languages.length}</span></div>
       <div class="set-row"><span>Категории</span><span class="badge">${data.categories.length}</span></div>
     </div>
+    <button class="btn btn-ghost mt8" onclick="Platform?.ui?.openSettings?.()">⚙️ Настройки платформы</button>
     <button class="btn btn-red mt8" onclick="clearProgress()">🗑 Сбросить прогресс</button>`;
 }
 
@@ -1399,7 +1393,7 @@ async function renderSettingsLogs(c){
   if(!currentUser||currentUser.role!=='admin'){c.innerHTML=adminOnly();return}
   c.innerHTML='<div class="empty"><div class="spinner" style="width:28px;height:28px;border-width:2px"></div></div>';
   try{
-    const res=await apiRead('logs!A2:E2000');
+    const res=await apiRead('dict_logs!A2:E2000');
     const rows=[...(res.values||[])].filter(r=>r[0]).reverse();
     if(!rows.length){c.innerHTML='<div class="empty"><div class="em-icon">📋</div><p>Журнал пуст</p></div>';return}
     const typeColor=t=>t==='ok'?'var(--green)':t==='err'?'var(--red)':'var(--tx2)';
@@ -1517,7 +1511,7 @@ async function addLang(){
   if(!code||!name){toast('Заполните все поля','err');return}
   showLoader(true);
   try{
-    await apiAppend('languages!A:B',[[code,name]]);
+    await apiAppend('dict_languages!A:B',[[code,name]]);
     data.languages.push({code,name});
     saveCache();initLangSelectors();
     toast('Язык добавлен','ok');closeModal();
@@ -1543,7 +1537,7 @@ async function addCat(){
   if(!id||!name){toast('Заполните ID и название','err');return}
   showLoader(true);
   try{
-    await apiAppend('categories!A:C',[[id,name,icon]]);
+    await apiAppend('dict_categories!A:C',[[id,name,icon]]);
     data.categories.push({id,name,icon});
     saveCache();
     toast('Категория добавлена','ok');closeModal();
@@ -1584,7 +1578,7 @@ async function addWord(){
   if(!wf||!wt){toast('Введите слово и перевод','err');return}
   showLoader(true);
   try{
-    await apiAppend('words!A:F',[[cat,lf,wf,lt,wt,tr]]);
+    await apiAppend('dict_words!A:F',[[cat,lf,wf,lt,wt,tr]]);
     data.words.push({category:cat,langFrom:lf,wordFrom:wf,langTo:lt,wordTo:wt,transcription:tr});
     saveCache();
     toast('Слово добавлено','ok');
@@ -1617,7 +1611,7 @@ async function saveLang(idx){
   if(!code||!name){toast('Заполните все поля','err');return}
   showLoader(true);
   try{
-    await apiUpdate('languages!A'+(idx+2)+':B'+(idx+2),[code,name]);
+    await apiUpdate('dict_languages!A'+(idx+2)+':B'+(idx+2),[code,name]);
     data.languages[idx]={code,name};saveCache();initLangSelectors();
     toast('Язык обновлён','ok');closeModal();if(ui.view==='settings')renderSettings();
   }catch(e){toast('Ошибка: '+e.message,'err')}
@@ -1627,7 +1621,7 @@ async function deleteLang(idx){
   if(!confirm('Удалить язык '+data.languages[idx].name+'?'))return;
   showLoader(true);
   try{
-    await apiClearRow('languages',idx+2);
+    await apiClearRow('dict_languages',idx+2);
     data.languages.splice(idx,1);saveCache();initLangSelectors();
     toast('Язык удалён','ok');closeModal();if(ui.view==='settings')renderSettings();
   }catch(e){toast('Ошибка: '+e.message,'err')}
@@ -1654,7 +1648,7 @@ async function saveCat(idx){
   if(!id||!name){toast('Заполните ID и название','err');return}
   showLoader(true);
   try{
-    await apiUpdate('categories!A'+(idx+2)+':C'+(idx+2),[id,name,icon]);
+    await apiUpdate('dict_categories!A'+(idx+2)+':C'+(idx+2),[id,name,icon]);
     data.categories[idx]={id,name,icon};saveCache();
     toast('Категория обновлена','ok');closeModal();
     if(ui.view==='settings')renderSettings();if(ui.view==='home')renderHome();
@@ -1665,7 +1659,7 @@ async function deleteCat(idx){
   if(!confirm('Удалить категорию '+data.categories[idx].name+'?'))return;
   showLoader(true);
   try{
-    await apiClearRow('categories',idx+2);
+    await apiClearRow('dict_categories',idx+2);
     data.categories.splice(idx,1);saveCache();
     toast('Категория удалена','ok');closeModal();
     if(ui.view==='settings')renderSettings();if(ui.view==='home')renderHome();
@@ -1706,7 +1700,7 @@ async function saveWord(idx){
   showLoader(true);
   try{
     const row=idx+2;
-    await apiUpdate('words!A'+row+':F'+row,[cat,lf,wf,lt,wt,tr]);
+    await apiUpdate('dict_words!A'+row+':F'+row,[cat,lf,wf,lt,wt,tr]);
     data.words[idx]={category:cat,langFrom:lf,wordFrom:wf,langTo:lt,wordTo:wt,transcription:tr};
     saveCache();toast('Слово обновлено','ok');closeModal();
     if(ui.view==='words')renderWords();if(ui.view==='home')renderHome();
@@ -1717,7 +1711,7 @@ async function deleteWord(idx){
   if(!confirm('Удалить слово "'+data.words[idx].wordFrom+'"?'))return;
   showLoader(true);
   try{
-    await apiClearRow('words',idx+2);
+    await apiClearRow('dict_words',idx+2);
     data.words.splice(idx,1);saveCache();
     toast('Слово удалено','ok');closeModal();
     if(ui.view==='words')renderWords();if(ui.view==='home')renderHome();
@@ -1744,7 +1738,7 @@ async function bulkImport(){
 
   showLoader(true);
   try{
-    await apiAppend('words!A:F',rows);
+    await apiAppend('dict_words!A:F',rows);
     rows.forEach(r=>data.words.push({category:r[0],langFrom:r[1],wordFrom:r[2],langTo:r[3],wordTo:r[4],transcription:r[5]}));
     saveCache();
     document.getElementById('imp-text').value='';
@@ -1798,7 +1792,7 @@ async function importJSON(json){
   showLoader(true);
   // Always fresh-read words from Sheets to avoid stale cache causing false duplicates
   try{
-    const fresh=await apiRead('words!A2:F5000');
+    const fresh=await apiRead('dict_words!A2:F5000');
     data.words=(fresh.values||[]).map(r=>({category:(r[0]||'').trim(),langFrom:(r[1]||'').trim(),wordFrom:(r[2]||'').trim(),langTo:(r[3]||'').trim(),wordTo:(r[4]||'').trim(),transcription:(r[5]||'').trim()})).filter(w=>w.wordFrom&&w.wordTo);
   }catch(e){/* fallback to cache */}
   let added=0,updated=0,skipped=0;
@@ -1811,7 +1805,7 @@ async function importJSON(json){
     if(existing>=0){
       const old=data.words[existing];
       if(old.wordTo===w.wordTo&&old.transcription===(w.transcription||'')){skipped++;continue}
-      updates.push({range:'words!A'+(existing+2)+':F'+(existing+2),values:[[cat,lf,w.wordFrom,lt,w.wordTo,w.transcription||'']],idx:existing,obj:{category:cat,langFrom:lf,wordFrom:w.wordFrom,langTo:lt,wordTo:w.wordTo,transcription:w.transcription||''}});
+      updates.push({range:'dict_words!A'+(existing+2)+':F'+(existing+2),values:[[cat,lf,w.wordFrom,lt,w.wordTo,w.transcription||'']],idx:existing,obj:{category:cat,langFrom:lf,wordFrom:w.wordFrom,langTo:lt,wordTo:w.wordTo,transcription:w.transcription||''}});
       updated++;
     }else{
       newRows.push([cat,lf,w.wordFrom,lt,w.wordTo,w.transcription||'']);
@@ -1825,7 +1819,7 @@ async function importJSON(json){
   }
   try{
     if(newRows.length){
-      await apiAppend('words!A:F',newRows);
+      await apiAppend('dict_words!A:F',newRows);
       newRows.forEach(r=>data.words.push({category:r[0],langFrom:r[1],wordFrom:r[2],langTo:r[3],wordTo:r[4],transcription:r[5]}));
     }
     if(updates.length){
@@ -1857,11 +1851,11 @@ async function updateRating(){
     data.ratings[idx].quizzes_done=(data.ratings[idx].quizzes_done||0)+1;
     data.ratings[idx].quiz_score=Math.round(qz.score/qz.words.length*100);
     data.ratings[idx].last_active=now;
-    try{await apiUpdate('ratings!A'+(idx+2)+':E'+(idx+2),[login,String(wordsLearned),String(data.ratings[idx].quizzes_done),String(data.ratings[idx].quiz_score),now])}catch(e){}
+    try{await apiUpdate('dict_ratings!A'+(idx+2)+':E'+(idx+2),[login,String(wordsLearned),String(data.ratings[idx].quizzes_done),String(data.ratings[idx].quiz_score),now])}catch(e){}
   }else{
     const entry={login,words_learned:wordsLearned,quizzes_done:1,quiz_score:Math.round(qz.score/qz.words.length*100),last_active:now};
     data.ratings.push(entry);
-    try{await apiAppend('ratings!A:E',[[login,String(wordsLearned),'1',String(entry.quiz_score),now]])}catch(e){}
+    try{await apiAppend('dict_ratings!A:E',[[login,String(wordsLearned),'1',String(entry.quiz_score),now]])}catch(e){}
   }
   saveCache();
 }
