@@ -259,42 +259,86 @@ main{flex:1;overflow:hidden;position:relative}
 @media (min-width:1024px){
   body{
     display:grid;
-    grid-template-columns:250px minmax(0,1fr);
-    grid-template-rows:64px minmax(0,1fr);
+    grid-template-columns:230px minmax(0,1fr);
+    grid-template-rows:60px minmax(0,1fr);
+    height:100dvh;
+    overflow:hidden;
     align-items:stretch;
     background:radial-gradient(ellipse at 18% 20%,rgba(91,140,255,.12) 0%,transparent 48%),radial-gradient(ellipse at 80% 82%,rgba(0,229,160,.08) 0%,transparent 46%),var(--bg);
   }
-  header{grid-column:2;grid-row:1;padding:14px 20px;min-height:64px;border-bottom:1px solid var(--bd)}
-  main{grid-column:2;grid-row:2;min-height:0}
+  header{
+    grid-column:2;
+    grid-row:1;
+    padding:0 20px;
+    min-height:60px;
+    height:60px;
+    border-bottom:1px solid var(--bd);
+    border-radius:0;
+  }
+  main{
+    grid-column:2;
+    grid-row:2;
+    min-height:0;
+    overflow:hidden;
+    position:relative;
+  }
   #bnav{
     grid-column:1;
     grid-row:1 / span 2;
     flex-direction:column;
     justify-content:flex-start;
-    gap:6px;
-    padding:14px 10px;
+    align-items:stretch;
+    gap:4px;
+    padding:0 8px 16px;
     border-top:none;
     border-right:1px solid var(--bd);
     background:var(--sf);
+    overflow-y:auto;
+  }
+  #bnav::before{
+    content:'📖 Словарь';
+    display:block;
+    font-size:.82rem;
+    font-weight:800;
+    color:var(--tx2);
+    padding:18px 8px 14px;
+    border-bottom:1px solid var(--bd);
+    margin-bottom:8px;
+    letter-spacing:.04em;
+    text-transform:uppercase;
   }
   #bnav button{
     flex:0 0 auto;
+    width:100%;
     flex-direction:row;
     justify-content:flex-start;
     gap:10px;
     padding:10px 12px;
     border-radius:10px;
     font-size:.85rem;
+    text-align:left;
+    color:var(--tx2);
   }
-  #bnav button .ico{font-size:1rem}
-  #bnav button.active{background:rgba(91,140,255,.12)}
-  .view{padding:24px 28px}
-  .card-grid{grid-template-columns:repeat(auto-fill,minmax(170px,1fr))}
-  .lang-pair{max-width:760px}
-  .stats-row{max-width:760px}
-  .search-bar{max-width:760px}
-  #words-list{max-width:920px}
-  .modal{max-width:680px}
+  #bnav button:hover{background:rgba(255,255,255,.05);color:var(--tx)}
+  #bnav button .ico{font-size:1.05rem;min-width:20px;text-align:center}
+  #bnav button.active{background:rgba(91,140,255,.12);color:var(--blue)}
+  .view{padding:28px 36px}
+  .view.active{overflow-y:auto}
+  .card-grid{grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:14px}
+  .lang-pair{max-width:680px}
+  .stats-row{max-width:680px}
+  .search-bar{max-width:680px}
+  #words-list{max-width:860px}
+  .modal-bg{align-items:center}
+  .modal{max-width:680px;border-radius:var(--r)}
+  .set-section{max-width:720px}
+  .stabs{flex-wrap:wrap}
+  #btn-back{display:block!important}
+  .fc-wrap{min-height:400px}
+  .fc{width:340px;height:420px}
+  .fc-actions{width:340px}
+  .quiz-question{font-size:1.6rem}
+  .quiz-opts{max-width:480px;margin-left:auto;margin-right:auto}
 }
 </style>
 </head>
@@ -505,16 +549,39 @@ function normalizeProfile(profile){
 
 async function resolveCurrentUser(profile){
   const user=normalizeProfile(profile);
-  if(user.role==='admin'||!Platform?.db?.read) return user;
-  try{
-    const res=await Platform.db.read('sys_Users!B2:D5000');
-    const rows=res.values||[];
-    const found=rows.find(r=>String(r[0]||'').trim().toLowerCase()===user.login.toLowerCase());
-    if(found?.[2]) user.role=normalizeRole(found[2]);
-  }catch(e){
-    console.warn('resolveCurrentUser:',e);
+  // If platform already says admin – trust it
+  if(normalizeRole(user.role)==='admin') return user;
+  // Otherwise try to verify against sys_Users directly
+  if(Platform?.db?.read){
+    try{
+      const res=await Platform.db.read('sys_Users!A2:G5000');
+      const rows=res.values||[];
+      const match=rows.find(r=>String(r[1]||'').trim().toLowerCase()===user.login.toLowerCase());
+      if(match){
+        const sheetRole=normalizeRole(match[3]);
+        if(sheetRole==='admin') user.role='admin';
+      }
+    }catch(e){
+      console.warn('resolveCurrentUser fallback failed:',e);
+    }
   }
   return user;
+}
+
+async function refreshRole(){
+  if(!Platform){toast('Нет подключения к платформе','err');return;}
+  const profile=Platform.user.getProfile();
+  if(!profile){toast('Не авторизован','err');return;}
+  showLoader(true);
+  try{
+    currentUser=await resolveCurrentUser(profile);
+    const role=normalizeRole(currentUser.role);
+    toast(role==='admin'?'✓ Права администратора подтверждены':'Роль: '+role, role==='admin'?'ok':'info');
+    renderSettings();
+  }catch(e){
+    toast('Ошибка проверки роли','err');
+  }
+  showLoader(false);
 }
 
 async function init(){
@@ -526,8 +593,6 @@ async function init(){
     if(el) el.innerHTML='<div style="padding:60px 20px;text-align:center"><div style="font-size:2.5rem;margin-bottom:16px">📖</div><p style="color:#ff6b6b;font-size:.9rem">Откройте приложение через платформу McGill</p></div>';
     showView('setup'); return;
   }
-  // Ensure dictionary tables exist (non-blocking)
-  Platform.db.ensureTables(DICT_TABLES).catch(e=>console.warn('ensureTables:',e));
   const profile = Platform.user.getProfile();
   if (!profile) {
     const el=document.getElementById('v-setup');
@@ -1138,7 +1203,15 @@ function renderSettings(){
 }
 
 function renderSettingsGeneral(c){
+  const role=normalizeRole(currentUser?.role);
+  const roleColor=role==='admin'?'var(--green)':'var(--orange)';
+  const roleIcon=role==='admin'?'👑':'👤';
   c.innerHTML=`
+    <div class="set-section">
+      <h3>👤 Аккаунт</h3>
+      <div class="set-row"><span>Пользователь</span><span class="badge">${esc(currentUser?.login||'—')}</span></div>
+      <div class="set-row"><span>Роль</span><span class="badge" style="color:${roleColor};border-color:${roleColor}20">${roleIcon} ${role}</span></div>
+    </div>
     <div class="set-section">
       <h3>📊 Статистика</h3>
       <div class="set-row"><span>Слов в кэше</span><span class="badge">${data.words.length}</span></div>
@@ -1146,6 +1219,7 @@ function renderSettingsGeneral(c){
       <div class="set-row"><span>Языки</span><span class="badge">${data.languages.length}</span></div>
       <div class="set-row"><span>Категории</span><span class="badge">${data.categories.length}</span></div>
     </div>
+    <button class="btn btn-ghost mt8" onclick="refreshRole()">🔄 Проверить / обновить права доступа</button>
     <button class="btn btn-ghost mt8" onclick="Platform?.ui?.openSettings?.()">⚙️ Настройки платформы</button>
     <button class="btn btn-red mt8" onclick="clearProgress()">🗑 Сбросить прогресс</button>`;
 }
