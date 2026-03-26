@@ -411,8 +411,6 @@ main{flex:1;overflow:hidden;position:relative}
       <div class="stab" onclick="setSettingsTab('cats')">Категории</div>
       <div class="stab" onclick="setSettingsTab('data')">Данные</div>
       <div class="stab" onclick="setSettingsTab('impexp')">Импорт/Экспорт</div>
-      <div class="stab" onclick="setSettingsTab('admin')" id="stab-admin" style="display:none">Админ</div>
-      <div class="stab" onclick="setSettingsTab('logs')" id="stab-logs" style="display:none">Журнал</div>
     </div>
     <div id="settings-content"></div>
   </section>
@@ -429,21 +427,22 @@ main{flex:1;overflow:hidden;position:relative}
 
 <script>
 /* ===== CONSTANTS ===== */
-const LS_CFG='wl_config', LS_CACHE='wl_cache', LS_PROG='wl_progress', LS_USER='wl_user';
+const LS_CFG='wl_config', LS_CACHE='wl_cache', LS_PROG='wl_progress';
 const LANG_CODES={ru:'ru-RU',en:'en-US',ko:'ko-KR',fr:'fr-FR',de:'de-DE',es:'es-ES',it:'it-IT',ja:'ja-JP',zh:'zh-CN',ar:'ar-SA',tr:'tr-TR',pt:'pt-BR',hi:'hi-IN',pl:'pl-PL',uk:'uk-UA',kk:'kk-KZ',ky:'ky-KG'};
 
-// Dictionary-specific DB schema — registered with the platform on init
-const DICT_SCHEMA = {
-  dict_languages:  { headers: ['code','name'] },
-  dict_categories: { headers: ['id','name','icon'] },
-  dict_words:      { headers: ['category','lang_from','word_from','lang_to','word_to','transcription'] },
-  dict_ratings:    { headers: ['login','words_learned','quizzes_done','quiz_score','last_active'] },
-  dict_logs:       { headers: ['timestamp','user','action','details','type'] }
-};
+// Dictionary tables — ensured on startup via platform API
+const DICT_TABLES = [
+  { name: 'dict_languages',  headers: ['code','name'] },
+  { name: 'dict_categories', headers: ['id','name','icon'] },
+  { name: 'dict_words',      headers: ['category','lang_from','word_from','lang_to','word_to','transcription'] },
+  { name: 'dict_ratings',    headers: ['login','words_learned','quizzes_done','quiz_score','last_active'] }
+];
+const DICT_SCHEMA = {};
+DICT_TABLES.forEach(t => DICT_SCHEMA[t.name] = { headers: t.headers });
 
 /* ===== STATE ===== */
 let cfg={langFrom:'ru',langTo:'en'};
-let data={languages:[],categories:[],words:[],users:[],ratings:[],logs:[]};
+let data={languages:[],categories:[],words:[],ratings:[]};
 let ui={view:'home',langFrom:'ru',langTo:'en',category:null,settingsTab:'general'};
 let progress={};
 let currentUser=null;
@@ -515,10 +514,6 @@ function saveCache(){localStorage.setItem(LS_CACHE,JSON.stringify(data))}
 function afterLogin(){
   document.getElementById('hdr-user').textContent=currentUser.login;
   document.getElementById('hdr-user').style.display='inline';
-  if(currentUser.role==='admin'){
-    document.getElementById('stab-admin').style.display='';
-    document.getElementById('stab-logs').style.display='';
-  }
   showView('home');
   syncData();
 }
@@ -576,74 +571,22 @@ async function apiBatchUpdate(requests){ return Platform.db.batchStructural(requ
 async function apiBatchValueUpdate(batchData){ return Platform.db.batchValues(batchData); }
 
 
-/* ===== DB INIT (delegated to platform) ===== */
-function initSheetsFromSettings(){
-  Platform?.db?.initAllSheets?.();
-}
-
 /* ===== AUTH helpers (delegated to platform) ===== */
 // Login/register is handled by the platform.
 // Dictionary only uses Platform.user.getProfile() during init.
-
-async function ensureUsersLoaded(){
-  if(data.users.length)return;
-  try{
-    const res=await apiRead('users!A2:E');
-    if(res.values&&res.values.length){
-      data.users=res.values.filter(r=>r[0]).map(r=>({login:r[0],password:r[1]||'',role:r[2]||'user',status:r[3]||'active'}));
-      saveCache();
-    }
-  }catch(e){}
-  if(!data.users.length){data.users=[]}
-}
 
 function openUserMenu(){
   if(!currentUser)return;
   showModal(`
     <h3>${esc(currentUser.login)}</h3>
     <p style="color:var(--tx2);font-size:.82rem;margin-bottom:16px">Роль: ${esc(currentUser.role)}</p>
-    <button class="btn btn-ghost mb8" onclick="openChangePass()">Сменить пароль</button>
+    <button class="btn btn-ghost mb8" onclick="Platform?.ui?.openSettings?.();closeModal()">⚙️ Настройки платформы</button>
   `);
-}
-
-function openChangePass(){
-  closeModal();
-  showModal(`
-    <h3>Смена пароля</h3>
-    <div class="input-group"><label>Текущий пароль</label><input type="password" id="m-old-pass"></div>
-    <div class="input-group"><label>Новый пароль</label><input type="password" id="m-new-pass"></div>
-    <div class="input-group"><label>Повтор</label><input type="password" id="m-new-pass2"></div>
-    <button class="btn btn-primary" onclick="doChangePass()">Сохранить</button>
-    <button class="btn btn-ghost mt8" onclick="closeModal()">Отмена</button>
-  `);
-}
-
-async function doChangePass(){
-  const old=document.getElementById('m-old-pass').value;
-  const np=document.getElementById('m-new-pass').value;
-  const np2=document.getElementById('m-new-pass2').value;
-  if(!old||!np){toast('Заполните поля','err');return}
-  if(np!==np2){toast('Пароли не совпадают','err');return}
-  const idx=data.users.findIndex(u=>u.login===currentUser.login);
-  if(idx<0){toast('Пользователь не найден','err');return}
-  if(data.users[idx].password!==old){toast('Неверный текущий пароль','err');return}
-  showLoader(true);
-  try{await apiUpdate('users!B'+(idx+2),np);data.users[idx].password=np;saveCache();toast('Пароль изменён','ok');closeModal()}catch(e){toast('Ошибка','err')}
-  showLoader(false);
-}
-
-function doLogout(){
-  logToSheet('logout','Выход из системы','info');
-  currentUser=null;closeModal();
-  // Inform user that platform controls the session
-  try{ Platform?.ui?.showToast('Для выхода используйте кнопку ← на платформе','info'); }catch{}
 }
 
 function logToSheet(action,details,type='info'){
   if(!Platform) return;
-  const user=currentUser?.login||'system';
-  const row=[new Date().toISOString(),user,action,String(details),type];
-  apiAppend('dict_logs!A:E',[row]).catch(()=>{});
+  Platform.system.log('dictionary', action, (currentUser?.login||'system')+': '+String(details)).catch(()=>{});
 }
 
 /* ===== SYNC ===== */
@@ -654,19 +597,17 @@ async function syncData(){
       apiRead('dict_languages!A2:B100'),
       apiRead('dict_categories!A2:C100'),
       apiRead('dict_words!A2:F5000'),
-      apiRead('users!A2:D'),
       apiRead('dict_ratings!A2:E')
     ]);
-    // If sheets are missing, trigger platform-level DB init and retry once
+    // If sheets are missing, trigger ensureTables and retry once
     const needsInit=results.some(r=>r.status==='rejected');
     if(needsInit){
       toast('Инициализация таблиц...','');
-      await Platform.db.initAllSheets();
+      await Platform.db.ensureTables(DICT_TABLES);
       results=await Promise.allSettled([
         apiRead('dict_languages!A2:B100'),
         apiRead('dict_categories!A2:C100'),
         apiRead('dict_words!A2:F5000'),
-        apiRead('users!A2:D'),
         apiRead('dict_ratings!A2:E')
       ]);
     }
@@ -680,8 +621,7 @@ async function syncData(){
       wordTo:(r[4]||'').trim(),
       transcription:(r[5]||'').trim()
     })).filter(w=>w.wordFrom&&w.wordTo)}
-    if(results[3].status==='fulfilled'){const v=results[3].value;if(v.values&&v.values.length)data.users=v.values.filter(r=>r[0]).map(r=>({login:r[0],password:r[1]||'',role:r[2]||'user',status:r[3]||'active'}))}
-    if(results[4].status==='fulfilled'){const v=results[4].value;if(v.values&&v.values.length)data.ratings=v.values.filter(r=>r[0]).map(r=>({login:r[0],words_learned:parseInt(r[1])||0,quizzes_done:parseInt(r[2])||0,quiz_score:parseInt(r[3])||0,last_active:r[4]||''}))}
+    if(results[3].status==='fulfilled'){const v=results[3].value;if(v.values&&v.values.length)data.ratings=v.values.filter(r=>r[0]).map(r=>({login:r[0],words_learned:parseInt(r[1])||0,quizzes_done:parseInt(r[2])||0,quiz_score:parseInt(r[3])||0,last_active:r[4]||''}))}
     saveCache();
     initLangSelectors();
     toast('Данные обновлены ✓','ok');
@@ -1123,7 +1063,7 @@ function showQuizDone(){
 /* ===== SETTINGS VIEW ===== */
 function setSettingsTab(tab){
   ui.settingsTab=tab;
-  document.querySelectorAll('#settings-tabs .stab').forEach(s=>s.classList.toggle('active',s.textContent.trim()==={general:'Общие',langs:'Языки',cats:'Категории',data:'Данные',impexp:'Импорт/Экспорт',admin:'Админ',logs:'Журнал'}[tab]));
+  document.querySelectorAll('#settings-tabs .stab').forEach(s=>s.classList.toggle('active',s.textContent.trim()==={general:'Общие',langs:'Языки',cats:'Категории',data:'Данные',impexp:'Импорт/Экспорт'}[tab]));
   renderSettings();
 }
 
@@ -1136,8 +1076,6 @@ function renderSettings(){
   else if(tab==='cats') renderSettingsCats(c);
   else if(tab==='data') renderSettingsData(c);
   else if(tab==='impexp') renderSettingsImpExp(c);
-  else if(tab==='admin') renderSettingsAdmin(c);
-  else if(tab==='logs') renderSettingsLogs(c);
 }
 
 function renderSettingsGeneral(c){
@@ -1366,117 +1304,6 @@ function importFromPaste(){
   document.getElementById('imp-paste-text').value='';
   const b=document.getElementById('imp-check-result');if(b)b.innerHTML='';
   document.getElementById('imp-paste-wrap').style.display='none';
-}
-
-function renderSettingsAdmin(c){
-  if(!currentUser||currentUser.role!=='admin'){c.innerHTML='<p style="color:var(--tx2)">Доступ только для администраторов</p>';return}
-  let html='<div class="set-section"><h3>👥 Пользователи</h3>';
-  data.users.forEach((u,i)=>{
-    const isPending=u.status==='pending';
-    const roleClass=u.role==='admin'?'admin':'';
-    html+=`<div class="user-row">
-      <span class="u-name">${esc(u.login)}${isPending?' <span class="u-pending">(ожидает)</span>':''}</span>
-      <span class="u-role ${roleClass}">${esc(u.role)}</span>`;
-    if(isPending){
-      html+=`<button class="approve" onclick="approveUser(${i})">✓</button><button class="reject" onclick="rejectUser(${i})">✗</button>`;
-    }else if(u.login!==currentUser.login){
-      html+=`<button onclick="toggleRole(${i})">${u.role==='admin'?'→user':'→admin'}</button>`;
-      html+=`<button class="reject" onclick="deleteUser(${i})">🗑</button>`;
-    }
-    html+=`</div>`;
-  });
-  html+=`</div>`;
-  c.innerHTML=html;
-}
-
-async function renderSettingsLogs(c){
-  if(!currentUser||currentUser.role!=='admin'){c.innerHTML=adminOnly();return}
-  c.innerHTML='<div class="empty"><div class="spinner" style="width:28px;height:28px;border-width:2px"></div></div>';
-  try{
-    const res=await apiRead('dict_logs!A2:E2000');
-    const rows=[...(res.values||[])].filter(r=>r[0]).reverse();
-    if(!rows.length){c.innerHTML='<div class="empty"><div class="em-icon">📋</div><p>Журнал пуст</p></div>';return}
-    const typeColor=t=>t==='ok'?'var(--green)':t==='err'?'var(--red)':'var(--tx2)';
-    const fmt=ts=>{try{return new Date(ts).toLocaleString('ru-RU',{day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit'})}catch(e){return ts||''}}
-    let html=`<div class="set-section"><h3>📋 Журнал событий</h3>
-      <div style="font-size:.68rem;color:var(--tx2);margin-bottom:10px">${rows.length} записей · Новые сверху</div>
-      <div style="overflow-x:auto;margin:0 -4px">
-      <table style="width:100%;border-collapse:collapse;font-size:.72rem;min-width:400px">
-        <tr style="color:var(--tx3);font-size:.63rem;text-transform:uppercase;letter-spacing:.04em">
-          <th style="text-align:left;padding:6px 8px;border-bottom:1px solid var(--bd)">Время</th>
-          <th style="text-align:left;padding:6px 8px;border-bottom:1px solid var(--bd)">Пользователь</th>
-          <th style="text-align:left;padding:6px 8px;border-bottom:1px solid var(--bd)">Действие</th>
-          <th style="text-align:left;padding:6px 8px;border-bottom:1px solid var(--bd)">Детали</th>
-        </tr>`;
-    rows.forEach(r=>{
-      const[ts,user,action,details,type]=r;
-      const col=typeColor(type);
-      html+=`<tr style="border-bottom:1px solid var(--bd)">
-        <td style="padding:6px 8px;color:var(--tx3);white-space:nowrap">${esc(fmt(ts||''))}</td>
-        <td style="padding:6px 8px;font-weight:600">${esc(user||'')}</td>
-        <td style="padding:6px 8px;color:${col};white-space:nowrap">${esc(action||'')}</td>
-        <td style="padding:6px 8px;color:var(--tx2);max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="${esc(details||'')}">${esc(details||'')}</td>
-      </tr>`;
-    });
-    html+='</table></div></div>';
-    c.innerHTML=html;
-  }catch(e){
-    c.innerHTML=`<div class="empty"><div class="em-icon">❌</div><p>Ошибка загрузки журнала:<br>${esc(e.message)}</p></div>`;
-  }
-}
-
-function openChangeSA(){ toast('Управление подключением в платформе McGill','info'); }
-function updateSA(){ closeModal(); }
-function openChangeSID(){ toast('Управление подключением в платформе McGill','info'); }
-function saveSID(){ closeModal(); }
-function saveSetup(){}  // no-op: setup handled by platform
-
-/* ===== ADMIN FUNCTIONS ===== */
-async function approveUser(idx){
-  showLoader(true);
-  try{
-    await apiUpdate('users!D'+(idx+2),'active');
-    const login=data.users[idx].login;
-    data.users[idx].status='active';saveCache();
-    logToSheet('approve_user','Одобрен: '+login,'ok');
-    toast('Пользователь одобрен','ok');renderSettings();
-  }catch(e){toast('Ошибка','err')}
-  showLoader(false);
-}
-async function rejectUser(idx){
-  showLoader(true);
-  try{
-    await apiUpdate('users!D'+(idx+2),'rejected');
-    const login=data.users[idx].login;
-    data.users[idx].status='rejected';saveCache();
-    logToSheet('reject_user','Отклонён: '+login,'info');
-    toast('Пользователь отклонён','ok');renderSettings();
-  }catch(e){toast('Ошибка','err')}
-  showLoader(false);
-}
-async function toggleRole(idx){
-  const newRole=data.users[idx].role==='admin'?'user':'admin';
-  showLoader(true);
-  try{
-    await apiUpdate('users!C'+(idx+2),newRole);
-    const login=data.users[idx].login;
-    data.users[idx].role=newRole;saveCache();
-    logToSheet('change_role',login+' → '+newRole,'info');
-    toast('Роль изменена','ok');renderSettings();
-  }catch(e){toast('Ошибка','err')}
-  showLoader(false);
-}
-async function deleteUser(idx){
-  if(!confirm('Удалить пользователя '+data.users[idx].login+'?'))return;
-  const login=data.users[idx].login;
-  showLoader(true);
-  try{
-    await apiClearRow('users',idx+2);
-    data.users.splice(idx,1);saveCache();
-    logToSheet('delete_user','Удалён: '+login,'info');
-    toast('Пользователь удалён','ok');renderSettings();
-  }catch(e){toast('Ошибка','err')}
-  showLoader(false);
 }
 
 function clearProgress(){

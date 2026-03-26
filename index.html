@@ -10,211 +10,177 @@
         @import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;700&family=Manrope:wght@400;500;700;800&display=swap');
 
         :root {
-            --bg:        #0a0a0f;
-            --surface:   #111118;
-            --surface-2: #1a1a24;
-            --surface-3: #22222f;
-            --border:    rgba(255,255,255,0.07);
-            --border-hi: rgba(255,255,255,0.15);
-            --text:      #f0f0f8;
-            --text-2:    #8888aa;
-            --text-3:    #44445a;
-            --c-work:    #00e5a0;
-            --c-rest:    #ff8c42;
-            --c-prep:    #5b8cff;
-            --c-finish:  #ffd700;
-            --c-danger:  #ff4466;
-            --radius:    14px;
-            --radius-sm: 8px;
-            --accent:    var(--c-prep);
-            --header-h:  58px;
+            --bg:#0a0a0f;--surface:#111118;--surface-2:#1a1a24;--surface-3:#22222f;
+            --border:rgba(255,255,255,0.07);--border-hi:rgba(255,255,255,0.15);
+            --text:#f0f0f8;--text-2:#8888aa;--text-3:#44445a;
+            --c-work:#00e5a0;--c-rest:#ff8c42;--c-prep:#5b8cff;--c-finish:#ffd700;--c-danger:#ff4466;
+            --radius:14px;--radius-sm:8px;--accent:var(--c-prep);--header-h:54px;
         }
-
-        *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-
-        body {
-            font-family: 'Manrope', sans-serif;
-            background: var(--bg);
-            color: var(--text);
-            height: 100dvh;
-            display: flex;
-            flex-direction: column;
-            overflow: hidden;
-        }
+        *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+        body{font-family:'Manrope',sans-serif;background:var(--bg);color:var(--text);height:100dvh;display:flex;flex-direction:column;overflow:hidden}
 
         /* ── VIEWS ── */
-        .view { display: none; flex: 1; overflow: hidden; flex-direction: column; }
-        .view.active { display: flex; }
+        .view{display:none;flex:1;overflow:hidden;flex-direction:column}.view.active{display:flex}
 
         /* ── AUTH SCREENS ── */
-        .auth-scroll {
-            flex: 1; overflow-y: auto; display: flex; flex-direction: column;
-            align-items: center; justify-content: center; padding: 24px;
-        }
-        .auth-card {
-            width: 100%; max-width: 440px; background: var(--surface);
-            border: 1px solid var(--border-hi); border-radius: var(--radius);
-            padding: 30px 28px; display: flex; flex-direction: column; gap: 18px;
-        }
-        .auth-logo { text-align: center; }
-        .auth-logo-icon { font-size: 3rem; line-height: 1; margin-bottom: 8px; }
-        .auth-logo-name { font-size: 1.4rem; font-weight: 800; }
-        .auth-logo-sub { font-size: 0.75rem; color: var(--text-2); margin-top: 4px; font-family: 'JetBrains Mono', monospace; }
-        .inp-group { display: flex; flex-direction: column; gap: 6px; }
-        .inp-label { font-size: 0.78rem; color: var(--text-2); font-weight: 600; }
-        .inp-field {
-            width: 100%; padding: 10px 12px; background: var(--surface-2);
-            border: 1px solid var(--border-hi); border-radius: var(--radius-sm);
-            color: var(--text); font-family: 'Manrope', sans-serif; font-size: 0.88rem;
-            outline: none; transition: border-color 0.15s;
-        }
-        .inp-field:focus { border-color: var(--c-prep); }
-        .inp-ta { resize: vertical; min-height: 90px; font-family: 'JetBrains Mono', monospace; font-size: 0.72rem; line-height: 1.5; }
-        .btn-primary {
-            width: 100%; padding: 12px; background: var(--c-prep); color: #fff;
-            border: none; border-radius: var(--radius-sm); font-family: 'Manrope', sans-serif;
-            font-weight: 700; font-size: 0.9rem; cursor: pointer; transition: opacity 0.15s;
-        }
-        .btn-primary:hover { opacity: 0.88; }
-        .btn-secondary {
-            width: 100%; padding: 12px; background: transparent;
-            border: 1px solid var(--border-hi); color: var(--text-2);
-            border-radius: var(--radius-sm); font-family: 'Manrope', sans-serif;
-            font-weight: 700; font-size: 0.9rem; cursor: pointer; transition: background 0.15s;
-        }
-        .btn-secondary:hover { background: var(--surface-2); }
-        .auth-err { font-size: 0.8rem; color: var(--c-danger); min-height: 18px; }
-        .auth-link {
-            font-size: 0.8rem; color: var(--c-prep); cursor: pointer;
-            background: none; border: none; font-family: 'Manrope', sans-serif; text-align: center;
-        }
-        .auth-link:hover { text-decoration: underline; }
-        .auth-sep { height: 1px; background: var(--border); }
+        .auth-scroll{flex:1;overflow-y:auto;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:24px}
+        .auth-card{width:100%;max-width:440px;background:var(--surface);border:1px solid var(--border-hi);border-radius:var(--radius);padding:30px 28px;display:flex;flex-direction:column;gap:18px}
+        .auth-logo{text-align:center}
+        .auth-logo-icon{font-size:3rem;line-height:1;margin-bottom:8px}
+        .auth-logo-name{font-size:1.4rem;font-weight:800}
+        .auth-logo-sub{font-size:.75rem;color:var(--text-2);margin-top:4px;font-family:'JetBrains Mono',monospace}
+        .inp-group{display:flex;flex-direction:column;gap:6px}
+        .inp-label{font-size:.78rem;color:var(--text-2);font-weight:600}
+        .inp-field{width:100%;padding:10px 12px;background:var(--surface-2);border:1px solid var(--border-hi);border-radius:var(--radius-sm);color:var(--text);font-family:'Manrope',sans-serif;font-size:.88rem;outline:none;transition:border-color .15s}
+        .inp-field:focus{border-color:var(--c-prep)}
+        .inp-ta{resize:vertical;min-height:90px;font-family:'JetBrains Mono',monospace;font-size:.72rem;line-height:1.5}
+        .btn-primary{width:100%;padding:12px;background:var(--c-prep);color:#fff;border:none;border-radius:var(--radius-sm);font-family:'Manrope',sans-serif;font-weight:700;font-size:.9rem;cursor:pointer;transition:opacity .15s}
+        .btn-primary:hover{opacity:.88}
+        .btn-secondary{width:100%;padding:12px;background:transparent;border:1px solid var(--border-hi);color:var(--text-2);border-radius:var(--radius-sm);font-family:'Manrope',sans-serif;font-weight:700;font-size:.9rem;cursor:pointer;transition:background .15s}
+        .btn-secondary:hover{background:var(--surface-2)}
+        .auth-err{font-size:.8rem;color:var(--c-danger);min-height:18px}
+        .auth-link{font-size:.8rem;color:var(--c-prep);cursor:pointer;background:none;border:none;font-family:'Manrope',sans-serif;text-align:center}
+        .auth-link:hover{text-decoration:underline}
+        .auth-sep{height:1px;background:var(--border)}
 
-        /* ── PLATFORM HEADER ── */
-        header {
-            flex-shrink: 0; display: flex; align-items: center; gap: 10px;
-            padding: 12px 16px; background: var(--surface);
-            border-bottom: 1px solid var(--border); height: var(--header-h); z-index: 10;
+        /* ── PLATFORM LAYOUT ── */
+        .plat-layout{display:flex;flex:1;overflow:hidden}
+        .sidebar{display:none;width:220px;flex-shrink:0;background:var(--surface);border-right:1px solid var(--border);flex-direction:column}
+        .side-brand{padding:18px 16px;font-weight:800;font-size:1rem;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:8px}
+        .side-brand-icon{font-size:1.3rem}
+        .side-nav{flex:1;padding:8px;display:flex;flex-direction:column;gap:2px;overflow-y:auto}
+        .side-item{display:flex;align-items:center;gap:10px;padding:10px 12px;border-radius:var(--radius-sm);border:none;background:none;color:var(--text-2);font:inherit;font-size:.85rem;font-weight:500;cursor:pointer;transition:all .15s;text-align:left}
+        .side-item:hover{background:var(--surface-2);color:var(--text)}
+        .side-item.active{background:rgba(91,140,255,.12);color:var(--c-prep);font-weight:600}
+        .side-item .ico{font-size:1.1rem;width:24px;text-align:center;flex-shrink:0}
+        .side-footer{padding:12px 16px;border-top:1px solid var(--border);display:flex;align-items:center;gap:8px}
+        .side-user{flex:1;font-size:.72rem;color:var(--text-2);font-family:'JetBrains Mono',monospace;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+
+        .plat-main{display:flex;flex-direction:column;flex:1;overflow:hidden;min-width:0}
+        .plat-header{display:flex;align-items:center;gap:10px;padding:12px 16px;background:var(--surface);border-bottom:1px solid var(--border);flex-shrink:0;height:var(--header-h);z-index:10}
+        .plat-title{flex:1;font-size:.95rem;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+        .hdr-user{font-size:.72rem;color:var(--text-2);font-family:'JetBrains Mono',monospace;flex-shrink:0;max-width:120px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+        .btn-icon{width:36px;height:36px;border-radius:var(--radius-sm);border:1px solid var(--border-hi);background:var(--surface-2);color:var(--text-2);cursor:pointer;display:flex;align-items:center;justify-content:center;flex-shrink:0;transition:background .15s,color .15s}
+        .btn-icon:hover{background:var(--surface-3);color:var(--text)}
+        .btn-icon svg{width:16px;height:16px;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
+
+        /* ── TAB PANELS ── */
+        .tab-panel{display:none;flex:1;overflow:hidden;flex-direction:column}
+        .tab-panel.active{display:flex}
+        .tab-scroll{flex:1;overflow-y:auto;padding:0}
+
+        /* ── BOTTOM NAV (mobile) ── */
+        .bnav{display:flex;background:var(--surface);border-top:1px solid var(--border);flex-shrink:0;padding:4px 0;padding-bottom:max(4px,env(safe-area-inset-bottom))}
+        .bnav-item{flex:1;display:flex;flex-direction:column;align-items:center;gap:2px;background:none;border:none;color:var(--text-3);font-size:.58rem;font-family:inherit;padding:6px 0;cursor:pointer;transition:color .2s;letter-spacing:.02em}
+        .bnav-item .ico{font-size:1.2rem;line-height:1}
+        .bnav-item.active{color:var(--c-prep)}
+
+        @media(min-width:768px){
+            .sidebar{display:flex}
+            .bnav{display:none}
+            .mob-only{display:none!important}
         }
-        .hdr-logo { display: flex; align-items: center; gap: 8px; flex: 1; min-width: 0; }
-        .hdr-logo-icon { font-size: 1.4rem; line-height: 1; flex-shrink: 0; }
-        .hdr-logo-name { font-size: 0.95rem; font-weight: 800; }
-        .hdr-user {
-            font-size: 0.72rem; color: var(--text-2); font-family: 'JetBrains Mono', monospace;
-            flex-shrink: 0; max-width: 120px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+        @media(min-width:1200px){
+            .sidebar{width:260px}
         }
-        .btn-icon {
-            width: 36px; height: 36px; border-radius: var(--radius-sm);
-            border: 1px solid var(--border-hi); background: var(--surface-2);
-            color: var(--text-2); cursor: pointer; display: flex; align-items: center;
-            justify-content: center; flex-shrink: 0; transition: background 0.15s, color 0.15s;
-        }
-        .btn-icon:hover { background: var(--surface-3); color: var(--text); }
-        .btn-icon svg { width: 16px; height: 16px; fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
 
         /* ── APPS GRID ── */
-        #apps-search-bar {
-            padding: 10px 16px 8px; background: var(--surface);
-            border-bottom: 1px solid var(--border); flex-shrink: 0;
+        #apps-search-bar{padding:10px 16px 8px;background:var(--surface);border-bottom:1px solid var(--border);flex-shrink:0}
+        .search-input{width:100%;padding:9px 12px 9px 36px;background:var(--surface-2);border:1px solid var(--border-hi);border-radius:var(--radius-sm);color:var(--text);font-family:'Manrope',sans-serif;font-size:.85rem;outline:none;background-image:url("data:image/svg+xml;charset=UTF-8,%3Csvg xmlns='http://www.w3.org/2000/svg' width='14' height='14' viewBox='0 0 24 24' fill='none' stroke='%238888aa' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Ccircle cx='11' cy='11' r='8'/%3E%3Cline x1='21' y1='21' x2='16.65' y2='16.65'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:10px center;transition:border-color .15s}
+        .search-input:focus{border-color:var(--c-prep)}
+        #apps-scroll{flex:1;overflow-y:auto;padding:12px 12px 24px}
+        .app-category{margin-bottom:20px}
+        .app-cat-label{font-size:.65rem;letter-spacing:.12em;text-transform:uppercase;color:var(--text-3);font-family:'JetBrains Mono',monospace;padding:0 4px 8px}
+        .apps-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(130px,1fr));gap:8px}
+        .app-tile{background:var(--surface-2);border:1px solid var(--border);border-radius:var(--radius);padding:14px 10px 12px;cursor:pointer;transition:background .15s,border-color .15s,transform .1s;display:flex;flex-direction:column;align-items:center;gap:8px;text-align:center;user-select:none;position:relative;overflow:hidden}
+        .app-tile::before{content:'';position:absolute;inset:0;background:radial-gradient(ellipse at 50% 0%,rgba(91,140,255,.06),transparent 70%);opacity:0;transition:opacity .2s}
+        .app-tile:hover{background:var(--surface-3);border-color:var(--border-hi);transform:translateY(-1px)}
+        .app-tile:hover::before{opacity:1}
+        .app-tile:active{transform:scale(.97)}
+        .app-tile-icon{font-size:2rem;line-height:1}
+        .app-tile-name{font-size:.78rem;font-weight:700;color:var(--text);line-height:1.3}
+        .app-tile-desc{font-size:.66rem;color:var(--text-3);line-height:1.4;display:none}
+        .app-tile-play{display:flex;align-items:center;justify-content:center;width:28px;height:28px;border-radius:50%;background:rgba(91,140,255,.15);border:1px solid rgba(91,140,255,.3);color:var(--c-prep);margin-top:2px}
+        .app-tile-play svg{width:10px;height:10px;fill:currentColor;stroke:none}
+        @media(min-width:600px){
+            .apps-grid{grid-template-columns:repeat(auto-fill,minmax(155px,1fr));gap:10px}
+            .app-tile{padding:18px 14px 14px;gap:10px}
+            .app-tile-icon{font-size:2.4rem}
+            .app-tile-name{font-size:.82rem}
+            .app-tile-desc{display:block}
+            #apps-scroll{padding:16px 16px 32px}
         }
-        .search-input {
-            width: 100%; padding: 9px 12px 9px 36px; background: var(--surface-2);
-            border: 1px solid var(--border-hi); border-radius: var(--radius-sm);
-            color: var(--text); font-family: 'Manrope', sans-serif; font-size: 0.85rem; outline: none;
-            background-image: url("data:image/svg+xml;charset=UTF-8,%3Csvg xmlns='http://www.w3.org/2000/svg' width='14' height='14' viewBox='0 0 24 24' fill='none' stroke='%238888aa' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Ccircle cx='11' cy='11' r='8'/%3E%3Cline x1='21' y1='21' x2='16.65' y2='16.65'/%3E%3C/svg%3E");
-            background-repeat: no-repeat; background-position: 10px center; transition: border-color 0.15s;
-        }
-        .search-input:focus { border-color: var(--c-prep); }
-        #apps-scroll { flex: 1; overflow-y: auto; padding: 12px 12px 24px; }
-        .app-category { margin-bottom: 20px; }
-        .app-cat-label {
-            font-size: 0.65rem; letter-spacing: 0.12em; text-transform: uppercase;
-            color: var(--text-3); font-family: 'JetBrains Mono', monospace; padding: 0 4px 8px;
-        }
-        .apps-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(130px, 1fr)); gap: 8px; }
-        .app-tile {
-            background: var(--surface-2); border: 1px solid var(--border); border-radius: var(--radius);
-            padding: 14px 10px 12px; cursor: pointer;
-            transition: background 0.15s, border-color 0.15s, transform 0.1s;
-            display: flex; flex-direction: column; align-items: center; gap: 8px;
-            text-align: center; user-select: none; position: relative; overflow: hidden;
-        }
-        .app-tile::before { content: ''; position: absolute; inset: 0; background: radial-gradient(ellipse at 50% 0%, rgba(91,140,255,0.06), transparent 70%); opacity: 0; transition: opacity 0.2s; }
-        .app-tile:hover  { background: var(--surface-3); border-color: var(--border-hi); transform: translateY(-1px); }
-        .app-tile:hover::before { opacity: 1; }
-        .app-tile:active { transform: scale(0.97); }
-        .app-tile-icon { font-size: 2rem; line-height: 1; }
-        .app-tile-name { font-size: 0.78rem; font-weight: 700; color: var(--text); line-height: 1.3; }
-        .app-tile-desc { font-size: 0.66rem; color: var(--text-3); line-height: 1.4; display: none; }
-        .app-tile-play {
-            display: flex; align-items: center; justify-content: center;
-            width: 28px; height: 28px; border-radius: 50%;
-            background: rgba(91,140,255,0.15); border: 1px solid rgba(91,140,255,0.3); color: var(--c-prep); margin-top: 2px;
-        }
-        .app-tile-play svg { width: 10px; height: 10px; fill: currentColor; stroke: none; }
 
-        @media (min-width: 600px) {
-            .apps-grid { grid-template-columns: repeat(auto-fill, minmax(155px, 1fr)); gap: 10px; }
-            .app-tile   { padding: 18px 14px 14px; gap: 10px; }
-            .app-tile-icon { font-size: 2.4rem; }
-            .app-tile-name { font-size: 0.82rem; }
-            .app-tile-desc { display: block; }
-            #apps-scroll   { padding: 16px 16px 32px; }
-        }
-        @media (min-width: 1024px) {
-            #v-platform { max-width: 960px; margin: 0 auto; width: 100%; position: relative; }
-            body { align-items: center; }
-            #v-platform { flex: 1; }
-        }
+        /* ── PANEL SECTIONS (Admin, Logs, Leaderboard) ── */
+        .panel-sec{padding:14px 18px;border-bottom:1px solid var(--border)}
+        .panel-sec h3{font-size:.72rem;font-weight:700;color:var(--text-3);letter-spacing:.08em;text-transform:uppercase;margin-bottom:10px}
+        .panel-row{display:flex;align-items:center;justify-content:space-between;padding:5px 0;font-size:.82rem;color:var(--text-2)}
+        .panel-badge{font-size:.7rem;background:var(--surface-2);border:1px solid var(--border-hi);border-radius:4px;padding:2px 8px;color:var(--text);font-family:'JetBrains Mono',monospace;max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+        .panel-btn{width:100%;padding:10px 14px;margin-top:8px;border-radius:var(--radius-sm);border:1px solid var(--border-hi);background:var(--surface-2);color:var(--text);font:inherit;font-size:.82rem;font-weight:600;cursor:pointer;text-align:left;transition:background .15s;display:block}
+        .panel-btn:hover{background:var(--surface-3)}
+        .panel-btn.accent{background:rgba(91,140,255,.12);color:var(--c-prep);border-color:rgba(91,140,255,.3)}
+        .panel-btn.danger{color:var(--c-danger);border-color:rgba(255,68,102,.3)}
+
+        /* ── DATA TABLE ── */
+        .table-scroll{overflow-x:auto}
+        .data-table{width:100%;border-collapse:collapse;font-size:.75rem;min-width:480px}
+        .data-table th{text-align:left;padding:8px 10px;border-bottom:1px solid var(--border);color:var(--text-3);font-size:.63rem;text-transform:uppercase;letter-spacing:.04em}
+        .data-table td{padding:8px 10px;border-bottom:1px solid var(--border);color:var(--text-2)}
+        .data-table td.nowrap{white-space:nowrap}
+        .data-table td.ellipsis{max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+
+        /* ── ADMIN USERS ── */
+        .users-list{display:flex;flex-direction:column;gap:6px}
+        .user-row{display:flex;align-items:center;gap:8px;padding:10px 12px;background:var(--surface-2);border:1px solid var(--border);border-radius:var(--radius-sm);font-size:.82rem;flex-wrap:wrap}
+        .u-email{font-weight:600;flex:1;min-width:120px}
+        .u-role{font-size:.65rem;background:var(--surface-3);padding:2px 8px;border-radius:4px;color:var(--text-2)}
+        .u-role.admin{background:rgba(91,140,255,.15);color:var(--c-prep)}
+        .u-meta{width:100%;font-size:.65rem;color:var(--text-3);margin-top:2px}
+        .u-actions{display:flex;gap:4px}
+        .u-actions button{padding:4px 10px;border-radius:4px;border:1px solid var(--border-hi);background:var(--surface-3);color:var(--text-2);font:inherit;font-size:.72rem;cursor:pointer;transition:background .15s}
+        .u-actions button:hover{background:var(--surface-2);color:var(--text)}
+
+        /* ── LOGS FILTERS ── */
+        .logs-filters{display:flex;gap:8px;padding:12px 16px;border-bottom:1px solid var(--border);flex-shrink:0;flex-wrap:wrap}
+        .logs-filters select{padding:8px 12px;background:var(--surface-2);border:1px solid var(--border-hi);border-radius:var(--radius-sm);color:var(--text);font:inherit;font-size:.82rem;outline:none;flex:1;min-width:120px}
+        .logs-info{padding:6px 16px;font-size:.68rem;color:var(--text-3)}
+
+        /* ── LEADERBOARD ── */
+        .board-list{padding:12px 16px;display:flex;flex-direction:column;gap:8px}
+        .board-item{display:flex;align-items:center;gap:12px;padding:12px;background:var(--surface-2);border:1px solid var(--border);border-radius:var(--radius-sm)}
+        .board-item.self{border-color:var(--c-prep);background:rgba(91,140,255,.06)}
+        .board-pos{width:30px;height:30px;border-radius:50%;background:var(--surface-3);display:flex;align-items:center;justify-content:center;font-weight:700;font-size:.82rem;flex-shrink:0}
+        .board-pos.top1{background:var(--c-finish);color:#000}
+        .board-pos.top2{background:#b0b0b0;color:#000}
+        .board-pos.top3{background:#cd7f32;color:#fff}
+        .board-info{flex:1;min-width:0}
+        .board-name{font-size:.85rem;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+        .board-meta{font-size:.65rem;color:var(--text-3);margin-top:2px}
+        .board-xp{font-size:1.1rem;font-weight:800;color:var(--c-prep);flex-shrink:0;text-align:right}
+        .board-xp small{font-size:.6rem;font-weight:400;color:var(--text-2)}
+        .role-tag{font-size:.55rem;background:rgba(91,140,255,.15);color:var(--c-prep);padding:1px 6px;border-radius:3px;vertical-align:middle;margin-left:4px}
+        .empty-state{padding:40px 20px;text-align:center;color:var(--text-2);font-size:.85rem}
+        .empty-ico{font-size:2rem;margin-bottom:8px}
 
         /* ── IMMERSIVE CONTAINER ── */
-        #immersive-container { display: none; position: fixed; inset: 0; z-index: 9999; background: var(--bg); }
-        #app-iframe { width: 100%; height: 100%; border: none; display: block; }
-        #btn-float-back {
-            position: absolute;
-            top: max(16px, env(safe-area-inset-top));
-            left: 16px;
-            width: 44px; height: 44px; border-radius: 50%;
-            background: rgba(17,17,24,0.75);
-            backdrop-filter: blur(8px);
-            -webkit-backdrop-filter: blur(8px);
-            border: 1px solid rgba(255,255,255,0.2);
-            color: var(--text); font-size: 1.4rem;
-            display: flex; align-items: center; justify-content: center;
-            cursor: pointer; z-index: 10000;
-            transition: background 0.2s, transform 0.1s;
-            box-shadow: 0 4px 12px rgba(0,0,0,0.5);
-        }
-        #btn-float-back:active { transform: scale(0.92); }
+        #immersive-container{display:none;position:fixed;inset:0;z-index:9999;background:var(--bg)}
+        #app-iframe{width:100%;height:100%;border:none;display:block}
+        #btn-float-back{position:absolute;top:max(16px,env(safe-area-inset-top));left:16px;width:44px;height:44px;border-radius:50%;background:rgba(17,17,24,.75);backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);border:1px solid rgba(255,255,255,.2);color:var(--text);font-size:1.4rem;display:flex;align-items:center;justify-content:center;cursor:pointer;z-index:10000;transition:background .2s,transform .1s;box-shadow:0 4px 12px rgba(0,0,0,.5)}
+        #btn-float-back:active{transform:scale(.92)}
 
         /* ── TOAST ── */
-        #toast {
-            position: fixed; bottom: calc(24px + env(safe-area-inset-bottom, 0px));
-            left: 50%; transform: translateX(-50%);
-            background: var(--surface-3); border: 1px solid var(--border-hi);
-            color: var(--text); padding: 8px 18px; border-radius: 20px;
-            font-size: 0.82rem; z-index: 10001; pointer-events: none;
-            transition: opacity 0.3s; opacity: 0;
-            white-space: nowrap; max-width: 90vw; text-align: center;
-        }
-        #toast.show { opacity: 1; }
-        #toast.ok   { background: rgba(0,229,160,0.12); border-color: var(--c-work);   color: var(--c-work); }
-        #toast.err  { background: rgba(255,68,102,0.10); border-color: var(--c-danger); color: var(--c-danger); }
+        #toast{position:fixed;bottom:calc(24px + env(safe-area-inset-bottom,0px));left:50%;transform:translateX(-50%);background:var(--surface-3);border:1px solid var(--border-hi);color:var(--text);padding:8px 18px;border-radius:20px;font-size:.82rem;z-index:10001;pointer-events:none;transition:opacity .3s;opacity:0;white-space:nowrap;max-width:90vw;text-align:center}
+        #toast.show{opacity:1}
+        #toast.ok{background:rgba(0,229,160,.12);border-color:var(--c-work);color:var(--c-work)}
+        #toast.err{background:rgba(255,68,102,.10);border-color:var(--c-danger);color:var(--c-danger)}
 
         /* ── LOADER ── */
-        #loader {
-            position: fixed; inset: 0; background: rgba(10,10,15,0.82);
-            display: none; align-items: center; justify-content: center;
-            z-index: 20000; flex-direction: column; gap: 12px;
-        }
-        #loader.show { display: flex; }
-        .loader-spin { width: 36px; height: 36px; border: 3px solid var(--border-hi); border-top-color: var(--c-prep); border-radius: 50%; animation: spin 0.7s linear infinite; }
-        @keyframes spin { to { transform: rotate(360deg); } }
+        #loader{position:fixed;inset:0;background:rgba(10,10,15,.82);display:none;align-items:center;justify-content:center;z-index:20000;flex-direction:column;gap:12px}
+        #loader.show{display:flex}
+        .loader-spin{width:36px;height:36px;border:3px solid var(--border-hi);border-top-color:var(--c-prep);border-radius:50%;animation:spin .7s linear infinite}
+        @keyframes spin{to{transform:rotate(360deg)}}
 
-        ::-webkit-scrollbar { width: 4px; }
-        ::-webkit-scrollbar-track { background: transparent; }
-        ::-webkit-scrollbar-thumb { background: var(--border-hi); border-radius: 2px; }
+        ::-webkit-scrollbar{width:4px}::-webkit-scrollbar-track{background:transparent}::-webkit-scrollbar-thumb{background:var(--border-hi);border-radius:2px}
 
         /* ── PLATFORM SETTINGS PANEL ── */
         #psett-bg{position:fixed;inset:0;background:rgba(10,10,15,.75);z-index:5000;display:none;align-items:flex-end;justify-content:center;backdrop-filter:blur(4px);-webkit-backdrop-filter:blur(4px)}
@@ -224,14 +190,6 @@
         .psett-hdr h2{font-size:.95rem;font-weight:700}
         .psett-close{width:30px;height:30px;border-radius:50%;background:var(--surface-2);border:none;color:var(--text-2);cursor:pointer;font-size:1rem;display:flex;align-items:center;justify-content:center}
         .psett-body{overflow-y:auto;flex:1;padding:0 0 max(16px,env(safe-area-inset-bottom))}
-        .psett-sec{padding:14px 18px;border-bottom:1px solid var(--border)}
-        .psett-sec h3{font-size:.7rem;font-weight:700;color:var(--text-3);letter-spacing:.08em;text-transform:uppercase;margin-bottom:10px}
-        .psett-row{display:flex;align-items:center;justify-content:space-between;padding:5px 0;font-size:.82rem;color:var(--text-2)}
-        .psett-badge{font-size:.7rem;background:var(--surface-2);border:1px solid var(--border-hi);border-radius:4px;padding:2px 8px;color:var(--text);font-family:'JetBrains Mono',monospace;max-width:180px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-        .psett-btn{width:100%;padding:10px 14px;margin-top:8px;border-radius:var(--radius-sm);border:1px solid var(--border-hi);background:var(--surface-2);color:var(--text);font-family:'Manrope',sans-serif;font-size:.82rem;font-weight:600;cursor:pointer;text-align:left;transition:background .15s;display:block}
-        .psett-btn:hover{background:var(--surface-3)}
-        .psett-btn.accent{background:rgba(91,140,255,.12);color:var(--c-prep);border-color:rgba(91,140,255,.3)}
-        .psett-btn.danger{color:var(--c-danger);border-color:rgba(255,68,102,.3)}
     </style>
 </head>
 <body>
@@ -268,18 +226,10 @@
                 <div class="auth-logo-name">McGill</div>
                 <div class="auth-logo-sub" id="login-sub-text">Вход в систему</div>
             </div>
-
-            <!-- Login form -->
             <div id="login-form">
-                <div style="display:flex;flex-direction:column;gap:14px;">
-                    <div class="inp-group">
-                        <label class="inp-label">Логин</label>
-                        <input type="text" id="login-login" class="inp-field" autocomplete="username" placeholder="username">
-                    </div>
-                    <div class="inp-group">
-                        <label class="inp-label">Пароль</label>
-                        <input type="password" id="login-pass" class="inp-field" autocomplete="current-password" placeholder="••••••">
-                    </div>
+                <div style="display:flex;flex-direction:column;gap:14px">
+                    <div class="inp-group"><label class="inp-label">Логин</label><input type="text" id="login-login" class="inp-field" autocomplete="username" placeholder="username"></div>
+                    <div class="inp-group"><label class="inp-label">Пароль</label><input type="password" id="login-pass" class="inp-field" autocomplete="current-password" placeholder="••••••"></div>
                     <div class="auth-err" id="login-err"></div>
                     <button class="btn-primary" id="btn-do-login">Войти</button>
                     <button class="btn-secondary" id="btn-show-reg">Регистрация</button>
@@ -287,18 +237,10 @@
                     <button class="auth-link" id="btn-goto-setup">⚙ Настройки подключения</button>
                 </div>
             </div>
-
-            <!-- Register form -->
-            <div id="reg-form" style="display:none;">
-                <div style="display:flex;flex-direction:column;gap:14px;">
-                    <div class="inp-group">
-                        <label class="inp-label">Логин</label>
-                        <input type="text" id="reg-login" class="inp-field" autocomplete="username" placeholder="username">
-                    </div>
-                    <div class="inp-group">
-                        <label class="inp-label">Пароль</label>
-                        <input type="password" id="reg-pass" class="inp-field" autocomplete="new-password" placeholder="••••••">
-                    </div>
+            <div id="reg-form" style="display:none">
+                <div style="display:flex;flex-direction:column;gap:14px">
+                    <div class="inp-group"><label class="inp-label">Логин</label><input type="text" id="reg-login" class="inp-field" autocomplete="username" placeholder="username"></div>
+                    <div class="inp-group"><label class="inp-label">Пароль</label><input type="password" id="reg-pass" class="inp-field" autocomplete="new-password" placeholder="••••••"></div>
                     <div class="auth-err" id="reg-err"></div>
                     <button class="btn-primary" id="btn-do-reg">Зарегистрироваться</button>
                     <button class="btn-secondary" id="btn-show-login">← Войти</button>
@@ -310,25 +252,57 @@
 
 <!-- ═══ PLATFORM VIEW ═══ -->
 <div id="v-platform" class="view">
-    <header>
-        <div class="hdr-logo">
-            <div class="hdr-logo-icon">🏋️</div>
-            <div class="hdr-logo-name">McGill</div>
+    <div class="plat-layout">
+        <!-- Sidebar (desktop) -->
+        <aside class="sidebar">
+            <div class="side-brand"><span class="side-brand-icon">🏋️</span> McGill</div>
+            <nav class="side-nav">
+                <button class="side-item active" data-tab="apps" onclick="switchTab('apps')"><span class="ico">📱</span>Приложения</button>
+                <button class="side-item" data-tab="admin" onclick="switchTab('admin')"><span class="ico">🔧</span>Администрирование</button>
+                <button class="side-item" data-tab="logs" onclick="switchTab('logs')"><span class="ico">📋</span>Журнал</button>
+                <button class="side-item" data-tab="board" onclick="switchTab('board')"><span class="ico">🏆</span>Рейтинг</button>
+            </nav>
+            <div class="side-footer">
+                <span class="side-user" id="side-user-name"></span>
+                <button class="btn-icon" onclick="openPlatformSettings()" title="Настройки">
+                    <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 10 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 5.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+                </button>
+                <button class="btn-icon" onclick="doLogout()" title="Выйти">
+                    <svg viewBox="0 0 24 24"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
+                </button>
+            </div>
+        </aside>
+
+        <!-- Main content -->
+        <div class="plat-main">
+            <header class="plat-header">
+                <div class="plat-title" id="content-title">Приложения</div>
+                <span class="hdr-user mob-only" id="hdr-user-name"></span>
+                <button class="btn-icon mob-only" onclick="openPlatformSettings()" title="Настройки">
+                    <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 10 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 5.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+                </button>
+                <button class="btn-icon mob-only" onclick="doLogout()" title="Выйти">
+                    <svg viewBox="0 0 24 24"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
+                </button>
+            </header>
+
+            <div class="tab-panel active" id="tab-apps">
+                <div id="apps-search-bar"><input type="search" class="search-input" id="apps-search" placeholder="Поиск приложения…" autocomplete="off"></div>
+                <div id="apps-scroll"><div style="color:var(--text-3);font-size:.82rem;padding:20px 4px">Загрузка…</div></div>
+            </div>
+            <div class="tab-panel" id="tab-admin"><div class="tab-scroll" id="admin-content"></div></div>
+            <div class="tab-panel" id="tab-logs"><div class="tab-scroll" id="logs-content"></div></div>
+            <div class="tab-panel" id="tab-board"><div class="tab-scroll" id="board-content"></div></div>
         </div>
-        <span class="hdr-user" id="hdr-user-name"></span>
-        <button class="btn-icon" id="btn-platform-settings" title="Настройки платформы" onclick="openPlatformSettings()">
-            <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 10 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 5.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
-        </button>
-        <button class="btn-icon" id="btn-logout" title="Выйти из аккаунта">
-            <svg viewBox="0 0 24 24"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
-        </button>
-    </header>
-    <div id="apps-search-bar">
-        <input type="search" class="search-input" id="apps-search" placeholder="Поиск приложения…" autocomplete="off">
     </div>
-    <div id="apps-scroll">
-        <div style="color:var(--text-3);font-size:0.82rem;padding:20px 4px;">Загрузка…</div>
-    </div>
+
+    <!-- Bottom nav (mobile) -->
+    <nav class="bnav">
+        <button class="bnav-item active" data-tab="apps" onclick="switchTab('apps')"><span class="ico">📱</span>Приложения</button>
+        <button class="bnav-item" data-tab="admin" onclick="switchTab('admin')"><span class="ico">🔧</span>Админ</button>
+        <button class="bnav-item" data-tab="logs" onclick="switchTab('logs')"><span class="ico">📋</span>Журнал</button>
+        <button class="bnav-item" data-tab="board" onclick="switchTab('board')"><span class="ico">🏆</span>Рейтинг</button>
+    </nav>
 </div>
 
 <!-- ═══ IMMERSIVE CONTAINER ═══ -->
@@ -340,10 +314,7 @@
 <!-- ═══ PLATFORM SETTINGS ═══ -->
 <div id="psett-bg" onclick="if(event.target===this)closePlatformSettings()">
     <div id="psett-panel">
-        <div class="psett-hdr">
-            <h2>⚙️ Настройки платформы</h2>
-            <button class="psett-close" onclick="closePlatformSettings()">✕</button>
-        </div>
+        <div class="psett-hdr"><h2>⚙️ Настройки</h2><button class="psett-close" onclick="closePlatformSettings()">✕</button></div>
         <div class="psett-body" id="psett-body"></div>
     </div>
 </div>
@@ -354,15 +325,26 @@
 <script>
 'use strict';
 
-/* ── CONSTANTS ── */
+/* ══════════════════════════════════════════════════════════════════
+ * CONSTANTS
+ * ═════════════════════════════════════════════════════════════════ */
 const LS_CFG  = 'mcg_config';
-const LS_SA   = 'wl_sa';       // shared key — dictionary also reads this
+const LS_SA   = 'wl_sa';
 const LS_USER = 'mcg_user';
 const SHEETS_BASE = 'https://sheets.googleapis.com/v4/spreadsheets';
 const TOKEN_URI   = 'https://oauth2.googleapis.com/token';
 const SCOPE       = 'https://www.googleapis.com/auth/spreadsheets';
 
-/* ── STATE ── */
+/* ── DB Schema (sys_ prefix) ── */
+const DB_SYSTEM_SCHEMA = {
+    sys_Users:  { headers: ['ID','Email','Password','Role','TotalXP','CreatedAt','Status'] },
+    sys_Logs:   { headers: ['Timestamp','Email','AppID','EventType','Details'] },
+    sys_Scores: { headers: ['Timestamp','Email','AppID','RawScore','XP'] }
+};
+
+/* ══════════════════════════════════════════════════════════════════
+ * STATE
+ * ═════════════════════════════════════════════════════════════════ */
 let cfg = { spreadsheetId: '' };
 let sa  = null;
 let currentUser    = null;
@@ -372,9 +354,16 @@ let appsData       = null;
 let searchQuery    = '';
 let currentSession = { appId: null, startTime: null };
 let swRegistration = null;
+let activeTab      = 'apps';
+let _dbSheetCache  = null;   // Set<string> — cached sheet names
+let _adminUsers    = [];     // cached rows for admin user management
+let _logsRawRows   = [];     // cached rows for logs tab
 
-/* ── UTILS ── */
+/* ══════════════════════════════════════════════════════════════════
+ * UTILS
+ * ═════════════════════════════════════════════════════════════════ */
 const $ = id => document.getElementById(id);
+function esc(s) { const d = document.createElement('div'); d.textContent = s; return d.innerHTML; }
 
 function toast(msg, type = '') {
     const el = $('toast');
@@ -386,7 +375,14 @@ function toast(msg, type = '') {
 
 function showLoader(on) { $('loader').classList.toggle('show', !!on); }
 
-/* ── CONFIG / STORAGE ── */
+function formatTs(ts) {
+    try { return new Date(ts).toLocaleString('ru-RU', { day:'2-digit', month:'2-digit', hour:'2-digit', minute:'2-digit' }); }
+    catch { return ts || ''; }
+}
+
+/* ══════════════════════════════════════════════════════════════════
+ * CONFIG / STORAGE
+ * ═════════════════════════════════════════════════════════════════ */
 function loadCfg()  { try { const s = localStorage.getItem(LS_CFG);  if (s) cfg = JSON.parse(s); } catch {} }
 function saveCfg()  { localStorage.setItem(LS_CFG, JSON.stringify(cfg)); }
 function loadSA()   { try { const s = localStorage.getItem(LS_SA);   if (s) sa  = JSON.parse(s); } catch {} }
@@ -394,45 +390,45 @@ function saveSA()   { if (sa) localStorage.setItem(LS_SA, JSON.stringify(sa)); e
 function loadUser() { try { const s = localStorage.getItem(LS_USER); if (s) currentUser = JSON.parse(s); } catch {} }
 function saveUser() { if (currentUser) localStorage.setItem(LS_USER, JSON.stringify(currentUser)); else localStorage.removeItem(LS_USER); }
 
-/* ── VIEW SWITCHING ── */
+/* ══════════════════════════════════════════════════════════════════
+ * VIEW SWITCHING
+ * ═════════════════════════════════════════════════════════════════ */
 function showView(name) {
     document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
     const el = $('v-' + name);
     if (el) el.classList.add('active');
 }
 
-/* ── JWT / SERVICE ACCOUNT AUTH ── */
+/* ══════════════════════════════════════════════════════════════════
+ * JWT / SERVICE ACCOUNT AUTH
+ * ═════════════════════════════════════════════════════════════════ */
 function b64url(input) {
     const str = input instanceof ArrayBuffer
         ? String.fromCharCode(...new Uint8Array(input))
         : typeof input === 'string' ? input : JSON.stringify(input);
-    return btoa(str).replace(/\+/g,'-').replace(/\//g,'_').replace(/=+$/,'');
+    return btoa(str).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
 }
-
 function pemToArrayBuffer(pem) {
-    const b64 = pem.replace(/-----BEGIN PRIVATE KEY-----/,'').replace(/-----END PRIVATE KEY-----/,'').replace(/\s/g,'');
+    const b64 = pem.replace(/-----BEGIN PRIVATE KEY-----/, '').replace(/-----END PRIVATE KEY-----/, '').replace(/\s/g, '');
     const bin = atob(b64);
     const buf = new Uint8Array(bin.length);
     for (let i = 0; i < bin.length; i++) buf[i] = bin.charCodeAt(i);
     return buf.buffer;
 }
-
 async function importPrivateKey(pem) {
     return crypto.subtle.importKey('pkcs8', pemToArrayBuffer(pem),
-        { name:'RSASSA-PKCS1-v1_5', hash:'SHA-256' }, false, ['sign']);
+        { name: 'RSASSA-PKCS1-v1_5', hash: 'SHA-256' }, false, ['sign']);
 }
-
 async function createSignedJWT() {
     if (!sa) throw new Error('Сервисный аккаунт не настроен');
-    const header = { alg:'RS256', typ:'JWT' };
+    const header = { alg: 'RS256', typ: 'JWT' };
     const now    = Math.floor(Date.now() / 1000);
-    const claim  = { iss:sa.client_email, scope:SCOPE, aud:TOKEN_URI, iat:now, exp:now+3600 };
+    const claim  = { iss: sa.client_email, scope: SCOPE, aud: TOKEN_URI, iat: now, exp: now + 3600 };
     const input  = b64url(JSON.stringify(header)) + '.' + b64url(JSON.stringify(claim));
     const key    = await importPrivateKey(sa.private_key);
     const sig    = await crypto.subtle.sign('RSASSA-PKCS1-v1_5', key, new TextEncoder().encode(input));
     return input + '.' + b64url(sig);
 }
-
 async function ensureAuth() {
     if (accessToken && Date.now() < tokenExpiry) return accessToken;
     const jwt = await createSignedJWT();
@@ -441,155 +437,169 @@ async function ensureAuth() {
         headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
         body: 'grant_type=urn%3Aietf%3Aparams%3Aoauth%3Agrant-type%3Ajwt-bearer&assertion=' + jwt
     });
-    if (!r.ok) { const e = await r.json().catch(()=>({})); throw new Error(e.error_description || e.error || `HTTP ${r.status}`); }
+    if (!r.ok) { const e = await r.json().catch(() => ({})); throw new Error(e.error_description || e.error || `HTTP ${r.status}`); }
     const d = await r.json();
     accessToken = d.access_token;
     tokenExpiry = Date.now() + (d.expires_in - 60) * 1000;
     return accessToken;
 }
 
-/* ── GOOGLE SHEETS API ── */
+/* ══════════════════════════════════════════════════════════════════
+ * GOOGLE SHEETS API
+ * ═════════════════════════════════════════════════════════════════ */
 async function apiRead(range) {
     const token = await ensureAuth();
     const url = `${SHEETS_BASE}/${encodeURIComponent(cfg.spreadsheetId)}/values/${encodeURIComponent(range)}`;
     const r = await fetch(url, { headers: { 'Authorization': 'Bearer ' + token } });
-    if (!r.ok) { const e = await r.json().catch(()=>({})); throw new Error(e.error?.message || `HTTP ${r.status}`); }
+    if (!r.ok) { const e = await r.json().catch(() => ({})); throw new Error(e.error?.message || `HTTP ${r.status}`); }
     return r.json();
 }
-
 async function apiAppend(range, values) {
     const token = await ensureAuth();
     const url = `${SHEETS_BASE}/${encodeURIComponent(cfg.spreadsheetId)}/values/${encodeURIComponent(range)}:append?valueInputOption=USER_ENTERED`;
-    const r = await fetch(url, {
-        method: 'POST',
-        headers: { 'Authorization': 'Bearer ' + token, 'Content-Type': 'application/json' },
-        body: JSON.stringify({ values })
-    });
-    if (!r.ok) { const e = await r.json().catch(()=>({})); throw new Error(e.error?.message || `HTTP ${r.status}`); }
+    const r = await fetch(url, { method: 'POST', headers: { 'Authorization': 'Bearer ' + token, 'Content-Type': 'application/json' }, body: JSON.stringify({ values }) });
+    if (!r.ok) { const e = await r.json().catch(() => ({})); throw new Error(e.error?.message || `HTTP ${r.status}`); }
     return r.json();
 }
-
 async function apiUpdate(range, values) {
     const token = await ensureAuth();
-    const body  = Array.isArray(values) ? { values:[values] } : { values:[[values]] };
+    const body  = Array.isArray(values) ? { values: [values] } : { values: [[values]] };
     const url   = `${SHEETS_BASE}/${encodeURIComponent(cfg.spreadsheetId)}/values/${encodeURIComponent(range)}?valueInputOption=RAW`;
-    const r = await fetch(url, { method:'PUT', headers:{'Authorization':'Bearer '+token,'Content-Type':'application/json'}, body:JSON.stringify(body) });
+    const r = await fetch(url, { method: 'PUT', headers: { 'Authorization': 'Bearer ' + token, 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
     if (!r.ok) throw new Error('Update failed');
     return r.json();
 }
-
 async function apiBatchValues(data) {
     const token = await ensureAuth();
     const url = `${SHEETS_BASE}/${encodeURIComponent(cfg.spreadsheetId)}/values:batchUpdate`;
-    const r = await fetch(url, { method:'POST', headers:{'Authorization':'Bearer '+token,'Content-Type':'application/json'}, body:JSON.stringify({valueInputOption:'USER_ENTERED',data}) });
+    const r = await fetch(url, { method: 'POST', headers: { 'Authorization': 'Bearer ' + token, 'Content-Type': 'application/json' }, body: JSON.stringify({ valueInputOption: 'USER_ENTERED', data }) });
     if (!r.ok) throw new Error('Batch values update failed');
     return r.json();
 }
-
 async function apiBatchStructural(requests) {
     const token = await ensureAuth();
     const url = `${SHEETS_BASE}/${encodeURIComponent(cfg.spreadsheetId)}:batchUpdate`;
-    const r = await fetch(url, { method:'POST', headers:{'Authorization':'Bearer '+token,'Content-Type':'application/json'}, body:JSON.stringify({requests}) });
+    const r = await fetch(url, { method: 'POST', headers: { 'Authorization': 'Bearer ' + token, 'Content-Type': 'application/json' }, body: JSON.stringify({ requests }) });
     if (!r.ok) throw new Error('Structural batch update failed');
     return r.json();
 }
 
-/* ── USER AUTH AGAINST SHEETS ── */
-/* ── DB SCHEMA REGISTRY ── */
-// System sheets always created on first connect
-const DB_SYSTEM_SCHEMA = {
-    users:    { headers: ['login','password','role','status','total_xp'] },
-    scores:   { headers: ['timestamp','login','app_id','raw_score','xp_earned'] },
-    sessions: { headers: ['timestamp','login','app_id','duration_sec'] }
-};
+/* ══════════════════════════════════════════════════════════════════
+ * SHEET NAME VALIDATION & DB CACHE
+ * ═════════════════════════════════════════════════════════════════ */
+function validateSheetName(name) {
+    if (!/^[a-zA-Z0-9_]+$/.test(name)) {
+        throw new Error('Недопустимое имя таблицы: ' + name + '. Разрешены только буквы, цифры и _');
+    }
+}
+function validateSheetRange(range) {
+    const sheetName = range.split('!')[0];
+    validateSheetName(sheetName);
+}
+async function refreshDbCache() {
+    const token = await ensureAuth();
+    const url = `${SHEETS_BASE}/${encodeURIComponent(cfg.spreadsheetId)}?fields=sheets.properties.title`;
+    const res = await fetch(url, { headers: { 'Authorization': 'Bearer ' + token } });
+    if (!res.ok) throw new Error('Ошибка метаданных таблицы');
+    const sheets = (await res.json()).sheets || [];
+    _dbSheetCache = new Set(sheets.map(s => s.properties.title));
+    return _dbSheetCache;
+}
 
-const _dbAppSchemas = {};  // appId → { sheetName: { headers:[...], seedRows?:[[...]] } }
-
-function dbRegisterAppSchema(appId, sheets) {
-    _dbAppSchemas[appId] = sheets;
+/* ══════════════════════════════════════════════════════════════════
+ * DB INITIALIZATION — ensureTables
+ * ═════════════════════════════════════════════════════════════════ */
+async function dbEnsureTables(tablesConfig) {
+    // Validate all names first
+    for (const t of tablesConfig) validateSheetName(t.name);
+    // Use cached sheet list or fetch
+    if (!_dbSheetCache) await refreshDbCache();
+    const missing = tablesConfig.filter(t => !_dbSheetCache.has(t.name));
+    if (!missing.length) return;
+    // Create missing sheets in one batch
+    const createReqs = missing.map(t => ({ addSheet: { properties: { title: t.name } } }));
+    await apiBatchStructural(createReqs);
+    // Write headers
+    for (const t of missing) {
+        try {
+            await apiAppend(`${t.name}!A1`, [t.headers]);
+        } catch {}
+        _dbSheetCache.add(t.name);
+    }
 }
 
 async function dbInitAllSheets() {
-    // 1. Fetch existing sheet names from spreadsheet metadata
-    const token   = await ensureAuth();
-    const metaUrl = `${SHEETS_BASE}/${encodeURIComponent(cfg.spreadsheetId)}?fields=sheets.properties.title`;
-    const metaRes = await fetch(metaUrl, { headers:{ 'Authorization':'Bearer '+token } });
-    if (!metaRes.ok) throw new Error('Ошибка получения метаданных таблицы');
-    const existing = new Set((await metaRes.json()).sheets?.map(s => s.properties.title) || []);
-
-    // 2. Merge system schema + all registered app schemas
-    const allSchemas = { ...DB_SYSTEM_SCHEMA };
-    for (const appSheets of Object.values(_dbAppSchemas)) {
-        Object.assign(allSchemas, appSheets);
-    }
-
-    // 3. Create missing sheets in one structural batch
-    const createReqs = Object.keys(allSchemas)
-        .filter(name => !existing.has(name))
-        .map(name => ({ addSheet:{ properties:{ title:name } } }));
-    if (createReqs.length) await apiBatchStructural(createReqs);
-
-    // 4. Write headers for each sheet where row 1 is still empty
-    for (const [sheetName, desc] of Object.entries(allSchemas)) {
-        try {
-            const r = await apiRead(`${sheetName}!A1:Z1`);
-            if (!r.values?.length) await apiAppend(`${sheetName}!A1`, [desc.headers]);
-            if (desc.seedRows) {
-                const check = await apiRead(`${sheetName}!A2:A2`);
-                if (!check.values?.length) {
-                    for (const row of desc.seedRows) await apiAppend(`${sheetName}!A:Z`, [row]);
-                }
-            }
-        } catch {}
-    }
+    const systemTables = Object.entries(DB_SYSTEM_SCHEMA).map(([name, desc]) => ({
+        name, headers: desc.headers
+    }));
+    await dbEnsureTables(systemTables);
 }
 
-async function loginUser(login, password) {
-    const res  = await apiRead('users!A2:E5000');
+/* ══════════════════════════════════════════════════════════════════
+ * USER AUTH (against sys_Users sheet)
+ * sys_Users columns: [ID, Email, Password, Role, TotalXP, CreatedAt, Status]
+ *                     0    1      2         3     4        5          6
+ * ═════════════════════════════════════════════════════════════════ */
+async function loginUser(email, password) {
+    const res  = await apiRead('sys_Users!A2:G5000');
     const rows = res.values || [];
-    const row  = rows.find(r => r[0] === login && r[1] === password && r[3] !== 'blocked');
+    const row  = rows.find(r => r[1] === email && r[2] === password && r[6] !== 'blocked');
     if (!row) return null;
-    return { login: row[0], role: row[2] || 'user', total_xp: parseInt(row[4]) || 0 };
+    return { login: row[1], role: row[3] || 'user', total_xp: parseInt(row[4]) || 0 };
 }
 
-async function registerUser(login, password) {
-    const res  = await apiRead('users!A2:E5000');
+async function registerUser(email, password) {
+    const res  = await apiRead('sys_Users!A2:G5000');
     const rows = res.values || [];
-    if (rows.some(r => r[0] === login)) throw new Error('Пользователь уже существует');
+    if (rows.some(r => r[1] === email)) throw new Error('Пользователь уже существует');
     const isFirst = rows.length === 0;
-    await apiAppend('users!A:E', [[login, password, isFirst ? 'admin' : 'user', 'active', '0']]);
-    return { login, role: isFirst ? 'admin' : 'user', total_xp: 0 };
+    const id  = 'u_' + Date.now().toString(36);
+    const now = new Date().toISOString();
+    await apiAppend('sys_Users!A:G', [[id, email, password, isFirst ? 'admin' : 'user', '0', now, 'active']]);
+    return { login: email, role: isFirst ? 'admin' : 'user', total_xp: 0 };
 }
 
-/* ── PLATFORM API (accessible from iframes via window.parent.PlatformAPI) ── */
+/* ══════════════════════════════════════════════════════════════════
+ * PLATFORM API (accessible from iframes via window.parent.PlatformAPI)
+ * ═════════════════════════════════════════════════════════════════ */
 window.PlatformAPI = {
     user: {
-        getProfile: () => currentUser
+        getProfile: () => currentUser ? { login: currentUser.login, role: currentUser.role, total_xp: currentUser.total_xp } : null
     },
     db: {
-        read:              async (range)         => await apiRead(range),
-        append:            async (range, values) => await apiAppend(range, values),
-        update:            async (range, values) => await apiUpdate(range, values),
-        batchValues:       async (data)          => await apiBatchValues(data),
-        batchStructural:   async (requests)      => await apiBatchStructural(requests),
-        registerAppSchema: (appId, sheets)       => dbRegisterAppSchema(appId, sheets),
-        initAllSheets:     async ()              => { showLoader(true); try { await dbInitAllSheets(); toast('✓ Таблицы инициализированы','ok'); } catch(e) { toast('Ошибка БД: '+e.message,'err'); throw e; } finally { showLoader(false); } },
-        getSpreadsheetId:  ()                    => cfg.spreadsheetId
+        read: async (range) => { validateSheetRange(range); return apiRead(range); },
+        append: async (range, values) => { validateSheetRange(range); return apiAppend(range, values); },
+        update: async (range, values) => { validateSheetRange(range); return apiUpdate(range, values); },
+        batchValues: async (data) => {
+            if (Array.isArray(data)) data.forEach(d => { if (d.range) validateSheetRange(d.range); });
+            return apiBatchValues(data);
+        },
+        batchStructural: async (requests) => apiBatchStructural(requests),
+        ensureTables: async (tablesConfig) => {
+            showLoader(true);
+            try {
+                await dbEnsureTables(tablesConfig);
+                toast('✓ Таблицы готовы', 'ok');
+            } catch (e) {
+                toast('Ошибка БД: ' + e.message, 'err');
+                throw e;
+            } finally { showLoader(false); }
+        },
+        getSpreadsheetId: () => cfg.spreadsheetId
     },
     gameplay: {
         submitScore: async (appId, rawScore, xpEarned) => {
             if (!currentUser) return;
             const ts = new Date().toISOString();
-            await apiAppend('scores!A:E', [[ts, currentUser.login, appId, rawScore, xpEarned]]).catch(()=>{});
-            // Best-effort XP increment in Users sheet
+            await apiAppend('sys_Scores!A:E', [[ts, currentUser.login, appId, String(rawScore), String(xpEarned)]]).catch(() => {});
             try {
-                const res  = await apiRead('users!A2:E5000');
+                const res  = await apiRead('sys_Users!A2:G5000');
                 const rows = res.values || [];
-                const idx  = rows.findIndex(r => r[0] === currentUser.login);
+                const idx  = rows.findIndex(r => r[1] === currentUser.login);
                 if (idx >= 0) {
                     const rowNum = idx + 2;
                     const curXp  = parseInt(rows[idx][4]) || 0;
-                    await apiUpdate(`users!E${rowNum}`, curXp + xpEarned);
+                    await apiUpdate(`sys_Users!E${rowNum}`, String(curXp + xpEarned));
                     currentUser.total_xp = curXp + xpEarned;
                     saveUser();
                 }
@@ -599,20 +609,41 @@ window.PlatformAPI = {
     system: {
         logSession: async (appId, durationSec) => {
             if (!currentUser) return;
-            try {
-                const ts = new Date().toISOString();
-                await apiAppend('sessions!A:D', [[ts, currentUser.login, appId, durationSec]]);
-            } catch {}
+            try { await apiAppend('sys_Logs!A:E', [[new Date().toISOString(), currentUser.login, appId, 'session', String(durationSec)]]); } catch {}
+        },
+        log: async (appId, eventType, details) => {
+            if (!currentUser) return;
+            try { await apiAppend('sys_Logs!A:E', [[new Date().toISOString(), currentUser.login, appId, eventType, String(details || '')]]); } catch {}
         }
     },
     ui: {
-        showToast:    (msg, type) => toast(msg, type),
-        showLoader:   (on)        => showLoader(on),
-        openSettings: ()          => openPlatformSettings()
+        showToast:  (msg, type) => toast(msg, type),
+        showLoader: (on)        => showLoader(on),
+        openSettings: ()        => openPlatformSettings()
     }
 };
 
-/* ── APP LAUNCH / SESSION TRACKING ── */
+/* ══════════════════════════════════════════════════════════════════
+ * TAB NAVIGATION
+ * ═════════════════════════════════════════════════════════════════ */
+function switchTab(tabName) {
+    activeTab = tabName;
+    document.querySelectorAll('.side-item, .bnav-item').forEach(btn => {
+        btn.classList.toggle('active', btn.dataset.tab === tabName);
+    });
+    document.querySelectorAll('.tab-panel').forEach(p => {
+        p.classList.toggle('active', p.id === 'tab-' + tabName);
+    });
+    const titles = { apps: 'Приложения', admin: 'Администрирование', logs: 'Журнал', board: 'Рейтинг' };
+    $('content-title').textContent = titles[tabName] || '';
+    if (tabName === 'admin') renderAdminTab();
+    else if (tabName === 'logs') renderLogsTab();
+    else if (tabName === 'board') renderBoardTab();
+}
+
+/* ══════════════════════════════════════════════════════════════════
+ * APP LAUNCH / SESSION TRACKING
+ * ═════════════════════════════════════════════════════════════════ */
 function launchApp(file, appId) {
     currentSession = { appId, startTime: Date.now() };
     $('app-iframe').src = `./apps/${file}`;
@@ -631,28 +662,25 @@ $('btn-float-back').addEventListener('click', () => {
     $('app-iframe').src = 'about:blank';
 });
 
-/* ── APPS GRID ── */
+/* ══════════════════════════════════════════════════════════════════
+ * APPS GRID
+ * ═════════════════════════════════════════════════════════════════ */
 const BUILTIN_APPS = [
-    { id:'trainer',    name:'Тренер',  icon:'🏋️', desc:'Таймер тренировки McGill Big 3.',   file:'trainer.html' },
-    { id:'dictionary', name:'Словарь', icon:'📖', desc:'Изучай слова на разных языках.',     file:'dictionary.html' }
+    { id: 'trainer',    name: 'Тренер',  icon: '🏋️', desc: 'Таймер тренировки McGill Big 3.',  file: 'trainer.html' },
+    { id: 'dictionary', name: 'Словарь', icon: '📖', desc: 'Изучай слова на разных языках.',    file: 'dictionary.html' }
 ];
 
 async function fetchAndRenderApps() {
-    let categories = [{ id:'apps', label:'⭐ Приложения', games: BUILTIN_APPS }];
+    let categories = [{ id: 'apps', label: '⭐ Приложения', games: BUILTIN_APPS }];
     try {
         const res = await fetch('./apps/index.json');
         if (res.ok) {
             const data = await res.json();
             if (data.categories) {
                 const extraCats = data.categories
-                    .map(cat => ({
-                        ...cat,
-                        games: (cat.games || []).filter(g =>
-                            !['wordlearning','dictionary','trainer'].includes(g.id) &&
-                            g.file !== 'WordLearning.html' &&
-                            g.file !== 'dictionary.html' &&
-                            g.file !== 'trainer.html'
-                        )
+                    .map(cat => ({ ...cat, games: (cat.games || []).filter(g =>
+                        !['wordlearning','dictionary','trainer'].includes(g.id) &&
+                        !['WordLearning.html','dictionary.html','trainer.html'].includes(g.file))
                     }))
                     .filter(cat => (cat.games || []).length > 0);
                 categories = [...categories, ...extraCats];
@@ -669,32 +697,238 @@ function renderAppsGrid() {
     let html = '';
     (appsData || []).forEach(cat => {
         const apps = q
-            ? (cat.games || []).filter(g => g.name.toLowerCase().includes(q) || (g.desc||'').toLowerCase().includes(q))
+            ? (cat.games || []).filter(g => g.name.toLowerCase().includes(q) || (g.desc || '').toLowerCase().includes(q))
             : (cat.games || []);
         if (!apps.length) return;
         html += `<div class="app-category"><div class="app-cat-label">${cat.label}</div><div class="apps-grid">`;
         apps.forEach(g => {
-            html += `<div class="app-tile" data-file="${g.file}" data-id="${g.id||''}" data-name="${g.name}" role="button" tabindex="0">
-                <div class="app-tile-icon">${g.icon||'🎮'}</div>
+            html += `<div class="app-tile" data-file="${g.file}" data-id="${g.id || ''}" data-name="${g.name}" role="button" tabindex="0">
+                <div class="app-tile-icon">${g.icon || '🎮'}</div>
                 <div class="app-tile-name">${g.name}</div>
-                <div class="app-tile-desc">${g.desc||''}</div>
+                <div class="app-tile-desc">${g.desc || ''}</div>
                 <div class="app-tile-play"><svg viewBox="0 0 24 24"><polygon points="5 3 19 12 5 21 5 3"/></svg></div>
             </div>`;
         });
         html += '</div></div>';
     });
-    if (!html) html = '<div style="color:var(--text-3);font-size:0.82rem;padding:20px 4px">Приложения не найдены</div>';
+    if (!html) html = '<div style="color:var(--text-3);font-size:.82rem;padding:20px 4px">Приложения не найдены</div>';
     el.innerHTML = html;
     el.querySelectorAll('.app-tile').forEach(tile => {
         const open = () => launchApp(tile.dataset.file, tile.dataset.id || tile.dataset.file);
         tile.addEventListener('click', open);
-        tile.addEventListener('keydown', e => { if (e.key==='Enter'||e.key===' ') { e.preventDefault(); open(); } });
+        tile.addEventListener('keydown', e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); open(); } });
     });
 }
 
 $('apps-search').addEventListener('input', e => { searchQuery = e.target.value; renderAppsGrid(); });
 
-/* ── SETUP ── */
+/* ══════════════════════════════════════════════════════════════════
+ * ADMIN TAB
+ * ═════════════════════════════════════════════════════════════════ */
+function renderAdminTab() {
+    const c = $('admin-content');
+    const isAdmin = currentUser?.role === 'admin';
+    const sid = cfg.spreadsheetId || '';
+    const saEmail = sa?.client_email || '';
+
+    let html = `
+        <div class="panel-sec">
+            <h3>🔌 Подключение</h3>
+            <div class="panel-row"><span>Spreadsheet ID</span><span class="panel-badge">${sid ? esc(sid.slice(0, 20)) + '…' : '—'}</span></div>
+            <div class="panel-row"><span>Сервисный аккаунт</span><span class="panel-badge">${saEmail ? esc(saEmail.split('@')[0]) : '—'}</span></div>
+            ${isAdmin ? '<button class="panel-btn" onclick="showView(\'setup\')">✏️ Изменить подключение</button>' : ''}
+        </div>
+        <div class="panel-sec">
+            <h3>🗄 База данных</h3>
+            <div class="panel-row"><span>Системных таблиц</span><span class="panel-badge">${Object.keys(DB_SYSTEM_SCHEMA).length}</span></div>
+            <div class="panel-row"><span>Кэш листов</span><span class="panel-badge">${_dbSheetCache ? _dbSheetCache.size + ' листов' : 'не загружен'}</span></div>
+            <button class="panel-btn accent" onclick="doInitSheets()">🗃 Инициализировать таблицы</button>
+            <button class="panel-btn" onclick="doRefreshCache()">🔄 Обновить кэш листов</button>
+        </div>`;
+
+    if (isAdmin) {
+        html += `<div class="panel-sec"><h3>👥 Управление пользователями</h3><div id="admin-users">Загрузка…</div></div>`;
+    }
+    c.innerHTML = html;
+    if (isAdmin) loadAdminUsers();
+}
+
+async function loadAdminUsers() {
+    const c = $('admin-users');
+    try {
+        const res = await apiRead('sys_Users!A2:G5000');
+        _adminUsers = res.values || [];
+        if (!_adminUsers.length) {
+            c.innerHTML = '<p style="color:var(--text-2);font-size:.82rem">Нет пользователей</p>';
+            return;
+        }
+        let html = '<div class="users-list">';
+        _adminUsers.forEach((r, i) => {
+            const [id, email, pwd, role, xp, created, status] = [...r, '', '', '', '', '', '', ''];
+            const isSelf = email === currentUser?.login;
+            const isBlocked = status === 'blocked';
+            html += `<div class="user-row">
+                <span class="u-email">${esc(email)}</span>
+                <span class="u-role ${role === 'admin' ? 'admin' : ''}">${esc(role || 'user')}</span>
+                ${isBlocked ? '<span style="color:var(--c-danger);font-size:.75rem">⛔ заблокирован</span>' : ''}
+                <div class="u-meta">XP: ${xp || 0} · ${created ? formatTs(created) : '—'}</div>
+                ${isSelf ? '' : `<div class="u-actions">
+                    <button onclick="adminToggleRole(${i})">${(role || 'user') === 'admin' ? '→user' : '→admin'}</button>
+                    <button onclick="adminToggleBlock(${i})">${isBlocked ? '✓ разблок.' : '⛔ блок.'}</button>
+                </div>`}
+            </div>`;
+        });
+        html += '</div>';
+        c.innerHTML = html;
+    } catch (e) {
+        c.innerHTML = `<p style="color:var(--c-danger);font-size:.82rem">Ошибка: ${esc(e.message)}</p>`;
+    }
+}
+
+async function adminToggleRole(idx) {
+    const r = _adminUsers[idx];
+    if (!r) return;
+    const newRole = (r[3] || 'user') === 'admin' ? 'user' : 'admin';
+    showLoader(true);
+    try {
+        await apiUpdate(`sys_Users!D${idx + 2}`, newRole);
+        toast('Роль изменена', 'ok');
+        loadAdminUsers();
+    } catch (e) { toast('Ошибка: ' + e.message, 'err'); }
+    showLoader(false);
+}
+
+async function adminToggleBlock(idx) {
+    const r = _adminUsers[idx];
+    if (!r) return;
+    const newStatus = (r[6] || 'active') === 'blocked' ? 'active' : 'blocked';
+    showLoader(true);
+    try {
+        await apiUpdate(`sys_Users!G${idx + 2}`, newStatus);
+        toast(newStatus === 'blocked' ? 'Пользователь заблокирован' : 'Пользователь разблокирован', 'ok');
+        loadAdminUsers();
+    } catch (e) { toast('Ошибка: ' + e.message, 'err'); }
+    showLoader(false);
+}
+
+async function doInitSheets() {
+    showLoader(true);
+    try {
+        await dbInitAllSheets();
+        toast('✓ Системные таблицы инициализированы', 'ok');
+        renderAdminTab();
+    } catch (e) { toast('Ошибка: ' + e.message, 'err'); }
+    showLoader(false);
+}
+
+async function doRefreshCache() {
+    showLoader(true);
+    try {
+        await refreshDbCache();
+        toast('✓ Кэш обновлён (' + _dbSheetCache.size + ' листов)', 'ok');
+        renderAdminTab();
+    } catch (e) { toast('Ошибка: ' + e.message, 'err'); }
+    showLoader(false);
+}
+
+/* ══════════════════════════════════════════════════════════════════
+ * LOGS TAB
+ * ═════════════════════════════════════════════════════════════════ */
+async function renderLogsTab() {
+    const c = $('logs-content');
+    if (currentUser?.role !== 'admin') {
+        c.innerHTML = '<div class="empty-state"><div class="empty-ico">🔒</div>Только для администраторов</div>';
+        return;
+    }
+    c.innerHTML = '<div class="empty-state"><div class="loader-spin" style="margin:0 auto"></div></div>';
+    try {
+        const res = await apiRead('sys_Logs!A2:E5000');
+        _logsRawRows = [...(res.values || [])].filter(r => r[0]).reverse();
+        renderLogsTable();
+    } catch (e) {
+        c.innerHTML = `<div class="empty-state" style="color:var(--c-danger)">Ошибка: ${esc(e.message)}</div>`;
+    }
+}
+
+function renderLogsTable() {
+    const c = $('logs-content');
+    const rows = _logsRawRows;
+    if (!rows.length) {
+        c.innerHTML = '<div class="empty-state"><div class="empty-ico">📋</div>Журнал пуст</div>';
+        return;
+    }
+    const appIds = [...new Set(rows.map(r => r[2] || '').filter(Boolean))];
+    const users  = [...new Set(rows.map(r => r[1] || '').filter(Boolean))];
+    const fApp   = $('logs-filter-app')?.value || '';
+    const fUser  = $('logs-filter-user')?.value || '';
+    const filtered = rows.filter(r => (!fApp || r[2] === fApp) && (!fUser || r[1] === fUser));
+
+    let html = `<div class="logs-filters">
+        <select id="logs-filter-app" onchange="renderLogsTable()">
+            <option value="">Все приложения</option>
+            ${appIds.map(id => `<option value="${esc(id)}"${fApp === id ? ' selected' : ''}>${esc(id)}</option>`).join('')}
+        </select>
+        <select id="logs-filter-user" onchange="renderLogsTable()">
+            <option value="">Все пользователи</option>
+            ${users.map(u => `<option value="${esc(u)}"${fUser === u ? ' selected' : ''}>${esc(u)}</option>`).join('')}
+        </select>
+    </div>
+    <div class="logs-info">${filtered.length} из ${rows.length} записей</div>
+    <div style="flex:1;overflow:auto;padding:0 16px 16px"><div class="table-scroll">
+    <table class="data-table">
+        <tr><th>Время</th><th>Пользователь</th><th>Приложение</th><th>Событие</th><th>Детали</th></tr>`;
+    filtered.slice(0, 300).forEach(r => {
+        html += `<tr>
+            <td class="nowrap">${esc(formatTs(r[0]))}</td>
+            <td>${esc(r[1] || '')}</td>
+            <td>${esc(r[2] || '')}</td>
+            <td>${esc(r[3] || '')}</td>
+            <td class="ellipsis" title="${esc(r[4] || '')}">${esc(r[4] || '')}</td>
+        </tr>`;
+    });
+    html += '</table></div></div>';
+    c.innerHTML = html;
+}
+
+/* ══════════════════════════════════════════════════════════════════
+ * LEADERBOARD TAB
+ * ═════════════════════════════════════════════════════════════════ */
+async function renderBoardTab() {
+    const c = $('board-content');
+    c.innerHTML = '<div class="empty-state"><div class="loader-spin" style="margin:0 auto"></div></div>';
+    try {
+        const res = await apiRead('sys_Users!A2:G5000');
+        const users = (res.values || []).filter(r => r[1] && (r[6] || 'active') !== 'blocked');
+        users.sort((a, b) => (parseInt(b[4]) || 0) - (parseInt(a[4]) || 0));
+        if (!users.length) {
+            c.innerHTML = '<div class="empty-state"><div class="empty-ico">🏆</div>Нет данных для рейтинга</div>';
+            return;
+        }
+        let html = '<div class="board-list">';
+        users.forEach((r, i) => {
+            const [id, email, pwd, role, xp, created, status] = [...r, '', '', '', '', '', '', ''];
+            const pos = i + 1;
+            const posClass = pos <= 3 ? ' top' + pos : '';
+            const isSelf = email === currentUser?.login;
+            html += `<div class="board-item${isSelf ? ' self' : ''}">
+                <div class="board-pos${posClass}">${pos}</div>
+                <div class="board-info">
+                    <div class="board-name">${esc(email)}${role === 'admin' ? '<span class="role-tag">admin</span>' : ''}</div>
+                    <div class="board-meta">${created ? 'С ' + formatTs(created) : ''}</div>
+                </div>
+                <div class="board-xp">${parseInt(xp) || 0} <small>XP</small></div>
+            </div>`;
+        });
+        html += '</div>';
+        c.innerHTML = html;
+    } catch (e) {
+        c.innerHTML = `<div class="empty-state" style="color:var(--c-danger)">Ошибка: ${esc(e.message)}</div>`;
+    }
+}
+
+/* ══════════════════════════════════════════════════════════════════
+ * SETUP HANDLER
+ * ═════════════════════════════════════════════════════════════════ */
 $('btn-setup-save').addEventListener('click', async () => {
     const sid   = $('setup-sid').value.trim();
     const saRaw = $('setup-sa').value.trim();
@@ -710,6 +944,7 @@ $('btn-setup-save').addEventListener('click', async () => {
     showLoader(true);
     try {
         await ensureAuth();
+        _dbSheetCache = null;
         await dbInitAllSheets();
         showLoader(false);
         toast('✓ Подключено!', 'ok');
@@ -717,13 +952,14 @@ $('btn-setup-save').addEventListener('click', async () => {
     } catch (e) {
         showLoader(false);
         errEl.textContent = 'Ошибка подключения: ' + e.message;
-        // Roll back
         cfg.spreadsheetId = '';
         sa = null;
     }
 });
 
-/* ── LOGIN / REGISTER TOGGLE ── */
+/* ══════════════════════════════════════════════════════════════════
+ * LOGIN / REGISTER
+ * ═════════════════════════════════════════════════════════════════ */
 $('btn-show-reg').addEventListener('click', () => {
     $('login-form').style.display = 'none';
     $('reg-form').style.display   = '';
@@ -736,8 +972,7 @@ $('btn-show-login').addEventListener('click', () => {
 });
 $('btn-goto-setup').addEventListener('click', () => showView('setup'));
 
-/* ── LOGIN ── */
-async function doLogin() {
+async function doLoginAction() {
     const login = $('login-login').value.trim();
     const pass  = $('login-pass').value;
     const errEl = $('login-err');
@@ -757,7 +992,7 @@ async function doLogin() {
     }
 }
 
-async function doRegister() {
+async function doRegisterAction() {
     const login = $('reg-login').value.trim();
     const pass  = $('reg-pass').value;
     const errEl = $('reg-err');
@@ -777,13 +1012,15 @@ async function doRegister() {
     }
 }
 
-$('btn-do-login').addEventListener('click', doLogin);
-$('btn-do-reg').addEventListener('click', doRegister);
-$('login-pass').addEventListener('keydown', e => { if (e.key === 'Enter') doLogin(); });
-$('reg-pass').addEventListener('keydown', e => { if (e.key === 'Enter') doRegister(); });
+$('btn-do-login').addEventListener('click', doLoginAction);
+$('btn-do-reg').addEventListener('click', doRegisterAction);
+$('login-pass').addEventListener('keydown', e => { if (e.key === 'Enter') doLoginAction(); });
+$('reg-pass').addEventListener('keydown', e => { if (e.key === 'Enter') doRegisterAction(); });
 
-/* ── LOGOUT ── */
-$('btn-logout').addEventListener('click', () => {
+/* ══════════════════════════════════════════════════════════════════
+ * LOGOUT
+ * ═════════════════════════════════════════════════════════════════ */
+function doLogout() {
     if (!confirm('Выйти из аккаунта?')) return;
     currentUser = null;
     saveUser();
@@ -795,16 +1032,21 @@ $('btn-logout').addEventListener('click', () => {
     $('login-form').style.display = '';
     $('reg-form').style.display   = 'none';
     showView('login');
-});
-
-/* ── AFTER LOGIN ── */
-function afterLogin() {
-    $('hdr-user-name').textContent = currentUser.login;
-    showView('platform');
-    fetchAndRenderApps();
 }
 
-/* ── INIT ── */
+/* ══════════════════════════════════════════════════════════════════
+ * AFTER LOGIN + INIT
+ * ═════════════════════════════════════════════════════════════════ */
+function afterLogin() {
+    $('hdr-user-name').textContent  = currentUser.login;
+    $('side-user-name').textContent = currentUser.login;
+    showView('platform');
+    switchTab('apps');
+    fetchAndRenderApps();
+    // Pre-cache DB sheet list
+    refreshDbCache().catch(() => {});
+}
+
 (function init() {
     loadCfg(); loadSA(); loadUser();
 
@@ -827,8 +1069,9 @@ function afterLogin() {
     }
 })();
 
-/* ── SERVICE WORKER ── */
-/* ── PLATFORM SETTINGS ── */
+/* ══════════════════════════════════════════════════════════════════
+ * PLATFORM SETTINGS PANEL
+ * ═════════════════════════════════════════════════════════════════ */
 function openPlatformSettings() {
     renderPlatformSettings();
     $('psett-bg').classList.add('show');
@@ -837,36 +1080,21 @@ function closePlatformSettings() {
     $('psett-bg').classList.remove('show');
 }
 function renderPlatformSettings() {
-    const sid      = cfg.spreadsheetId || '';
-    const saEmail  = sa?.client_email  || '';
-    const appCount = Object.keys(_dbAppSchemas).length;
     let lsBytes = 0;
-    try { for (const k of Object.keys(localStorage)) lsBytes += (localStorage.getItem(k)||'').length * 2; } catch {}
+    try { for (const k of Object.keys(localStorage)) lsBytes += (localStorage.getItem(k) || '').length * 2; } catch {}
     const lsKb = (lsBytes / 1024).toFixed(1);
     $('psett-body').innerHTML = `
-        <div class="psett-sec">
-            <h3>🔌 Подключение</h3>
-            <div class="psett-row"><span>Spreadsheet ID</span><span class="psett-badge">${sid ? sid.slice(0,18)+'…' : '—'}</span></div>
-            <div class="psett-row"><span>Сервисный аккаунт</span><span class="psett-badge">${saEmail ? saEmail.split('@')[0] : '—'}</span></div>
-            <button class="psett-btn" onclick="closePlatformSettings();showView('setup')">✏️ Изменить подключение</button>
-        </div>
-        <div class="psett-sec">
-            <h3>🗄 База данных</h3>
-            <div class="psett-row"><span>Системных таблиц</span><span class="psett-badge">${Object.keys(DB_SYSTEM_SCHEMA).length}</span></div>
-            <div class="psett-row"><span>Схемы приложений</span><span class="psett-badge">${appCount}</span></div>
-            <button class="psett-btn accent" onclick="closePlatformSettings();PlatformAPI.db.initAllSheets()">🗃 Инициализировать таблицы</button>
-        </div>
-        <div class="psett-sec">
+        <div class="panel-sec">
             <h3>🗑 Кэш и данные</h3>
-            <div class="psett-row"><span>LocalStorage</span><span class="psett-badge">~${lsKb} КБ</span></div>
-            <button class="psett-btn" onclick="clearPlatformCache()">🧹 Очистить кэш приложений</button>
-            <button class="psett-btn danger" onclick="resetPlatformData()">⚠️ Сбросить все данные</button>
+            <div class="panel-row"><span>LocalStorage</span><span class="panel-badge">~${lsKb} КБ</span></div>
+            <button class="panel-btn" onclick="clearPlatformCache()">🧹 Очистить кэш приложений</button>
+            <button class="panel-btn danger" onclick="resetPlatformData()">⚠️ Сбросить все данные</button>
         </div>
-        <div class="psett-sec">
+        <div class="panel-sec">
             <h3>🔄 Обновление приложения</h3>
-            <div class="psett-row"><span>Service Worker</span><span class="psett-badge" id="psett-sw-badge">…</span></div>
-            <button class="psett-btn" onclick="checkForUpdate()">🔍 Проверить обновление</button>
-            <button class="psett-btn" onclick="location.reload()">↺ Перезагрузить приложение</button>
+            <div class="panel-row"><span>Service Worker</span><span class="panel-badge" id="psett-sw-badge">…</span></div>
+            <button class="panel-btn" onclick="checkForUpdate()">🔍 Проверить обновление</button>
+            <button class="panel-btn" onclick="location.reload()">↺ Перезагрузить приложение</button>
         </div>`;
     if ('serviceWorker' in navigator) {
         navigator.serviceWorker.getRegistration().then(reg => {
@@ -879,6 +1107,7 @@ function renderPlatformSettings() {
         const el = $('psett-sw-badge'); if (el) el.textContent = 'Не поддерживается';
     }
 }
+
 function clearPlatformCache() {
     const keep = new Set([LS_CFG, LS_SA, LS_USER]);
     for (const k of Object.keys(localStorage)) if (!keep.has(k)) localStorage.removeItem(k);
@@ -901,9 +1130,12 @@ async function checkForUpdate() {
         if (swRegistration.waiting) toast('Обновление готово — перезагрузите приложение', 'ok');
         else toast('Версия актуальна', 'ok');
         renderPlatformSettings();
-    } catch(e) { showLoader(false); toast('Ошибка: ' + e.message, 'err'); }
+    } catch (e) { showLoader(false); toast('Ошибка: ' + e.message, 'err'); }
 }
 
+/* ══════════════════════════════════════════════════════════════════
+ * SERVICE WORKER
+ * ═════════════════════════════════════════════════════════════════ */
 if ('serviceWorker' in navigator) {
     window.addEventListener('load', () => {
         navigator.serviceWorker.register('./sw.js')
