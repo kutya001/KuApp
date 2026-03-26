@@ -1246,6 +1246,7 @@ function renderSettingsData(c){
 function renderSettingsImpExp(c){
   const langsOpts=data.languages.map(l=>`<option value="${esc(l.code)}">${esc(l.name)}</option>`).join('');
   const catsOpts='<option value="">Все категории</option>'+data.categories.map(cat=>`<option value="${esc(cat.id)}">${esc(cat.icon+' '+cat.name)}</option>`).join('');
+  const promptCatsOpts='<option value="">— выбрать —</option>'+data.categories.map(cat=>`<option value="${esc(cat.id)}">${esc(cat.icon+' '+cat.name)}</option>`).join('');
   c.innerHTML=`
     <div class="set-section">
       <h3>📤 Экспорт JSON</h3>
@@ -1260,9 +1261,71 @@ function renderSettingsImpExp(c){
       <p style="font-size:.78rem;color:var(--tx2);margin-bottom:10px">Умный импорт: новые слова добавятся, существующие обновятся, дубликаты пропустятся</p>
       <input type="file" id="imp-file" accept=".json" onchange="onImportFile(event)" style="display:none">
       <button class="btn btn-sm btn-primary" onclick="document.getElementById('imp-file').click()">Выбрать файл .json</button>
+    </div>
+    <div class="set-section">
+      <h3>🤖 Промт для ИИ</h3>
+      <p style="font-size:.78rem;color:var(--tx2);margin-bottom:12px">Скопируйте промт, вставьте в ChatGPT / Claude / Gemini — и загрузите полученный JSON через импорт выше.</p>
+      <div class="input-group"><label>Категория</label><select id="ai-prompt-cat" onchange="refreshAiPrompt()">${promptCatsOpts}</select></div>
+      <div class="row mb8">
+        <div class="input-group"><label>Язык (от)</label><select id="ai-prompt-lf" onchange="refreshAiPrompt()">${langsOpts}</select></div>
+        <div class="input-group"><label>Язык (до)</label><select id="ai-prompt-lt" onchange="refreshAiPrompt()">${langsOpts}</select></div>
+      </div>
+      <div class="input-group"><label>Количество слов</label><input type="number" id="ai-prompt-count" value="30" min="5" max="200" oninput="refreshAiPrompt()"></div>
+      <div class="prompt-box" id="ai-prompt-box"></div>
+      <button class="btn btn-sm btn-primary" onclick="copyAiPrompt()">📋 Скопировать промт</button>
     </div>`;
   document.getElementById('exp-lf').value=ui.langFrom;
   document.getElementById('exp-lt').value=ui.langTo;
+  document.getElementById('ai-prompt-lf').value=ui.langFrom;
+  document.getElementById('ai-prompt-lt').value=ui.langTo;
+  refreshAiPrompt();
+}
+
+function refreshAiPrompt(){
+  const box=document.getElementById('ai-prompt-box');
+  if(!box)return;
+  const lfCode=document.getElementById('ai-prompt-lf')?.value||ui.langFrom;
+  const ltCode=document.getElementById('ai-prompt-lt')?.value||ui.langTo;
+  const catSel=document.getElementById('ai-prompt-cat')?.value||'';
+  const count=parseInt(document.getElementById('ai-prompt-count')?.value)||30;
+  const lfName=data.languages.find(l=>l.code===lfCode)?.name||lfCode;
+  const ltName=data.languages.find(l=>l.code===ltCode)?.name||ltCode;
+  const catObj=data.categories.find(c=>c.id===catSel);
+  const catDesc=catObj?`тема/категория: «${catObj.name}»`:'любую одну тему на твой выбор (укажи её в поле category)';
+  const existingWords=data.words
+    .filter(w=>w.langFrom===lfCode&&w.langTo===ltCode&&(!catSel||w.category===catSel))
+    .slice(0,10).map(w=>w.wordFrom).join(', ');
+  const avoidLine=existingWords?`\nИсключи уже имеющиеся слова (примеры): ${existingWords}.`:'';
+  const prompt=`Сгенерируй ${count} слов для изучения языка.
+Язык оригинала: ${lfName} (код: ${lfCode})
+Язык перевода: ${ltName} (код: ${ltCode})
+Тема: ${catDesc}${avoidLine}
+
+Верни ТОЛЬКО валидный JSON без пояснений, строго в формате:
+{
+  "langFrom": "${lfCode}",
+  "langTo": "${ltCode}",
+  "category": "${catSel||'<id_категории>'}",
+  "words": [
+    { "category": "${catSel||'<id_категории>'}", "wordFrom": "слово на ${lfName}", "wordTo": "перевод на ${ltName}", "transcription": "транскрипция (если есть, иначе пустая строка)" }
+  ]
+}
+
+Правила:
+- wordFrom — слово/фраза на ${lfName}
+- wordTo — точный перевод на ${ltName}
+- transcription — произношение wordTo в IPA или пустая строка ""
+- category — ровно одно значение для всех слов: ${catSel?`"${catSel}"`:'id категории латиницей, например "food"'}
+- Никакого текста вне JSON, никаких markdown-блоков`;
+  box.textContent=prompt;
+}
+
+function copyAiPrompt(){
+  const box=document.getElementById('ai-prompt-box');
+  if(!box||!box.textContent){toast('Сначала настройте параметры','err');return}
+  navigator.clipboard.writeText(box.textContent)
+    .then(()=>toast('Промт скопирован в буфер обмена','ok'))
+    .catch(()=>toast('Не удалось скопировать','err'));
 }
 
 function renderSettingsAdmin(c){
