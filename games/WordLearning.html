@@ -233,6 +233,26 @@ main{flex:1;overflow:hidden;position:relative}
 .flex-c{display:flex;align-items:center;gap:8px}
 .gap8{gap:8px}.gap12{gap:12px}
 .row{display:flex;gap:10px}.row>*{flex:1}
+
+/* ===== PC / DESKTOP ADAPTATION ===== */
+@media (min-width:680px){
+  body{
+    align-items:center;
+    background:radial-gradient(ellipse at 20% 25%,rgba(91,140,255,.09) 0%,transparent 52%),radial-gradient(ellipse at 80% 75%,rgba(0,229,160,.06) 0%,transparent 52%),var(--bg);
+  }
+  header,main,#bnav{width:min(680px,100%);box-shadow:0 0 0 1px var(--bd)}
+  header{border-radius:var(--r) var(--r) 0 0}
+  #bnav{border-radius:0 0 var(--r) var(--r)}
+  .card-grid{grid-template-columns:repeat(3,1fr)}
+  .view{padding:20px 24px}
+  .modal-bg{align-items:center}
+  .modal{border-radius:var(--r);max-width:500px;max-height:85vh}
+  #toast{top:24px}
+}
+@media (min-width:1100px){
+  header,main,#bnav{width:min(860px,100%)}
+  .card-grid{grid-template-columns:repeat(4,1fr)}
+}
 </style>
 </head>
 <body>
@@ -434,6 +454,7 @@ main{flex:1;overflow:hidden;position:relative}
       <div class="stab" onclick="setSettingsTab('data')">Данные</div>
       <div class="stab" onclick="setSettingsTab('impexp')">Импорт/Экспорт</div>
       <div class="stab" onclick="setSettingsTab('admin')" id="stab-admin" style="display:none">Админ</div>
+      <div class="stab" onclick="setSettingsTab('logs')" id="stab-logs" style="display:none">Журнал</div>
     </div>
     <div id="settings-content"></div>
   </section>
@@ -455,13 +476,13 @@ const SHEETS_BASE='https://sheets.googleapis.com/v4/spreadsheets';
 const TOKEN_URI='https://oauth2.googleapis.com/token';
 const SCOPE='https://www.googleapis.com/auth/spreadsheets';
 const LANG_CODES={ru:'ru-RU',en:'en-US',ko:'ko-KR',fr:'fr-FR',de:'de-DE',es:'es-ES',it:'it-IT',ja:'ja-JP',zh:'zh-CN',ar:'ar-SA',tr:'tr-TR',pt:'pt-BR',hi:'hi-IN',pl:'pl-PL',uk:'uk-UA',kk:'kk-KZ',ky:'ky-KG'};
-const ALL_SHEETS=['languages','categories','words','users','ratings'];
-const SHEET_HEADERS={languages:['code','name'],categories:['id','name','icon'],words:['category','lang_from','word_from','lang_to','word_to','transcription'],users:['login','password','role','status'],ratings:['login','words_learned','quizzes_done','quiz_score','last_active']};
+const ALL_SHEETS=['languages','categories','words','users','ratings','logs'];
+const SHEET_HEADERS={languages:['code','name'],categories:['id','name','icon'],words:['category','lang_from','word_from','lang_to','word_to','transcription'],users:['login','password','role','status'],ratings:['login','words_learned','quizzes_done','quiz_score','last_active'],logs:['timestamp','user','action','details','type']};
 
 /* ===== STATE ===== */
 let cfg={spreadsheetId:''};
 let sa=null; // service account parsed JSON
-let data={languages:[],categories:[],words:[],users:[],ratings:[]};
+let data={languages:[],categories:[],words:[],users:[],ratings:[],logs:[]};
 let ui={view:'home',langFrom:'ru',langTo:'en',category:null,settingsTab:'general'};
 let progress={};
 let currentUser=null;
@@ -547,16 +568,19 @@ function saveUser(){if(currentUser)localStorage.setItem(LS_USER,JSON.stringify(c
 function afterLogin(){
   document.getElementById('hdr-user').textContent=currentUser.login;
   document.getElementById('hdr-user').style.display='inline';
-  if(currentUser.role==='admin')document.getElementById('stab-admin').style.display='';
+  if(currentUser.role==='admin'){
+    document.getElementById('stab-admin').style.display='';
+    document.getElementById('stab-logs').style.display='';
+  }
   showView('home');
   syncData();
 }
 
 /* ===== NAVIGATION ===== */
 function showView(name){
-  document.querySelectorAll('.view').forEach(v=>v.classList.remove('active'));
+  document.querySelectorAll('.view').forEach(v=>{v.classList.remove('active');v.style.display='';});
   const el=document.getElementById('v-'+name);
-  if(el){el.classList.add('active');if(name==='cards')el.style.display='flex'}
+  if(el){el.classList.add('active');if(name==='cards')el.style.display='flex';}
   const noNav=['login','register','setup'];
   document.getElementById('bnav').style.display=noNav.includes(name)?'none':'flex';
 }
@@ -749,6 +773,7 @@ async function doLogin(){
     if(u.status==='pending'){toast('Аккаунт ожидает подтверждения','err');showLoader(false);return}
     if(u.status==='rejected'){toast('Аккаунт отклонён','err');showLoader(false);return}
     currentUser={login:u.login,role:u.role};saveUser();
+    logToSheet('login','Вход: '+u.login,'ok');
     toast('Добро пожаловать, '+u.login+'!','ok');
     afterLogin();
   }catch(e){toast('Ошибка: '+e.message,'err')}
@@ -809,7 +834,19 @@ async function doChangePass(){
   showLoader(false);
 }
 
-function doLogout(){currentUser=null;saveUser();closeModal();showLogin()}
+function doLogout(){
+  logToSheet('logout','Выход из системы','info');
+  currentUser=null;saveUser();closeModal();
+  ['stab-admin','stab-logs'].forEach(id=>{const el=document.getElementById(id);if(el)el.style.display='none';});
+  showLogin();
+}
+
+function logToSheet(action,details,type='info'){
+  if(!cfg.spreadsheetId||!sa) return;
+  const user=currentUser?.login||'system';
+  const row=[new Date().toISOString(),user,action,String(details),type];
+  apiAppend('logs!A:E',[row]).catch(()=>{});
+}
 
 /* ===== SYNC ===== */
 async function syncData(){
@@ -1189,7 +1226,7 @@ function showQuizDone(){
 /* ===== SETTINGS VIEW ===== */
 function setSettingsTab(tab){
   ui.settingsTab=tab;
-  document.querySelectorAll('#settings-tabs .stab').forEach(s=>s.classList.toggle('active',s.textContent.trim()==={general:'Общие',langs:'Языки',cats:'Категории',data:'Данные',impexp:'Импорт/Экспорт',admin:'Админ'}[tab]));
+  document.querySelectorAll('#settings-tabs .stab').forEach(s=>s.classList.toggle('active',s.textContent.trim()==={general:'Общие',langs:'Языки',cats:'Категории',data:'Данные',impexp:'Импорт/Экспорт',admin:'Админ',logs:'Журнал'}[tab]));
   renderSettings();
 }
 
@@ -1203,6 +1240,7 @@ function renderSettings(){
   else if(tab==='data') renderSettingsData(c);
   else if(tab==='impexp') renderSettingsImpExp(c);
   else if(tab==='admin') renderSettingsAdmin(c);
+  else if(tab==='logs') renderSettingsLogs(c);
 }
 
 function renderSettingsGeneral(c){
@@ -1461,6 +1499,42 @@ function renderSettingsAdmin(c){
   c.innerHTML=html;
 }
 
+async function renderSettingsLogs(c){
+  if(!currentUser||currentUser.role!=='admin'){c.innerHTML=adminOnly();return}
+  c.innerHTML='<div class="empty"><div class="spinner" style="width:28px;height:28px;border-width:2px"></div></div>';
+  try{
+    const res=await apiRead('logs!A2:E2000');
+    const rows=[...(res.values||[])].filter(r=>r[0]).reverse();
+    if(!rows.length){c.innerHTML='<div class="empty"><div class="em-icon">📋</div><p>Журнал пуст</p></div>';return}
+    const typeColor=t=>t==='ok'?'var(--green)':t==='err'?'var(--red)':'var(--tx2)';
+    const fmt=ts=>{try{return new Date(ts).toLocaleString('ru-RU',{day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit'})}catch(e){return ts||''}}
+    let html=`<div class="set-section"><h3>📋 Журнал событий</h3>
+      <div style="font-size:.68rem;color:var(--tx2);margin-bottom:10px">${rows.length} записей · Новые сверху</div>
+      <div style="overflow-x:auto;margin:0 -4px">
+      <table style="width:100%;border-collapse:collapse;font-size:.72rem;min-width:400px">
+        <tr style="color:var(--tx3);font-size:.63rem;text-transform:uppercase;letter-spacing:.04em">
+          <th style="text-align:left;padding:6px 8px;border-bottom:1px solid var(--bd)">Время</th>
+          <th style="text-align:left;padding:6px 8px;border-bottom:1px solid var(--bd)">Пользователь</th>
+          <th style="text-align:left;padding:6px 8px;border-bottom:1px solid var(--bd)">Действие</th>
+          <th style="text-align:left;padding:6px 8px;border-bottom:1px solid var(--bd)">Детали</th>
+        </tr>`;
+    rows.forEach(r=>{
+      const[ts,user,action,details,type]=r;
+      const col=typeColor(type);
+      html+=`<tr style="border-bottom:1px solid var(--bd)">
+        <td style="padding:6px 8px;color:var(--tx3);white-space:nowrap">${esc(fmt(ts||''))}</td>
+        <td style="padding:6px 8px;font-weight:600">${esc(user||'')}</td>
+        <td style="padding:6px 8px;color:${col};white-space:nowrap">${esc(action||'')}</td>
+        <td style="padding:6px 8px;color:var(--tx2);max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="${esc(details||'')}">${esc(details||'')}</td>
+      </tr>`;
+    });
+    html+='</table></div></div>';
+    c.innerHTML=html;
+  }catch(e){
+    c.innerHTML=`<div class="empty"><div class="em-icon">❌</div><p>Ошибка загрузки журнала:<br>${esc(e.message)}</p></div>`;
+  }
+}
+
 function openChangeSID(){
   showModal(`
     <h3>Spreadsheet ID</h3>
@@ -1482,7 +1556,9 @@ async function approveUser(idx){
   showLoader(true);
   try{
     await apiUpdate('users!D'+(idx+2),'active');
+    const login=data.users[idx].login;
     data.users[idx].status='active';saveCache();
+    logToSheet('approve_user','Одобрен: '+login,'ok');
     toast('Пользователь одобрен','ok');renderSettings();
   }catch(e){toast('Ошибка','err')}
   showLoader(false);
@@ -1491,7 +1567,9 @@ async function rejectUser(idx){
   showLoader(true);
   try{
     await apiUpdate('users!D'+(idx+2),'rejected');
+    const login=data.users[idx].login;
     data.users[idx].status='rejected';saveCache();
+    logToSheet('reject_user','Отклонён: '+login,'info');
     toast('Пользователь отклонён','ok');renderSettings();
   }catch(e){toast('Ошибка','err')}
   showLoader(false);
@@ -1501,17 +1579,21 @@ async function toggleRole(idx){
   showLoader(true);
   try{
     await apiUpdate('users!C'+(idx+2),newRole);
+    const login=data.users[idx].login;
     data.users[idx].role=newRole;saveCache();
+    logToSheet('change_role',login+' → '+newRole,'info');
     toast('Роль изменена','ok');renderSettings();
   }catch(e){toast('Ошибка','err')}
   showLoader(false);
 }
 async function deleteUser(idx){
   if(!confirm('Удалить пользователя '+data.users[idx].login+'?'))return;
+  const login=data.users[idx].login;
   showLoader(true);
   try{
     await apiClearRow('users',idx+2);
     data.users.splice(idx,1);saveCache();
+    logToSheet('delete_user','Удалён: '+login,'info');
     toast('Пользователь удалён','ok');renderSettings();
   }catch(e){toast('Ошибка','err')}
   showLoader(false);
@@ -1865,10 +1947,15 @@ async function importJSON(json){
   if(!json.words||!Array.isArray(json.words)){toast('Неверный формат JSON','err');return}
   const lf=json.langFrom||ui.langFrom;
   const lt=json.langTo||ui.langTo;
+  showLoader(true);
+  // Always fresh-read words from Sheets to avoid stale cache causing false duplicates
+  try{
+    const fresh=await apiRead('words!A2:F5000');
+    data.words=(fresh.values||[]).map(r=>({category:(r[0]||'').trim(),langFrom:(r[1]||'').trim(),wordFrom:(r[2]||'').trim(),langTo:(r[3]||'').trim(),wordTo:(r[4]||'').trim(),transcription:(r[5]||'').trim()})).filter(w=>w.wordFrom&&w.wordTo);
+  }catch(e){/* fallback to cache */}
   let added=0,updated=0,skipped=0;
-  // Collect new rows and updates WITHOUT touching data.words yet
   const newRows=[];
-  const updates=[];     // {range, values, idx, obj} for batch value update
+  const updates=[];
   for(const w of json.words){
     if(!w.wordFrom||!w.wordTo){skipped++;continue}
     const cat=w.category||json.category||'general';
@@ -1885,25 +1972,27 @@ async function importJSON(json){
   }
   if(!added&&!updated){
     toast(`Нечего импортировать: все ${skipped} слов уже в базе`,'ok');
+    showLoader(false);
     return;
   }
-  showLoader(true);
   try{
-    // 1. Append new rows
     if(newRows.length){
       await apiAppend('words!A:F',newRows);
       newRows.forEach(r=>data.words.push({category:r[0],langFrom:r[1],wordFrom:r[2],langTo:r[3],wordTo:r[4],transcription:r[5]}));
     }
-    // 2. Batch-update changed rows (single API call)
     if(updates.length){
       await apiBatchValueUpdate(updates.map(u=>({range:u.range,values:u.values})));
       updates.forEach(u=>{data.words[u.idx]=u.obj});
     }
     saveCache();
-    toast(`Импорт: +${added} новых, ↻${updated} обновлено, =${skipped} пропущено`,'ok');
+    const msg=`Импорт: +${added} новых, ↻${updated} обновлено, =${skipped} пропущено`;
+    toast(msg,'ok');
+    logToSheet('import',msg,'ok');
     if(ui.view==='home')renderHome();
   }catch(e){
-    toast('Ошибка импорта: '+e.message,'err');
+    const errMsg='Ошибка импорта: '+e.message;
+    toast(errMsg,'err');
+    logToSheet('import_error',errMsg,'err');
   }
   showLoader(false);
 }
