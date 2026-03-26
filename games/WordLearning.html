@@ -473,6 +473,8 @@ let navStack=['home'];
 let fc={words:[],index:0,flipped:false,reverse:false,known:0,learning:0};
 /* Quiz state */
 let qz={words:[],index:0,score:0,answered:false,total:10};
+/* Import preview state */
+let _pendingImport=null;
 
 /* ===== INIT ===== */
 function init(){
@@ -1272,7 +1274,11 @@ function renderSettingsImpExp(c){
       </div>
       <div id="imp-paste-wrap" style="display:none">
         <div class="input-group" style="margin-bottom:8px"><label>Вставьте JSON</label><textarea id="imp-paste-text" rows="7" placeholder='{"langFrom":"ru","langTo":"en","words":[...]}'></textarea></div>
-        <button class="btn btn-sm btn-primary" onclick="importFromPaste()">Импортировать из текста</button>
+        <div id="imp-check-result" style="margin-bottom:4px"></div>
+        <div class="flex-c gap8">
+          <button class="btn btn-sm btn-ghost" onclick="checkImport()">🔍 Проверить</button>
+          <button class="btn btn-sm btn-primary" onclick="importFromPaste()">📥 Импортировать</button>
+        </div>
       </div>
     </div>
     <div class="set-section">
@@ -1341,6 +1347,64 @@ function copyAiPrompt(){
     .catch(()=>toast('Не удалось скопировать','err'));
 }
 
+function parseImportRaw(raw){
+  let text=raw.trim();
+  // Strip markdown code fences (```json ... ``` or ``` ... ```)
+  const mdMatch=text.match(/^```(?:json)?\s*([\s\S]*?)```\s*$/i);
+  if(mdMatch)text=mdMatch[1].trim();
+  let json;
+  try{json=JSON.parse(text);}catch(e){
+    const msg=String(e.message||e);
+    const posMatch=msg.match(/position (\d+)/);
+    let detail=msg;
+    if(posMatch){
+      const i=parseInt(posMatch[1]);
+      const from=Math.max(0,i-30),to=Math.min(text.length,i+30);
+      const snippet=text.slice(from,to).replace(/\n/g,' ');
+      const arrow=' '.repeat(Math.min(i-from,59));
+      detail=`${msg}\n\nКонтекст: ...${snippet}...\n           ${arrow}^`;
+    }
+    return{ok:false,error:detail};
+  }
+  if(typeof json!=='object'||json===null||Array.isArray(json))
+    return{ok:false,error:'Корень JSON должен быть объектом { ... }, а не массивом или примитивом'};
+  if(!('words' in json))
+    return{ok:false,error:'Отсутствует обязательное поле "words".\nОжидаемый формат:\n{"langFrom":"ru","langTo":"en","words":[...]}'};
+  if(!Array.isArray(json.words))
+    return{ok:false,error:`Поле "words" должно быть массивом [...], получено: ${typeof json.words}`};
+  if(json.words.length===0)
+    return{ok:false,error:'Массив "words" пустой — нечего импортировать'};
+  return{ok:true,json};
+}
+
+function checkImport(){
+  const raw=document.getElementById('imp-paste-text')?.value.trim();
+  const box=document.getElementById('imp-check-result');
+  if(!raw){if(box)box.innerHTML='<div style="color:var(--red);font-size:.78rem;padding:4px 0">Вставьте JSON-текст в поле выше</div>';return;}
+  const result=parseImportRaw(raw);
+  if(!result.ok){
+    _pendingImport=null;
+    if(box)box.innerHTML=`<div style="background:rgba(255,68,102,.1);border:1px solid rgba(255,68,102,.3);border-radius:8px;padding:12px;font-family:monospace;font-size:.7rem;color:var(--red);white-space:pre-wrap;word-break:break-word;margin-bottom:4px">${esc(result.error)}</div>`;
+    return;
+  }
+  const json=result.json;
+  const lf=json.langFrom||ui.langFrom;
+  const lt=json.langTo||ui.langTo;
+  let newCount=0,changedCount=0,duplicateCount=0,invalidCount=0;
+  const invalidRows=[];
+  json.words.forEach((w,i)=>{
+    if(!w.wordFrom||!w.wordTo){invalidCount++;invalidRows.push(`#${i+1}: ${JSON.stringify(w).slice(0,80)}`);return;}
+    const ex=data.words.find(x=>x.langFrom===lf&&x.langTo===lt&&x.wordFrom.toLowerCase()===w.wordFrom.toLowerCase());
+    if(ex){if(ex.wordTo===w.wordTo&&ex.transcription===(w.transcription||''))duplicateCount++;else changedCount++;}
+    else newCount++;
+  });
+  _pendingImport=json;
+  const lfName=getLangName(lf),ltName=getLangName(lt);
+  let invHtml='';
+  if(invalidRows.length)invHtml=`<div style="margin-top:8px"><div style="font-size:.68rem;color:var(--tx2);margin-bottom:4px">Неверные строки (нет wordFrom / wordTo):</div><div style="background:var(--sf3);border-radius:6px;padding:8px;font-family:monospace;font-size:.65rem;color:var(--red);max-height:80px;overflow-y:auto;white-space:pre-wrap">${esc(invalidRows.slice(0,5).join('\n'))}${invalidRows.length>5?`\n...ещё ${invalidRows.length-5}`:''}</div></div>`;
+  if(box)box.innerHTML=`<div style="background:var(--sf3);border:1px solid var(--bd);border-radius:8px;padding:12px;margin-bottom:4px"><div style="font-size:.72rem;color:var(--tx2);margin-bottom:8px">${esc(lfName)} → ${esc(ltName)} · В файле: ${json.words.length} слов</div><div style="display:grid;grid-template-columns:repeat(4,1fr);gap:6px;text-align:center"><div style="background:rgba(0,229,160,.1);border:1px solid rgba(0,229,160,.3);border-radius:6px;padding:8px"><div style="font-size:1.2rem;font-weight:800;color:var(--green)">${newCount}</div><div style="font-size:.6rem;color:var(--tx2)">Новых</div></div><div style="background:rgba(91,140,255,.1);border:1px solid rgba(91,140,255,.3);border-radius:6px;padding:8px"><div style="font-size:1.2rem;font-weight:800;color:var(--blue)">${changedCount}</div><div style="font-size:.6rem;color:var(--tx2)">Обновятся</div></div><div style="background:rgba(255,255,255,.05);border:1px solid var(--bd);border-radius:6px;padding:8px"><div style="font-size:1.2rem;font-weight:800;color:var(--tx2)">${duplicateCount}</div><div style="font-size:.6rem;color:var(--tx2)">Дубликатов</div></div><div style="background:rgba(255,68,102,.1);border:1px solid rgba(255,68,102,.3);border-radius:6px;padding:8px"><div style="font-size:1.2rem;font-weight:800;color:var(--red)">${invalidCount}</div><div style="font-size:.6rem;color:var(--tx2)">Неверных</div></div></div>${invHtml}</div>`;
+}
+
 function togglePasteArea(){
   const w=document.getElementById('imp-paste-wrap');
   if(!w)return;
@@ -1352,12 +1416,18 @@ function togglePasteArea(){
 function importFromPaste(){
   const raw=document.getElementById('imp-paste-text')?.value.trim();
   if(!raw){toast('Вставьте JSON-текст','err');return}
-  try{
-    const json=JSON.parse(raw);
-    importJSON(json);
-    document.getElementById('imp-paste-text').value='';
-    document.getElementById('imp-paste-wrap').style.display='none';
-  }catch(e){toast('Ошибка: неверный JSON','err')}
+  const result=parseImportRaw(raw);
+  if(!result.ok){
+    const box=document.getElementById('imp-check-result');
+    if(box)box.innerHTML=`<div style="background:rgba(255,68,102,.1);border:1px solid rgba(255,68,102,.3);border-radius:8px;padding:12px;font-family:monospace;font-size:.7rem;color:var(--red);white-space:pre-wrap;word-break:break-word;margin-bottom:4px">${esc(result.error)}</div>`;
+    toast('Ошибка формата JSON','err');
+    return;
+  }
+  importJSON(result.json);
+  _pendingImport=null;
+  document.getElementById('imp-paste-text').value='';
+  const b=document.getElementById('imp-check-result');if(b)b.innerHTML='';
+  document.getElementById('imp-paste-wrap').style.display='none';
 }
 
 function renderSettingsAdmin(c){
@@ -1773,10 +1843,9 @@ function onImportFile(event){
   const file=event.target.files[0];if(!file)return;
   const reader=new FileReader();
   reader.onload=function(e){
-    try{
-      const json=JSON.parse(e.target.result);
-      importJSON(json);
-    }catch(err){toast('Ошибка парсинга JSON','err')}
+    const result=parseImportRaw(e.target.result);
+    if(!result.ok){toast('❌ '+result.error.split('\n')[0],'err');return}
+    importJSON(result.json);
   };
   reader.readAsText(file);
   event.target.value='';
