@@ -98,7 +98,7 @@ select.inp-field option{background:var(--sf2);color:var(--tx)}
 .bnav-item .notif-dot{position:absolute;top:2px;right:calc(50% - 16px);width:7px;height:7px;background:var(--red);border-radius:50%;border:1.5px solid var(--sf)}
 
 @media(min-width:768px){.sidebar{display:flex}.bnav{display:none}}
-@media(min-width:1200px){.sidebar{width:260px}}
+@media(min-width:1200px){.sidebar{width:260px}.stat-row{grid-template-columns:repeat(4,1fr)}.product-grid{grid-template-columns:repeat(auto-fill,minmax(200px,1fr))}.sub-grid{grid-template-columns:repeat(4,1fr)}}
 
 /* ===== TOAST ===== */
 #toast{position:fixed;top:60px;left:50%;transform:translateX(-50%) translateY(-80px);background:var(--sf3);color:var(--tx);padding:10px 20px;border-radius:var(--r);font-size:.82rem;z-index:100;transition:transform .3s ease;pointer-events:none;white-space:nowrap;border:1px solid var(--bdh);max-width:90vw;text-align:center}
@@ -326,7 +326,7 @@ select.inp-field option{background:var(--sf2);color:var(--tx)}
 <!-- ============ TOAST ============ -->
 <div id="toast"></div>
 
-<!-- ============ AUTH: LOGIN ============ -->
+<!-- ============ AUTH: PHONE ENTRY ============ -->
 <div class="view active" id="v-login">
 <div class="auth-scroll">
 <div class="auth-card">
@@ -336,69 +336,19 @@ select.inp-field option{background:var(--sf2);color:var(--tx)}
     <p>Маркетплейс стройматериалов</p>
   </div>
   <div class="inp-group">
-    <span class="inp-label">Телефон или Email</span>
-    <input class="inp-field" id="login-id" placeholder="+996 555 123 456 или email@mail.com" autocomplete="off">
+    <span class="inp-label">Номер телефона</span>
+    <input class="inp-field" id="auth-phone" placeholder="+996 555 123 456" autocomplete="off" inputmode="tel">
   </div>
-  <div class="inp-group">
-    <span class="inp-label">Пароль</span>
-    <input class="inp-field" id="login-pw" type="password" placeholder="••••••••">
-  </div>
-  <div class="auth-err" id="login-err"></div>
-  <button class="btn btn-blue" onclick="doLogin()">Войти</button>
+  <div class="auth-err" id="auth-err"></div>
+  <button class="btn btn-blue" onclick="startAuth()">Получить код →</button>
   <div class="auth-sep">или</div>
-  <button class="btn btn-ghost" onclick="showView('v-register')">📱 Регистрация по телефону</button>
   <button class="btn btn-ghost" onclick="quickGoogleAuth()">📧 Войти через Google</button>
-  <button class="auth-link" onclick="showView('v-register')">Нет аккаунта? Зарегистрироваться</button>
 </div>
 </div>
 </div>
 
-<!-- ============ AUTH: REGISTER ============ -->
-<div class="view" id="v-register">
-<div class="auth-scroll">
-<div class="auth-card">
-  <div class="auth-logo">
-    <div class="ico">📝</div>
-    <h1>Регистрация</h1>
-    <p>Создайте аккаунт</p>
-  </div>
-  <div class="inp-group">
-    <span class="inp-label">Телефон</span>
-    <input class="inp-field" id="reg-phone" placeholder="+996 555 123 456" autocomplete="off">
-  </div>
-  <div class="inp-group">
-    <span class="inp-label">Email</span>
-    <input class="inp-field" id="reg-email" type="email" placeholder="email@mail.com" autocomplete="off">
-  </div>
-  <div class="inp-group">
-    <span class="inp-label">Имя</span>
-    <input class="inp-field" id="reg-name" placeholder="Ваше имя" autocomplete="off">
-  </div>
-  <div class="inp-group">
-    <span class="inp-label">Пароль</span>
-    <input class="inp-field" id="reg-pw" type="password" placeholder="Минимум 6 символов">
-  </div>
-  <div class="inp-group">
-    <span class="inp-label">Выберите роль</span>
-  </div>
-  <div class="role-select">
-    <div class="role-card" id="role-buyer" onclick="selectRole('buyer')">
-      <div class="ico">🛒</div>
-      <div class="ttl">Покупатель</div>
-      <div class="desc">Физлицо или застройщик</div>
-    </div>
-    <div class="role-card" id="role-seller" onclick="selectRole('seller')">
-      <div class="ico">🏪</div>
-      <div class="ttl">Продавец</div>
-      <div class="desc">Поставщик товаров/услуг</div>
-    </div>
-  </div>
-  <div class="auth-err" id="reg-err"></div>
-  <button class="btn btn-blue" onclick="doRegister()">Далее →</button>
-  <button class="auth-link" onclick="showView('v-login')">Уже есть аккаунт? Войти</button>
-</div>
-</div>
-</div>
+<!-- ============ AUTH: REGISTER (merged into login) ============ -->
+<div class="view" id="v-register"></div>
 
 <!-- ============ AUTH: OTP ============ -->
 <div class="view" id="v-otp">
@@ -722,14 +672,14 @@ function getProduct(id){ return DB.products.find(p=>p.id===id) }
 /* ---- DEMO DATA ---- */
 function createDemoDB(){
   const sellers = [
-    {id:'s1',phone:'+996555111111',email:'beton@mail.kg',name:'ТОО БетонПлюс',role:'seller',password:'123456',verified:3,subscription:'pro',company:'ТОО БетонПлюс',inn:'123456789',promoted:true},
-    {id:'s2',phone:'+996555222222',email:'wood@mail.kg',name:'ЛесТорг',role:'seller',password:'123456',verified:2,subscription:'basic',company:'ИП ЛесТорг',inn:'987654321',promoted:false},
-    {id:'s3',phone:'+996555333333',email:'tools@mail.kg',name:'ИнструментМаркет',role:'seller',password:'123456',verified:2,subscription:'free',company:'ИП Инструмент',inn:'456789123',promoted:true},
-    {id:'s4',phone:'+996555444444',email:'architect@mail.kg',name:'АрхСтудия Бишкек',role:'seller',password:'123456',verified:3,subscription:'pro',company:'ООО АрхСтудия',inn:'321654987',promoted:true}
+    {id:'s1',phone:'+996555111111',email:'beton@mail.kg',name:'ТОО БетонПлюс',role:'seller',phoneVerified:true,emailVerified:true,verified:3,subscription:'pro',company:'ТОО БетонПлюс',inn:'123456789',promoted:true},
+    {id:'s2',phone:'+996555222222',email:'wood@mail.kg',name:'ЛесТорг',role:'seller',phoneVerified:true,emailVerified:true,verified:2,subscription:'basic',company:'ИП ЛесТорг',inn:'987654321',promoted:false},
+    {id:'s3',phone:'+996555333333',email:'tools@mail.kg',name:'ИнструментМаркет',role:'seller',phoneVerified:true,emailVerified:true,verified:2,subscription:'free',company:'ИП Инструмент',inn:'456789123',promoted:true},
+    {id:'s4',phone:'+996555444444',email:'architect@mail.kg',name:'АрхСтудия Бишкек',role:'seller',phoneVerified:true,emailVerified:true,verified:3,subscription:'pro',company:'ООО АрхСтудия',inn:'321654987',promoted:true}
   ];
   const buyers = [
-    {id:'b1',phone:'+996555999999',email:'buyer@mail.kg',name:'Азамат Токтоев',role:'buyer',password:'123456',verified:1,buyerType:'individual'},
-    {id:'b2',phone:'+996555888888',email:'builder@mail.kg',name:'ОсОО Строймастер',role:'buyer',password:'123456',verified:2,buyerType:'company',company:'ОсОО Строймастер',inn:'111222333'}
+    {id:'b1',phone:'+996555999999',email:'buyer@mail.kg',name:'Азамат Токтоев',role:'buyer',phoneVerified:true,emailVerified:true,verified:0,buyerType:'individual'},
+    {id:'b2',phone:'+996555888888',email:'builder@mail.kg',name:'ОсОО Строймастер',role:'buyer',phoneVerified:true,emailVerified:true,verified:2,buyerType:'company',company:'ОсОО Строймастер',inn:'111222333'}
   ];
   const products = [
     {id:'p1',sellerId:'s1',category:'goods',type:'materials',group:'concrete',name:'Бетон М300 B22.5',desc:'Товарный бетон марки М300 с доставкой по Бишкеку и пригороду. Подходит для фундаментов, перекрытий.',price:4500,unit:'м³',published:true,promoted:true,promoBudget:15,chars:{mark:'M300',class:'B22.5',filler:'Гранит',delivery:'Миксер 7м³'},createdAt:'2026-03-01T10:00:00Z',views:342},
@@ -798,6 +748,11 @@ function toast(msg,type){
   setTimeout(()=>t.classList.remove('show'),2400);
 }
 function switchTab(tab, addHistory=true){
+  if((tab==='chat'||tab==='requests'||tab==='create-request')&&currentUser&&getVerifLevel(currentUser)<2){
+    toast('🛡️ Доступно после верификации Уровня 2','err');
+    if(currentTab!=='verification') switchTab('verification',addHistory);
+    return;
+  }
   if(addHistory && currentTab && currentTab!==tab) navHistory.push(currentTab);
   currentTab=tab;
   document.querySelectorAll('.tab-panel').forEach(p=>p.classList.remove('active'));
@@ -833,46 +788,32 @@ function closeModal(e){ if(e.target.id==='modal-bg'){document.getElementById('mo
 /* ======================================================================
    AUTH
    ====================================================================== */
-let regRole = 'buyer';
-function selectRole(r){
-  regRole=r;
-  document.getElementById('role-buyer').classList.toggle('selected',r==='buyer');
-  document.getElementById('role-seller').classList.toggle('selected',r==='seller');
-}
-function doLogin(){
+let authPhone='';
+function startAuth(){
   loadDB();
-  const id=document.getElementById('login-id').value.trim();
-  const pw=document.getElementById('login-pw').value;
-  if(!id||!pw){document.getElementById('login-err').textContent='Заполните все поля';return;}
-  const u=DB.users.find(u=>(u.phone===id||u.email===id)&&u.password===pw);
-  if(!u){document.getElementById('login-err').textContent='Неверный логин или пароль';return;}
-  currentUser=u;
-  localStorage.setItem('stroymarket_uid',u.id);
-  enterPlatform();
-}
-function doRegister(){
-  loadDB();
-  const phone=document.getElementById('reg-phone').value.trim();
-  const email=document.getElementById('reg-email').value.trim();
-  const name=document.getElementById('reg-name').value.trim();
-  const pw=document.getElementById('reg-pw').value;
-  if(!phone||!name||!pw){document.getElementById('reg-err').textContent='Заполните обязательные поля';return;}
-  if(pw.length<6){document.getElementById('reg-err').textContent='Пароль мин. 6 символов';return;}
-  if(DB.users.find(u=>u.phone===phone)){document.getElementById('reg-err').textContent='Номер уже зарегистрирован';return;}
-  const u={id:uid(),phone,email,name,role:regRole,password:pw,verified:0,subscription:regRole==='seller'?'free':undefined,buyerType:regRole==='buyer'?'individual':undefined};
-  DB.users.push(u);saveDB();
-  currentUser=u;
+  const phone=document.getElementById('auth-phone').value.trim();
+  if(!phone){document.getElementById('auth-err').textContent='Введите номер телефона';return;}
+  authPhone=phone;
   document.getElementById('otp-hint').textContent='Код отправлен на '+phone;
+  document.querySelectorAll('.otp-inp').forEach(i=>i.value='');
+  document.getElementById('otp-err').textContent='';
   showView('v-otp');
 }
 function verifyOTP(){
   const inputs=document.querySelectorAll('.otp-inp');
   let code=''; inputs.forEach(i=>code+=i.value);
   if(code.length<4){document.getElementById('otp-err').textContent='Введите 4-значный код';return;}
-  // Demo: any 4 digits accepted
-  currentUser.verified=1;
+  loadDB();
+  // Find existing user or create new one
+  let u=DB.users.find(u=>u.phone===authPhone);
+  if(!u){
+    u={id:uid(),phone:authPhone,email:'',name:'',role:'buyer',phoneVerified:true,emailVerified:false,verified:0,buyerType:'individual'};
+    DB.users.push(u);
+  }
+  u.phoneVerified=true;
+  currentUser=u;
   saveDB();
-  localStorage.setItem('stroymarket_uid',currentUser.id);
+  localStorage.setItem('stroymarket_uid',u.id);
   toast('✅ Номер подтверждён','ok');
   enterPlatform();
 }
@@ -880,7 +821,6 @@ function resendOTP(){ toast('📱 Код отправлен повторно','o
 function verifyVia(method){ toast('📱 Код отправлен через '+method,'ok'); }
 function quickGoogleAuth(){
   loadDB();
-  // Demo: login as buyer
   const u=DB.users.find(u=>u.id==='b1');
   if(u){currentUser=u;localStorage.setItem('stroymarket_uid',u.id);enterPlatform();}
 }
@@ -957,7 +897,7 @@ function buildNavigation(){
     <div class="side-nav">${sideItems.map(s=>s.sep?'<div class="side-sep"></div>':`<button class="side-item" data-tab="${s.tab}" onclick="switchTab('${s.tab}')"><span class="ico">${s.ico}</span>${s.label}${s.badge?`<span class="badge">${s.badge}</span>`:''}</button>`).join('')}</div>
     <div class="side-footer">
       <div class="side-user">${esc(currentUser.name)}</div>
-      <div class="side-role">${isSeller?'Продавец':'Покупатель'} · Ур.${currentUser.verified||0}</div>
+      <div class="side-role">${isSeller?'Продавец':'Покупатель'} · Ур.${getVerifLevel(currentUser)}</div>
     </div>`;
 
   bn.innerHTML=bnavItems.map(b=>`<button class="bnav-item" data-tab="${b.tab}" onclick="switchTab('${b.tab}')"><span class="ico">${b.ico}</span>${b.label}</button>`).join('');
@@ -978,6 +918,14 @@ function getUnreadChatCount(){
 }
 
 function esc(s){return s?String(s).replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;'):''}
+
+function getVerifLevel(u){
+  if(!u) return 0;
+  if(!u.phoneVerified||!u.emailVerified) return 0;
+  if(u.verified>=3) return 3;
+  if(u.verified>=2) return 2;
+  return 1;
+}
 
 /* ======================================================================
    CATALOG (Buyer main view)
@@ -1049,7 +997,7 @@ function renderProductGrid(){
       <div class="product-img">${icons[p.type]||'📦'}${p.promoted?'<span class="promo-tag">⭐ Топ</span>':''}</div>
       <div class="product-info">
         <div class="product-name">${esc(p.name)}</div>
-        <div class="product-seller">${esc(seller?.name||'')}${seller?.verified>=2?'<span class="verified">✓</span>':''}</div>
+        <div class="product-seller">${esc(seller?.name||'')}${getVerifLevel(seller)>=2?'<span class="verified">✓</span>':''}</div>
         <div class="product-price">${fmtPrice(p.price)} <span class="product-unit">сом/${esc(p.unit)}</span></div>
       </div>
     </div>`;
@@ -1099,7 +1047,7 @@ function openProduct(pid){
       <div class="av">🏪</div>
       <div class="info">
         <div class="name">${esc(seller?.name||'')}</div>
-        <div class="meta">${seller?.verified>=2?'✅ Верифицирован':''}  ·  ${DB.products.filter(x=>x.sellerId===p.sellerId&&x.published).length} товаров</div>
+        <div class="meta">${getVerifLevel(seller)>=2?'✅ Верифицирован':''}  ·  ${DB.products.filter(x=>x.sellerId===p.sellerId&&x.published).length} товаров</div>
       </div>
     </div>
     ${chars}
@@ -1479,6 +1427,11 @@ function sendMsg(cid){
 }
 
 function openSellerChat(sellerId){
+  if(getVerifLevel(currentUser)<2){
+    toast('🛡️ Чат доступен после верификации Уровня 2','err');
+    switchTab('verification');
+    return;
+  }
   // find or create chat
   let chat=DB.chats.find(c=>c.participants.includes(currentUser.id)&&c.participants.includes(sellerId));
   if(!chat){
@@ -1520,12 +1473,13 @@ function renderProfile(){
   const isSeller=u.role==='seller';
   const verifLabel=['Не верифицирован','Телефон + Email','Паспортные данные','Лицензии и сертификаты'];
   const verifDotClass=['','l1','l2','l3'];
+  const vl=getVerifLevel(u);
   document.getElementById('profile-content').innerHTML=`
     <div class="profile-hdr">
       <div class="profile-av">${isSeller?'🏪':'👤'}</div>
-      <div class="profile-name">${esc(u.name)}</div>
+      <div class="profile-name">${esc(u.name||'Не указано')}</div>
       <div class="profile-role">${isSeller?'Продавец / Поставщик':'Покупатель'}</div>
-      <div class="verif-level"><span class="dot ${verifDotClass[u.verified||0]}"></span> Уровень ${u.verified||0}: ${verifLabel[u.verified||0]}</div>
+      <div class="verif-level"><span class="dot ${verifDotClass[vl]}"></span> Уровень ${vl}: ${verifLabel[vl]}</div>
     </div>
     <div class="profile-sec">
       <h4>Контакты</h4>
@@ -1556,8 +1510,15 @@ function openProfileEdit(){
   const isSeller=u.role==='seller';
   document.getElementById('profile-edit-form').innerHTML=`
     <div class="form-group"><label>Имя / Название</label><input class="inp-field" id="pe-name" value="${esc(u.name)}"></div>
-    <div class="form-group"><label>Телефон</label><input class="inp-field" id="pe-phone" value="${esc(u.phone)}"></div>
-    <div class="form-group"><label>Email</label><input class="inp-field" id="pe-email" value="${esc(u.email||'')}"></div>
+    <div class="form-group"><label>Телефон ${u.phoneVerified?'✅':''}</label><input class="inp-field" id="pe-phone" value="${esc(u.phone)}" readonly style="opacity:.6"></div>
+    <div class="form-group"><label>Email ${u.emailVerified?'✅':'⚠️ не подтверждён'}</label><input class="inp-field" id="pe-email" type="email" value="${esc(u.email||'')}" placeholder="email@mail.com"></div>
+    <div class="form-group"><label>Роль</label>
+      <select class="inp-field" id="pe-role" onchange="toggleProfileRoleFields()">
+        <option value="buyer" ${u.role==='buyer'?'selected':''}>Покупатель</option>
+        <option value="seller" ${u.role==='seller'?'selected':''}>Продавец</option>
+      </select>
+    </div>
+    <div id="pe-role-fields">
     ${isSeller?`
       <div class="form-group"><label>Компания</label><input class="inp-field" id="pe-company" value="${esc(u.company||'')}"></div>
       <div class="form-group"><label>ИНН</label><input class="inp-field" id="pe-inn" value="${esc(u.inn||'')}"></div>
@@ -1570,14 +1531,37 @@ function openProfileEdit(){
       </div>
       <div class="form-group"><label>Компания (если юр. лицо)</label><input class="inp-field" id="pe-company" value="${esc(u.company||'')}"></div>
     `}
+    </div>
     <button class="btn btn-blue" onclick="saveProfile()">💾 Сохранить</button>`;
   switchTab('profile-edit');
+}
+function toggleProfileRoleFields(){
+  const role=document.getElementById('pe-role').value;
+  const u=currentUser;
+  document.getElementById('pe-role-fields').innerHTML=role==='seller'?`
+    <div class="form-group"><label>Компания</label><input class="inp-field" id="pe-company" value="${esc(u.company||'')}"></div>
+    <div class="form-group"><label>ИНН</label><input class="inp-field" id="pe-inn" value="${esc(u.inn||'')}"></div>
+  `:`
+    <div class="form-group"><label>Тип покупателя</label>
+      <select class="inp-field" id="pe-btype">
+        <option value="individual" ${u.buyerType==='individual'?'selected':''}>Физ. лицо</option>
+        <option value="company" ${u.buyerType==='company'?'selected':''}>Юр. лицо (Застройщик)</option>
+      </select>
+    </div>
+    <div class="form-group"><label>Компания (если юр. лицо)</label><input class="inp-field" id="pe-company" value="${esc(u.company||'')}"></div>
+  `;
 }
 function saveProfile(){
   const u=currentUser;
   u.name=document.getElementById('pe-name').value.trim()||u.name;
-  u.phone=document.getElementById('pe-phone').value.trim()||u.phone;
-  u.email=document.getElementById('pe-email').value.trim();
+  const newEmail=document.getElementById('pe-email').value.trim();
+  if(newEmail!==u.email){u.email=newEmail;u.emailVerified=false;}
+  const newRole=document.getElementById('pe-role')?.value;
+  if(newRole&&newRole!==u.role){
+    u.role=newRole;
+    if(newRole==='seller'&&!u.subscription) u.subscription='free';
+    if(newRole==='buyer'&&!u.buyerType) u.buyerType='individual';
+  }
   if(u.role==='seller'){
     u.company=document.getElementById('pe-company')?.value.trim();
     u.inn=document.getElementById('pe-inn')?.value.trim();
@@ -1585,7 +1569,8 @@ function saveProfile(){
     u.buyerType=document.getElementById('pe-btype')?.value||'individual';
     u.company=document.getElementById('pe-company')?.value.trim();
   }
-  saveDB();toast('✅ Профиль сохранён','ok');goBack();
+  saveDB();toast('✅ Профиль сохранён','ok');
+  buildNavigation();goBack();
 }
 
 /* ======================================================================
@@ -1593,9 +1578,13 @@ function saveProfile(){
    ====================================================================== */
 function renderVerification(){
   const u=currentUser;
+  const lv=getVerifLevel(u);
+  const phoneOk=u.phoneVerified;
+  const emailOk=u.emailVerified;
+  const lvl1Desc=phoneOk&&!emailOk?'Телефон подтверждён ✓ · Укажите и подтвердите email':'Подтвердите номер телефона и привяжите email';
   const levels=[
-    {lv:1,title:'Уровень 1 — Телефон + Email',desc:'Подтвердите номер телефона и привяжите email',done:u.verified>=1},
-    {lv:2,title:'Уровень 2 — Паспортные данные',desc:'Загрузите ИНН и скан паспорта',done:u.verified>=2},
+    {lv:1,title:'Уровень 1 — Телефон + Email',desc:lvl1Desc,done:phoneOk&&emailOk},
+    {lv:2,title:'Уровень 2 — Паспортные данные',desc:'Загрузите ИНН и скан паспорта (открывает доступ к чатам и заявкам)',done:u.verified>=2},
     {lv:3,title:'Уровень 3 — Лицензии (для продавцов)',desc:'Загрузите лицензии и сертификаты из реестра',done:u.verified>=3,sellerOnly:true}
   ];
   document.getElementById('verif-content').innerHTML=`
@@ -1615,8 +1604,17 @@ function renderVerification(){
     </div>`;
 }
 function passVerification(lv){
-  // Demo - instant pass
-  currentUser.verified=Math.max(currentUser.verified||0,lv);
+  if(lv===1){
+    if(!currentUser.email){
+      toast('Укажите email в профиле','err');
+      openProfileEdit();
+      return;
+    }
+    currentUser.phoneVerified=true;
+    currentUser.emailVerified=true;
+  } else {
+    currentUser.verified=Math.max(currentUser.verified||0,lv);
+  }
   saveDB();
   toast('✅ Уровень '+lv+' пройден','ok');
   renderVerification();
@@ -1654,10 +1652,9 @@ function changeSub(plan){
    ====================================================================== */
 function doLogout(){
   localStorage.removeItem('stroymarket_uid');
-  currentUser=null;navHistory=[];currentTab='';
-  document.getElementById('login-id').value='';
-  document.getElementById('login-pw').value='';
-  document.getElementById('login-err').textContent='';
+  currentUser=null;navHistory=[];currentTab='';authPhone='';
+  document.getElementById('auth-phone').value='';
+  document.getElementById('auth-err').textContent='';
   showView('v-login');
 }
 
