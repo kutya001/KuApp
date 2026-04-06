@@ -3,115 +3,634 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,user-scalable=no">
-<title>Сортировка цветов</title>
+<title>Сортировка цветов PRO</title>
 <style>
-*{box-sizing:border-box;margin:0;padding:0}
-body{background:#0a0a0f;color:#f0f0f8;font-family:'JetBrains Mono',monospace;display:flex;flex-direction:column;align-items:center;height:100dvh;overflow:hidden;user-select:none}
-#top{display:flex;justify-content:space-between;align-items:center;width:min(94vw,380px);padding:10px 0 8px}
-h3{font-size:.9rem;font-weight:700}
-#meta{font-size:.72rem;color:#8888aa}
-#tubes-wrap{flex:1;display:flex;align-items:center;justify-content:center;flex-wrap:wrap;gap:12px;padding:0 10px;width:100%;max-width:400px}
-.tube-outer{display:flex;flex-direction:column;align-items:center;gap:4px;cursor:pointer}
-.tube{width:44px;height:160px;border:2px solid #2c2c40;border-top:none;border-radius:0 0 22px 22px;display:flex;flex-direction:column-reverse;overflow:hidden;transition:transform .15s;background:#111118;position:relative}
-.tube.sel{transform:translateY(-16px);border-color:#5b8cff}
-.tube.done{border-color:#00e5a0}
-.seg{width:100%;transition:height .25s}
-.tube-num{font-size:.6rem;color:#44445a}
-#btns{display:flex;gap:10px;padding:8px 0 12px}
-button{background:transparent;border:1px solid rgba(255,255,255,.15);color:#8888aa;padding:9px 20px;border-radius:8px;font-family:inherit;font-size:.78rem;cursor:pointer}
-button:hover{background:#1a1a24;color:#f0f0f8}
-#msg{position:fixed;inset:0;background:rgba(10,10,15,.88);display:none;flex-direction:column;align-items:center;justify-content:center;gap:12px}
-#msg h2{font-size:1.2rem}#msg p{font-size:.78rem;color:#8888aa}
-#mBtn{background:#00e5a0;color:#000;border:none;padding:11px 32px;border-radius:10px;font-size:.9rem;font-weight:700;cursor:pointer;font-family:inherit}
+  @import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;700;800;900&display=swap');
+
+  *{box-sizing:border-box;margin:0;padding:0; user-select:none; touch-action:none;}
+  :root{
+    --bg:#050508;--text:#f0f0f8;--text2:#8888aa;
+    --accent:#5b8cff;--success:#00e5a0;--gold:#ffd700;--danger:#ff4466;
+    --ui-bg:rgba(8,8,16,0.92);--tube-border:#2c2c40;
+  }
+  body{
+    background:var(--bg);color:var(--text);
+    font-family:'JetBrains Mono',monospace;
+    display:flex;flex-direction:column;align-items:center;
+    height:100dvh;overflow:hidden;
+  }
+
+  #game-wrapper{
+    position:relative; width:100%; max-width:450px; height:100%;
+    display:flex;flex-direction:column;align-items:center;
+    padding:10px 8px;
+  }
+
+  /* Scanlines */
+  #game-wrapper::after{
+    content:" ";display:block;position:absolute;inset:0;
+    background:linear-gradient(rgba(18,16,16,0) 50%,rgba(0,0,0,0.15) 50%);
+    z-index:5;background-size:100% 3px;pointer-events:none;mix-blend-mode:overlay;opacity:0.2;
+  }
+
+  /* Top bar */
+  #top-bar{
+    display:flex;justify-content:space-between;align-items:center;
+    width:100%;padding:4px 4px 8px;z-index:10;position:relative;
+  }
+  #level-title{font-size:.85rem;font-weight:700;color:var(--accent);}
+  #stats{display:flex;gap:12px;font-size:.65rem;color:var(--text2);align-items:center;}
+  #stats span{display:flex;align-items:center;gap:3px;}
+  .stat-val{font-weight:700;color:var(--text);font-size:.8rem;}
+
+  /* Progress bar */
+  #progress-bar{
+    width:100%;height:3px;background:rgba(255,255,255,0.04);border-radius:2px;
+    margin-bottom:8px;overflow:hidden;position:relative;z-index:10;
+  }
+  #progress-fill{
+    height:100%;width:0%;background:linear-gradient(90deg,var(--success),var(--accent));
+    box-shadow:0 0 8px var(--success);transition:width .3s ease;
+  }
+
+  /* Tubes area */
+  #tubes-area{
+    flex:1;display:flex;align-items:center;justify-content:center;
+    width:100%;position:relative;z-index:10;
+  }
+  #tubes-wrap{
+    display:flex;flex-wrap:wrap;gap:10px;
+    align-items:flex-end;justify-content:center;
+    padding:0 8px;
+  }
+
+  .tube-outer{
+    display:flex;flex-direction:column;align-items:center;gap:3px;cursor:pointer;
+    transition:transform .15s;
+  }
+  .tube-outer:active{transform:scale(.95);}
+
+  .tube{
+    width:42px;height:150px;
+    border:2px solid var(--tube-border);border-top:none;
+    border-radius:0 0 20px 20px;
+    display:flex;flex-direction:column-reverse;overflow:hidden;
+    background:rgba(17,17,24,0.6);position:relative;
+    transition:border-color .25s, box-shadow .25s, transform .2s;
+  }
+  .tube.sel{
+    transform:translateY(-14px);
+    border-color:var(--accent);
+    box-shadow:0 0 15px rgba(91,140,255,0.4), inset 0 0 10px rgba(91,140,255,0.1);
+  }
+  .tube.done{
+    border-color:var(--success);
+    box-shadow:0 0 12px rgba(0,229,160,0.3);
+    animation:donePulse 2s ease infinite;
+  }
+  @keyframes donePulse{0%,100%{box-shadow:0 0 8px rgba(0,229,160,0.2);}50%{box-shadow:0 0 18px rgba(0,229,160,0.5);}}
+
+  .seg{
+    width:100%;transition:height .2s ease, background .2s;
+    position:relative;
+  }
+  .seg::after{
+    content:'';position:absolute;top:0;left:0;right:0;height:30%;
+    background:linear-gradient(to bottom,rgba(255,255,255,0.15),transparent);
+    pointer-events:none;
+  }
+
+  /* Pour animation */
+  .tube.pouring{
+    animation:pourShake .3s ease;
+  }
+  @keyframes pourShake{
+    0%{transform:translateY(-14px) rotate(0);}
+    25%{transform:translateY(-14px) rotate(-3deg);}
+    75%{transform:translateY(-14px) rotate(3deg);}
+    100%{transform:translateY(0) rotate(0);}
+  }
+
+  .tube-num{font-size:.55rem;color:rgba(255,255,255,0.2);}
+
+  /* Bottom controls */
+  #bottom-bar{
+    display:flex;justify-content:center;gap:8px;margin-top:8px;
+    position:relative;z-index:10;flex-wrap:wrap;
+  }
+  .ctrl-btn{
+    background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.1);
+    color:var(--text2);padding:7px 12px;border-radius:8px;font-family:inherit;
+    font-size:.6rem;cursor:pointer;transition:all .2s;display:flex;align-items:center;gap:3px;
+  }
+  .ctrl-btn:hover{border-color:var(--accent);color:var(--accent);}
+  .ctrl-btn:active{transform:scale(.95);}
+
+  /* Overlay */
+  .overlay{
+    position:absolute;inset:0;background:var(--ui-bg);backdrop-filter:blur(8px);
+    display:flex;flex-direction:column;align-items:center;justify-content:center;
+    z-index:50;opacity:0;pointer-events:none;transition:opacity .35s ease;
+  }
+  .overlay.active{opacity:1;pointer-events:auto;}
+
+  .menu-title{
+    font-size:1.8rem;font-weight:900;margin-bottom:6px;text-align:center;
+    background:linear-gradient(135deg,var(--accent),var(--success),var(--gold));
+    background-size:200% 200%;
+    -webkit-background-clip:text;-webkit-text-fill-color:transparent;
+    filter:drop-shadow(0 0 12px rgba(0,229,160,0.3));
+    animation:gradShift 3s ease infinite;
+  }
+  @keyframes gradShift{0%,100%{background-position:0% 50%;}50%{background-position:100% 50%;}}
+
+  .menu-subtitle{
+    font-size:.7rem;color:var(--text2);margin-bottom:20px;
+    text-align:center;max-width:85%;line-height:1.6;
+  }
+
+  .btn{
+    background:transparent;color:#fff;border:2px solid var(--accent);
+    padding:11px 28px;border-radius:10px;font-size:.85rem;font-weight:700;
+    font-family:inherit;cursor:pointer;margin-bottom:8px;width:80%;max-width:240px;
+    transition:all .25s;text-transform:uppercase;letter-spacing:.1em;
+    position:relative;overflow:hidden;
+  }
+  .btn::before{
+    content:'';position:absolute;top:0;left:-100%;width:100%;height:100%;
+    background:linear-gradient(90deg,transparent,rgba(255,255,255,0.12),transparent);
+    transition:left .6s;
+  }
+  .btn:hover::before{left:100%;}
+  .btn:active{transform:scale(.96);}
+  .btn-primary{background:var(--accent);color:#000;box-shadow:0 0 20px rgba(91,140,255,0.35);}
+  .btn-green{border-color:var(--success);color:var(--success);}
+  .btn-green:hover{background:rgba(0,229,160,0.1);}
+  .btn-gold{border-color:var(--gold);color:var(--gold);}
+  .btn-gold:hover{background:rgba(255,215,0,0.1);}
+
+  /* Level Grid */
+  .level-grid{
+    display:grid;grid-template-columns:repeat(4,1fr);gap:8px;
+    width:90%;max-width:320px;max-height:50vh;overflow-y:auto;
+    margin-bottom:14px;padding:4px;
+  }
+  .level-grid::-webkit-scrollbar{width:5px;}
+  .level-grid::-webkit-scrollbar-track{background:rgba(0,0,0,0.2);border-radius:3px;}
+  .level-grid::-webkit-scrollbar-thumb{background:var(--accent);border-radius:3px;}
+
+  .level-cell{
+    aspect-ratio:1;border-radius:8px;display:flex;flex-direction:column;
+    align-items:center;justify-content:center;font-size:.9rem;font-weight:700;
+    cursor:pointer;transition:all .2s;border:2px solid transparent;
+    background:rgba(255,255,255,0.04);color:var(--text2);
+  }
+  .level-cell .stars-row{font-size:.45rem;margin-top:2px;}
+  .level-cell .stars-row .s-on{color:var(--gold);}
+  .level-cell .stars-row .s-off{color:#333;}
+
+  .level-cell.unlocked{border-color:rgba(91,140,255,0.3);background:rgba(91,140,255,0.06);color:var(--text);}
+  .level-cell.unlocked:hover{border-color:var(--accent);background:rgba(91,140,255,0.15);box-shadow:0 0 12px rgba(91,140,255,0.3);transform:scale(1.05);}
+  .level-cell.locked{opacity:.3;cursor:not-allowed;}
+  .level-cell.current{border-color:var(--gold);background:rgba(255,215,0,0.08);animation:currPulse 1.5s ease infinite;}
+  @keyframes currPulse{0%,100%{box-shadow:0 0 5px rgba(255,215,0,0.2);}50%{box-shadow:0 0 18px rgba(255,215,0,0.5);}}
+
+  /* Stars in overlay */
+  .stars-container{display:flex;gap:8px;margin:6px 0 10px;}
+  .star-icon{font-size:1.6rem;color:#333;transition:all .4s cubic-bezier(0.34,1.56,0.64,1);}
+  .star-icon.lit{color:var(--gold);text-shadow:0 0 10px rgba(255,215,0,0.5);transform:scale(1.1);}
+
+  .hint-text{
+    font-size:.55rem;color:var(--text2);margin-top:12px;text-align:center;
+    border-top:1px solid rgba(255,255,255,0.06);padding-top:12px;line-height:1.6;
+  }
 </style>
 </head>
 <body>
-<div id="top"><h3>🧪 Сортировка цветов</h3><div id="meta">Ходов: <span id="moves">0</span></div></div>
-<div id="tubes-wrap"></div>
-<div id="btns">
-  <button id="btnUndo">↺ Отмена</button>
-  <button id="btnNew">Новая</button>
+
+<div id="game-wrapper">
+  <div id="top-bar">
+    <div id="level-title">УР 1</div>
+    <div id="stats">
+      <span>🎯 Ходы <span class="stat-val" id="move-count">0</span></span>
+      <span>⏱ <span class="stat-val" id="timer-val">0</span></span>
+    </div>
+  </div>
+  <div id="progress-bar"><div id="progress-fill"></div></div>
+
+  <div id="tubes-area">
+    <div id="tubes-wrap"></div>
+  </div>
+
+  <div id="bottom-bar">
+    <button class="ctrl-btn" id="btnUndo">↩️ Отмена</button>
+    <button class="ctrl-btn" id="btnHint">💡 Подсказка</button>
+    <button class="ctrl-btn" id="btnNew">🔄 Новая</button>
+  </div>
+
+  <!-- Main Menu -->
+  <div class="overlay active" id="menu-main">
+    <div class="menu-title">WATER SORT PRO</div>
+    <div class="menu-subtitle">Переливай жидкости по пробиркам.<br>Собери один цвет в каждой.</div>
+    <button class="btn btn-primary" id="btn-campaign">🧪 Кампания</button>
+    <div class="hint-text">
+      Нажми на пробирку, затем на другую для перелива.<br>
+      Двойной тап = авто-перелив всех одинаковых сверху.
+    </div>
+  </div>
+
+  <!-- Level Select -->
+  <div class="overlay" id="menu-levels">
+    <div class="menu-title" style="font-size:1.3rem;">ВЫБОР УРОВНЯ</div>
+    <div class="level-grid" id="level-grid"></div>
+    <button class="btn btn-gold" id="btn-levels-back" style="max-width:160px;padding:9px 18px;font-size:.75rem;">Назад</button>
+  </div>
+
+  <!-- Level Complete -->
+  <div class="overlay" id="menu-level-up">
+    <div class="menu-title" style="font-size:1.3rem;color:var(--success);">РЕШЕНО!</div>
+    <div class="stars-container" id="stars-container">
+      <span class="star-icon" id="star-1">★</span>
+      <span class="star-icon" id="star-2">★</span>
+      <span class="star-icon" id="star-3">★</span>
+    </div>
+    <p class="menu-subtitle" id="lvl-stats">Ходов: 0 | Время: 0с</p>
+    <button class="btn btn-primary" id="btn-next-level">Следующий уровень →</button>
+    <button class="btn btn-gold" id="btn-replay" style="max-width:180px;padding:9px 16px;font-size:.75rem;">🔄 Повторить</button>
+  </div>
 </div>
-<div id="msg"><h2>🎉 Решено!</h2><p id="msub"></p><button id="mBtn">Ещё раз</button></div>
 
 <script>
-const COLORS=['#5b8cff','#00e5a0','#ff8c42','#ff4466','#ffd700','#b05bff','#00c8ff','#ff69b4'];
-const CAP=4;
-let tubes,sel,moves,history;
+/**
+ * AUDIO ENGINE
+ */
+const AudioSys = {
+  ctx: null,
+  init(){ if(!this.ctx) this.ctx = new (window.AudioContext||window.webkitAudioContext)(); if(this.ctx.state==='suspended') this.ctx.resume(); },
+  tone(f,t,d,v=.5,s=null){
+    if(!this.ctx) return;
+    const o=this.ctx.createOscillator(),g=this.ctx.createGain();
+    o.type=t;o.connect(g);g.connect(this.ctx.destination);
+    const n=this.ctx.currentTime;
+    o.frequency.setValueAtTime(f,n);
+    if(s) o.frequency.exponentialRampToValueAtTime(s,n+d);
+    g.gain.setValueAtTime(v,n);g.gain.exponentialRampToValueAtTime(.01,n+d);
+    o.start(n);o.stop(n+d);
+  },
+  noise(d,v=.3){
+    if(!this.ctx) return;
+    const sz=this.ctx.sampleRate*d,buf=this.ctx.createBuffer(1,sz,this.ctx.sampleRate);
+    const dt=buf.getChannelData(0);for(let i=0;i<sz;i++) dt[i]=Math.random()*2-1;
+    const src=this.ctx.createBufferSource();src.buffer=buf;
+    const f=this.ctx.createBiquadFilter();f.type='bandpass';f.frequency.value=800;
+    const g=this.ctx.createGain();g.gain.setValueAtTime(v,this.ctx.currentTime);
+    g.gain.exponentialRampToValueAtTime(.01,this.ctx.currentTime+d);
+    src.connect(f);f.connect(g);g.connect(this.ctx.destination);src.start();
+  },
+  sfx:{
+    select:()=>AudioSys.tone(400,'sine',.06,.15),
+    pour:()=>{AudioSys.tone(300,'sine',.1,.2,500);AudioSys.noise(.08,.15);},
+    complete:()=>{AudioSys.tone(523,'sine',.1,.25);setTimeout(()=>AudioSys.tone(659,'sine',.1,.25),100);setTimeout(()=>AudioSys.tone(784,'sine',.15,.25),200);},
+    error:()=>AudioSys.tone(180,'square',.15,.15),
+    win:()=>{[523,659,784,1047].forEach((f,i)=>setTimeout(()=>AudioSys.tone(f,'square',.15,.2),i*100));},
+  }
+};
 
-function newGame(){
-  const numColors=6;
-  // Создаём numColors труб по CAP сегментов + 2 пустые
+/**
+ * LEVELS
+ */
+const LEVELS = [
+  { id:1,  name:"УР 1",  colors:3, empty:2, par:12  },
+  { id:2,  name:"УР 2",  colors:3, empty:2, par:15  },
+  { id:3,  name:"УР 3",  colors:4, empty:2, par:20  },
+  { id:4,  name:"УР 4",  colors:4, empty:2, par:22  },
+  { id:5,  name:"УР 5",  colors:5, empty:2, par:28  },
+  { id:6,  name:"УР 6",  colors:5, empty:2, par:30  },
+  { id:7,  name:"УР 7",  colors:5, empty:1, par:35  },
+  { id:8,  name:"УР 8",  colors:6, empty:2, par:38  },
+  { id:9,  name:"УР 9",  colors:6, empty:1, par:45  },
+  { id:10, name:"УР 10", colors:7, empty:2, par:48  },
+  { id:11, name:"УР 11", colors:7, empty:1, par:55  },
+  { id:12, name:"УР 12", colors:8, empty:2, par:60  },
+];
+
+const COLORS = [
+  '#5b8cff','#00e5a0','#ff8c42','#ff4466',
+  '#ffd700','#b05bff','#00c8ff','#ff69b4'
+];
+const CAP = 4;
+
+/**
+ * GAME ENGINE
+ */
+let tubes, sel, moves, history, sec, tid, levelIdx, over, hintsLeft;
+let completed = JSON.parse(localStorage.getItem('watersort_completed')||'{}');
+let bestMoves = JSON.parse(localStorage.getItem('watersort_best')||'{}');
+
+function $(id){ return document.getElementById(id); }
+
+function showMenu(id){
+  document.querySelectorAll('.overlay').forEach(m=>m.classList.remove('active'));
+  if(id) $('menu-'+id)?.classList.add('active');
+}
+
+function buildLevelGrid(){
+  const grid=$('level-grid'); grid.innerHTML='';
+  const maxUnlocked=Math.max(1,...Object.keys(completed).map(Number).filter(k=>completed[k]));
+  LEVELS.forEach((lvl,i)=>{
+    const cell=document.createElement('div');
+    cell.className='level-cell';
+    const unlocked=i<=maxUnlocked||i===0;
+    const comp=completed[lvl.id];
+    if(comp){
+      const stars=bestMoves[lvl.id]||0;
+      cell.classList.add('unlocked');
+      cell.innerHTML=`<span>${lvl.id}</span><div class="stars-row">${'★'.repeat(Math.min(3,stars)).split('').map(c=>`<span class="s-on">${c}</span>`).join('')}${'☆'.repeat(Math.max(0,3-stars)).split('').map(c=>`<span class="s-off">${c}</span>`).join('')}</div>`;
+    } else if(unlocked&&i===maxUnlocked&&maxUnlocked>0){
+      cell.classList.add('current'); cell.innerHTML=`<span>${lvl.id}</span>`;
+    } else if(unlocked){
+      cell.classList.add('unlocked'); cell.innerHTML=`<span>${lvl.id}</span>`;
+    } else {
+      cell.classList.add('locked'); cell.innerHTML=`<span>🔒</span>`;
+    }
+    if(unlocked) cell.onclick=()=>{ levelIdx=i; startLevel(i); };
+    grid.appendChild(cell);
+  });
+}
+
+function generateLevel(cfg){
+  const {colors, empty} = cfg;
   let pool=[];
-  for(let c=0;c<numColors;c++) for(let i=0;i<CAP;i++) pool.push(c);
-  // Перемешиваем
-  for(let i=pool.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[pool[i],pool[j]]=[pool[j],pool[i]];}
+  for(let c=0;c<colors;c++) for(let i=0;i<CAP;i++) pool.push(c);
+
+  // Shuffle with solvability check: start solved, then make random valid moves backwards
+  // Simple approach: shuffle and retry if unsolvable (check if at least one valid move exists)
+  let attempts=0;
+  do {
+    // Fisher-Yates shuffle
+    for(let i=pool.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[pool[i],pool[j]]=[pool[j],pool[i]];}
+
+    // Check: no tube should already be complete
+    let valid=true;
+    for(let t=0;t<colors;t++){
+      const tube=pool.slice(t*CAP,t*CAP+CAP);
+      if(tube.every(c=>c===tube[0])) { valid=false; break; }
+    }
+    if(valid) break;
+    attempts++;
+  } while(attempts<100);
+
   tubes=[];
-  for(let t=0;t<numColors;t++) tubes.push(pool.slice(t*CAP,t*CAP+CAP));
-  tubes.push([]);tubes.push([]); // 2 пустые
-  sel=null;moves=0;history=[];
-  document.getElementById('moves').textContent=0;
-  document.getElementById('msg').style.display='none';
+  for(let t=0;t<colors;t++) tubes.push(pool.slice(t*CAP,t*CAP+CAP));
+  for(let t=0;t<empty;t++) tubes.push([]);
+}
+
+function startLevel(idx){
+  AudioSys.init();
+  levelIdx=idx;
+  const cfg=LEVELS[idx];
+
+  generateLevel(cfg);
+  sel=null; moves=0; sec=0; over=false; hintsLeft=3;
+  history=[];
+
+  $('level-title').textContent=cfg.name;
+  $('move-count').textContent='0';
+  $('timer-val').textContent='0';
+  $('btnHint').textContent=`💡 ${hintsLeft}`;
+  $('progress-fill').style.width='0%';
+
+  showMenu(null);
+  render();
+
+  clearInterval(tid);
+  tid=setInterval(()=>{
+    if(!over){sec++;$('timer-val').textContent=sec;}
+  },1000);
+}
+
+function canPour(from, to){
+  if(from===to) return false;
+  if(tubes[from].length===0) return false;
+  if(tubes[to].length>=CAP) return false;
+  if(tubes[to].length>0 && tubes[to][tubes[to].length-1]!==tubes[from][tubes[from].length-1]) return false;
+  return true;
+}
+
+function doPour(from, to){
+  if(!canPour(from,to)) return false;
+
+  const topColor=tubes[from][tubes[from].length-1];
+  let cnt=0;
+  for(let k=tubes[from].length-1;k>=0&&tubes[from][k]===topColor;k++) cnt++;
+  const canMove=Math.min(cnt, CAP-tubes[to].length);
+  if(canMove===0) return false;
+
+  history.push({from, to, count:canMove, tubes:tubes.map(t=>[...t])});
+
+  for(let k=0;k<canMove;k++) tubes[to].push(tubes[from].pop());
+  moves++;
+  $('move-count').textContent=moves;
+
+  // Animate
+  const tubeEls=$('tubes-wrap').children;
+  if(tubeEls[to]) { tubeEls[to].classList.add('pouring'); setTimeout(()=>tubeEls[to]?.classList.remove('pouring'),300); }
+
+  updateProgress();
+  render();
+  AudioSys.sfx.pour();
+
+  // Check win
+  if(checkWin()){
+    over=true;
+    clearInterval(tid);
+    levelComplete();
+  }
+  return true;
+}
+
+function clickTube(i){
+  if(over) return;
+
+  if(sel===null){
+    if(tubes[i].length===0){ AudioSys.sfx.error(); return; }
+    sel=i;
+    AudioSys.sfx.select();
+    render();
+    return;
+  }
+
+  if(sel===i){ sel=null; render(); return; }
+
+  if(!doPour(sel, i)){
+    AudioSys.sfx.error();
+    sel=null; render();
+  } else {
+    sel=null;
+  }
+}
+
+function doUndo(){
+  if(history.length===0||over) return;
+  const action=history.pop();
+  tubes=action.tubes;
+  moves=Math.max(0, moves-1);
+  $('move-count').textContent=moves;
+  sel=null;
+  updateProgress();
   render();
 }
 
+function doHint(){
+  if(over||hintsLeft<=0) return;
+  // Find a valid pour that brings us closer to solution
+  for(let from=0; from<tubes.length; from++){
+    if(tubes[from].length===0) continue;
+    for(let to=0; to<tubes.length; to++){
+      if(canPour(from, to)){
+        // Prefer pours that complete a tube or put same colors together
+        const topColor=tubes[from][tubes[from].length-1];
+        const sameInTo=tubes[to].filter(c=>c===topColor).length;
+        if(sameInTo>0 || tubes[to].length===0){
+          hintsLeft--;
+          $('btnHint').textContent=`💡 ${hintsLeft}`;
+          // Highlight source and target
+          const tubeEls=$('tubes-wrap').children;
+          if(tubeEls[from]) { tubeEls[from].style.boxShadow='0 0 15px rgba(255,215,0,0.6)'; tubeEls[from].style.borderColor='#ffd700'; }
+          if(tubeEls[to]) { tubeEls[to].style.boxShadow='0 0 15px rgba(255,215,0,0.6)'; tubeEls[to].style.borderColor='#ffd700'; }
+          setTimeout(()=>{
+            if(tubeEls[from]) { tubeEls[from].style.boxShadow=''; tubeEls[from].style.borderColor=''; }
+            if(tubeEls[to]) { tubeEls[to].style.boxShadow=''; tubeEls[to].style.borderColor=''; }
+          }, 3000);
+          return;
+        }
+      }
+    }
+  }
+}
+
+function checkWin(){
+  return tubes.every(t=>t.length===0||(t.length===CAP&&t.every(c=>c===t[0])));
+}
+
+function updateProgress(){
+  const cfg=LEVELS[levelIdx];
+  const totalSegments=cfg.colors*CAP;
+  let correctSegments=0;
+  tubes.forEach(t=>{
+    if(t.length===CAP&&t.every(c=>c===t[0])) correctSegments+=CAP;
+  });
+  $('progress-fill').style.width=(correctSegments/totalSegments*100)+'%';
+}
+
+function levelComplete(){
+  AudioSys.sfx.win();
+
+  const cfg=LEVELS[levelIdx];
+  const ratio=cfg.par/moves; // Lower moves = better
+  const stars=moves<=cfg.par?3:moves<=cfg.par*1.5?2:1;
+
+  completed[cfg.id]=true;
+  if(!bestMoves[cfg.id]||moves<bestMoves[cfg.id]) bestMoves[cfg.id]=moves;
+  localStorage.setItem('watersort_completed',JSON.stringify(completed));
+  localStorage.setItem('watersort_best',JSON.stringify(bestMoves));
+
+  // Unlock next
+  const nextId=cfg.id+1;
+  if(nextId<=LEVELS.length&&!completed[nextId]){
+    completed[nextId]=true;
+    localStorage.setItem('watersort_completed',JSON.stringify(completed));
+  }
+
+  for(let i=1;i<=3;i++){
+    setTimeout(()=>{
+      $('star-'+i).classList.toggle('lit',i<=stars);
+    },i*250);
+  }
+
+  $('lvl-stats').textContent=`Ходов: ${moves} (цель: ${cfg.par}) | Время: ${sec}с`;
+  $('btn-next-level').style.display=levelIdx<LEVELS.length-1?'block':'none';
+  showMenu('level-up');
+}
+
 function render(){
-  const w=document.getElementById('tubes-wrap');
+  const w=$('tubes-wrap');
   w.innerHTML='';
+  const cfg=LEVELS[levelIdx]||LEVELS[0];
+
   tubes.forEach((tube,i)=>{
-    const outer=document.createElement('div');outer.className='tube-outer';
+    const outer=document.createElement('div');
+    outer.className='tube-outer';
+
     const div=document.createElement('div');
     const done=tube.length===CAP&&tube.every(c=>c===tube[0]);
     div.className='tube'+(i===sel?' sel':'')+(done?' done':'');
-    tube.forEach(c=>{
+
+    // Tube height based on content
+    const fillPct=tube.length/CAP*100;
+
+    tube.forEach((c,si)=>{
       const seg=document.createElement('div');
       seg.className='seg';
       seg.style.height=(100/CAP)+'%';
       seg.style.background=COLORS[c];
+      // Slight gradient overlay for depth
+      seg.style.boxShadow='inset 0 0 8px rgba(0,0,0,0.2)';
       div.appendChild(seg);
     });
+
     outer.appendChild(div);
-    const lbl=document.createElement('div');lbl.className='tube-num';lbl.textContent=i+1;
+
+    const lbl=document.createElement('div');
+    lbl.className='tube-num';
+    lbl.textContent=done?'✅':(i+1);
     outer.appendChild(lbl);
+
     outer.addEventListener('click',()=>clickTube(i));
+
+    // Long press for auto-pour (pour all of top color)
+    let pt;
+    outer.addEventListener('touchstart',()=>{pt=setTimeout(()=>{
+      // Auto pour: try to pour from this tube to any valid target
+      if(tube.length>0){
+        for(let t=0;t<tubes.length;t++){
+          if(t!==i&&canPour(i,t)){
+            clickTube(i);
+            setTimeout(()=>clickTube(t),50);
+            break;
+          }
+        }
+      }
+    },500);},{passive:true});
+    outer.addEventListener('touchend',()=>clearTimeout(pt),{passive:true});
+    outer.addEventListener('touchmove',()=>clearTimeout(pt),{passive:true});
+
     w.appendChild(outer);
   });
 }
 
-function clickTube(i){
-  if(sel===null){
-    if(tubes[i].length===0) return;
-    sel=i;render();return;
-  }
-  if(sel===i){sel=null;render();return;}
-  // Попытка перелить
-  const from=tubes[sel],to=tubes[i];
-  if(to.length>=CAP){sel=null;render();return;}
-  const topFrom=from[from.length-1];
-  if(to.length>0&&to[to.length-1]!==topFrom){sel=null;render();return;}
-  // Считаем сколько сегментов одного цвета наверху
-  let cnt=0;
-  for(let k=from.length-1;k>=0&&from[k]===topFrom;k--) cnt++;
-  const canMove=Math.min(cnt,CAP-to.length);
-  if(!canMove){sel=null;render();return;}
-  // Сохраняем состояние
-  history.push(tubes.map(t=>[...t]));
-  for(let k=0;k<canMove;k++){to.push(from.pop());}
-  moves++;document.getElementById('moves').textContent=moves;
-  sel=null;render();
-  if(tubes.every(t=>t.length===0||(t.length===CAP&&t.every(c=>c===t[0])))){
-    document.getElementById('msub').textContent=`${moves} ходов`;
-    document.getElementById('msg').style.display='flex';
-  }
-}
+// Buttons
+$('btn-campaign').onclick=()=>{levelIdx=0;startLevel(0);};
+$('btnUndo').onclick=()=>doUndo();
+$('btnHint').onclick=()=>doHint();
+$('btnNew').onclick=()=>{if(levelIdx!==undefined)startLevel(levelIdx);else startLevel(0);};
+$('btn-levels-back').onclick=()=>showMenu('main');
+$('btn-next-level').onclick=()=>{if(levelIdx<LEVELS.length-1)startLevel(levelIdx+1);};
+$('btn-replay').onclick=()=>startLevel(levelIdx);
 
-document.getElementById('btnUndo').addEventListener('click',()=>{
-  if(!history.length) return;
-  tubes=history.pop();sel=null;render();
+document.querySelectorAll('.dbtn')?.forEach(b=>b.addEventListener('click',()=>{
+  // Not used in new UI
+}));
+
+// Keyboard
+document.addEventListener('keydown',e=>{
+  if(e.code==='KeyU') doUndo();
+  if(e.code==='KeyH') doHint();
+  if(e.code==='KeyR'&&levelIdx!==undefined) startLevel(levelIdx);
 });
-document.getElementById('btnNew').addEventListener('click',newGame);
-document.getElementById('mBtn').addEventListener('click',newGame);
-newGame();
+
+// Show main menu on load
+showMenu('main');
 </script>
 </body>
 </html>
