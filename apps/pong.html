@@ -480,14 +480,17 @@ class Ball {
   }
   serve(dir, speed) {
     this.baseSpeed = speed;
-    const angle = rand(-0.3, 0.3); // Угол от вертикали
-    this.vx = Math.sin(angle) * speed * 3;
-    this.vy = speed * dir; // dir: 1 (вниз), -1 (вверх)
+    const angle = rand(-0.2, 0.2); // Уменьшен разброс угла для более предсказуемой траектории
+    const vx = Math.sin(angle) * speed * 0.5; // Нормализованный горизонтальный компонент
+    const vy = dir * Math.sqrt(speed * speed - vx * vx); // Вертикальный компонент сохраняет общую скорость
+    this.vx = vx;
+    this.vy = vy;
   }
-  update() {
+  update(dt) {
     if (!this.active) return;
-    this.x += this.vx;
-    this.y += this.vy;
+    const timeScale = dt * 60; // Нормализация к 60fps
+    this.x += this.vx * timeScale;
+    this.y += this.vy * timeScale;
 
     // Trail
     this.trail.push({x: this.x, y: this.y});
@@ -644,35 +647,35 @@ class PowerUp {
  * ============================================================================
  */
 const Levels = [
-  { name: "УРОВЕНЬ 1", desc: "Основы", aiSpeed: 4, aiError: 30, ballSpeed: 6, aiWidth: 90, targetScore: 3, obstacles: [] },
-  { name: "УРОВЕНЬ 2", desc: "Ускорение", aiSpeed: 5, aiError: 20, ballSpeed: 7.5, aiWidth: 90, targetScore: 3, obstacles: [] },
-  { name: "УРОВЕНЬ 3", desc: "Преграда", aiSpeed: 5.5, aiError: 15, ballSpeed: 8, aiWidth: 90, targetScore: 3, 
+  { name: "УРОВЕНЬ 1", desc: "Основы", aiSpeed: 4, aiError: 30, ballSpeed: 4.5, aiWidth: 90, targetScore: 3, obstacles: [] },
+  { name: "УРОВЕНЬ 2", desc: "Ускорение", aiSpeed: 5, aiError: 20, ballSpeed: 5.5, aiWidth: 90, targetScore: 3, obstacles: [] },
+  { name: "УРОВЕНЬ 3", desc: "Преграда", aiSpeed: 5.5, aiError: 15, ballSpeed: 6, aiWidth: 90, targetScore: 3,
     obstacles: [{x: 'center', y: 'center', w: 80, h: 20, type: 'solid', color: '#ff4466'}] },
-  { name: "УРОВЕНЬ 4", desc: "Кирпичи", aiSpeed: 6, aiError: 10, ballSpeed: 8.5, aiWidth: 80, targetScore: 3, 
+  { name: "УРОВЕНЬ 4", desc: "Кирпичи", aiSpeed: 6, aiError: 10, ballSpeed: 6.5, aiWidth: 80, targetScore: 3,
     obstacles: [
       {x: 'center', y: 'center', w: 60, h: 20, type: 'breakable', color: '#ffd700'},
       {x: 50, y: 'center', w: 60, h: 20, type: 'breakable', color: '#00c8ff'},
       {x: -50, y: 'center', w: 60, h: 20, type: 'breakable', color: '#00c8ff'}
     ] },
-  { name: "УРОВЕНЬ 5", desc: "Скорость света", aiSpeed: 8, aiError: 5, ballSpeed: 11, aiWidth: 80, targetScore: 4, obstacles: [] },
-  { name: "УРОВЕНЬ 6", desc: "Лабиринт", aiSpeed: 7, aiError: 10, ballSpeed: 9, aiWidth: 80, targetScore: 3, 
+  { name: "УРОВЕНЬ 5", desc: "Скорость света", aiSpeed: 8, aiError: 5, ballSpeed: 8, aiWidth: 80, targetScore: 4, obstacles: [] },
+  { name: "УРОВЕНЬ 6", desc: "Лабиринт", aiSpeed: 7, aiError: 10, ballSpeed: 7, aiWidth: 80, targetScore: 3,
     obstacles: [
       {x: 80, y: 250, w: 100, h: 15, type: 'solid', color: '#5b8cff'},
       {x: -80, y: 350, w: 100, h: 15, type: 'solid', color: '#5b8cff'}
     ] },
-  { name: "УРОВЕНЬ 7", desc: "Защита ИИ", aiSpeed: 6, aiError: 0, ballSpeed: 9, aiWidth: 120, targetScore: 3, 
+  { name: "УРОВЕНЬ 7", desc: "Защита ИИ", aiSpeed: 6, aiError: 0, ballSpeed: 7, aiWidth: 120, targetScore: 3,
     obstacles: [
       {x: 'center', y: 150, w: 140, h: 20, type: 'breakable', color: '#ff8c42'}
     ] },
-  { name: "УРОВЕНЬ 8", desc: "Узкий проход", aiSpeed: 7, aiError: 5, ballSpeed: 10, aiWidth: 70, targetScore: 3, 
+  { name: "УРОВЕНЬ 8", desc: "Узкий проход", aiSpeed: 7, aiError: 5, ballSpeed: 7.5, aiWidth: 70, targetScore: 3,
     obstacles: [
       {x: 40, y: 'center', w: 80, h: 200, type: 'solid', color: '#444'},
       {x: -40, y: 'center', w: 80, h: 200, type: 'solid', color: '#444'}
     ] },
-  { name: "УРОВЕНЬ 9", desc: "Минное поле", aiSpeed: 8, aiError: 0, ballSpeed: 10, aiWidth: 80, targetScore: 3, 
+  { name: "УРОВЕНЬ 9", desc: "Минное поле", aiSpeed: 8, aiError: 0, ballSpeed: 8, aiWidth: 80, targetScore: 3,
     obstacles: Array.from({length: 8}, (_,i) => ({x: -120 + (i%4)*80, y: 250 + Math.floor(i/4)*50, w: 40, h: 20, type: 'breakable', color: '#00e5a0'}))
   },
-  { name: "УРОВЕНЬ 10", desc: "ФИНАЛ: Мастер", aiSpeed: 12, aiError: 0, ballSpeed: 13, aiWidth: 100, targetScore: 5, 
+  { name: "УРОВЕНЬ 10", desc: "ФИНАЛ: Мастер", aiSpeed: 10, aiError: 0, ballSpeed: 9, aiWidth: 100, targetScore: 5,
     obstacles: [{x: 'center', y: 'center', w: 100, h: 30, type: 'solid', color: '#ff4466'}] }
 ];
 
@@ -872,9 +875,9 @@ const Game = {
       ui.scoreAI.nextElementSibling.textContent = 'ИИ';
       ui.scorePlayer.nextElementSibling.textContent = 'ИГРОК';
     } else if (this.mode === 'FREE_AI') {
-      let speedMap = {1: 4, 2: 7, 3: 12};
+      let speedMap = {1: 4, 2: 6, 3: 9};
       let errMap = {1: 30, 2: 10, 3: 0};
-      let bSpeedMap = {1: 7, 2: 9, 3: 12};
+      let bSpeedMap = {1: 5, 2: 7, 3: 9};
       config = { aiWidth: 90, aiSpeed: speedMap[this.aiDifficulty], aiError: errMap[this.aiDifficulty], ballSpeed: bSpeedMap[this.aiDifficulty], targetScore: 5, obstacles: [] };
       let diffNames = {1: "Лёгкий", 2: "Средний", 3: "Сложный"};
       ui.lvlName.textContent = "СВОБОДНАЯ ИГРА";
@@ -882,7 +885,7 @@ const Game = {
       ui.scoreAI.nextElementSibling.textContent = 'ИИ';
       ui.scorePlayer.nextElementSibling.textContent = 'ИГРОК';
     } else if (this.mode === 'MULTIPLAYER') {
-      config = { aiWidth: 90, aiSpeed: 0, aiError: 0, ballSpeed: 8, targetScore: 5, obstacles: [] };
+      config = { aiWidth: 90, aiSpeed: 0, aiError: 0, ballSpeed: 6, targetScore: 5, obstacles: [] };
       ui.lvlName.textContent = "ДВА ИГРОКА";
       ui.lvlDesc.textContent = "Кто победит?";
       ui.scoreAI.nextElementSibling.textContent = 'ИГРОК 2';
@@ -919,9 +922,9 @@ const Game = {
     let speed = 8;
     if (this.mode === 'CAMPAIGN' || this.mode === 'ENDLESS') {
        speed = Levels[Math.min(this.levelIdx, Levels.length-1)].ballSpeed;
-       if (this.mode === 'ENDLESS') speed += this.score.player * 0.5;
+       if (this.mode === 'ENDLESS') speed += this.score.player * 0.2; // Мягкий рост сложности
     } else if (this.mode === 'FREE_AI') {
-       let bSpeedMap = {1: 7, 2: 9, 3: 12};
+       let bSpeedMap = {1: 5, 2: 7, 3: 9};
        speed = bSpeedMap[this.aiDifficulty];
     } else {
        speed = 8;
@@ -958,7 +961,7 @@ const Game = {
         let testY = ball.y;
         if (ball.x < pad.x) testX = pad.x; else if (ball.x > pad.x + pad.w) testX = pad.x + pad.w;
         if (ball.y < pad.y) testY = pad.y; else if (ball.y > pad.y + pad.h) testY = pad.y + pad.h;
-        
+
         let distX = ball.x - testX;
         let distY = ball.y - testY;
         let distance = Math.sqrt((distX*distX) + (distY*distY));
@@ -966,17 +969,21 @@ const Game = {
         if (distance <= ball.r) {
           // Collision!
           let hitFactor = (ball.x - (pad.x + pad.w/2)) / (pad.w/2); // -1 to 1
-          
-          ball.vy *= -1;
-          // Increase speed slightly on hit, capped
+
+          // Сохраняем текущую скорость без автоматического ускорения
           let speedMag = Math.sqrt(ball.vx*ball.vx + ball.vy*ball.vy);
-          speedMag = Math.min(speedMag * 1.05, 20); 
-          
-          // Apply spin/english based on where it hit
-          ball.vx = hitFactor * speedMag * 0.8;
-          // Normalize vy to maintain speed magnitude
-          ball.vy = Math.sign(ball.vy) * Math.sqrt(speedMag*speedMag - ball.vx*ball.vx);
-          
+          // Ограничиваем максимальную скорость
+          speedMag = Math.min(speedMag, 18);
+
+          // Отражаем вертикальную компоненту
+          ball.vy *= -1;
+
+          // Применяем english/спин на основе точки удара по ракетке
+          const maxAngle = 0.7; // Максимальный угол отскока (~40°)
+          const angle = hitFactor * maxAngle;
+          ball.vx = Math.sin(angle) * speedMag;
+          ball.vy = Math.sign(ball.vy) * Math.cos(angle) * speedMag;
+
           // Push ball out to prevent sticking
           if (pad.isAI) ball.y = pad.y + pad.h + ball.r + 1;
           else ball.y = pad.y - ball.r - 1;
@@ -985,10 +992,10 @@ const Game = {
           this.spawnParticles(ball.x, ball.y, pad.color, 15);
           this.shakeAmt = 5;
           this.hitStopFrame = 3; // Freeze for 3 frames for impact
-          
+
           if(pad.isAI) AudioSys.sfx.hitAI(); else AudioSys.sfx.hitPlayer();
           vibrate(15);
-          
+
           this.combo++;
           if(this.combo > 3 && !pad.isAI) this.spawnText(pad.x + pad.w/2, pad.y - 20, `Combo x${this.combo}!`, '#00e5a0');
         }
@@ -1052,8 +1059,15 @@ const Game = {
       let activeBalls = this.entities.balls.filter(b=>b.active);
       if(activeBalls.length > 0 && activeBalls.length < 5) {
         let src = activeBalls[0];
-        let b1 = new Ball(src.x, src.y); b1.vx = src.vx + 2; b1.vy = src.vy; b1.color = src.color;
-        let b2 = new Ball(src.x, src.y); b2.vx = src.vx - 2; b2.vy = src.vy; b2.color = src.color;
+        let srcSpeed = Math.sqrt(src.vx*src.vx + src.vy*src.vy);
+        let b1 = new Ball(src.x, src.y);
+        b1.vx = src.vx * 0.8 + 1.5;
+        b1.vy = src.vy;
+        b1.color = src.color;
+        let b2 = new Ball(src.x, src.y);
+        b2.vx = src.vx * 0.8 - 1.5;
+        b2.vy = src.vy;
+        b2.color = src.color;
         this.entities.balls.push(b1, b2);
       }
     }
@@ -1178,7 +1192,8 @@ const Game = {
     this.entities.player.update(this.entities.balls, p1Target);
     this.entities.ai.update(this.entities.balls, p2Target);
 
-    this.entities.balls.forEach(b => b.update());
+    const dt = 1/60; // Фиксированный шаг для стабильной физики
+    this.entities.balls.forEach(b => b.update(dt));
     this.entities.powerups.forEach(p => p.update());
     this.entities.particles.forEach(p => p.update());
     this.entities.texts.forEach(t => t.update());

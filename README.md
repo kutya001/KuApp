@@ -42,6 +42,7 @@
 7. [Технический стек](#7-технический-стек)
 8. [Разработка нового приложения](#8-разработка-нового-приложения)
 9. [Деплой на GitHub Pages](#9-деплой-на-github-pages)
+10. [Техническая документация (Artifacts)](#10-техническая-документация-artifacts)
 
 ---
 
@@ -123,7 +124,7 @@ KuApp/
 const Platform = window.parent?.PlatformAPI;
 
 // Пользователь
-Platform.user.getProfile()   // → { login, role, total_xp }
+Platform.user.getProfile()   // → { username, role, totalXP }
 Platform.user.isAdmin()      // → true/false
 Platform.user.getRole()      // → "admin" | "user"
 
@@ -151,15 +152,15 @@ Platform.ui.openSettings()
 
 ### База данных (Google Sheets)
 
-Платформа хранит данные в Google Sheets через Service Account JWT (RS256).
+Платформа хранит данные в Google Sheets через Google Apps Script (прокси).
 
 **Системные таблицы (создаются платформой):**
 
 | Лист | Столбцы | Назначение |
 |---|---|---|
-| `sys_Users` | ID, Email, Password, Role, TotalXP, CreatedAt, Status | Аккаунты пользователей |
-| `sys_Logs` | Timestamp, Email, AppID, EventType, Details | Журнал событий и сессий |
-| `sys_Scores` | Timestamp, Email, AppID, RawScore, XP | Очки и достижения |
+| `sys_Users` | username, password, role, createdAt, lastLogin, totalXP | Аккаунты пользователей |
+| `sys_Sessions` | id, username, appId, startedAt, duration | Журнал запусков приложений |
+| `gameplay_Scores` | id, username, gameId, score, xp, playedAt | Очки и результаты игр |
 
 **Таблицы Словаря (создаются приложением):**
 
@@ -183,6 +184,8 @@ Platform.ui.openSettings()
 
 ## 3. Первоначальная настройка
 
+> Подробная инструкция по настройке Google Sheets и Google Apps Script — в [Технической спецификации](Artifacts/TECH_SPEC.md#9-инфраструктура-и-развёртывание).
+
 ### 1. Создайте Google Таблицу
 
 Откройте [Google Sheets](https://sheets.google.com) и создайте новую таблицу. ID таблицы — часть URL:
@@ -190,24 +193,25 @@ Platform.ui.openSettings()
 https://docs.google.com/spreadsheets/d/ВОТ_ЭТОТ_ID/edit
 ```
 
-### 2. Создайте сервисный аккаунт
+### 2. Разверните Google Apps Script
 
-1. Откройте [Google Cloud Console](https://console.cloud.google.com)
-2. Создайте проект (или выберите существующий)
-3. Включите **Google Sheets API**: *APIs & Services → Library → Google Sheets API*
-4. Создайте сервисный аккаунт: *IAM & Admin → Service Accounts → Create Service Account*
-5. Создайте JSON-ключ: *Service Account → Keys → Add Key → JSON*
-6. Скачайте файл — это и есть «JSON сервисного аккаунта»
+1. В таблице откройте **Расширения → Apps Script**
+2. Вставьте код из [`gas/Code.gs`](gas/Code.gs)
+3. Сохраните проект
+4. Нажмите **Начать развертывание → Веб-приложение**
+   - Выполнять как: **От моего имени**
+   - У кого есть доступ: **Все**
+5. Скопируйте URL развёртывания
 
 ### 3. Откройте доступ к таблице
 
-В таблице нажмите **«Поделиться»** и добавьте email сервисного аккаунта (`...@...iam.gserviceaccount.com`) с ролью **«Редактор»**.
+В таблице нажмите **«Поделиться»** и добавьте email сервисного аккаунта (если используется) с ролью **«Редактор»**.
 
 ### 4. Настройте платформу
 
 1. Откройте приложение (первый запуск покажет экран настройки)
-2. Введите **Spreadsheet ID** и **JSON сервисного аккаунта**
-3. Нажмите **«Сохранить и проверить»** — платформа создаст системные листы
+2. Введите **URL Google Apps Script**
+3. Нажмите **«Сохранить»** — платформа проверит подключение и создаст системные листы
 4. Зарегистрируйте первый аккаунт — он станет администратором
 
 ---
@@ -553,7 +557,7 @@ https://docs.google.com/spreadsheets/d/ВОТ_ЭТОТ_ID/edit
 ## 6. PWA и офлайн-режим
 
 - **Установка:** на Android/iOS нажмите «Добавить на главный экран» в браузере
-- **Версия кэша:** `app-v4`
+- **Версия кэша:** `app-v5`
 
 **Стратегия кэширования (Service Worker):**
 
@@ -576,7 +580,8 @@ https://docs.google.com/spreadsheets/d/ВОТ_ЭТОТ_ID/edit
 |---|---|
 | Frontend | Vanilla HTML5 / CSS3 / JavaScript (ES2022) |
 | Шрифты | Google Fonts: Manrope, JetBrains Mono |
-| API авторизация | Google Service Account JWT (RS256, Web Crypto API) |
+| Бэкенд | Google Apps Script (прокси к Google Sheets) |
+| Аутентификация | Кастомная (username/password через Google Sheets) |
 | Хранилище данных | Google Sheets API v4 |
 | Локальный кэш | `localStorage` |
 | TTS (озвучка) | Web Speech API (`SpeechSynthesis`) |
@@ -682,8 +687,26 @@ GitHub Pages автоматически публикует из ветки `main
 
 **Обновить кэш Service Worker** — при необходимости смените константу в `sw.js`:
 ```js
-const CACHE_NAME = 'app-v5';   // было app-v4
+const CACHE_NAME = 'app-v5';   // увеличьте версию после обновления файлов
 ```
+
+---
+
+## 10. Техническая документация (Artifacts)
+
+Полный пакет технической документации находится в папке [`Artifacts/`](Artifacts/):
+
+| Документ | Описание |
+|----------|----------|
+| [`Artifacts/TECH_SPEC.md`](Artifacts/TECH_SPEC.md) | Техническая спецификация: архитектура, компоненты, PlatformAPI, БД, стек |
+| [`Artifacts/API_CONTRACT.md`](Artifacts/API_CONTRACT.md) | API Contract (OpenAPI 3.0): эндпоинты, схемы данных, примеры запросов |
+| [`Artifacts/UI_UX_SPEC.md`](Artifacts/UI_UX_SPEC.md) | UI/UX спецификация: экраны, компоненты, палитра, типографика |
+| [`Artifacts/ER_DIAGRAM.md`](Artifacts/ER_DIAGRAM.md) | Модель данных: ER-диаграмма, таблицы, связи, бизнес-правила |
+| [`Artifacts/ACCEPTANCE_CRITERIA.md`](Artifacts/ACCEPTANCE_CRITERIA.md) | 39 критериев приёмки в формате Gherkin (Given/When/Then) |
+| [`Artifacts/TEST_PLAN.md`](Artifacts/TEST_PLAN.md) | План тестирования: 75 тест-кейсов, матрица покрытия |
+| [`Artifacts/ADR.md`](Artifacts/ADR.md) | 10 Architecture Decision Records — задокументированные решения |
+
+> 📖 Подробнее о структуре документации — в [`Artifacts/Artifact.md`](Artifacts/Artifact.md).
 
 ---
 
