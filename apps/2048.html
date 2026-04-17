@@ -171,20 +171,20 @@ function render(){
 }
 
 function slide(row){
-  let arr=row.filter(v=>v), merged=false, mergeIdx=-1;
+  let arr=row.filter(v=>v), merged=false;
   for(let i=0;i<arr.length-1;i++){
-    if(arr[i]===arr[i+1]&&!merged){
-      arr[i]*=2; score+=arr[i]; arr.splice(i+1,1); merged=true; mergeIdx=i;
-    } else { merged=false; }
+    if(arr[i]===arr[i+1]){
+      arr[i]*=2; score+=arr[i]; arr.splice(i+1,1); merged=true;
+    }
+    if(merged){ merged=false; continue; } // Сброс merged после слияния
   }
   while(arr.length<4) arr.push(0);
-  return {arr, merged, mergeIdx};
+  return {arr, merged};
 }
 
 function move(dir){
   if(over || moving) return;
   const prev=board.slice();
-  const merges = []; // Индексы где произошло слияние
   
   for(let i=0;i<4;i++){
     let row, indices;
@@ -215,11 +215,6 @@ function move(dir){
       const targetIndices = dir==='u' ? [i, i+4, i+8, i+12] : [i+12, i+8, i+4, i];
       for(let j=0;j<4;j++) board[targetIndices[j]]=slid[j];
     }
-    
-    if(result.merged && result.mergeIdx >= 0){
-      const targetIdx = dir==='r'||dir==='d' ? indices[result.mergeIdx] : indices[result.mergeIdx];
-      merges.push(targetIdx);
-    }
   }
 
   const changed=board.some((v,i)=>v!==prev[i]);
@@ -228,8 +223,7 @@ function move(dir){
     scoreEl.textContent=score;
     if(score>best){ best=score; bestEl.textContent=best; localStorage.setItem('2048_best',best); }
     
-    // Анимированное обновление плиток
-    animateMove(prev, board, merges);
+    render();
     
     setTimeout(()=>{
       addTile();
@@ -242,15 +236,13 @@ function move(dir){
   }
 }
 
-function animateMove(prev, curr, merges){
-  // Простая анимация - добавляем эффект слияния
-  merges.forEach(idx=>{
-    const tile = gridEl.querySelector(`[data-index="${idx}"]`);
-    if(tile){
-      tile.classList.add('tile-merge');
-      setTimeout(()=>tile.classList.remove('tile-merge'), 200);
-    }
-  });
+function canMove(){
+  if(board.includes(0)) return true;
+  for(let i=0;i<4;i++) for(let j=0;j<3;j++){
+    if(board[i*4+j]===board[i*4+j+1]) return true;
+    if(board[j*4+i]===board[(j+1)*4+i]) return true;
+  }
+  return false;
 }
 
 function submitScore(){
@@ -261,15 +253,6 @@ function submitScore(){
       api.gameplay.submitScore('2048', score, xp).catch(()=>{});
     }
   } catch {}
-}
-
-function canMove(){
-  if(board.includes(0)) return true;
-  for(let i=0;i<4;i++) for(let j=0;j<3;j++){
-    if(board[i*4+j]===board[i*4+j+1]) return true;
-    if(board[j*4+i]===board[(j+1)*4+i]) return true;
-  }
-  return false;
 }
 
 function showMsg(t,s){ document.getElementById('msg-text').textContent=t; document.getElementById('msg-sub').textContent=s; msg.style.display='flex'; }
