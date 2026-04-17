@@ -6,35 +6,67 @@
 <title>2048</title>
 <style>
   *{box-sizing:border-box;margin:0;padding:0}
-  :root{--bg:#0a0a0f;--sur:#1a1a24;--sur2:#22222f;--text:#f0f0f8;--text2:#8888aa}
-  body{background:var(--bg);color:var(--text);font-family:'JetBrains Mono',monospace;display:flex;flex-direction:column;align-items:center;height:100dvh;overflow:hidden;user-select:none;padding-top:10px}
+  :root{--bg:#0a0a0f;--sur:#1a1a24;--sur2:#22222f;--text:#f0f0f8;--text2:#8888aa;--tile-bg:#22222f;--accent:#00e5a0}
+  body{background:var(--bg);color:var(--text);font-family:'JetBrains Mono',monospace;display:flex;flex-direction:column;align-items:center;height:100dvh;overflow:hidden;user-select:none;padding-top:10px;transition:background .3s,--text .3s}
+  
+  /* Темы */
+  body.theme-classic{--bg:#faf8ef;--sur:#bbada0;--sur2:#cdc1b4;--text:#776e65;--text2:#999;--tile-bg:#cdc1b4}
+  body.theme-dark{--bg:#1e1e2e;--sur:#313244;--sur2:#45475a;--text:#cdd6f4;--text2:#a6adc8;--tile-bg:#45475a}
+  body.theme-sunset{--bg:#2d1b4e;--sur:#53386d;--sur2:#6b4c7a;--text:#f5e6ff;--text2:#c9a8ff;--tile-bg:#6b4c7a}
+  body.theme-ocean{--bg:#0a1628;--sur:#1a3a5c;--sur2:#264a6c;--text:#e0f0ff;--text2:#a0c0e0;--tile-bg:#264a6c}
+  body.theme-matrix{--bg:#001000;--sur:#003000;--sur2:#004000;--text:#00ff00;--text2:#00cc00;--tile-bg:#004000}
+  
   #hdr{display:flex;justify-content:space-between;align-items:center;width:min(92vw,340px);margin-bottom:10px}
   #title{font-size:1.6rem;font-weight:700}
   .sc-box{background:var(--sur);border-radius:8px;padding:4px 14px;text-align:center;min-width:60px}
   .sc-lbl{font-size:.55rem;color:var(--text2);letter-spacing:.1em}
   .sc-val{font-size:1rem;font-weight:700}
-  #grid{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;background:var(--sur);border-radius:12px;padding:10px;width:min(92vw,340px)}
-  .tile{aspect-ratio:1;border-radius:8px;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:1.4rem;transition:background .1s}
-  .t0{background:#22222f}
-  .t2{background:#3a3a50;color:#f0f0f8}
-  .t4{background:#4a3a60;color:#f0f0f8}
-  .t8{background:#5b4a80;color:#fff}
-  .t16{background:#2d6e8a;color:#fff}
-  .t32{background:#1a8a6a;color:#fff}
-  .t64{background:#00c897;color:#000;font-size:1.2rem}
-  .t128{background:#00e5a0;color:#000;font-size:1.1rem}
-  .t256{background:#ffd700;color:#000;font-size:1rem}
-  .t512{background:#ffb020;color:#000;font-size:1rem}
-  .t1024{background:#ff8c42;color:#000;font-size:.9rem}
-  .t2048{background:#ff4466;color:#fff;font-size:.85rem}
-  .tbig{background:#ff4466;color:#fff;font-size:.7rem}
-  #msg{position:fixed;inset:0;background:rgba(10,10,15,.85);display:none;flex-direction:column;align-items:center;justify-content:center;gap:12px;font-size:1.2rem;font-weight:700}
+  
+  #controls{display:flex;gap:8px;margin-bottom:10px;flex-wrap:wrap;justify-content:center}
+  .ctrl-btn{background:var(--sur);border:1px solid rgba(255,255,255,.1);color:var(--text);padding:6px 12px;border-radius:6px;font-size:.7rem;cursor:pointer;font-family:inherit;transition:all .2s}
+  .ctrl-btn:hover{background:var(--sur2)}
+  .ctrl-btn.active{background:var(--accent);color:#000;border-color:var(--accent)}
+  
+  #grid{position:relative;display:grid;grid-template-columns:repeat(4,1fr);gap:8px;background:var(--sur);border-radius:12px;padding:10px;width:min(92vw,340px);aspect-ratio:1}
+  .tile{position:absolute;border-radius:8px;display:flex;align-items:center;justify-content:center;font-weight:700;transition:transform .15s ease-out,opacity .15s;will-change:transform}
+  .tile-merge{animation:pop .2s ease-out}
+  @keyframes pop{0%{transform:scale(.8)}50%{transform:scale(1.1)}100%{transform:scale(1)}}
+  .tile-new{animation:appear .2s ease-out}
+  @keyframes appear{0%{opacity:0;transform:scale(0)}100%{opacity:1;transform:scale(1)}}
+  
+  /* Цвета плиток для всех тем */
+  .v2{background:#eee4da;color:#776e65}
+  .v4{background:#ede0c8;color:#776e65}
+  .v8{background:#f2b179;color:#fff}
+  .v16{background:#f59563;color:#fff}
+  .v32{background:#f67c5f;color:#fff}
+  .v64{background:#f65e3b;color:#fff}
+  .v128{background:#edcf72;color:#fff;font-size:1.3rem}
+  .v256{background:#edcc61;color:#fff;font-size:1.3rem}
+  .v512{background:#edc850;color:#fff;font-size:1.3rem}
+  .v1024{background:#edc53f;color:#fff;font-size:1.1rem}
+  .v2048{background:#edc22e;color:#fff;font-size:1.1rem}
+  .vsuper{background:#3c3a32;color:#fff;font-size:.9rem}
+  
+  body.theme-matrix .v2{background:#005000;color:#00ff00}
+  body.theme-matrix .v4{background:#006000;color:#00ff00}
+  body.theme-matrix .v8{background:#007000;color:#00ff00}
+  body.theme-matrix .v16{background:#008000;color:#00ff00}
+  body.theme-matrix .v32{background:#009000;color:#00ff00}
+  body.theme-matrix .v64{background:#00a000;color:#00ff00}
+  body.theme-matrix .v128{background:#00b000;color:#00ff00}
+  body.theme-matrix .v256{background:#00c000;color:#00ff00}
+  body.theme-matrix .v512{background:#00d000;color:#00ff00}
+  body.theme-matrix .v1024{background:#00e000;color:#00ff00}
+  body.theme-matrix .v2048{background:#00ff00;color:#000}
+  
+  #msg{position:fixed;inset:0;background:rgba(10,10,15,.85);display:none;flex-direction:column;align-items:center;justify-content:center;gap:12px;font-size:1.2rem;font-weight:700;z-index:100}
   #msg p{font-size:.8rem;color:var(--text2)}
-  #btn-r{background:#00e5a0;color:#000;border:none;padding:11px 32px;border-radius:10px;font-size:.95rem;font-weight:700;cursor:pointer;font-family:inherit}
+  #btn-r{background:var(--accent);color:#000;border:none;padding:11px 32px;border-radius:10px;font-size:.95rem;font-weight:700;cursor:pointer;font-family:inherit}
   #btn-new{background:transparent;border:1px solid rgba(255,255,255,.15);color:var(--text2);padding:7px 18px;border-radius:8px;font-family:inherit;font-size:.75rem;cursor:pointer;margin-top:8px}
 </style>
 </head>
-<body>
+<body class="theme-dark">
 <div id="hdr">
   <div id="title">2048</div>
   <div style="display:flex;gap:8px">
@@ -42,6 +74,15 @@
     <div class="sc-box"><div class="sc-lbl">РЕКОРД</div><div class="sc-val" id="best">0</div></div>
   </div>
 </div>
+
+<div id="controls">
+  <button class="ctrl-btn" data-theme="theme-classic">☀️ Классика</button>
+  <button class="ctrl-btn active" data-theme="theme-dark">🌙 Тёмная</button>
+  <button class="ctrl-btn" data-theme="theme-sunset">🌅 Закат</button>
+  <button class="ctrl-btn" data-theme="theme-ocean">🌊 Океан</button>
+  <button class="ctrl-btn" data-theme="theme-matrix">💻 Матрица</button>
+</div>
+
 <div id="grid"></div>
 <button id="btn-new">Новая игра</button>
 
@@ -52,16 +93,37 @@
 </div>
 
 <script>
-let board,score,best=+localStorage.getItem('2048_best')||0,over=false;
+let board,score,best=+localStorage.getItem('2048_best')||0,over=false,moving=false;
 const gridEl=document.getElementById('grid');
 const scoreEl=document.getElementById('score');
 const bestEl=document.getElementById('best');
 const msg=document.getElementById('msg');
+const CELL_SIZE = 70;
+const GAP = 8;
+const GRID_PADDING = 10;
+
+// Применение темы
+document.querySelectorAll('[data-theme]').forEach(btn=>{
+  btn.addEventListener('click',()=>{
+    document.querySelectorAll('[data-theme]').forEach(b=>b.classList.remove('active'));
+    btn.classList.add('active');
+    document.body.className = btn.dataset.theme;
+    localStorage.setItem('2048_theme', btn.dataset.theme);
+    render();
+  });
+});
+
+// Загрузка сохранённой темы
+const savedTheme = localStorage.getItem('2048_theme') || 'theme-dark';
+document.body.classList.add(savedTheme);
+document.querySelector(`[data-theme="${savedTheme}"]`)?.classList.add('active');
+
 bestEl.textContent=best;
 
 function newGame(){
-  board=Array(16).fill(0); score=0; over=false;
+  board=Array(16).fill(0); score=0; over=false; moving=false;
   scoreEl.textContent=0; msg.style.display='none';
+  gridEl.innerHTML='';
   addTile(); addTile(); render();
 }
 
@@ -70,56 +132,125 @@ function addTile(){
   if(!empty.length) return;
   const i=empty[Math.floor(Math.random()*empty.length)];
   board[i]=Math.random()<0.9?2:4;
+  return i;
+}
+
+function getPos(index){
+  const row = Math.floor(index / 4);
+  const col = index % 4;
+  return {
+    x: GRID_PADDING + col * (CELL_SIZE + GAP),
+    y: GRID_PADDING + row * (CELL_SIZE + GAP)
+  };
+}
+
+function getClassForValue(v){
+  if(v===0) return '';
+  if(v<=2048) return `v${v}`;
+  return 'vsuper';
 }
 
 function render(){
-  gridEl.innerHTML='';
-  board.forEach(v=>{
-    const d=document.createElement('div');
-    const cls=v===0?'t0':v>=2048?'t2048':`t${v}`;
-    d.className=`tile ${cls}`;
-    if(v>0) d.textContent=v;
-    gridEl.appendChild(d);
+  // Очищаем и пересоздаём плитки с анимацией
+  const tiles = gridEl.querySelectorAll('.tile');
+  tiles.forEach(t=>t.remove());
+  
+  board.forEach((v,i)=>{
+    if(v===0) return;
+    const tile = document.createElement('div');
+    tile.className = `tile ${getClassForValue(v)} tile-new`;
+    tile.textContent = v;
+    const pos = getPos(i);
+    tile.style.left = pos.x + 'px';
+    tile.style.top = pos.y + 'px';
+    tile.style.width = CELL_SIZE + 'px';
+    tile.style.height = CELL_SIZE + 'px';
+    tile.dataset.index = i;
+    gridEl.appendChild(tile);
   });
 }
 
 function slide(row){
-  let arr=row.filter(v=>v), merged=false;
+  let arr=row.filter(v=>v), merged=false, mergeIdx=-1;
   for(let i=0;i<arr.length-1;i++){
     if(arr[i]===arr[i+1]&&!merged){
-      arr[i]*=2; score+=arr[i]; arr.splice(i+1,1); merged=true;
+      arr[i]*=2; score+=arr[i]; arr.splice(i+1,1); merged=true; mergeIdx=i;
     } else { merged=false; }
   }
   while(arr.length<4) arr.push(0);
-  return arr;
+  return {arr, merged, mergeIdx};
 }
 
 function move(dir){
-  if(over) return;
+  if(over || moving) return;
   const prev=board.slice();
+  const merges = []; // Индексы где произошло слияние
+  
   for(let i=0;i<4;i++){
-    let row;
-    if(dir==='l') row=board.slice(i*4,i*4+4);
-    else if(dir==='r') row=board.slice(i*4,i*4+4).reverse();
-    else if(dir==='u') row=[board[i],board[i+4],board[i+8],board[i+12]];
-    else row=[board[i+12],board[i+8],board[i+4],board[i]];
+    let row, indices;
+    if(dir==='l'){ 
+      row=board.slice(i*4,i*4+4);
+      indices = [i*4, i*4+1, i*4+2, i*4+3];
+    }
+    else if(dir==='r'){ 
+      row=board.slice(i*4,i*4+4).reverse();
+      indices = [i*4+3, i*4+2, i*4+1, i*4];
+    }
+    else if(dir==='u'){ 
+      row=[board[i],board[i+4],board[i+8],board[i+12]];
+      indices = [i, i+4, i+8, i+12];
+    }
+    else {
+      row=[board[i+12],board[i+8],board[i+4],board[i]];
+      indices = [i+12, i+8, i+4, i];
+    }
 
-    const slid=slide(row);
-    if(dir==='r') slid.reverse();
+    const result = slide(row);
+    let slid = result.arr;
+    if(dir==='r'||dir==='d') slid.reverse(), indices.reverse();
 
-    if(dir==='l'||dir==='r') for(let j=0;j<4;j++) board[i*4+j]=slid[j];
-    else if(dir==='u') [board[i],board[i+4],board[i+8],board[i+12]]=slid;
-    else [board[i+12],board[i+8],board[i+4],board[i]]=slid;
+    if(dir==='l'||dir==='r'){
+      for(let j=0;j<4;j++) board[i*4+j]=slid[j];
+    } else {
+      const targetIndices = dir==='u' ? [i, i+4, i+8, i+12] : [i+12, i+8, i+4, i];
+      for(let j=0;j<4;j++) board[targetIndices[j]]=slid[j];
+    }
+    
+    if(result.merged && result.mergeIdx >= 0){
+      const targetIdx = dir==='r'||dir==='d' ? indices[result.mergeIdx] : indices[result.mergeIdx];
+      merges.push(targetIdx);
+    }
   }
 
   const changed=board.some((v,i)=>v!==prev[i]);
   if(changed){
+    moving = true;
     scoreEl.textContent=score;
     if(score>best){ best=score; bestEl.textContent=best; localStorage.setItem('2048_best',best); }
-    addTile(); render();
-    if(board.includes(2048)&&!over){ showMsg('🎉 2048!','Продолжай!'); over=true; submitScore(); return; }
-    if(!canMove()){ showMsg('😞 Игра окончена',`Счёт: ${score}`); over=true; submitScore(); }
+    
+    // Анимированное обновление плиток
+    animateMove(prev, board, merges);
+    
+    setTimeout(()=>{
+      addTile();
+      render();
+      moving = false;
+      
+      if(board.includes(2048)&&!over){ showMsg('🎉 2048!','Продолжай!'); over=true; submitScore(); return; }
+      if(!canMove()){ showMsg('😞 Игра окончена',`Счёт: ${score}`); over=true; submitScore(); }
+    }, 150);
   }
+}
+
+function animateMove(prev, curr, merges){
+  // Простая анимация - добавляем эффект слияния
+  merges.forEach(idx=>{
+    const tile = gridEl.querySelector(`[data-index="${idx}"]`);
+    if(tile){
+      tile.classList.add('tile-merge');
+      setTimeout(()=>tile.classList.remove('tile-merge'), 200);
+    }
+  });
 }
 
 function submitScore(){
