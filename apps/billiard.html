@@ -169,7 +169,7 @@
       <div id="power-fill"></div>
       <div id="power-label">0%</div>
     </div>
-    <div id="controls-hint">Мышь: прицел · Зажми и тяни назад = сила · Колёсико = кручение</div>
+      <div id="controls-hint">🎯 Тяни назад для прицеливания · 💪 Сила зависит от расстояния · 🔄 Колёсико = кручение</div>
     <div id="spin-control">
       <div id="spin-dot"></div>
       <div id="spin-label">КРУЧЕНИЕ</div>
@@ -184,9 +184,10 @@
     <div class="menu-subtitle">Свободная пирамида — забей все 15 шаров</div>
     <div class="rules-list">
       <div>🎯 <span>Забей любой шар</span> в любую лузу</div>
-      <div>💪 <span>Зажми и тяни</span> от битка для удара</div>
-      <div>🔄 <span>Колёсико / свайп</span> на кручение справа = кручение битка</div>
-      <div>📏 <span>Пунктир</span> = траектория битка</div>
+      <div>💪 <span>Тяни назад</span> от битка для прицеливания и силы</div>
+      <div>🔄 <span>Колёсико / свайп</span> справа = кручение битка</div>
+      <div>📏 <span>Пунктир</span> = траектория · <span>Жёлтый круг</span> = точка удара</div>
+      <div>👻 <span>Призрачный шар</span> = где биток коснётся цели</div>
       <div>⚠️ <span>Фул</span> = биток в лузу или промах</div>
     </div>
     <button class="btn btn-primary" id="btn-start">🎮 Играть</button>
@@ -271,13 +272,17 @@ class Vec {
 const BALL_R = 11;          // Ball radius (px)
 const POCKET_R = 18;        // Pocket radius (corner)
 const SIDE_POCKET_R = 20;   // Side pocket radius (wider)
-const FRICTION = 0.985;     // Rolling friction per substep
-const MIN_VEL = 0.08;       // Minimum velocity to stop
-const RESTITUTION = 0.92;   // Ball-ball restitution
-const CUSHION_REST = 0.75;  // Cushion restitution (energy loss)
-const SPIN_DECAY = 0.97;    // Spin decay per substep
-const SPIN_INFLUENCE = 0.03;// How much spin affects trajectory
+const FRICTION = 0.992;     // Rolling friction per substep (reduced for smoother roll)
+const MIN_VEL = 0.04;       // Minimum velocity to stop (lower threshold)
+const RESTITUTION = 0.94;   // Ball-ball restitution (slightly bouncier)
+const CUSHION_REST = 0.78;  // Cushion restitution (energy loss)
+const SPIN_DECAY = 0.985;   // Spin decay per substep (slower decay)
+const SPIN_INFLUENCE = 0.06;// How much spin affects trajectory (doubled)
+const CUSHION_SPIN = 0.12;  // Spin effect on cushion bounce
+const BALL_SPIN_TRANSFER = 0.08; // Spin transfer between balls
 const SUBSTEPS = 4;         // Physics substeps per frame
+const MAX_POWER = 35;       // Maximum power value
+const POWER_SCALE = 1.8;    // Power to velocity scale
 
 /**
  * ============================================================
@@ -344,13 +349,11 @@ class Ball {
   update(dt) {
     if (this.pocketed) return;
 
-    // Apply spin influence on trajectory
-    if (!this.isCue || this.vel.mag() < 0.5) {
-      // Spin only affects cue ball significantly
-    }
+    // Apply spin influence on trajectory (only for cue ball)
     if (this.isCue && this.vel.mag() > 0.1) {
-      this.vel.x += spinX * SPIN_INFLUENCE * this.vel.mag() * 0.1;
-      this.vel.y += spinY * SPIN_INFLUENCE * this.vel.mag() * 0.1;
+      const spinFactor = SPIN_INFLUENCE * (1 - this.vel.mag() / 20);
+      this.vel.x += spinX * spinFactor * this.vel.mag() * 0.1;
+      this.vel.y += spinY * spinFactor * this.vel.mag() * 0.1;
     }
 
     this.pos = this.pos.add(this.vel.mult(dt * 60));
@@ -562,7 +565,11 @@ function physicsStep() {
 
           // Transfer some spin to cue ball
           if (a.isCue) {
-            a.vel = a.vel.add(new Vec(spinX * 0.3, spinY * 0.3));
+            const spinTransfer = new Vec(spinX * BALL_SPIN_TRANSFER, spinY * BALL_SPIN_TRANSFER);
+            b.vel = b.vel.add(spinTransfer);
+          } else if (b.isCue) {
+            const spinTransfer = new Vec(spinX * BALL_SPIN_TRANSFER, spinY * BALL_SPIN_TRANSFER);
+            a.vel = a.vel.sub(spinTransfer);
           }
 
           // Visual feedback
@@ -571,7 +578,7 @@ function physicsStep() {
           b.highlight = Math.min(1, impactForce * 0.15);
 
           // Sound
-          if (impactForce > 1) {
+          if (impactForce > 1.5) {
             AudioSys.sfx.hitHard();
           } else if (impactForce > 0.3) {
             AudioSys.sfx.hit();
@@ -592,16 +599,18 @@ function physicsStep() {
           // Push out
           b.pos = closest.add(normal.mult(b.r + 0.5));
 
-          // Reflect velocity
+          // Reflect velocity with spin effect
           const velDotNormal = b.vel.dot(normal);
           if (velDotNormal < 0) {
+            // Reflect normal component
             b.vel = b.vel.sub(normal.mult(2 * velDotNormal));
             b.vel = b.vel.mult(CUSHION_REST);
 
-            // Add spin effect
+            // Add spin effect on cushion bounce (tangential deflection)
             if (b.isCue) {
-              b.vel.x += spinX * 0.15;
-              b.vel.y += spinY * 0.15;
+              const tangent = new Vec(-normal.y, normal.x);
+              const spinEffect = CUSHION_SPIN * (spinX * tangent.x + spinY * tangent.y);
+              b.vel = b.vel.add(tangent.mult(spinEffect));
             }
 
             if (b.vel.mag() > 0.5) AudioSys.sfx.cushion();
@@ -852,13 +861,15 @@ function drawTrajectory() {
     }
   }
 
-  // Limit trajectory length
-  const maxDist = Math.min(minT, TW * 0.8);
+  // Limit trajectory length based on power
+  const powerFactor = 1 + power / MAX_POWER;
+  const maxDist = Math.min(minT, TW * 0.7 * powerFactor);
   const endPoint = CUE.pos.add(dir.mult(maxDist));
 
-  // Draw dashed line
-  ctx.strokeStyle = 'rgba(255,255,255,0.25)';
-  ctx.lineWidth = 1;
+  // Draw dashed line with gradient opacity based on power
+  const alpha = 0.2 + (power / MAX_POWER) * 0.3;
+  ctx.strokeStyle = `rgba(255,255,255,${alpha})`;
+  ctx.lineWidth = 1 + power / MAX_POWER;
   ctx.setLineDash([6, 6]);
   ctx.beginPath();
   ctx.moveTo(CUE.pos.x, CUE.pos.y);
@@ -868,10 +879,10 @@ function drawTrajectory() {
 
   // Hit point indicator
   if (hitPoint && hitType === 'ball') {
-    ctx.strokeStyle = 'rgba(255,255,255,0.4)';
-    ctx.lineWidth = 1;
+    ctx.strokeStyle = `rgba(255,215,0,${0.3 + power / MAX_POWER * 0.4})`;
+    ctx.lineWidth = 1.5;
     ctx.beginPath();
-    ctx.arc(hitPoint.x, hitPoint.y, 4, 0, Math.PI * 2);
+    ctx.arc(hitPoint.x, hitPoint.y, 5 + power / MAX_POWER * 3, 0, Math.PI * 2);
     ctx.stroke();
 
     // Predicted direction of hit ball
@@ -882,29 +893,40 @@ function drawTrajectory() {
       ctx.setLineDash([3, 5]);
       ctx.beginPath();
       ctx.moveTo(hitBall.pos.x, hitBall.pos.y);
-      ctx.lineTo(hitBall.pos.x + hitDir.x * 40, hitBall.pos.y + hitDir.y * 40);
+      ctx.lineTo(hitBall.pos.x + hitDir.x * 50, hitBall.pos.y + hitDir.y * 50);
       ctx.stroke();
       ctx.setLineDash([]);
     }
   }
 
-  // Ghost ball at aim point
+  // Ghost ball at aim point (shows where cue ball will contact)
   if (hitPoint && hitType === 'ball') {
-    ctx.strokeStyle = 'rgba(255,255,255,0.15)';
+    const ghostPos = hitPoint.sub(dir.mult(BALL_R));
+    ctx.strokeStyle = 'rgba(255,255,255,0.2)';
+    ctx.fillStyle = 'rgba(255,255,255,0.1)';
     ctx.lineWidth = 1;
     ctx.beginPath();
-    ctx.arc(hitPoint.x - dir.x * BALL_R, hitPoint.y - dir.y * BALL_R, BALL_R, 0, Math.PI * 2);
+    ctx.arc(ghostPos.x, ghostPos.y, BALL_R - 1, 0, Math.PI * 2);
+    ctx.fill();
     ctx.stroke();
   }
 
-  // Power indicator
+  // Power indicator line behind cue ball
   if (state === 'CHARGING' && aimPower > 0) {
-    const powerAlpha = Math.min(1, aimPower / 20);
-    ctx.strokeStyle = `rgba(255,${Math.floor(255 * (1 - powerAlpha))},${Math.floor(100 * (1 - powerAlpha))},${powerAlpha * 0.6})`;
-    ctx.lineWidth = 2;
+    const powerAlpha = Math.min(1, aimPower / MAX_POWER);
+    const gradient = ctx.createLinearGradient(
+      CUE.pos.x - dir.x * aimPower * 2,
+      CUE.pos.y - dir.y * aimPower * 2,
+      CUE.pos.x,
+      CUE.pos.y
+    );
+    gradient.addColorStop(0, `rgba(255,100,50,0)`);
+    gradient.addColorStop(1, `rgba(255,${Math.floor(255 * (1 - powerAlpha))},${Math.floor(100 * (1 - powerAlpha))},${powerAlpha * 0.8})`);
+    ctx.strokeStyle = gradient;
+    ctx.lineWidth = 3;
     ctx.beginPath();
-    ctx.moveTo(CUE.pos.x, CUE.pos.y);
-    ctx.lineTo(CUE.pos.x + dir.x * aimPower * 3, CUE.pos.y + dir.y * aimPower * 3);
+    ctx.moveTo(CUE.pos.x - dir.x * aimPower * 2, CUE.pos.y - dir.y * aimPower * 2);
+    ctx.lineTo(CUE.pos.x - dir.x * 10, CUE.pos.y - dir.y * 10);
     ctx.stroke();
   }
 }
@@ -1038,12 +1060,15 @@ canvas.addEventListener('mousemove', e => {
   const pos = getPos(e);
   dragCurrent = pos.copy();
 
-  // Aim angle is based on drag direction from cue ball
-  aimAngle = Math.atan2(dragCurrent.y - CUE.pos.y, dragCurrent.x - CUE.pos.x);
+  // Aim angle is based on drag direction from cue ball (opposite to drag direction for intuitive control)
+  const aimVec = dragStart.sub(dragCurrent);
+  if (aimVec.mag() > 5) {
+    aimAngle = Math.atan2(aimVec.y, aimVec.x);
+  }
 
   // Power is based on drag distance (pull back = more power)
   const dragVec = dragStart.sub(dragCurrent);
-  aimPower = Math.min(25, Math.max(0, dragVec.mag() * 0.15));
+  aimPower = Math.min(MAX_POWER, Math.max(0, dragVec.mag() * 0.12));
   updatePowerUI();
 });
 
@@ -1078,10 +1103,15 @@ canvas.addEventListener('touchmove', e => {
   e.preventDefault();
   const pos = getPos(e);
   dragCurrent = pos.copy();
-  aimAngle = Math.atan2(dragCurrent.y - CUE.pos.y, dragCurrent.x - CUE.pos.x);
+
+  // Aim angle is based on drag direction (opposite to drag for intuitive control)
+  const aimVec = dragStart.sub(dragCurrent);
+  if (aimVec.mag() > 5) {
+    aimAngle = Math.atan2(aimVec.y, aimVec.x);
+  }
 
   const dragVec = dragStart.sub(dragCurrent);
-  aimPower = Math.min(25, Math.max(0, dragVec.mag() * 0.15));
+  aimPower = Math.min(MAX_POWER, Math.max(0, dragVec.mag() * 0.12));
   updatePowerUI();
 }, { passive: false });
 
@@ -1129,7 +1159,7 @@ function shoot() {
   if (!CUE || CUE.pocketed) return;
 
   const dir = new Vec(Math.cos(aimAngle), Math.sin(aimAngle));
-  const power = aimPower * 1.5; // Scale power
+  const power = aimPower * POWER_SCALE; // Scale power using constant
 
   CUE.vel = dir.mult(power);
 
