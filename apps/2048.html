@@ -1,271 +1,897 @@
 <!DOCTYPE html>
 <html lang="ru">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width,initial-scale=1,user-scalable=no">
-<title>2048</title>
-<style>
-  *{box-sizing:border-box;margin:0;padding:0}
-  :root{--bg:#0a0a0f;--sur:#1a1a24;--sur2:#22222f;--text:#f0f0f8;--text2:#8888aa;--tile-bg:#22222f;--accent:#00e5a0}
-  body{background:var(--bg);color:var(--text);font-family:'JetBrains Mono',monospace;display:flex;flex-direction:column;align-items:center;height:100dvh;overflow:hidden;user-select:none;padding-top:10px;transition:background .3s,--text .3s}
-  
-  /* Темы */
-  body.theme-classic{--bg:#faf8ef;--sur:#bbada0;--sur2:#cdc1b4;--text:#776e65;--text2:#999;--tile-bg:#cdc1b4}
-  body.theme-dark{--bg:#1e1e2e;--sur:#313244;--sur2:#45475a;--text:#cdd6f4;--text2:#a6adc8;--tile-bg:#45475a}
-  body.theme-sunset{--bg:#2d1b4e;--sur:#53386d;--sur2:#6b4c7a;--text:#f5e6ff;--text2:#c9a8ff;--tile-bg:#6b4c7a}
-  body.theme-ocean{--bg:#0a1628;--sur:#1a3a5c;--sur2:#264a6c;--text:#e0f0ff;--text2:#a0c0e0;--tile-bg:#264a6c}
-  body.theme-matrix{--bg:#001000;--sur:#003000;--sur2:#004000;--text:#00ff00;--text2:#00cc00;--tile-bg:#004000}
-  
-  #hdr{display:flex;justify-content:space-between;align-items:center;width:min(92vw,340px);margin-bottom:10px}
-  #title{font-size:1.6rem;font-weight:700}
-  .sc-box{background:var(--sur);border-radius:8px;padding:4px 14px;text-align:center;min-width:60px}
-  .sc-lbl{font-size:.55rem;color:var(--text2);letter-spacing:.1em}
-  .sc-val{font-size:1rem;font-weight:700}
-  
-  #controls{display:flex;gap:8px;margin-bottom:10px;flex-wrap:wrap;justify-content:center}
-  .ctrl-btn{background:var(--sur);border:1px solid rgba(255,255,255,.1);color:var(--text);padding:6px 12px;border-radius:6px;font-size:.7rem;cursor:pointer;font-family:inherit;transition:all .2s}
-  .ctrl-btn:hover{background:var(--sur2)}
-  .ctrl-btn.active{background:var(--accent);color:#000;border-color:var(--accent)}
-  
-  #grid{position:relative;display:grid;grid-template-columns:repeat(4,1fr);gap:8px;background:var(--sur);border-radius:12px;padding:10px;width:min(92vw,340px);aspect-ratio:1}
-  .tile{position:absolute;border-radius:8px;display:flex;align-items:center;justify-content:center;font-weight:700;transition:transform .15s ease-out,opacity .15s;will-change:transform}
-  .tile-merge{animation:pop .2s ease-out}
-  @keyframes pop{0%{transform:scale(.8)}50%{transform:scale(1.1)}100%{transform:scale(1)}}
-  .tile-new{animation:appear .2s ease-out}
-  @keyframes appear{0%{opacity:0;transform:scale(0)}100%{opacity:1;transform:scale(1)}}
-  
-  /* Цвета плиток для всех тем */
-  .v2{background:#eee4da;color:#776e65}
-  .v4{background:#ede0c8;color:#776e65}
-  .v8{background:#f2b179;color:#fff}
-  .v16{background:#f59563;color:#fff}
-  .v32{background:#f67c5f;color:#fff}
-  .v64{background:#f65e3b;color:#fff}
-  .v128{background:#edcf72;color:#fff;font-size:1.3rem}
-  .v256{background:#edcc61;color:#fff;font-size:1.3rem}
-  .v512{background:#edc850;color:#fff;font-size:1.3rem}
-  .v1024{background:#edc53f;color:#fff;font-size:1.1rem}
-  .v2048{background:#edc22e;color:#fff;font-size:1.1rem}
-  .vsuper{background:#3c3a32;color:#fff;font-size:.9rem}
-  
-  body.theme-matrix .v2{background:#005000;color:#00ff00}
-  body.theme-matrix .v4{background:#006000;color:#00ff00}
-  body.theme-matrix .v8{background:#007000;color:#00ff00}
-  body.theme-matrix .v16{background:#008000;color:#00ff00}
-  body.theme-matrix .v32{background:#009000;color:#00ff00}
-  body.theme-matrix .v64{background:#00a000;color:#00ff00}
-  body.theme-matrix .v128{background:#00b000;color:#00ff00}
-  body.theme-matrix .v256{background:#00c000;color:#00ff00}
-  body.theme-matrix .v512{background:#00d000;color:#00ff00}
-  body.theme-matrix .v1024{background:#00e000;color:#00ff00}
-  body.theme-matrix .v2048{background:#00ff00;color:#000}
-  
-  #msg{position:fixed;inset:0;background:rgba(10,10,15,.85);display:none;flex-direction:column;align-items:center;justify-content:center;gap:12px;font-size:1.2rem;font-weight:700;z-index:100}
-  #msg p{font-size:.8rem;color:var(--text2)}
-  #btn-r{background:var(--accent);color:#000;border:none;padding:11px 32px;border-radius:10px;font-size:.95rem;font-weight:700;cursor:pointer;font-family:inherit}
-  #btn-new{background:transparent;border:1px solid rgba(255,255,255,.15);color:var(--text2);padding:7px 18px;border-radius:8px;font-family:inherit;font-size:.75rem;cursor:pointer;margin-top:8px}
-</style>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>2048 - Кутман</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        :root {
+            /* Размеры */
+            --grid-size: 4;
+            --cell-size: 80px;
+            --cell-gap: 12px;
+            --board-padding: 12px;
+            --transition-speed: 150ms;
+            
+            /* Цветовая тема (Классика по умолчанию) */
+            --bg-color: #faf8ef;
+            --text-main: #776e65;
+            --board-bg: #bbada0;
+            --cell-bg: rgba(238, 228, 218, 0.35);
+            --btn-bg: #8f7a66;
+            --btn-hover: #9f8b77;
+            --btn-text: #ffffff;
+            --score-bg: #bbada0;
+            --score-label: #eee4da;
+            --score-val: #ffffff;
+            --modal-bg: rgba(238, 228, 218, 0.75);
+            --modal-win-bg: rgba(237, 194, 46, 0.75);
+            --modal-text: #776e65;
+            --modal-win-text: #ffffff;
+            --border-radius: 6px;
+        }
+
+        /* Темная тема */
+        body[data-theme="dark"] {
+            --bg-color: #1a1a2e;
+            --text-main: #e6e6e6;
+            --board-bg: #16213e;
+            --cell-bg: rgba(255, 255, 255, 0.05);
+            --btn-bg: #0f3460;
+            --btn-hover: #1a4a80;
+            --btn-text: #e6e6e6;
+            --score-bg: #16213e;
+            --score-label: #a1a1a1;
+            --score-val: #ffffff;
+            --modal-bg: rgba(26, 26, 46, 0.85);
+            --modal-win-bg: rgba(15, 52, 96, 0.9);
+            --modal-text: #e6e6e6;
+        }
+
+        /* Неоновая тема */
+        body[data-theme="neon"] {
+            --bg-color: #050505;
+            --text-main: #00ffcc;
+            --board-bg: #111111;
+            --cell-bg: #222222;
+            --btn-bg: #000000;
+            --btn-hover: #00ffcc;
+            --btn-text: #00ffcc;
+            --score-bg: #000000;
+            --score-label: #00ffcc;
+            --score-val: #00ffcc;
+            --modal-bg: rgba(0, 0, 0, 0.9);
+            --modal-win-bg: rgba(0, 50, 40, 0.95);
+            --modal-text: #00ffcc;
+            --border-radius: 0px;
+        }
+
+        /* Тема Киберпанк */
+        body[data-theme="cyberpunk"] {
+            --bg-color: #fce205; /* Cyberpunk Yellow */
+            --text-main: #000000;
+            --board-bg: #121013;
+            --cell-bg: rgba(255, 255, 255, 0.1);
+            --btn-bg: #ff003c;
+            --btn-hover: #00f0ff;
+            --btn-text: #ffffff;
+            --score-bg: #121013;
+            --score-label: #00f0ff;
+            --score-val: #ff003c;
+            --modal-bg: rgba(252, 226, 5, 0.9);
+            --modal-win-bg: rgba(0, 240, 255, 0.9);
+            --modal-text: #000000;
+            --border-radius: 0px;
+        }
+
+        /* Тема Пастель */
+        body[data-theme="pastel"] {
+            --bg-color: #fdf6f5;
+            --text-main: #6b5b95;
+            --board-bg: #b1bce6;
+            --cell-bg: rgba(255, 255, 255, 0.4);
+            --btn-bg: #ffb7b2;
+            --btn-hover: #ffdac1;
+            --btn-text: #6b5b95;
+            --score-bg: #b1bce6;
+            --score-label: #fdf6f5;
+            --score-val: #6b5b95;
+            --modal-bg: rgba(253, 246, 245, 0.85);
+            --modal-win-bg: rgba(177, 188, 230, 0.9);
+            --modal-text: #6b5b95;
+            --border-radius: 12px;
+        }
+
+        @media (max-width: 480px) {
+            :root {
+                --cell-size: 65px;
+                --cell-gap: 10px;
+                --board-padding: 10px;
+            }
+        }
+
+        body {
+            background-color: var(--bg-color);
+            color: var(--text-main);
+            font-family: "Clear Sans", "Helvetica Neue", Arial, sans-serif;
+            touch-action: none;
+            transition: background-color 0.3s ease, color 0.3s ease;
+        }
+
+        .board-container {
+            width: calc(var(--cell-size) * var(--grid-size) + var(--cell-gap) * (var(--grid-size) - 1) + var(--board-padding) * 2);
+            height: calc(var(--cell-size) * var(--grid-size) + var(--cell-gap) * (var(--grid-size) - 1) + var(--board-padding) * 2);
+            background-color: var(--board-bg);
+            border-radius: var(--border-radius);
+            position: relative;
+            padding: var(--board-padding);
+            box-sizing: border-box;
+            transition: background-color 0.3s ease;
+        }
+
+        /* Специальные бордеры для неоновой темы */
+        body[data-theme="neon"] .board-container {
+            border: 2px solid #00ffcc;
+            box-shadow: 0 0 15px rgba(0, 255, 204, 0.3);
+        }
+        
+        body[data-theme="neon"] .game-btn {
+            border: 1px solid #00ffcc;
+        }
+        body[data-theme="neon"] .game-btn:hover {
+            color: #000;
+            box-shadow: 0 0 10px #00ffcc;
+        }
+        body[data-theme="neon"] .score-box {
+            border: 1px solid #00ffcc;
+        }
+
+        /* Специальные стили кнопок Киберпанка */
+        body[data-theme="cyberpunk"] .game-btn {
+            border-bottom: 3px solid #6b001a;
+            font-family: monospace;
+            text-transform: uppercase;
+        }
+        body[data-theme="cyberpunk"] .game-btn:hover:not(:disabled) {
+            border-bottom: 3px solid #008f99;
+            color: #000;
+        }
+        body[data-theme="cyberpunk"] .score-box {
+            border-bottom: 3px solid #121013;
+        }
+
+        .grid-cell {
+            width: var(--cell-size);
+            height: var(--cell-size);
+            background-color: var(--cell-bg);
+            border-radius: 3px;
+        }
+
+        .tile {
+            position: absolute;
+            width: var(--cell-size);
+            height: var(--cell-size);
+            border-radius: 3px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            font-weight: bold;
+            z-index: 10;
+            transition: transform var(--transition-speed) ease-in-out;
+            font-size: 35px;
+        }
+
+        @media (max-width: 480px) {
+            .tile { font-size: 28px; }
+        }
+
+        .tile-new { animation: appear 200ms ease backwards; }
+        .tile-merged { animation: pop 200ms ease backwards; z-index: 20; }
+
+        @keyframes appear {
+            0% { opacity: 0; transform: translate(var(--pos-x, 0px), var(--pos-y, 0px)) scale(0); }
+            100% { opacity: 1; transform: translate(var(--pos-x, 0px), var(--pos-y, 0px)) scale(1); }
+        }
+
+        @keyframes pop {
+            0% { transform: translate(var(--pos-x, 0px), var(--pos-y, 0px)) scale(1); }
+            50% { transform: translate(var(--pos-x, 0px), var(--pos-y, 0px)) scale(1.2); }
+            100% { transform: translate(var(--pos-x, 0px), var(--pos-y, 0px)) scale(1); }
+        }
+
+        /* Цвета плиток (остаются общими для сохранения логики чисел) */
+        .tile-2 { background: #eee4da; color: #776e65; }
+        .tile-4 { background: #ede0c8; color: #776e65; }
+        .tile-8 { background: #f2b179; color: #f9f6f2; }
+        .tile-16 { background: #f59563; color: #f9f6f2; }
+        .tile-32 { background: #f67c5f; color: #f9f6f2; }
+        .tile-64 { background: #f65e3b; color: #f9f6f2; }
+        .tile-128 { background: #edcf72; color: #f9f6f2; font-size: 30px; box-shadow: 0 0 30px 10px rgba(243, 215, 116, 0.2381), inset 0 0 0 1px rgba(255, 255, 255, 0.14285); }
+        .tile-256 { background: #edcc61; color: #f9f6f2; font-size: 30px; box-shadow: 0 0 30px 10px rgba(243, 215, 116, 0.31746), inset 0 0 0 1px rgba(255, 255, 255, 0.19047); }
+        .tile-512 { background: #edc850; color: #f9f6f2; font-size: 30px; box-shadow: 0 0 30px 10px rgba(243, 215, 116, 0.39682), inset 0 0 0 1px rgba(255, 255, 255, 0.23809); }
+        .tile-1024 { background: #edc53f; color: #f9f6f2; font-size: 25px; box-shadow: 0 0 30px 10px rgba(243, 215, 116, 0.47619), inset 0 0 0 1px rgba(255, 255, 255, 0.28571); }
+        .tile-2048 { background: #edc22e; color: #f9f6f2; font-size: 25px; box-shadow: 0 0 30px 10px rgba(243, 215, 116, 0.55555), inset 0 0 0 1px rgba(255, 255, 255, 0.33333); }
+        .tile-super { background: #3c3a32; color: #f9f6f2; font-size: 20px; }
+
+        @media (max-width: 480px) {
+            .tile-128, .tile-256, .tile-512 { font-size: 24px; }
+            .tile-1024, .tile-2048, .tile-super { font-size: 20px; }
+        }
+
+        /* Утилиты на основе CSS-переменных */
+        .game-btn { background-color: var(--btn-bg); color: var(--btn-text); border-radius: var(--border-radius); transition: all 0.2s ease; }
+        .game-btn:hover:not(:disabled) { background-color: var(--btn-hover); }
+        .game-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+        
+        .score-box { background-color: var(--score-bg); border-radius: var(--border-radius); }
+        .score-label { color: var(--score-label); }
+        .score-val { color: var(--score-val); }
+        
+        .modal-overlay { background-color: var(--modal-bg); border-radius: var(--border-radius); color: var(--modal-text); }
+        .modal-win-overlay { background-color: var(--modal-win-bg); border-radius: var(--border-radius); color: var(--modal-win-text); }
+
+        /* Кнопки опций (Темы и Режимы) */
+        .option-btn {
+            background-color: transparent;
+            color: var(--text-main);
+            border: 1px solid var(--text-main);
+            border-radius: var(--border-radius);
+            padding: 4px 10px;
+            font-size: 13px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            opacity: 0.6;
+            outline: none;
+        }
+        .option-btn:hover {
+            opacity: 0.8;
+        }
+        .option-btn.active {
+            background-color: var(--text-main);
+            color: var(--bg-color);
+            opacity: 1;
+        }
+        body[data-theme="cyberpunk"] .option-btn.active {
+            border-color: #000000;
+        }
+    </style>
 </head>
-<body class="theme-dark">
-<div id="hdr">
-  <div id="title">2048</div>
-  <div style="display:flex;gap:8px">
-    <div class="sc-box"><div class="sc-lbl">СЧЁТ</div><div class="sc-val" id="score">0</div></div>
-    <div class="sc-box"><div class="sc-lbl">РЕКОРД</div><div class="sc-val" id="best">0</div></div>
-  </div>
-</div>
+<body class="min-h-screen flex flex-col items-center justify-center p-4" data-theme="classic">
 
-<div id="controls">
-  <button class="ctrl-btn" data-theme="theme-classic">☀️ Классика</button>
-  <button class="ctrl-btn active" data-theme="theme-dark">🌙 Тёмная</button>
-  <button class="ctrl-btn" data-theme="theme-sunset">🌅 Закат</button>
-  <button class="ctrl-btn" data-theme="theme-ocean">🌊 Океан</button>
-  <button class="ctrl-btn" data-theme="theme-matrix">💻 Матрица</button>
-</div>
+    <div class="w-full max-w-md mx-auto">
+        
+        <!-- Настройки: Темы и Режимы кнопками -->
+        <div class="flex flex-col gap-4 mb-6">
+            <!-- Выбор темы -->
+            <div class="flex flex-col gap-1 w-full">
+                <span class="text-xs uppercase font-bold opacity-70">Темы:</span>
+                <div class="flex gap-2 flex-wrap" id="theme-buttons">
+                    <button class="option-btn" data-theme-val="classic" onclick="Game.changeTheme('classic')">Классика</button>
+                    <button class="option-btn" data-theme-val="dark" onclick="Game.changeTheme('dark')">Темная</button>
+                    <button class="option-btn" data-theme-val="neon" onclick="Game.changeTheme('neon')">Неон</button>
+                    <button class="option-btn" data-theme-val="cyberpunk" onclick="Game.changeTheme('cyberpunk')">Киберпанк</button>
+                    <button class="option-btn" data-theme-val="pastel" onclick="Game.changeTheme('pastel')">Пастель</button>
+                </div>
+            </div>
 
-<div id="grid"></div>
-<button id="btn-new">Новая игра</button>
+            <!-- Выбор Режима и Кэш -->
+            <div class="flex justify-between items-end gap-2 flex-wrap">
+                <div class="flex flex-col gap-1">
+                    <span class="text-xs uppercase font-bold opacity-70">Цель:</span>
+                    <div class="flex gap-2 flex-wrap" id="mode-buttons">
+                        <button class="option-btn" data-mode-val="512" onclick="Game.changeMode(512)">512</button>
+                        <button class="option-btn" data-mode-val="1024" onclick="Game.changeMode(1024)">1024</button>
+                        <button class="option-btn" data-mode-val="2048" onclick="Game.changeMode(2048)">2048</button>
+                        <button class="option-btn" data-mode-val="4096" onclick="Game.changeMode(4096)">4096</button>
+                        <button class="option-btn" data-mode-val="8192" onclick="Game.changeMode(8192)">8192</button>
+                    </div>
+                </div>
+                <button onclick="Game.clearCache()" class="bg-red-500 hover:bg-red-600 text-white font-bold py-1 px-3 rounded shadow transition-colors border-none text-xs self-end mt-2 md:mt-0">
+                    Очистить кеш
+                </button>
+            </div>
+        </div>
 
-<div id="msg">
-  <div id="msg-text">🎉 2048!</div>
-  <p id="msg-sub"></p>
-  <button id="btn-r">Ещё раз</button>
-</div>
+        <!-- Header -->
+        <div class="flex justify-between items-center mb-6">
+            <h1 id="game-title" class="text-5xl font-bold">2048</h1>
+            <div class="flex space-x-2">
+                <div class="score-box px-4 py-1 flex flex-col items-center">
+                    <span class="score-label text-xs font-bold uppercase">Счет</span>
+                    <span id="score" class="score-val font-bold text-xl leading-none">0</span>
+                </div>
+                <div class="score-box px-4 py-1 flex flex-col items-center">
+                    <span class="score-label text-xs font-bold uppercase">Рекорд</span>
+                    <span id="best-score" class="score-val font-bold text-xl leading-none">0</span>
+                </div>
+            </div>
+        </div>
+
+        <div class="flex flex-col sm:flex-row justify-between items-center mb-6 gap-3">
+            <p class="text-sm md:text-base leading-tight text-center sm:text-left opacity-90">
+                Объединяйте плитки, чтобы получить <span class="font-bold" id="target-text">2048</span>!
+            </p>
+            <div class="flex gap-2 shrink-0">
+                <button onclick="Game.undo()" id="btn-undo" class="game-btn font-bold py-2 px-3 text-sm">
+                    Отменить
+                </button>
+                <button onclick="Game.restart()" class="game-btn font-bold py-2 px-3 text-sm">
+                    Новая игра
+                </button>
+            </div>
+        </div>
+
+        <!-- Game Board -->
+        <div class="relative mx-auto flex justify-center">
+            <div id="game-board" class="board-container shadow-xl">
+                <!-- Background Grid -->
+                <div class="grid grid-cols-4 grid-rows-4 gap-[var(--cell-gap)] w-full h-full">
+                    <div class="grid-cell"></div><div class="grid-cell"></div><div class="grid-cell"></div><div class="grid-cell"></div>
+                    <div class="grid-cell"></div><div class="grid-cell"></div><div class="grid-cell"></div><div class="grid-cell"></div>
+                    <div class="grid-cell"></div><div class="grid-cell"></div><div class="grid-cell"></div><div class="grid-cell"></div>
+                    <div class="grid-cell"></div><div class="grid-cell"></div><div class="grid-cell"></div><div class="grid-cell"></div>
+                </div>
+                
+                <!-- Tile Container -->
+                <div id="tile-container" class="absolute top-0 left-0 w-full h-full pointer-events-none"></div>
+
+                <!-- Game Over Overlay -->
+                <div id="game-over-modal" class="modal-overlay absolute inset-0 z-30 hidden flex-col items-center justify-center backdrop-blur-sm">
+                    <h2 class="text-4xl font-bold mb-4">Игра окончена!</h2>
+                    <button onclick="Game.restart()" class="game-btn font-bold py-3 px-6 text-lg shadow-lg">
+                        Попробовать снова
+                    </button>
+                </div>
+
+                <!-- Game Win Overlay -->
+                <div id="game-win-modal" class="modal-win-overlay absolute inset-0 z-30 hidden flex-col items-center justify-center backdrop-blur-sm">
+                    <h2 class="text-4xl font-bold mb-6 drop-shadow-md">Цель достигнута!</h2>
+                    <div class="flex gap-4">
+                        <button onclick="Game.continueGame()" class="game-btn font-bold py-2 px-4 shadow transition-all">
+                            Продолжить
+                        </button>
+                        <button onclick="Game.restart()" class="game-btn font-bold py-2 px-4 shadow transition-all">
+                            Сначала
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
 
 <script>
-let board,score,best=+localStorage.getItem('2048_best')||0,over=false,moving=false,won=false;
-const gridEl=document.getElementById('grid');
-const scoreEl=document.getElementById('score');
-const bestEl=document.getElementById('best');
-const msg=document.getElementById('msg');
-const CELL_SIZE = 70;
-const GAP = 8;
-const GRID_PADDING = 10;
+class Tile {
+    static idCounter = parseInt(localStorage.getItem('tileIdCounter2048')) || 0;
+    constructor(r, c, value, id = null) {
+        this.id = id !== null ? id : Tile.idCounter++;
+        this.r = r;
+        this.c = c;
+        this.value = value;
+        localStorage.setItem('tileIdCounter2048', Tile.idCounter);
+    }
+}
 
-// Применение темы
-document.querySelectorAll('[data-theme]').forEach(btn=>{
-  btn.addEventListener('click',()=>{
-    document.querySelectorAll('[data-theme]').forEach(b=>b.classList.remove('active'));
-    btn.classList.add('active');
-    document.body.className = btn.dataset.theme;
-    localStorage.setItem('2048_theme', btn.dataset.theme);
-    render();
-  });
+class GameManager {
+    constructor(size) {
+        this.size = size;
+        this.board = [];
+        this.score = 0;
+        this.bestScore = parseInt(localStorage.getItem('bestScore2048')) || 0;
+        this.gameOver = false;
+        this.gameWon = false;
+        this.keepPlaying = false;
+        this.isAnimating = false;
+        this.gameToken = 0;
+        
+        // Настройки и темы
+        this.targetValue = parseInt(localStorage.getItem('targetValue2048')) || 2048;
+        this.theme = localStorage.getItem('theme2048') || 'classic';
+        
+        this.history = []; // Стек для функции Отмены
+        this.maxHistory = 10;
+        
+        // DOM элементы
+        this.tileContainer = document.getElementById('tile-container');
+        this.scoreEl = document.getElementById('score');
+        this.bestScoreEl = document.getElementById('best-score');
+        this.gameOverModal = document.getElementById('game-over-modal');
+        this.gameWinModal = document.getElementById('game-win-modal');
+        this.btnUndo = document.getElementById('btn-undo');
+        this.titleEl = document.getElementById('game-title');
+        this.targetTextEl = document.getElementById('target-text');
+
+        // Инициализация UI
+        this.bestScoreEl.innerText = this.bestScore;
+        this.applyTheme();
+        this.updateTargetUI();
+        this.updateActiveButtons();
+        
+        this.setupInput();
+        this.loadState() || this.restart();
+    }
+
+    applyTheme() {
+        document.body.setAttribute('data-theme', this.theme);
+    }
+
+    updateActiveButtons() {
+        // Обновление кнопок темы
+        document.querySelectorAll('#theme-buttons .option-btn').forEach(btn => {
+            if (btn.getAttribute('data-theme-val') === this.theme) {
+                btn.classList.add('active');
+            } else {
+                btn.classList.remove('active');
+            }
+        });
+        
+        // Обновление кнопок режима
+        document.querySelectorAll('#mode-buttons .option-btn').forEach(btn => {
+            if (parseInt(btn.getAttribute('data-mode-val')) === this.targetValue) {
+                btn.classList.add('active');
+            } else {
+                btn.classList.remove('active');
+            }
+        });
+    }
+
+    changeTheme(newTheme) {
+        this.theme = newTheme;
+        localStorage.setItem('theme2048', newTheme);
+        this.applyTheme();
+        this.updateActiveButtons();
+    }
+
+    changeMode(newTarget) {
+        this.targetValue = parseInt(newTarget);
+        localStorage.setItem('targetValue2048', this.targetValue);
+        this.updateTargetUI();
+        this.updateActiveButtons();
+        this.restart(); // Смена режима всегда начинает новую игру
+    }
+
+    updateTargetUI() {
+        this.titleEl.innerText = this.targetValue;
+        this.targetTextEl.innerText = this.targetValue;
+    }
+
+    clearCache() {
+        if (confirm("Вы уверены, что хотите удалить весь прогресс и рекорды?")) {
+            localStorage.removeItem('gameState2048');
+            localStorage.removeItem('bestScore2048');
+            localStorage.removeItem('tileIdCounter2048');
+            // Мы не удаляем тему и выбранный режим, чтобы не сбивать настройки юзера
+            
+            this.bestScore = 0;
+            this.bestScoreEl.innerText = '0';
+            Tile.idCounter = 0;
+            this.restart();
+        }
+    }
+
+    saveState() {
+        const state = {
+            board: this.board.map(row => row.map(tile => tile ? {r: tile.r, c: tile.c, value: tile.value, id: tile.id} : null)),
+            score: this.score,
+            gameOver: this.gameOver,
+            gameWon: this.gameWon,
+            keepPlaying: this.keepPlaying,
+            targetValue: this.targetValue // Сохраняем цель в сессии
+        };
+        localStorage.setItem('gameState2048', JSON.stringify(state));
+        this.updateUndoButton();
+    }
+
+    pushHistory() {
+        if (this.history.length >= this.maxHistory) {
+            this.history.shift();
+        }
+        this.history.push({
+            board: this.board.map(row => row.map(tile => tile ? {r: tile.r, c: tile.c, value: tile.value, id: tile.id} : null)),
+            score: this.score
+        });
+        this.updateUndoButton();
+    }
+
+    undo() {
+        if (this.history.length === 0 || this.isAnimating) return;
+        
+        const previousState = this.history.pop();
+        this.score = previousState.score;
+        this.gameOver = false;
+        this.gameWon = false;
+        
+        this.gameOverModal.classList.add('hidden');
+        this.gameOverModal.classList.remove('flex');
+        this.gameWinModal.classList.add('hidden');
+        this.gameWinModal.classList.remove('flex');
+
+        this.tileContainer.innerHTML = '';
+        
+        this.board = previousState.board.map(row => row.map(data => {
+            if (!data) return null;
+            const tile = new Tile(data.r, data.c, data.value, data.id);
+            this.renderTile(tile);
+            return tile;
+        }));
+
+        this.updateScore();
+        this.saveState();
+    }
+
+    updateUndoButton() {
+        this.btnUndo.disabled = this.history.length === 0;
+    }
+
+    loadState() {
+        const savedState = localStorage.getItem('gameState2048');
+        if (!savedState) return false;
+
+        try {
+            const state = JSON.parse(savedState);
+            
+            // Если игрок загружает сейв, но сменил мод в другой вкладке - сбрасываем
+            if (state.targetValue && state.targetValue !== this.targetValue) {
+                return false; 
+            }
+
+            this.score = state.score;
+            this.gameOver = state.gameOver;
+            this.gameWon = state.gameWon;
+            this.keepPlaying = state.keepPlaying;
+            this.history = []; 
+
+            this.board = state.board.map(row => row.map(data => {
+                if (!data) return null;
+                const tile = new Tile(data.r, data.c, data.value, data.id);
+                this.renderTile(tile);
+                return tile;
+            }));
+            
+            this.updateScore();
+            this.updateUndoButton();
+            
+            if (this.gameOver) {
+                this.gameOverModal.classList.remove('hidden');
+                this.gameOverModal.classList.add('flex');
+            } else if (this.gameWon && !this.keepPlaying) {
+                this.gameWinModal.classList.remove('hidden');
+                this.gameWinModal.classList.add('flex');
+            }
+            return true;
+        } catch (e) {
+            console.error("Ошибка чтения сохранения", e);
+            return false;
+        }
+    }
+
+    restart() {
+        this.gameToken++;
+        this.board = Array(this.size).fill().map(() => Array(this.size).fill(null));
+        this.score = 0;
+        this.gameOver = false;
+        this.gameWon = false;
+        this.keepPlaying = false;
+        this.history = [];
+        
+        this.tileContainer.innerHTML = '';
+        this.gameOverModal.classList.add('hidden');
+        this.gameOverModal.classList.remove('flex');
+        this.gameWinModal.classList.add('hidden');
+        this.gameWinModal.classList.remove('flex');
+        
+        this.updateScore();
+        this.updateUndoButton();
+
+        this.addRandomTile();
+        this.addRandomTile();
+        this.saveState();
+    }
+
+    continueGame() {
+        this.keepPlaying = true;
+        this.gameWinModal.classList.add('hidden');
+        this.gameWinModal.classList.remove('flex');
+        this.saveState();
+    }
+
+    addRandomTile() {
+        const availableCells = [];
+        for (let r = 0; r < this.size; r++) {
+            for (let c = 0; c < this.size; c++) {
+                if (!this.board[r][c]) {
+                    availableCells.push({r, c});
+                }
+            }
+        }
+
+        if (availableCells.length > 0) {
+            const randomCell = availableCells[Math.floor(Math.random() * availableCells.length)];
+            const value = Math.random() < 0.9 ? 2 : 4;
+            
+            const tile = new Tile(randomCell.r, randomCell.c, value);
+            this.board[randomCell.r][randomCell.c] = tile;
+            this.renderTile(tile, true);
+        }
+    }
+
+    getTilePositionCss(r, c) {
+        const padding = parseInt(getComputedStyle(document.documentElement).getPropertyValue('--board-padding'));
+        const gap = parseInt(getComputedStyle(document.documentElement).getPropertyValue('--cell-gap'));
+        const cellSize = parseInt(getComputedStyle(document.documentElement).getPropertyValue('--cell-size'));
+        
+        const x = padding + c * (cellSize + gap);
+        const y = padding + r * (cellSize + gap);
+        return { x, y };
+    }
+
+    renderTile(tile, isNew = false, isMerged = false) {
+        let el = document.getElementById(`tile-${tile.id}`);
+        
+        if (!el) {
+            el = document.createElement('div');
+            el.id = `tile-${tile.id}`;
+            this.tileContainer.appendChild(el);
+        }
+
+        el.className = `tile tile-${tile.value > 2048 ? 'super' : tile.value}`;
+        el.innerText = tile.value;
+        
+        const pos = this.getTilePositionCss(tile.r, tile.c);
+        el.style.setProperty('--pos-x', `${pos.x}px`);
+        el.style.setProperty('--pos-y', `${pos.y}px`);
+        el.style.transform = `translate(${pos.x}px, ${pos.y}px)`;
+
+        if (isNew) {
+            el.classList.add('tile-new');
+        }
+        if (isMerged) {
+            el.classList.add('tile-merged');
+            setTimeout(() => el.classList.remove('tile-merged'), 300);
+        }
+    }
+
+    removeTile(tile) {
+        const el = document.getElementById(`tile-${tile.id}`);
+        if (el) {
+            setTimeout(() => {
+                if (el.parentNode) {
+                    el.parentNode.removeChild(el);
+                }
+            }, 150); 
+        }
+    }
+
+    setupInput() {
+        document.addEventListener('keydown', (e) => {
+            if (this.gameOver || this.isAnimating || (this.gameWon && !this.keepPlaying)) return;
+            
+            const keyMap = {
+                'ArrowUp': 0, 'w': 0, 'W': 0,
+                'ArrowRight': 1, 'd': 1, 'D': 1,
+                'ArrowDown': 2, 's': 2, 'S': 2,
+                'ArrowLeft': 3, 'a': 3, 'A': 3
+            };
+
+            if (e.key in keyMap) {
+                e.preventDefault(); 
+                this.move(keyMap[e.key]);
+            }
+        });
+
+        let touchStartX = 0;
+        let touchStartY = 0;
+        const gameBoard = document.getElementById('game-board');
+        
+        gameBoard.addEventListener('touchstart', (e) => {
+            touchStartX = e.changedTouches[0].screenX;
+            touchStartY = e.changedTouches[0].screenY;
+            e.preventDefault();
+        }, { passive: false });
+
+        gameBoard.addEventListener('touchend', (e) => {
+            if (this.gameOver || this.isAnimating || (this.gameWon && !this.keepPlaying)) return;
+
+            const touchEndX = e.changedTouches[0].screenX;
+            const touchEndY = e.changedTouches[0].screenY;
+
+            const dx = touchEndX - touchStartX;
+            const dy = touchEndY - touchStartY;
+            const absDx = Math.abs(dx);
+            const absDy = Math.abs(dy);
+
+            if (Math.max(absDx, absDy) > 30) {
+                if (absDx > absDy) {
+                    this.move(dx > 0 ? 1 : 3);
+                } else {
+                    this.move(dy > 0 ? 2 : 0);
+                }
+            }
+        });
+    }
+
+    move(direction) {
+        this.pushHistory(); // Сохраняем состояние до начала движения
+        
+        this.isAnimating = true;
+        const token = this.gameToken;
+        let moved = false;
+        
+        const vectors = {
+            0: { r: -1, c: 0 },
+            1: { r: 0, c: 1 },
+            2: { r: 1, c: 0 },
+            3: { r: 0, c: -1 }
+        };
+        const vector = vectors[direction];
+        const traversals = this.buildTraversals(vector);
+        let mergedTiles = [];
+
+        traversals.r.forEach((r) => {
+            traversals.c.forEach((c) => {
+                const tile = this.board[r][c];
+                if (tile) {
+                    const positions = this.findFarthestPosition({r, c}, vector);
+                    const next = this.board[positions.next.r]?.[positions.next.c];
+
+                    if (next && next.value === tile.value && !mergedTiles.includes(next.id)) {
+                        const newValue = tile.value * 2;
+                        const newTile = new Tile(positions.next.r, positions.next.c, newValue);
+                        
+                        this.board[r][c] = null;
+                        this.board[positions.next.r][positions.next.c] = newTile;
+                        
+                        tile.r = positions.next.r;
+                        tile.c = positions.next.c;
+                        this.renderTile(tile); 
+                        this.removeTile(tile);
+                        this.removeTile(next);
+                        
+                        setTimeout(() => {
+                            if (this.gameToken === token) {
+                                this.renderTile(newTile, false, true);
+                            }
+                        }, 150);
+                        
+                        mergedTiles.push(newTile.id);
+                        this.score += newValue;
+                        moved = true;
+
+                        // Динамическая проверка победы
+                        if (newValue === this.targetValue && !this.gameWon) {
+                            this.gameWon = true;
+                        }
+                    } 
+                    else if (positions.farthest.r !== r || positions.farthest.c !== c) {
+                        this.board[r][c] = null;
+                        this.board[positions.farthest.r][positions.farthest.c] = tile;
+                        tile.r = positions.farthest.r;
+                        tile.c = positions.farthest.c;
+                        this.renderTile(tile);
+                        moved = true;
+                    }
+                }
+            });
+        });
+
+        if (moved) {
+            this.updateScore();
+            setTimeout(() => {
+                if (this.gameToken !== token) return;
+                this.addRandomTile();
+                
+                if (this.gameWon && !this.keepPlaying) {
+                    this.gameWinModal.classList.remove('hidden');
+                    this.gameWinModal.classList.add('flex');
+                } else if (!this.movesAvailable()) {
+                    this.gameOver = true;
+                    this.gameOverModal.classList.remove('hidden');
+                    this.gameOverModal.classList.add('flex');
+                }
+                
+                this.saveState(); 
+                this.isAnimating = false;
+            }, 150);
+        } else {
+            this.history.pop(); 
+            this.updateUndoButton();
+            this.isAnimating = false;
+        }
+    }
+
+    buildTraversals(vector) {
+        const traversals = { r: [], c: [] };
+        for (let pos = 0; pos < this.size; pos++) {
+            traversals.r.push(pos);
+            traversals.c.push(pos);
+        }
+        if (vector.r === 1) traversals.r = traversals.r.reverse();
+        if (vector.c === 1) traversals.c = traversals.c.reverse();
+        return traversals;
+    }
+
+    findFarthestPosition(cell, vector) {
+        let previous;
+        do {
+            previous = cell;
+            cell = { r: previous.r + vector.r, c: previous.c + vector.c };
+        } while (this.withinBounds(cell) && this.board[cell.r][cell.c] === null);
+
+        return { farthest: previous, next: cell };
+    }
+
+    withinBounds(position) {
+        return position.r >= 0 && position.r < this.size &&
+               position.c >= 0 && position.c < this.size;
+    }
+
+    movesAvailable() {
+        for (let r = 0; r < this.size; r++) {
+            for (let c = 0; c < this.size; c++) {
+                if (!this.board[r][c]) return true; 
+                
+                const vectors = [{r: 1, c: 0}, {r: 0, c: 1}];
+                for (let v of vectors) {
+                    const nextR = r + v.r;
+                    const nextC = c + v.c;
+                    if (this.withinBounds({r: nextR, c: nextC})) {
+                        const neighbor = this.board[nextR][nextC];
+                        if (neighbor && this.board[r][c].value === neighbor.value) {
+                            return true; 
+                        }
+                    }
+                }
+            }
+        }
+        return false;
+    }
+
+    updateScore() {
+        this.scoreEl.innerText = this.score;
+        if (this.score > this.bestScore) {
+            this.bestScore = this.score;
+            this.bestScoreEl.innerText = this.bestScore;
+            localStorage.setItem('bestScore2048', this.bestScore);
+        }
+    }
+}
+
+let Game;
+window.addEventListener('DOMContentLoaded', () => {
+    const resizeHandler = () => {
+        const root = document.documentElement;
+        if (window.innerWidth <= 480) {
+            root.style.setProperty('--cell-size', '65px');
+            root.style.setProperty('--cell-gap', '10px');
+            root.style.setProperty('--board-padding', '10px');
+        } else {
+            root.style.setProperty('--cell-size', '80px');
+            root.style.setProperty('--cell-gap', '12px');
+            root.style.setProperty('--board-padding', '12px');
+        }
+        if (Game && Game.board) {
+            for(let r=0; r<4; r++) {
+                for(let c=0; c<4; c++) {
+                    if (Game.board[r][c]) {
+                        const el = document.getElementById(`tile-${Game.board[r][c].id}`);
+                        if (el) {
+                            const pos = Game.getTilePositionCss(r, c);
+                            el.style.setProperty('--pos-x', `${pos.x}px`);
+                            el.style.setProperty('--pos-y', `${pos.y}px`);
+                            el.style.transform = `translate(${pos.x}px, ${pos.y}px)`;
+                        }
+                    }
+                }
+            }
+        }
+    };
+
+    window.addEventListener('resize', resizeHandler);
+    resizeHandler();
+
+    Game = new GameManager(4);
 });
-
-// Загрузка сохранённой темы
-const savedTheme = localStorage.getItem('2048_theme') || 'theme-dark';
-document.body.classList.add(savedTheme);
-document.querySelector(`[data-theme="${savedTheme}"]`)?.classList.add('active');
-
-bestEl.textContent=best;
-
-function newGame(){
-  board=Array(16).fill(0); score=0; over=false; moving=false; won=false;
-  scoreEl.textContent=0; msg.style.display='none';
-  gridEl.innerHTML='';
-  addTile(); addTile(); render();
-}
-
-function addTile(){
-  const empty=board.map((v,i)=>v===0?i:-1).filter(i=>i>=0);
-  if(!empty.length) return;
-  const i=empty[Math.floor(Math.random()*empty.length)];
-  board[i]=Math.random()<0.9?2:4;
-  return i;
-}
-
-function getPos(index){
-  const row = Math.floor(index / 4);
-  const col = index % 4;
-  return {
-    x: GRID_PADDING + col * (CELL_SIZE + GAP),
-    y: GRID_PADDING + row * (CELL_SIZE + GAP)
-  };
-}
-
-function getClassForValue(v){
-  if(v===0) return '';
-  if(v<=2048) return `v${v}`;
-  return 'vsuper';
-}
-
-function render(){
-  // Очищаем и пересоздаём плитки с анимацией
-  const tiles = gridEl.querySelectorAll('.tile');
-  tiles.forEach(t=>t.remove());
-  
-  board.forEach((v,i)=>{
-    if(v===0) return;
-    const tile = document.createElement('div');
-    tile.className = `tile ${getClassForValue(v)} tile-new`;
-    tile.textContent = v;
-    const pos = getPos(i);
-    tile.style.left = pos.x + 'px';
-    tile.style.top = pos.y + 'px';
-    tile.style.width = CELL_SIZE + 'px';
-    tile.style.height = CELL_SIZE + 'px';
-    tile.dataset.index = i;
-    gridEl.appendChild(tile);
-  });
-}
-
-function slide(row){
-  let arr=row.filter(v=>v);
-  for(let i=0;i<arr.length-1;i++){
-    if(arr[i]===arr[i+1]){
-      arr[i]*=2; score+=arr[i]; arr.splice(i+1,1);
-    }
-  }
-  while(arr.length<4) arr.push(0);
-  return arr;
-}
-
-function move(dir){
-  if(over || moving) return;
-  const prev=board.slice();
-  
-  for(let i=0;i<4;i++){
-    let row, indices;
-    if(dir==='l'){ 
-      row=board.slice(i*4,i*4+4);
-      indices = [i*4, i*4+1, i*4+2, i*4+3];
-    }
-    else if(dir==='r'){ 
-      row=board.slice(i*4,i*4+4).reverse();
-      indices = [i*4+3, i*4+2, i*4+1, i*4];
-    }
-    else if(dir==='u'){ 
-      row=[board[i],board[i+4],board[i+8],board[i+12]];
-      indices = [i, i+4, i+8, i+12];
-    }
-    else {
-      row=[board[i+12],board[i+8],board[i+4],board[i]];
-      indices = [i+12, i+8, i+4, i];
-    }
-
-    const slid = slide(row);
-    for(let j=0;j<4;j++) board[indices[j]]=slid[j];
-  }
-
-  const changed=board.some((v,i)=>v!==prev[i]);
-  if(changed){
-    moving = true;
-    scoreEl.textContent=score;
-    if(score>best){ best=score; bestEl.textContent=best; localStorage.setItem('2048_best',best); }
-    
-    render();
-    
-    setTimeout(()=>{
-      addTile();
-      render();
-      moving = false;
-      
-      if(board.includes(2048)&&!won){ showMsg('🎉 2048!','Продолжай!'); won=true; submitScore(); return; }
-      if(!canMove()){ showMsg('😞 Игра окончена',`Счёт: ${score}`); over=true; submitScore(); }
-    }, 150);
-  }
-}
-
-function canMove(){
-  if(board.includes(0)) return true;
-  for(let i=0;i<4;i++) for(let j=0;j<3;j++){
-    if(board[i*4+j]===board[i*4+j+1]) return true;
-    if(board[j*4+i]===board[(j+1)*4+i]) return true;
-  }
-  return false;
-}
-
-function submitScore(){
-  try {
-    const api = window.parent?.PlatformAPI;
-    if (api) {
-      const xp = Math.max(1, Math.floor(score / 100));
-      api.gameplay.submitScore('2048', score, xp).catch(()=>{});
-    }
-  } catch {}
-}
-
-function showMsg(t,s){ document.getElementById('msg-text').textContent=t; document.getElementById('msg-sub').textContent=s; msg.style.display='flex'; }
-
-document.getElementById('btn-new').addEventListener('click',newGame);
-document.getElementById('btn-r').addEventListener('click',newGame);
-
-document.addEventListener('keydown',e=>{
-  const map={ArrowLeft:'l',ArrowRight:'r',ArrowUp:'u',ArrowDown:'d'};
-  if(map[e.key]){ e.preventDefault(); move(map[e.key]); }
-});
-
-let tx,ty;
-document.addEventListener('touchstart',e=>{ tx=e.touches[0].clientX; ty=e.touches[0].clientY; },{passive:true});
-document.addEventListener('touchend',e=>{
-  const dx=e.changedTouches[0].clientX-tx, dy=e.changedTouches[0].clientY-ty;
-  if(Math.abs(dx)<20&&Math.abs(dy)<20) return;
-  if(Math.abs(dx)>Math.abs(dy)) move(dx>0?'r':'l');
-  else move(dy>0?'d':'u');
-},{passive:true});
-
-newGame();
 </script>
 </body>
 </html>
