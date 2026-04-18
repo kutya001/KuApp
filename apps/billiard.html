@@ -66,9 +66,13 @@
                 <div id="game-status" class="ui-panel px-4 py-2 rounded-full text-xs font-bold text-emerald-400 tracking-wide">
                     Выберите шар
                 </div>
-                <div class="ui-panel flex items-center gap-2 px-4 py-2 rounded-full cursor-pointer hover:bg-white/10 transition-colors">
-                    <input type="checkbox" id="full-trajectory-cb" class="w-4 h-4 accent-emerald-500 cursor-pointer pointer-events-none">
-                    <label for="full-trajectory-cb" class="text-[10px] font-bold uppercase tracking-widest cursor-pointer select-none">Траектория</label>
+                <div class="flex gap-2">
+                    <button onclick="toggleTheme()" class="ui-panel px-4 py-2 rounded-full text-[10px] font-bold uppercase tracking-widest hover:bg-white/10 transition-colors text-white">Темы</button>
+                    <button onclick="toggleNumbers()" class="ui-panel px-4 py-2 rounded-full text-[10px] font-bold uppercase tracking-widest hover:bg-white/10 transition-colors text-white" id="btn-numbers">Номера: ВКЛ</button>
+                    <div class="ui-panel flex items-center gap-2 px-4 py-2 rounded-full cursor-pointer hover:bg-white/10 transition-colors">
+                        <input type="checkbox" id="full-trajectory-cb" class="w-4 h-4 accent-emerald-500 cursor-pointer pointer-events-none">
+                        <label for="full-trajectory-cb" class="text-[10px] font-bold uppercase tracking-widest cursor-pointer select-none text-white">Траектория</label>
+                    </div>
                 </div>
             </div>
         </header>
@@ -95,7 +99,7 @@
                     <div class="absolute top-0 left-1/2 w-px h-full bg-black/30"></div>
                     <div id="spin-dot" class="absolute top-1/2 left-1/2 w-4 h-4 bg-red-600 rounded-full border-[3px] border-white shadow-md -translate-x-1/2 -translate-y-1/2 pointer-events-none"></div>
                 </div>
-                <button onclick="resetSpin()" class="text-[9px] uppercase font-bold bg-white/10 hover:bg-white/20 px-4 py-1.5 rounded-full transition-colors w-full">Сброс</button>
+                <button onclick="resetSpin()" class="text-[9px] uppercase font-bold bg-white/10 hover:bg-white/20 px-4 py-1.5 rounded-full transition-colors w-full text-white border border-gray-600">Сброс</button>
             </div>
         </div>
 
@@ -122,6 +126,26 @@
     </div>
 
     <script>
+        // === НАСТРОЙКИ ===
+        const themes = [
+            { name: "Classic Green", cloth: "#105a22", cushion: "#0b3d16", jaw: "#07240d" },
+            { name: "Tournament Blue", cloth: "#1e3a8a", cushion: "#1e40af", jaw: "#1e3a8a" }, // tailwind blue-900/800
+            { name: "Royal Burgundy", cloth: "#7f1d1d", cushion: "#991b1b", jaw: "#7f1d1d" }, // tailwind red-900/800
+            { name: "Graphite Black", cloth: "#1f2937", cushion: "#334155", jaw: "#1e293b" }, // tailwind gray-800/700/800
+            { name: "Coffee Brown", cloth: "#78350f", cushion: "#92400e", jaw: "#713f12" }  // tailwind amber-900/800/900
+        ];
+        let currentThemeIndex = 0;
+        let showNumbers = true;
+
+        function toggleTheme() {
+            currentThemeIndex = (currentThemeIndex + 1) % themes.length;
+        }
+
+        function toggleNumbers() {
+            showNumbers = !showNumbers;
+            document.getElementById('btn-numbers').innerText = `Номера: ${showNumbers ? 'ВКЛ' : 'ВЫКЛ'}`;
+        }
+
         // === ВЕКТОРНАЯ МАТЕМАТИКА ===
         class Vec2 {
             constructor(x, y) { this.x = x; this.y = y; }
@@ -226,7 +250,7 @@
                 grad.addColorStop(0, '#ffffff'); grad.addColorStop(0.35, this.color); grad.addColorStop(1, darkenColor(this.color, 60));
                 ctx.fillStyle = grad; ctx.fill();
 
-                if (this.number > 0) {
+                if (this.number > 0 && showNumbers) {
                     ctx.fillStyle = '#111'; ctx.font = `bold ${this.radius * 1.1}px Arial`;
                     ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
                     ctx.fillText(this.number, this.pos.x, this.pos.y + 2);
@@ -453,9 +477,11 @@
             result.endPos = pos; return result;
         }
 
-        // === РЕНДЕР СТОЛА (Реалистичные борта и латунь) ===
+        // === РЕНДЕР СТОЛА ===
         function drawTable() {
             ctx.save(); ctx.translate(RAIL_W, RAIL_W);
+            
+            let tTheme = themes[currentThemeIndex];
 
             // Деревянный каркас (Борта)
             let woodGrad = ctx.createLinearGradient(0, -RAIL_W, 0, TABLE_H+RAIL_W);
@@ -463,11 +489,11 @@
             ctx.fillStyle = woodGrad;
             ctx.fillRect(-RAIL_W, -RAIL_W, TABLE_W + RAIL_W*2, TABLE_H + RAIL_W*2); 
 
-            // Сукно
-            ctx.fillStyle = '#105a22'; ctx.fillRect(0, 0, TABLE_W, TABLE_H);
+            // Сукно (Динамическое)
+            ctx.fillStyle = tTheme.cloth; ctx.fillRect(0, 0, TABLE_W, TABLE_H);
 
-            // Резина бортов (Темно-зеленая) с фасками у луз
-            ctx.fillStyle = '#0b3d16';
+            // Резина бортов (Динамическая)
+            ctx.fillStyle = tTheme.cushion;
             ctx.beginPath(); ctx.moveTo(0,0); ctx.lineTo(cOff, 0); ctx.lineTo(0, cOff); ctx.fill(); // TL
             ctx.fillRect(TABLE_W/2 - mOff, -RAIL_W, MIDDLE_OP, RAIL_W); // TM
             ctx.beginPath(); ctx.moveTo(TABLE_W,0); ctx.lineTo(TABLE_W - cOff, 0); ctx.lineTo(TABLE_W, cOff); ctx.fill(); // TR
@@ -496,8 +522,8 @@
                 ctx.stroke(); ctx.restore();
             });
 
-            // Губки
-            ctx.fillStyle = '#07240d';
+            // Губки (Динамические)
+            ctx.fillStyle = tTheme.jaw;
             jaws.forEach(j => { ctx.beginPath(); ctx.arc(j.pos.x, j.pos.y, j.r*1.5, 0, Math.PI * 2); ctx.fill(); }); 
 
             // Линия дома
