@@ -72,6 +72,20 @@
     font-size:.5rem;color:rgba(255,255,255,0.3);text-align:center;
     z-index:20;white-space:nowrap;
   }
+  #hud{
+    position:absolute;top:10px;left:10px;z-index:24;
+    display:flex;gap:6px;flex-direction:column;
+  }
+  .hud-pill{
+    background:rgba(0,0,0,0.42);border:1px solid rgba(255,255,255,0.14);
+    color:#d7defc;padding:4px 8px;border-radius:10px;font-size:.52rem;
+    letter-spacing:.06em;text-transform:uppercase;
+  }
+  #view-toggle{
+    position:absolute;top:10px;left:50%;transform:translateX(-50%);
+    z-index:24;background:rgba(0,0,0,0.5);border:1px solid rgba(255,255,255,0.2);
+    color:#fff;font-size:.55rem;border-radius:999px;padding:6px 10px;cursor:pointer;
+  }
 
   /* Spin control */
   #spin-control{
@@ -165,6 +179,11 @@
 
   <div id="canvas-wrap">
     <canvas id="c"></canvas>
+    <button id="view-toggle">🧭 Вид: авто</button>
+    <div id="hud">
+      <div class="hud-pill" id="hud-angle">угол: 0°</div>
+      <div class="hud-pill" id="hud-hit">удар: центр</div>
+    </div>
     <div id="power-wrap">
       <div id="power-fill"></div>
       <div id="power-label">0%</div>
@@ -276,10 +295,12 @@ const FRICTION = 0.992;     // Rolling friction per substep (reduced for smoothe
 const MIN_VEL = 0.04;       // Minimum velocity to stop (lower threshold)
 const RESTITUTION = 0.94;   // Ball-ball restitution (slightly bouncier)
 const CUSHION_REST = 0.78;  // Cushion restitution (energy loss)
+const TANGENTIAL_LOSS = 0.985; // Tangential speed loss on cushions
 const SPIN_DECAY = 0.985;   // Spin decay per substep (slower decay)
 const SPIN_INFLUENCE = 0.06;// How much spin affects trajectory (doubled)
 const CUSHION_SPIN = 0.12;  // Spin effect on cushion bounce
 const BALL_SPIN_TRANSFER = 0.08; // Spin transfer between balls
+const COLLISION_FRICTION = 0.08; // Tangential impulse on ball-ball contact
 const SUBSTEPS = 4;         // Physics substeps per frame
 const MAX_POWER = 35;       // Maximum power value
 const POWER_SCALE = 1.8;    // Power to velocity scale
@@ -315,6 +336,8 @@ let dragCurrent = new Vec();
 
 // Trail
 let cueTrail = [];
+let feltTexture = null;
+let tableOrientation = 'auto'; // auto | horizontal | vertical
 
 /**
  * ============================================================
@@ -378,7 +401,7 @@ class Ball {
     ctx.ellipse(x + 2, y + 3, r * 0.9, r * 0.6, 0, 0, Math.PI * 2);
     ctx.fill();
 
-    // Ball body
+    // Ball body (pseudo-3D shading)
     const grad = ctx.createRadialGradient(x - r * 0.3, y - r * 0.3, r * 0.1, x, y, r);
     if (this.isCue) {
       grad.addColorStop(0, '#ffffff');
@@ -390,6 +413,15 @@ class Ball {
       grad.addColorStop(1, this.darkenColor(this.color, 40));
     }
     ctx.fillStyle = grad;
+    ctx.beginPath();
+    ctx.arc(x, y, r, 0, Math.PI * 2);
+    ctx.fill();
+
+    // Dark rim for depth
+    const rim = ctx.createRadialGradient(x, y, r * 0.55, x, y, r * 1.08);
+    rim.addColorStop(0, 'rgba(0,0,0,0)');
+    rim.addColorStop(1, 'rgba(0,0,0,0.36)');
+    ctx.fillStyle = rim;
     ctx.beginPath();
     ctx.arc(x, y, r, 0, Math.PI * 2);
     ctx.fill();
@@ -419,10 +451,14 @@ class Ball {
       ctx.fillText(this.num, x, y + 0.5);
     }
 
-    // Shine highlight
-    ctx.fillStyle = 'rgba(255,255,255,0.35)';
+    // Shine highlight + reflected light
+    ctx.fillStyle = 'rgba(255,255,255,0.38)';
     ctx.beginPath();
     ctx.arc(x - r * 0.25, y - r * 0.25, r * 0.25, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.fillStyle = 'rgba(255,255,255,0.12)';
+    ctx.beginPath();
+    ctx.ellipse(x + r * 0.12, y + r * 0.2, r * 0.32, r * 0.16, Math.PI / 6, 0, Math.PI * 2);
     ctx.fill();
 
     // Hit flash
@@ -450,12 +486,24 @@ class Ball {
  * ============================================================
  */
 function setupTable() {
-  // Table felt area (with cushion border)
-  const margin = 40;
-  TX = margin;
-  TY = margin;
-  TW = W - margin * 2;
-  TH = H - margin * 2;
+  // Table felt area (with orientation-aware aspect ratio)
+  const margin = 32;
+  const playW = W - margin * 2;
+  const playH = H - margin * 2;
+  const autoMode = W >= H ? 'horizontal' : 'vertical';
+  const mode = tableOrientation === 'auto' ? autoMode : tableOrientation;
+  const targetRatio = mode === 'horizontal' ? 2 : 0.5; // width / height
+
+  TW = Math.min(playW, playH * targetRatio);
+  TH = TW / targetRatio;
+
+  if (TH > playH) {
+    TH = playH;
+    TW = TH * targetRatio;
+  }
+
+  TX = (W - TW) * 0.5;
+  TY = (H - TH) * 0.5;
 
   // 6 pockets
   POCKETS = [
@@ -563,6 +611,13 @@ function physicsStep() {
           a.vel = a.vel.sub(normal.mult(j_impulse / a.mass));
           b.vel = b.vel.add(normal.mult(j_impulse / b.mass));
 
+          // Tangential friction impulse for more realistic throw/cut behavior
+          const tangent = new Vec(-normal.y, normal.x);
+          const relTanVel = relVel.dot(tangent);
+          const jt = -relTanVel * COLLISION_FRICTION;
+          a.vel = a.vel.sub(tangent.mult(jt / a.mass));
+          b.vel = b.vel.add(tangent.mult(jt / b.mass));
+
           // Transfer some spin to cue ball
           if (a.isCue) {
             const spinTransfer = new Vec(spinX * BALL_SPIN_TRANSFER, spinY * BALL_SPIN_TRANSFER);
@@ -605,10 +660,13 @@ function physicsStep() {
             // Reflect normal component
             b.vel = b.vel.sub(normal.mult(2 * velDotNormal));
             b.vel = b.vel.mult(CUSHION_REST);
+            const tangent = new Vec(-normal.y, normal.x);
+            const tanSpeed = b.vel.dot(tangent) * TANGENTIAL_LOSS;
+            const normSpeed = b.vel.dot(normal);
+            b.vel = normal.mult(normSpeed).add(tangent.mult(tanSpeed));
 
             // Add spin effect on cushion bounce (tangential deflection)
             if (b.isCue) {
-              const tangent = new Vec(-normal.y, normal.x);
               const spinEffect = CUSHION_SPIN * (spinX * tangent.x + spinY * tangent.y);
               b.vel = b.vel.add(tangent.mult(spinEffect));
             }
@@ -758,12 +816,12 @@ function draw() {
   ctx.fillStyle = feltGrad;
   ctx.fillRect(TX, TY, TW, TH);
 
-  // Felt texture
-  ctx.fillStyle = 'rgba(0,0,0,0.03)';
-  for (let x = TX; x < TX + TW; x += 4) {
-    for (let y = TY; y < TY + TH; y += 4) {
-      if (Math.random() < 0.3) ctx.fillRect(x, y, 2, 2);
-    }
+  // Felt texture (pre-baked to avoid frame flicker)
+  if (feltTexture) {
+    ctx.save();
+    ctx.globalAlpha = 0.2;
+    ctx.drawImage(feltTexture, TX, TY, TW, TH);
+    ctx.restore();
   }
 
   // Cushion edges (darker green)
@@ -993,6 +1051,34 @@ function drawCueStick() {
   ctx.beginPath();
   ctx.arc(stickStart.x, stickStart.y, 3, 0, Math.PI * 2);
   ctx.fill();
+
+  // Ferrule
+  ctx.strokeStyle = '#efe6d3';
+  ctx.lineWidth = 3;
+  ctx.beginPath();
+  ctx.moveTo(stickStart.x - dir.x * 5, stickStart.y - dir.y * 5);
+  ctx.lineTo(stickStart.x - dir.x * 8, stickStart.y - dir.y * 8);
+  ctx.stroke();
+
+  // Cue-ball hit point + cue angle indicator
+  const side = new Vec(-dir.y, dir.x);
+  const hitOffset = side.mult(spinX * BALL_R * 0.55).add(dir.mult(spinY * BALL_R * 0.55));
+  const hitPoint = CUE.pos.add(hitOffset);
+  ctx.strokeStyle = 'rgba(255,215,0,0.95)';
+  ctx.fillStyle = 'rgba(255,215,0,0.25)';
+  ctx.lineWidth = 1.5;
+  ctx.beginPath();
+  ctx.arc(hitPoint.x, hitPoint.y, 4.2, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.stroke();
+
+  ctx.strokeStyle = 'rgba(255,255,255,0.25)';
+  ctx.setLineDash([2, 4]);
+  ctx.beginPath();
+  ctx.moveTo(CUE.pos.x, CUE.pos.y);
+  ctx.lineTo(hitPoint.x, hitPoint.y);
+  ctx.stroke();
+  ctx.setLineDash([]);
 }
 
 // Pocket effects
@@ -1052,6 +1138,7 @@ canvas.addEventListener('mousedown', e => {
   dragStart = pos.copy();
   dragCurrent = pos.copy();
   state = 'CHARGING';
+  updateSpinUI();
   AudioSys.init();
 });
 
@@ -1064,6 +1151,7 @@ canvas.addEventListener('mousemove', e => {
   const aimVec = dragStart.sub(dragCurrent);
   if (aimVec.mag() > 5) {
     aimAngle = Math.atan2(aimVec.y, aimVec.x);
+    updateSpinUI();
   }
 
   // Power is based on drag distance (pull back = more power)
@@ -1095,6 +1183,7 @@ canvas.addEventListener('touchstart', e => {
   dragStart = pos.copy();
   dragCurrent = pos.copy();
   state = 'CHARGING';
+  updateSpinUI();
   AudioSys.init();
 }, { passive: false });
 
@@ -1108,6 +1197,7 @@ canvas.addEventListener('touchmove', e => {
   const aimVec = dragStart.sub(dragCurrent);
   if (aimVec.mag() > 5) {
     aimAngle = Math.atan2(aimVec.y, aimVec.x);
+    updateSpinUI();
   }
 
   const dragVec = dragStart.sub(dragCurrent);
@@ -1171,6 +1261,29 @@ function shoot() {
   updatePowerUI();
 }
 
+function createFeltTexture() {
+  const off = document.createElement('canvas');
+  off.width = 220;
+  off.height = 220;
+  const fx = off.getContext('2d');
+  fx.fillStyle = 'rgba(255,255,255,0.03)';
+  for (let i = 0; i < 700; i++) {
+    const x = Math.random() * off.width;
+    const y = Math.random() * off.height;
+    const s = Math.random() * 1.8 + 0.4;
+    fx.fillRect(x, y, s, s);
+  }
+  fx.strokeStyle = 'rgba(0,0,0,0.05)';
+  for (let i = 0; i < 18; i++) {
+    const y = (i / 18) * off.height;
+    fx.beginPath();
+    fx.moveTo(0, y);
+    fx.lineTo(off.width, y + 10);
+    fx.stroke();
+  }
+  feltTexture = off;
+}
+
 /**
  * ============================================================
  * UI HELPERS
@@ -1188,6 +1301,11 @@ function updatePowerUI() {
 function updateSpinUI() {
   const dot = $('spin-dot');
   dot.style.transform = `translate(${spinX * 12}px, ${spinY * 12}px)`;
+  const ang = ((aimAngle * 180 / Math.PI) + 360) % 360;
+  $('hud-angle').textContent = `угол: ${Math.round(ang)}°`;
+  const hz = spinX === 0 ? 'центр' : (spinX > 0 ? 'правее' : 'левее');
+  const vt = spinY === 0 ? 'центр' : (spinY > 0 ? 'вперёд' : 'назад');
+  $('hud-hit').textContent = `удар: ${hz} / ${vt}`;
 }
 
 function showToast(msg) {
@@ -1214,12 +1332,14 @@ function resize() {
   canvas.width = W;
   canvas.height = H;
   setupTable();
+  createFeltTexture();
 }
 
 window.addEventListener('resize', resize);
 resize();
 
 let lastTime = 0;
+let loopStarted = false;
 function loop(ts) {
   requestAnimationFrame(loop);
   if (!lastTime) lastTime = ts;
@@ -1239,7 +1359,11 @@ function startGame() {
   placeBalls();
   showMenu(null);
   state = 'AIMING';
-  requestAnimationFrame(loop);
+  updateSpinUI();
+  if (!loopStarted) {
+    loopStarted = true;
+    requestAnimationFrame(loop);
+  }
 }
 
 $('btn-start').onclick = () => { AudioSys.init(); startGame(); };
@@ -1247,6 +1371,16 @@ $('btn-restart').onclick = () => startGame();
 $('btn-menu').onclick = () => { showMenu('main'); $('top-bar').style.display = 'none'; };
 
 showMenu('main');
+
+$('view-toggle').addEventListener('click', () => {
+  const order = ['auto', 'horizontal', 'vertical'];
+  const i = order.indexOf(tableOrientation);
+  tableOrientation = order[(i + 1) % order.length];
+  const labels = { auto: 'авто', horizontal: 'горизонтальный', vertical: 'вертикальный' };
+  $('view-toggle').textContent = `🧭 Вид: ${labels[tableOrientation]}`;
+  resize();
+  if (state !== 'GAMEOVER') placeBalls();
+});
 </script>
 </body>
 </html>
