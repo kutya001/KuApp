@@ -93,7 +93,7 @@
 </div>
 
 <script>
-let board,score,best=+localStorage.getItem('2048_best')||0,over=false,moving=false;
+let board,score,best=+localStorage.getItem('2048_best')||0,over=false,moving=false,won=false;
 const gridEl=document.getElementById('grid');
 const scoreEl=document.getElementById('score');
 const bestEl=document.getElementById('best');
@@ -121,7 +121,7 @@ document.querySelector(`[data-theme="${savedTheme}"]`)?.classList.add('active');
 bestEl.textContent=best;
 
 function newGame(){
-  board=Array(16).fill(0); score=0; over=false; moving=false;
+  board=Array(16).fill(0); score=0; over=false; moving=false; won=false;
   scoreEl.textContent=0; msg.style.display='none';
   gridEl.innerHTML='';
   addTile(); addTile(); render();
@@ -171,15 +171,14 @@ function render(){
 }
 
 function slide(row){
-  let arr=row.filter(v=>v), merged=false;
+  let arr=row.filter(v=>v);
   for(let i=0;i<arr.length-1;i++){
     if(arr[i]===arr[i+1]){
-      arr[i]*=2; score+=arr[i]; arr.splice(i+1,1); merged=true;
+      arr[i]*=2; score+=arr[i]; arr.splice(i+1,1);
     }
-    if(merged){ merged=false; continue; } // Сброс merged после слияния
   }
   while(arr.length<4) arr.push(0);
-  return {arr, merged};
+  return arr;
 }
 
 function move(dir){
@@ -205,16 +204,8 @@ function move(dir){
       indices = [i+12, i+8, i+4, i];
     }
 
-    const result = slide(row);
-    let slid = result.arr;
-    if(dir==='r'||dir==='d') slid.reverse(), indices.reverse();
-
-    if(dir==='l'||dir==='r'){
-      for(let j=0;j<4;j++) board[i*4+j]=slid[j];
-    } else {
-      const targetIndices = dir==='u' ? [i, i+4, i+8, i+12] : [i+12, i+8, i+4, i];
-      for(let j=0;j<4;j++) board[targetIndices[j]]=slid[j];
-    }
+    const slid = slide(row);
+    for(let j=0;j<4;j++) board[indices[j]]=slid[j];
   }
 
   const changed=board.some((v,i)=>v!==prev[i]);
@@ -230,7 +221,7 @@ function move(dir){
       render();
       moving = false;
       
-      if(board.includes(2048)&&!over){ showMsg('🎉 2048!','Продолжай!'); over=true; submitScore(); return; }
+      if(board.includes(2048)&&!won){ showMsg('🎉 2048!','Продолжай!'); won=true; submitScore(); return; }
       if(!canMove()){ showMsg('😞 Игра окончена',`Счёт: ${score}`); over=true; submitScore(); }
     }, 150);
   }
