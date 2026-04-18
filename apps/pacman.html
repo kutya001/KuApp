@@ -1,887 +1,953 @@
 <!DOCTYPE html>
 <html lang="ru">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width,initial-scale=1,user-scalable=no">
-<title>Pac-Man PRO — Неоновый</title>
-<style>
-  @import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;700;800;900&display=swap');
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Классический Пакман (Classic Pac-Man)</title>
+    <style>
+        :root {
+            --bg-color: #111;
+            --text-color: #fff;
+            --pacman-yellow: #FFFF00;
+        }
 
-  *{box-sizing:border-box;margin:0;padding:0;user-select:none;touch-action:none;}
-  :root{
-    --bg:#050508;--text:#f0f0f8;--text2:#8888aa;
-    --wall:#2244ff;--wall-glow:#4466ff;--dot:#ffb8ff;--power-dot:#ffd700;
-    --pacman:#ffdd00;--ghost-red:#ff0000;--ghost-pink:#ffb8ff;
-    --ghost-cyan:#00ffff;--ghost-orange:#ffb852;
-    --ui:rgba(8,8,16,0.92);
-  }
-  body{
-    background:var(--bg);color:var(--text);
-    font-family:'JetBrains Mono',monospace;
-    display:flex;flex-direction:column;align-items:center;justify-content:center;
-    height:100dvh;overflow:hidden;
-  }
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            user-select: none;
+        }
 
-  #game-wrapper{
-    position:relative;width:100%;max-width:450px;height:100%;
-    display:flex;flex-direction:column;align-items:center;
-    padding:6px;
-  }
+        body {
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            font-family: 'Courier New', Courier, monospace;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            min-height: 100vh;
+            overflow: hidden;
+            touch-action: none;
+        }
 
-  /* Scanlines */
-  #game-wrapper::after{
-    content:" ";display:block;position:absolute;inset:0;
-    background:linear-gradient(rgba(18,16,16,0) 50%,rgba(0,0,0,0.12) 50%);
-    z-index:5;background-size:100% 3px;pointer-events:none;mix-blend-mode:overlay;opacity:0.2;
-  }
+        #game-container {
+            position: relative;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
 
-  /* Top bar */
-  #top-bar{
-    display:flex;justify-content:space-between;align-items:center;
-    width:100%;max-width:400px;padding:4px 8px 6px;z-index:20;position:relative;
-  }
-  .info-box{display:flex;flex-direction:column;align-items:center;}
-  .info-val{font-size:1.2rem;font-weight:900;line-height:1;color:var(--text);text-shadow:0 0 8px currentColor;}
-  .info-val.score{color:var(--pacman);}
-  .info-val.level{color:var(--wall-glow);font-size:.85rem;}
-  .info-lbl{font-size:.4rem;letter-spacing:.12em;color:var(--text2);margin-top:2px;text-transform:uppercase;}
+        #ui-layer {
+            display: flex;
+            justify-content: space-between;
+            width: 100%;
+            max-width: 560px;
+            padding: 10px 20px;
+            font-size: 24px;
+            font-weight: bold;
+            color: #FFF;
+            text-shadow: 2px 2px 0px #000;
+            z-index: 10;
+        }
 
-  /* Canvas */
-  #canvas-wrap{
-    position:relative;flex:1;width:100%;max-width:400px;
-    display:flex;align-items:center;justify-content:center;
-  }
-  canvas{display:block;width:100%;height:100%;border-radius:4px;}
+        canvas {
+            background-color: #000;
+            box-shadow: 0 0 20px rgba(0, 255, 255, 0.2);
+            image-rendering: pixelated;
+            max-width: 100vw;
+            max-height: 75vh;
+            object-fit: contain;
+        }
 
-  /* D-pad */
-  #dpad{
-    position:absolute;bottom:10px;left:50%;transform:translateX(-50%);
-    display:grid;grid-template-columns:repeat(3,52px);grid-template-rows:repeat(2,52px);
-    gap:4px;z-index:20;opacity:.5;
-  }
-  .d-btn{
-    background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.12);
-    border-radius:10px;font-size:1.2rem;color:var(--text2);
-    display:flex;align-items:center;justify-content:center;cursor:pointer;
-    transition:all .1s;
-  }
-  .d-btn:active{background:rgba(255,255,255,0.15);transform:scale(.9);}
-  .d-btn.up{grid-column:2;grid-row:1;}
-  .d-btn.left{grid-column:1;grid-row:2;}
-  .d-btn.down{grid-column:2;grid-row:2;}
-  .d-btn.right{grid-column:3;grid-row:2;}
+        #controls {
+            display: grid;
+            grid-template-columns: 60px 60px 60px;
+            grid-template-rows: 60px 60px 60px;
+            gap: 10px;
+            margin-top: 20px;
+        }
 
-  /* Toast */
-  #toast{
-    position:absolute;top:40px;left:50%;transform:translateX(-50%);
-    font-size:.85rem;font-weight:900;color:var(--pacman);
-    text-shadow:0 0 12px rgba(255,221,0,0.6);
-    pointer-events:none;z-index:30;opacity:0;
-    transition:opacity .3s,transform .3s;
-  }
-  #toast.show{opacity:1;transform:translateX(-50%) translateY(-5px);}
+        .control-btn {
+            background-color: rgba(50, 50, 50, 0.8);
+            border: 2px solid #555;
+            border-radius: 10px;
+            color: white;
+            font-size: 24px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            transition: background-color 0.1s;
+        }
 
-  /* Overlay */
-  .overlay{
-    position:absolute;inset:0;background:var(--ui);backdrop-filter:blur(8px);
-    display:flex;flex-direction:column;align-items:center;justify-content:center;
-    z-index:50;opacity:0;pointer-events:none;transition:opacity .35s ease;
-  }
-  .overlay.active{opacity:1;pointer-events:auto;}
+        .control-btn:active {
+            background-color: var(--pacman-yellow);
+            color: black;
+        }
 
-  .menu-title{
-    font-size:2rem;font-weight:900;margin-bottom:6px;text-align:center;
-    background:linear-gradient(135deg,var(--pacman),var(--ghost-cyan,var(--ghost-cyan)),var(--ghost-pink));
-    background-size:200% 200%;
-    -webkit-background-clip:text;-webkit-text-fill-color:transparent;
-    animation:gradShift 3s ease infinite;
-  }
-  @keyframes gradShift{0%,100%{background-position:0% 50%;}50%{background-position:100% 50%;}}
+        #btn-up { grid-column: 2; grid-row: 1; }
+        #btn-left { grid-column: 1; grid-row: 2; }
+        #btn-down { grid-column: 2; grid-row: 3; }
+        #btn-right { grid-column: 3; grid-row: 2; }
 
-  .menu-subtitle{
-    font-size:.65rem;color:var(--text2);margin-bottom:16px;
-    text-align:center;max-width:85%;line-height:1.6;
-  }
+        #overlay {
+            position: absolute;
+            top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0,0,0,0.7);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            z-index: 20;
+        }
 
-  .btn{
-    background:transparent;color:#fff;border:2px solid var(--pacman);
-    padding:10px 24px;border-radius:10px;font-size:.8rem;font-weight:700;
-    font-family:inherit;cursor:pointer;margin-bottom:6px;width:75%;max-width:200px;
-    transition:all .25s;text-transform:uppercase;letter-spacing:.1em;
-  }
-  .btn:active{transform:scale(.96);}
-  .btn-primary{background:var(--pacman);color:#000;box-shadow:0 0 20px rgba(255,221,0,0.35);}
-  .btn-danger{border-color:var(--ghost-red);color:var(--ghost-red);}
+        #overlay h1 {
+            color: var(--pacman-yellow);
+            font-size: 48px;
+            margin-bottom: 20px;
+            text-align: center;
+        }
 
-  /* Lives */
-  .lives-row{display:flex;gap:6px;margin:6px 0 12px;}
-  .life-icon{font-size:1.1rem;}
+        #start-btn {
+            padding: 15px 30px;
+            font-size: 24px;
+            background-color: var(--pacman-yellow);
+            color: black;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-weight: bold;
+            font-family: 'Courier New', Courier, monospace;
+        }
 
-  /* Ghost info */
-  .ghost-info{
-    display:flex;gap:8px;margin:6px 0 12px;font-size:.55rem;
-  }
-  .ghost-info span{display:flex;align-items:center;gap:3px;}
-  .ghost-dot{width:8px;height:8px;border-radius:50%;display:inline-block;}
-</style>
+        .hidden { display: none !important; }
+
+        @media (min-width: 1024px) {
+            #controls { display: none; }
+        }
+    </style>
 </head>
 <body>
 
-<div id="game-wrapper">
-  <div id="top-bar">
-    <div class="info-box">
-      <div class="info-val score" id="score-val">0</div>
-      <div class="info-lbl">ОЧКИ</div>
+    <div id="game-container">
+        <div id="ui-layer">
+            <div id="score-display">SCORE: <span id="score">0</span></div>
+            <div id="lives-display">LIVES: <span id="lives">3</span></div>
+        </div>
+        
+        <canvas id="gameCanvas" width="560" height="620"></canvas>
+        
+        <div id="overlay">
+            <h1 id="overlay-title">PAC-MAN</h1>
+            <button id="start-btn">НАЧАТЬ ИГРУ</button>
+        </div>
+
+        <div id="controls">
+            <div class="control-btn" id="btn-up">▲</div>
+            <div class="control-btn" id="btn-left">◄</div>
+            <div class="control-btn" id="btn-down">▼</div>
+            <div class="control-btn" id="btn-right">►</div>
+        </div>
     </div>
-    <div class="info-box">
-      <div class="info-val level" id="level-val">1</div>
-      <div class="info-lbl">УРОВЕНЬ</div>
-    </div>
-    <div class="info-box">
-      <div class="info-val" id="lives-val">❤️❤️❤️</div>
-      <div class="info-lbl">ЖИЗНИ</div>
-    </div>
-  </div>
-
-  <div id="canvas-wrap">
-    <canvas id="c"></canvas>
-  </div>
-
-  <div id="dpad">
-    <div class="d-btn up" data-dir="up">▲</div>
-    <div class="d-btn left" data-dir="left">◀</div>
-    <div class="d-btn down" data-dir="down">▼</div>
-    <div class="d-btn right" data-dir="right">▶</div>
-  </div>
-
-  <div id="toast"></div>
-
-  <!-- Main Menu -->
-  <div class="overlay active" id="menu-main">
-    <div class="menu-title">🟡 PAC-MAN PRO</div>
-    <div class="menu-subtitle">Собирай точки, избегай призраков.<br>Большая точка = охота на призраков!</div>
-    <div class="ghost-info">
-      <span><span class="ghost-dot" style="background:var(--ghost-red)"></span> Блинки</span>
-      <span><span class="ghost-dot" style="background:var(--ghost-pink)"></span> Пинки</span>
-      <span><span class="ghost-dot" style="background:var(--ghost-cyan)"></span> Инки</span>
-      <span><span class="ghost-dot" style="background:var(--ghost-orange)"></span> Клайд</span>
-    </div>
-    <button class="btn btn-primary" id="btn-start">🎮 Играть</button>
-  </div>
-
-  <!-- Game Over -->
-  <div class="overlay" id="menu-game-over">
-    <div class="menu-title" id="go-title" style="color:var(--ghost-red);">GAME OVER</div>
-    <div class="menu-subtitle" id="go-stats">Очки: 0 | Уровень: 1</div>
-    <button class="btn btn-primary" id="btn-restart">🔄 Ещё раз</button>
-    <button class="btn btn-danger" id="btn-menu">🏠 В меню</button>
-  </div>
-</div>
 
 <script>
 /**
- * AUDIO ENGINE
+ * Классический Пакман
+ * Полная реализация игровой логики, ИИ призраков и рендеринга на Canvas.
  */
-const AudioSys = {
-  ctx: null,
-  init(){ if(!this.ctx) this.ctx = new (window.AudioContext||window.webkitAudioContext)(); if(this.ctx.state==='suspended') this.ctx.resume(); },
-  tone(f,t,d,v=.3,s=null){
-    if(!this.ctx) return;
-    const o=this.ctx.createOscillator(),g=this.ctx.createGain();
-    o.type=t;o.connect(g);g.connect(this.ctx.destination);
-    const n=this.ctx.currentTime;
-    o.frequency.setValueAtTime(f,n);
-    if(s) o.frequency.exponentialRampToValueAtTime(s,n+d);
-    g.gain.setValueAtTime(v,n);
-    g.gain.exponentialRampToValueAtTime(.01,n+d);
-    o.start(n);o.stop(n+d);
-  },
-  sfx:{
-    chomp:()=>{AudioSys.tone(200+Math.random()*100,'sawtooth',.04,.12);},
-    power:()=>{AudioSys.tone(400,'sine',.15,.2);setTimeout(()=>AudioSys.tone(600,'sine',.15,.2),100);},
-    eatGhost:()=>{AudioSys.tone(500,'square',.1,.2);setTimeout(()=>AudioSys.tone(800,'square',.15,.2),80);},
-    die:()=>{[400,350,300,250,200].forEach((f,i)=>setTimeout(()=>AudioSys.tone(f,'sawtooth',.12,.15),i*80));},
-    win:()=>{[523,659,784,1047].forEach((f,i)=>setTimeout(()=>AudioSys.tone(f,'square',.15,.2),i*100));},
-  }
+
+// --- КОНСТАНТЫ И НАСТРОЙКИ ---
+const TILE_SIZE = 20;
+const FPS = 60;
+const GHOST_SPEED_NORMAL = 1.5;
+const GHOST_SPEED_FRIGHTENED = 0.8;
+const PACMAN_SPEED = 2;
+
+const DIR = {
+    UP: { x: 0, y: -1, code: 0 },
+    RIGHT: { x: 1, y: 0, code: 1 },
+    DOWN: { x: 0, y: 1, code: 2 },
+    LEFT: { x: -1, y: 0, code: 3 },
+    NONE: { x: 0, y: 0, code: -1 }
 };
 
-/**
- * MAP: 0=empty, 1=wall, 2=dot, 3=power-dot, 4=ghost-house, 5=gate
- * 21 columns x 23 rows (classic proportions)
- */
-const MAP_TEMPLATE = [
-  "111111111111111111111",
-  "122222222212222222221",
-  "121112111212111211121",
-  "131112111212111211131",
-  "122222222222222222221",
-  "121112121111121211121",
-  "122222122212221222221",
-  "111112111010111211111",
-  "000012100000001210000",
-  "111112101150111211111",
-  "000002001444001000000",
-  "111112101000101211111",
-  "000012101000101210000",
-  "111112101000101211111",
-  "122222222212222222221",
-  "121112111212111211121",
-  "132212222202222222231",
-  "111212121111121212111",
-  "122222122212221222221",
-  "121111111212111111121",
-  "122222222222222222221",
-  "111111111111111111111",
-  "000000000000000000000",
+// Состояния призраков
+const GHOST_STATE = {
+    SCATTER: 0,
+    CHASE: 1,
+    FRIGHTENED: 2,
+    EATEN: 3,
+    IN_PEN: 4
+};
+
+// Типы элементов карты
+const MAP_TYPES = {
+    EMPTY: 0,
+    WALL: 1,
+    PELLET: 2,
+    POWER_PELLET: 3,
+    GHOST_DOOR: 4,
+    TUNNEL: 5
+};
+
+// Классическая карта (28x31)
+// 1: Стена, 2: Точка, 3: Энерджайзер, 0: Пусто, 4: Дверь, 5: Туннель
+const rawMap = [
+    [1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1],
+    [1,2,2,2,2,2,2,2,2,2,2,2,2,1,1,2,2,2,2,2,2,2,2,2,2,2,2,1],
+    [1,2,1,1,1,1,2,1,1,1,1,1,2,1,1,2,1,1,1,1,1,2,1,1,1,1,2,1],
+    [1,3,1,1,1,1,2,1,1,1,1,1,2,1,1,2,1,1,1,1,1,2,1,1,1,1,3,1],
+    [1,2,1,1,1,1,2,1,1,1,1,1,2,1,1,2,1,1,1,1,1,2,1,1,1,1,2,1],
+    [1,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,1],
+    [1,2,1,1,1,1,2,1,1,2,1,1,1,1,1,1,1,1,2,1,1,2,1,1,1,1,2,1],
+    [1,2,1,1,1,1,2,1,1,2,1,1,1,1,1,1,1,1,2,1,1,2,1,1,1,1,2,1],
+    [1,2,2,2,2,2,2,1,1,2,2,2,2,1,1,2,2,2,2,1,1,2,2,2,2,2,2,1],
+    [1,1,1,1,1,1,2,1,1,1,1,1,0,1,1,0,1,1,1,1,1,2,1,1,1,1,1,1],
+    [0,0,0,0,0,1,2,1,1,1,1,1,0,1,1,0,1,1,1,1,1,2,1,0,0,0,0,0],
+    [0,0,0,0,0,1,2,1,1,0,0,0,0,0,0,0,0,0,0,1,1,2,1,0,0,0,0,0],
+    [0,0,0,0,0,1,2,1,1,0,1,1,1,4,4,1,1,1,0,1,1,2,1,0,0,0,0,0],
+    [1,1,1,1,1,1,2,1,1,0,1,0,0,0,0,0,0,1,0,1,1,2,1,1,1,1,1,1],
+    [5,0,0,0,0,0,2,0,0,0,1,0,0,0,0,0,0,1,0,0,0,2,0,0,0,0,0,5],
+    [1,1,1,1,1,1,2,1,1,0,1,0,0,0,0,0,0,1,0,1,1,2,1,1,1,1,1,1],
+    [0,0,0,0,0,1,2,1,1,0,1,1,1,1,1,1,1,1,0,1,1,2,1,0,0,0,0,0],
+    [0,0,0,0,0,1,2,1,1,0,0,0,0,0,0,0,0,0,0,1,1,2,1,0,0,0,0,0],
+    [0,0,0,0,0,1,2,1,1,0,1,1,1,1,1,1,1,1,0,1,1,2,1,0,0,0,0,0],
+    [1,1,1,1,1,1,2,1,1,0,1,1,1,1,1,1,1,1,0,1,1,2,1,1,1,1,1,1],
+    [1,2,2,2,2,2,2,2,2,2,2,2,2,1,1,2,2,2,2,2,2,2,2,2,2,2,2,1],
+    [1,2,1,1,1,1,2,1,1,1,1,1,2,1,1,2,1,1,1,1,1,2,1,1,1,1,2,1],
+    [1,2,1,1,1,1,2,1,1,1,1,1,2,1,1,2,1,1,1,1,1,2,1,1,1,1,2,1],
+    [1,3,2,2,1,1,2,2,2,2,2,2,2,0,0,2,2,2,2,2,2,2,1,1,2,2,3,1],
+    [1,1,1,2,1,1,2,1,1,2,1,1,1,1,1,1,1,1,2,1,1,2,1,1,2,1,1,1],
+    [1,1,1,2,1,1,2,1,1,2,1,1,1,1,1,1,1,1,2,1,1,2,1,1,2,1,1,1],
+    [1,2,2,2,2,2,2,1,1,2,2,2,2,1,1,2,2,2,2,1,1,2,2,2,2,2,2,1],
+    [1,2,1,1,1,1,1,1,1,1,1,1,2,1,1,2,1,1,1,1,1,1,1,1,1,1,2,1],
+    [1,2,1,1,1,1,1,1,1,1,1,1,2,1,1,2,1,1,1,1,1,1,1,1,1,1,2,1],
+    [1,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,1],
+    [1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1]
 ];
 
-const COLS = MAP_TEMPLATE[0].length;
-const ROWS = MAP_TEMPLATE.length;
-
-// Directions
-const DIRS = {
-  up: {x:0, y:-1},
-  down: {x:0, y:1},
-  left: {x:-1, y:0},
-  right: {x:1, y:0},
+// Координаты баз призраков и спавна
+const SPAWN = {
+    PACMAN: { c: 14, r: 23 },
+    BLINKY: { c: 14, r: 11 },
+    PINKY:  { c: 14, r: 14 },
+    INKY:   { c: 12, r: 14 },
+    CLYDE:  { c: 16, r: 14 },
+    GHOST_DOOR: { c: 14, r: 12 }
 };
 
-let map, cellSize, offsetX, offsetY;
-let pacman, ghosts, score, lives, level;
-let totalDots, eatenDots;
-let powerMode, powerTimer, ghostEatenCombo;
-let gameRunning, frameCount, animFrame;
-let highScore = +(localStorage.getItem('pacman_high')||0);
+// --- ГЛОБАЛЬНЫЕ ПЕРЕМЕННЫЕ ---
+let canvas, ctx;
+let gameMap = [];
+let score = 0;
+let lives = 3;
+let pelletsTotal = 0;
+let pelletsEaten = 0;
+let ghostsEatenMultiplier = 1;
+let level = 1;
+let gameMode = GHOST_STATE.SCATTER;
+let modeTimer = 0;
+let frightenedTimer = 0;
+let animationId;
+let gameState = 'START'; // START, PLAYING, DEATH, GAMEOVER, WIN
 
-/**
- * INIT
- */
-function init(){
-  const canvas = document.getElementById('c');
-  const wrap = document.getElementById('canvas-wrap');
-  const w = wrap.clientWidth;
-  const h = wrap.clientHeight;
+// Объекты
+let pacman;
+let ghosts = [];
 
-  cellSize = Math.min(Math.floor((w-10)/COLS), Math.floor((h-10)/ROWS));
-  const mapW = cellSize * COLS;
-  const mapH = cellSize * ROWS;
-  canvas.width = mapW;
-  canvas.height = mapH;
+// Тайминги режимов (в кадрах при 60 FPS)
+// Уровень 1: Разбегание(7с), Преследование(20с), Разбегание(7с), Преследование(20с), Разбегание(5с), Преследование(20с), Разбегание(5с), Преследование(постоянно)
+const MODE_TIMES = [
+    7 * 60, 20 * 60, 7 * 60, 20 * 60, 5 * 60, 20 * 60, 5 * 60, Infinity
+];
+let currentModeIndex = 0;
 
-  offsetX = (w - mapW) / 2;
-  offsetY = (h - mapH) / 2;
-  canvas.style.marginLeft = offsetX + 'px';
-  canvas.style.marginTop = offsetY + 'px';
-
-  startLevel();
+// --- ВСПОМОГАТЕЛЬНЫЕ ФУНКЦИИ ---
+function getDistance(x1, y1, x2, y2) {
+    // В оригинале используется дистанция по прямой (Евклидова)
+    return Math.sqrt(Math.pow(x2 - x1, 2) + Math.pow(y2 - y1, 2));
 }
 
-function startLevel(){
-  // Parse map
-  map = [];
-  totalDots = 0; eatenDots = 0;
-  for(let r=0; r<ROWS; r++){
-    map[r] = [];
-    for(let c=0; c<COLS; c++){
-      const ch = MAP_TEMPLATE[r]?.[c] || '0';
-      const val = parseInt(ch);
-      map[r][c] = val;
-      if(val === 2 || val === 3) totalDots++;
-    }
-  }
-
-  // Pacman
-  pacman = {
-    x: 10, y: 15, // grid coords
-    dir: 'left',
-    nextDir: 'left',
-    mouth: 0,
-    mouthDir: 1,
-    alive: true,
-  };
-
-  // Ghosts
-  ghosts = [
-    {name:'blinky', color:'#ff0000', x:10, y:9, dir:'left', mode:'scatter', scared:false, eaten:false, home:false, homeTimer:0},
-    {name:'pinky', color:'#ffb8ff', x:9, y:10, dir:'up', mode:'scatter', scared:false, eaten:false, home:true, homeTimer:100},
-    {name:'inky', color:'#00ffff', x:11, y:10, dir:'up', mode:'scatter', scared:false, eaten:false, home:true, homeTimer:200},
-    {name:'clyde', color:'#ffb852', x:10, y:10, dir:'up', mode:'scatter', scared:false, eaten:false, home:true, homeTimer:300},
-  ];
-
-  powerMode = false;
-  powerTimer = 0;
-  ghostEatenCombo = 0;
-  gameRunning = true;
-  frameCount = 0;
-
-  document.getElementById('level-val').textContent = level;
-  updateLivesUI();
-
-  if(animFrame) cancelAnimationFrame(animFrame);
-  animFrame = requestAnimationFrame(loop);
+function getGridPos(x, y) {
+    return {
+        c: Math.floor(x / TILE_SIZE),
+        r: Math.floor(y / TILE_SIZE)
+    };
 }
 
-function updateLivesUI(){
-  document.getElementById('lives-val').textContent = '❤️'.repeat(Math.max(0,lives));
-}
-
-function showToast(msg){
-  const el = document.getElementById('toast');
-  el.textContent = msg;
-  el.classList.add('show');
-  setTimeout(()=>el.classList.remove('show'), 1500);
-}
-
-function showMenu(id){
-  document.querySelectorAll('.overlay').forEach(m=>m.classList.remove('active'));
-  if(id) document.getElementById('menu-'+id)?.classList.add('active');
-}
-
-/**
- * GAME LOOP
- */
-let lastTick = 0;
-const TICK_RATE = 150; // ms per tick
-
-function loop(ts){
-  animFrame = requestAnimationFrame(loop);
-  if(!gameRunning) return;
-
-  // Animate mouth
-  pacman.mouth += pacman.mouthDir * 0.15;
-  if(pacman.mouth > 0.8) pacman.mouthDir = -1;
-  if(pacman.mouth < 0.05) pacman.mouthDir = 1;
-
-  // Tick-based movement
-  if(ts - lastTick > TICK_RATE - level * 5){
-    lastTick = ts;
-    tick();
-  }
-
-  draw();
-  frameCount++;
-}
-
-function tick(){
-  if(!gameRunning) return;
-
-  // Try to change direction
-  const nd = DIRS[pacman.nextDir];
-  if(nd && canMove(pacman.x + nd.x, pacman.y + nd.y)){
-    pacman.dir = pacman.nextDir;
-  }
-
-  // Move pacman
-  const d = DIRS[pacman.dir];
-  if(d){
-    const nx = wrapX(pacman.x + d.x);
-    const ny = pacman.y + d.y;
-    if(canMove(nx, ny)){
-      pacman.x = nx;
-      pacman.y = ny;
-    }
-  }
-
-  // Eat dots
-  const cell = map[pacman.y]?.[pacman.x];
-  if(cell === 2){
-    map[pacman.y][pacman.x] = 0;
-    score += 10; eatenDots++;
-    if(frameCount % 3 === 0) AudioSys.sfx.chomp();
-    updateScore();
-  } else if(cell === 3){
-    map[pacman.y][pacman.x] = 0;
-    score += 50; eatenDots++;
-    AudioSys.sfx.power();
-    activatePowerMode();
-    updateScore();
-  }
-
-  // Check win
-  if(eatenDots >= totalDots){
-    winLevel();
-    return;
-  }
-
-  // Power mode timer
-  if(powerMode){
-    powerTimer--;
-    if(powerTimer <= 0){
-      powerMode = false;
-      ghosts.forEach(g=>{ if(!g.eaten) g.scared = false; });
-    }
-  }
-
-  // Move ghosts
-  ghosts.forEach(g => {
-    if(g.home){
-      g.homeTimer--;
-      if(g.homeTimer <= 0){
-        g.home = false;
-        g.x = 10; g.y = 8;
-      }
-      return;
-    }
-
-    if(g.eaten){
-      // Return to ghost house
-      const target = {x:10, y:10};
-      moveGhostTowards(g, target, true);
-      if(Math.abs(g.x - target.x) <= 0 && Math.abs(g.y - target.y) <= 0){
-        g.eaten = false;
-        g.scared = false;
-        g.home = false;
-      }
-      return;
-    }
-
-    // Ghost AI
-    let target;
-    if(g.scared){
-      // Random movement
-      target = {x: Math.floor(Math.random()*COLS), y: Math.floor(Math.random()*ROWS)};
-    } else {
-      // Mode-based targeting
-      if(g.mode === 'scatter'){
-        // Corners
-        const corners = [{x:1,y:1},{x:19,y:1},{x:1,y:21},{x:19,y:21}];
-        const idx = ghosts.indexOf(g);
-        target = corners[idx % 4];
-      } else {
-        // Chase
-        if(g.name === 'blinky') target = {x: pacman.x, y: pacman.y};
-        else if(g.name === 'pinky'){
-          const pd = DIRS[pacman.dir];
-          target = {x: pacman.x + pd.x*4, y: pacman.y + pd.y*4};
+function cloneMap() {
+    gameMap = [];
+    pelletsTotal = 0;
+    pelletsEaten = 0;
+    for (let r = 0; r < rawMap.length; r++) {
+        let row = [];
+        for (let c = 0; c < rawMap[r].length; c++) {
+            row.push(rawMap[r][c]);
+            if (rawMap[r][c] === MAP_TYPES.PELLET || rawMap[r][c] === MAP_TYPES.POWER_PELLET) {
+                pelletsTotal++;
+            }
         }
-        else if(g.name === 'inky'){
-          const pd = DIRS[pacman.dir];
-          const ax = pacman.x + pd.x*2, ay = pacman.y + pd.y*2;
-          target = {x: ax*2 - ghosts[0].x, y: ay*2 - ghosts[0].y};
-        }
-        else { // clyde
-          const dist = Math.abs(g.x-pacman.x)+Math.abs(g.y-pacman.y);
-          if(dist > 8) target = {x: pacman.x, y: pacman.y};
-          else target = {x:1, y:21};
-        }
-      }
+        gameMap.push(row);
+    }
+}
+
+// Проверка на столкновение с картой
+function isWall(c, r) {
+    if (c < 0 || c >= rawMap[0].length) return false; // Для туннеля
+    if (r < 0 || r >= rawMap.length) return true;
+    return gameMap[r][c] === MAP_TYPES.WALL || gameMap[r][c] === MAP_TYPES.GHOST_DOOR;
+}
+
+// --- КЛАСС ПАКМАНА ---
+class Pacman {
+    constructor() {
+        this.reset();
     }
 
-    moveGhostTowards(g, target, false);
-  });
+    reset() {
+        this.x = SPAWN.PACMAN.c * TILE_SIZE + TILE_SIZE / 2;
+        this.y = SPAWN.PACMAN.r * TILE_SIZE + TILE_SIZE / 2;
+        this.dir = DIR.LEFT;
+        this.nextDir = DIR.LEFT;
+        this.speed = PACMAN_SPEED;
+        this.mouthOpen = 0;
+        this.mouthDir = 1; // 1 = открывается, -1 = закрывается
+        this.dead = false;
+        this.deathFrame = 0;
+    }
 
-  // Mode switching
-  if(frameCount % 120 === 0){
+    update() {
+        if (this.dead) {
+            this.deathFrame++;
+            return;
+        }
+
+        // Анимация рта
+        this.mouthOpen += 0.15 * this.mouthDir;
+        if (this.mouthOpen >= 1 || this.mouthOpen <= 0) {
+            this.mouthDir *= -1;
+        }
+
+        // Логика поворота. Пакман может повернуть только если впереди нет стены,
+        // либо может развернуться на 180 градусов в любой момент.
+        let gridPos = getGridPos(this.x, this.y);
+        
+        // Попытка применить желаемое направление (nextDir)
+        if (this.nextDir !== this.dir) {
+            // Если разворот
+            if (this.nextDir.x === -this.dir.x && this.nextDir.y === -this.dir.y) {
+                this.dir = this.nextDir;
+            } else {
+                // Пытаемся повернуть на перекрестке. Выравниваем по центру ячейки
+                let centerX = gridPos.c * TILE_SIZE + TILE_SIZE / 2;
+                let centerY = gridPos.r * TILE_SIZE + TILE_SIZE / 2;
+                
+                // Допуск для поворота (снаппинг к сетке)
+                if (Math.abs(this.x - centerX) < this.speed && Math.abs(this.y - centerY) < this.speed) {
+                    if (!isWall(gridPos.c + this.nextDir.x, gridPos.r + this.nextDir.y)) {
+                        this.x = centerX;
+                        this.y = centerY;
+                        this.dir = this.nextDir;
+                    }
+                }
+            }
+        }
+
+        // Движение вперед
+        let nextX = this.x + this.dir.x * this.speed;
+        let nextY = this.y + this.dir.y * this.speed;
+        let nextGridPos = getGridPos(nextX, nextY);
+
+        // Проверка столкновения со стеной в текущем направлении
+        if (this.dir.x > 0 && isWall(nextGridPos.c, gridPos.r) && nextX > gridPos.c * TILE_SIZE + TILE_SIZE / 2) {
+            this.x = gridPos.c * TILE_SIZE + TILE_SIZE / 2;
+        } else if (this.dir.x < 0 && isWall(nextGridPos.c, gridPos.r) && nextX < gridPos.c * TILE_SIZE + TILE_SIZE / 2) {
+            this.x = gridPos.c * TILE_SIZE + TILE_SIZE / 2;
+        } else if (this.dir.y > 0 && isWall(gridPos.c, nextGridPos.r) && nextY > gridPos.r * TILE_SIZE + TILE_SIZE / 2) {
+            this.y = gridPos.r * TILE_SIZE + TILE_SIZE / 2;
+        } else if (this.dir.y < 0 && isWall(gridPos.c, nextGridPos.r) && nextY < gridPos.r * TILE_SIZE + TILE_SIZE / 2) {
+            this.y = gridPos.r * TILE_SIZE + TILE_SIZE / 2;
+        } else {
+            this.x = nextX;
+            this.y = nextY;
+        }
+
+        // Туннель
+        if (this.x < -TILE_SIZE / 2) this.x = gameMap[0].length * TILE_SIZE + TILE_SIZE / 2;
+        if (this.x > gameMap[0].length * TILE_SIZE + TILE_SIZE / 2) this.x = -TILE_SIZE / 2;
+
+        this.eat();
+    }
+
+    eat() {
+        let gridPos = getGridPos(this.x, this.y);
+        if (gridPos.c >= 0 && gridPos.c < gameMap[0].length) {
+            let tile = gameMap[gridPos.r][gridPos.c];
+            if (tile === MAP_TYPES.PELLET) {
+                gameMap[gridPos.r][gridPos.c] = MAP_TYPES.EMPTY;
+                score += 10;
+                pelletsEaten++;
+                checkWin();
+            } else if (tile === MAP_TYPES.POWER_PELLET) {
+                gameMap[gridPos.r][gridPos.c] = MAP_TYPES.EMPTY;
+                score += 50;
+                pelletsEaten++;
+                activateFrightenedMode();
+                checkWin();
+            }
+        }
+    }
+
+    draw(ctx) {
+        ctx.save();
+        ctx.translate(this.x, this.y);
+        
+        // Поворот в зависимости от направления
+        if (this.dir === DIR.RIGHT) ctx.rotate(0);
+        else if (this.dir === DIR.DOWN) ctx.rotate(Math.PI / 2);
+        else if (this.dir === DIR.LEFT) ctx.rotate(Math.PI);
+        else if (this.dir === DIR.UP) ctx.rotate(-Math.PI / 2);
+
+        ctx.fillStyle = "var(--pacman-yellow)";
+        ctx.beginPath();
+        
+        if (this.dead) {
+            // Анимация смерти Пакмана
+            let angle = (this.deathFrame / 60) * Math.PI;
+            if (angle < Math.PI) {
+                ctx.arc(0, 0, TILE_SIZE / 2.2, angle, Math.PI * 2 - angle);
+                ctx.lineTo(0, 0);
+            }
+        } else {
+            let angle = 0.2 * Math.PI * this.mouthOpen;
+            ctx.arc(0, 0, TILE_SIZE / 2.2, angle, Math.PI * 2 - angle);
+            ctx.lineTo(0, 0);
+        }
+        
+        ctx.fill();
+        ctx.restore();
+    }
+}
+
+// --- КЛАСС ПРИЗРАКА ---
+class Ghost {
+    constructor(type, color, startPos) {
+        this.type = type; // 'BLINKY', 'PINKY', 'INKY', 'CLYDE'
+        this.color = color;
+        this.startPos = startPos;
+        this.reset();
+    }
+
+    reset() {
+        this.x = this.startPos.c * TILE_SIZE + TILE_SIZE / 2;
+        this.y = this.startPos.r * TILE_SIZE + TILE_SIZE / 2;
+        this.dir = DIR.LEFT;
+        
+        // Разные начальные состояния
+        if (this.type === 'BLINKY') {
+            this.state = gameMode;
+            this.x = SPAWN.BLINKY.c * TILE_SIZE + TILE_SIZE / 2;
+            this.y = SPAWN.BLINKY.r * TILE_SIZE + TILE_SIZE / 2;
+        } else {
+            this.state = GHOST_STATE.IN_PEN;
+        }
+        
+        this.speed = GHOST_SPEED_NORMAL;
+        this.target = { c: 0, r: 0 };
+    }
+
+    update() {
+        if (gameState !== 'PLAYING') return;
+
+        // Логика выхода из домика
+        if (this.state === GHOST_STATE.IN_PEN) {
+            // Упрощенная логика выхода (по таймеру/количеству съеденных точек)
+            let release = false;
+            if (this.type === 'PINKY') release = true;
+            if (this.type === 'INKY' && pelletsEaten > 30) release = true;
+            if (this.type === 'CLYDE' && pelletsEaten > 80) release = true;
+
+            if (release) {
+                // Двигаемся к двери
+                let targetX = SPAWN.GHOST_DOOR.c * TILE_SIZE + TILE_SIZE / 2;
+                let targetY = (SPAWN.GHOST_DOOR.r - 1) * TILE_SIZE + TILE_SIZE / 2;
+                
+                if (Math.abs(this.x - targetX) > 1) {
+                    this.x += (targetX - this.x) > 0 ? this.speed : -this.speed;
+                } else if (Math.abs(this.y - targetY) > 1) {
+                    this.y -= this.speed;
+                } else {
+                    this.x = targetX;
+                    this.y = targetY;
+                    this.state = gameMode; // Вышли из домика
+                }
+            } else {
+                // Подпрыгивание в домике
+                this.y += Math.sin(Date.now() / 150) * 0.5;
+            }
+            return;
+        }
+
+        // Определение целевой клетки в зависимости от состояния и типа
+        this.updateTarget();
+
+        // Если съеден, летим на базу очень быстро
+        if (this.state === GHOST_STATE.EATEN) {
+            this.speed = PACMAN_SPEED * 2;
+            if (Math.abs(this.x - SPAWN.GHOST_DOOR.c * TILE_SIZE - TILE_SIZE/2) < 2 && 
+                Math.abs(this.y - SPAWN.GHOST_DOOR.r * TILE_SIZE - TILE_SIZE/2) < 2) {
+                this.state = GHOST_STATE.IN_PEN;
+            }
+        } else if (this.state === GHOST_STATE.FRIGHTENED) {
+            this.speed = GHOST_SPEED_FRIGHTENED;
+        } else {
+            this.speed = GHOST_SPEED_NORMAL;
+            // Туннель замедляет
+            let gPos = getGridPos(this.x, this.y);
+            if (gameMap[gPos.r] && gameMap[gPos.r][gPos.c] === MAP_TYPES.TUNNEL) {
+                this.speed = GHOST_SPEED_FRIGHTENED;
+            }
+        }
+
+        this.move();
+    }
+
+    updateTarget() {
+        if (this.state === GHOST_STATE.EATEN) {
+            this.target = SPAWN.GHOST_DOOR;
+            return;
+        }
+
+        let pGrid = getGridPos(pacman.x, pacman.y);
+
+        if (this.state === GHOST_STATE.SCATTER) {
+            // Углы для разбегания
+            switch(this.type) {
+                case 'BLINKY': this.target = { c: 26, r: 1 }; break; // Верх-Право
+                case 'PINKY':  this.target = { c: 1, r: 1 }; break;  // Верх-Лево
+                case 'INKY':   this.target = { c: 26, r: 29 }; break; // Низ-Право
+                case 'CLYDE':  this.target = { c: 1, r: 29 }; break;  // Низ-Лево
+            }
+        } else if (this.state === GHOST_STATE.CHASE) {
+            switch(this.type) {
+                case 'BLINKY':
+                    // Прямо на Пакмана
+                    this.target = { c: pGrid.c, r: pGrid.r };
+                    break;
+                case 'PINKY':
+                    // 4 клетки впереди Пакмана
+                    this.target = { 
+                        c: pGrid.c + pacman.dir.x * 4, 
+                        r: pGrid.r + pacman.dir.y * 4 
+                    };
+                    break;
+                case 'INKY':
+                    // Вектор от Блинки через точку в 2 клетках перед Пакманом
+                    let blinky = ghosts.find(g => g.type === 'BLINKY');
+                    let bGrid = getGridPos(blinky.x, blinky.y);
+                    let pivotC = pGrid.c + pacman.dir.x * 2;
+                    let pivotR = pGrid.r + pacman.dir.y * 2;
+                    this.target = {
+                        c: pivotC + (pivotC - bGrid.c),
+                        r: pivotR + (pivotR - bGrid.r)
+                    };
+                    break;
+                case 'CLYDE':
+                    // К Пакману, если далеко, разбегание если близко
+                    let dist = getDistance(pGrid.c, pGrid.r, getGridPos(this.x, this.y).c, getGridPos(this.x, this.y).r);
+                    if (dist > 8) {
+                        this.target = { c: pGrid.c, r: pGrid.r };
+                    } else {
+                        this.target = { c: 1, r: 29 }; // Scatter target
+                    }
+                    break;
+            }
+        }
+    }
+
+    move() {
+        let gridPos = getGridPos(this.x, this.y);
+        
+        // Туннель - телепортация
+        if (this.x < -TILE_SIZE / 2) this.x = gameMap[0].length * TILE_SIZE + TILE_SIZE / 2;
+        if (this.x > gameMap[0].length * TILE_SIZE + TILE_SIZE / 2) this.x = -TILE_SIZE / 2;
+
+        let centerX = gridPos.c * TILE_SIZE + TILE_SIZE / 2;
+        let centerY = gridPos.r * TILE_SIZE + TILE_SIZE / 2;
+
+        // Если находимся точно по центру ячейки (перекресток)
+        if (Math.abs(this.x - centerX) <= this.speed && Math.abs(this.y - centerY) <= this.speed) {
+            this.x = centerX;
+            this.y = centerY;
+
+            // Выбор следующего направления
+            let validMoves = [];
+            const directions = [DIR.UP, DIR.LEFT, DIR.DOWN, DIR.RIGHT];
+
+            for (let d of directions) {
+                // Призраки не могут разворачиваться на 180 градусов (кроме смены состояний)
+                if (d.x === -this.dir.x && d.y === -this.dir.y) continue;
+
+                let nextC = gridPos.c + d.x;
+                let nextR = gridPos.r + d.y;
+
+                // Проверка стены. Дверь домика - стена для всех, кроме тех, кто съеден или выходит
+                let tileType = (nextR >= 0 && nextR < rawMap.length) ? gameMap[nextR][nextC] : MAP_TYPES.EMPTY;
+                let isBlock = tileType === MAP_TYPES.WALL;
+                
+                if (tileType === MAP_TYPES.GHOST_DOOR && this.state !== GHOST_STATE.EATEN && this.state !== GHOST_STATE.IN_PEN) {
+                    isBlock = true;
+                }
+
+                if (!isBlock) {
+                    validMoves.push(d);
+                }
+            }
+
+            if (validMoves.length > 0) {
+                if (this.state === GHOST_STATE.FRIGHTENED) {
+                    // Случайный выбор при испуге
+                    this.dir = validMoves[Math.floor(Math.random() * validMoves.length)];
+                } else {
+                    // Выбор пути с минимальной дистанцией до цели
+                    let minDistance = Infinity;
+                    let bestMove = validMoves[0];
+
+                    for (let move of validMoves) {
+                        let testC = gridPos.c + move.x;
+                        let testR = gridPos.r + move.y;
+                        let dist = getDistance(testC, testR, this.target.c, this.target.r);
+                        
+                        if (dist < minDistance) {
+                            minDistance = dist;
+                            bestMove = move;
+                        }
+                    }
+                    this.dir = bestMove;
+                }
+            } else if (validMoves.length === 0) {
+                 // Тупик (быть не должно на классической карте, но для безопасности разворот)
+                 this.dir = {x: -this.dir.x, y: -this.dir.y};
+            }
+        }
+
+        // Движение
+        this.x += this.dir.x * this.speed;
+        this.y += this.dir.y * this.speed;
+    }
+
+    draw(ctx) {
+        let x = this.x;
+        let y = this.y;
+        let size = TILE_SIZE * 0.8;
+
+        ctx.save();
+        ctx.translate(x, y);
+
+        // Отрисовка тела
+        if (this.state !== GHOST_STATE.EATEN) {
+            if (this.state === GHOST_STATE.FRIGHTENED) {
+                // Мигание перед окончанием испуга
+                if (frightenedTimer < 120 && Math.floor(Date.now() / 200) % 2 === 0) {
+                    ctx.fillStyle = "#FFF"; // Белый
+                } else {
+                    ctx.fillStyle = "#0000FF"; // Синий
+                }
+            } else {
+                ctx.fillStyle = this.color;
+            }
+
+            ctx.beginPath();
+            ctx.arc(0, -size/4, size/2, Math.PI, 0); // Верхняя полусфера
+            
+            // Волнистый низ
+            ctx.lineTo(size/2, size/2);
+            let waveOffset = (Math.floor(Date.now() / 150) % 2 === 0) ? 0 : size/6;
+            ctx.lineTo(size/3, size/2 - waveOffset);
+            ctx.lineTo(size/6, size/2 + waveOffset);
+            ctx.lineTo(-size/6, size/2 - waveOffset);
+            ctx.lineTo(-size/3, size/2 + waveOffset);
+            ctx.lineTo(-size/2, size/2);
+            
+            ctx.closePath();
+            ctx.fill();
+        }
+
+        // Глаза
+        let eyeOffsetX = (this.dir.x * size) / 5;
+        let eyeOffsetY = (this.dir.y * size) / 5;
+
+        // Белки глаз
+        if (this.state !== GHOST_STATE.FRIGHTENED || this.state === GHOST_STATE.EATEN) {
+            ctx.fillStyle = "white";
+            ctx.beginPath(); ctx.arc(-size/4 + eyeOffsetX, -size/6 + eyeOffsetY, size/5, 0, Math.PI*2); ctx.fill();
+            ctx.beginPath(); ctx.arc(size/4 + eyeOffsetX, -size/6 + eyeOffsetY, size/5, 0, Math.PI*2); ctx.fill();
+
+            // Зрачки
+            ctx.fillStyle = "blue";
+            ctx.beginPath(); ctx.arc(-size/4 + eyeOffsetX*1.5, -size/6 + eyeOffsetY*1.5, size/10, 0, Math.PI*2); ctx.fill();
+            ctx.beginPath(); ctx.arc(size/4 + eyeOffsetX*1.5, -size/6 + eyeOffsetY*1.5, size/10, 0, Math.PI*2); ctx.fill();
+        } else {
+            // Глаза при испуге (простые квадратики)
+            ctx.fillStyle = "#FFAA00";
+            ctx.fillRect(-size/3, -size/4, size/5, size/5);
+            ctx.fillRect(size/6, -size/4, size/5, size/5);
+            // Волнистый рот
+            ctx.beginPath();
+            ctx.moveTo(-size/3, size/6);
+            ctx.lineTo(-size/6, 0);
+            ctx.lineTo(0, size/6);
+            ctx.lineTo(size/6, 0);
+            ctx.lineTo(size/3, size/6);
+            ctx.strokeStyle = "#FFAA00";
+            ctx.lineWidth = 1.5;
+            ctx.stroke();
+        }
+
+        ctx.restore();
+    }
+}
+
+// --- ЛОГИКА ИГРЫ ---
+
+function initGame() {
+    canvas = document.getElementById('gameCanvas');
+    ctx = canvas.getContext('2d');
+    
+    // События клавиатуры
+    document.addEventListener('keydown', handleKeyDown);
+
+    // События кнопок (для мобильных)
+    document.getElementById('btn-up').addEventListener('touchstart', (e) => { e.preventDefault(); pacman.nextDir = DIR.UP; });
+    document.getElementById('btn-down').addEventListener('touchstart', (e) => { e.preventDefault(); pacman.nextDir = DIR.DOWN; });
+    document.getElementById('btn-left').addEventListener('touchstart', (e) => { e.preventDefault(); pacman.nextDir = DIR.LEFT; });
+    document.getElementById('btn-right').addEventListener('touchstart', (e) => { e.preventDefault(); pacman.nextDir = DIR.RIGHT; });
+    // Клики мыши для отладки на ПК
+    document.getElementById('btn-up').addEventListener('click', () => pacman.nextDir = DIR.UP);
+    document.getElementById('btn-down').addEventListener('click', () => pacman.nextDir = DIR.DOWN);
+    document.getElementById('btn-left').addEventListener('click', () => pacman.nextDir = DIR.LEFT);
+    document.getElementById('btn-right').addEventListener('click', () => pacman.nextDir = DIR.RIGHT);
+
+    document.getElementById('start-btn').addEventListener('click', () => {
+        document.getElementById('overlay').classList.add('hidden');
+        resetLevel(true);
+    });
+
+    // Отрисовка начального экрана
+    cloneMap();
+    drawMap();
+}
+
+function handleKeyDown(e) {
+    if (gameState !== 'PLAYING') return;
+    switch(e.key) {
+        case 'ArrowUp': case 'w': case 'W': case 'ц': case 'Ц': pacman.nextDir = DIR.UP; break;
+        case 'ArrowDown': case 's': case 'S': case 'ы': case 'Ы': pacman.nextDir = DIR.DOWN; break;
+        case 'ArrowLeft': case 'a': case 'A': case 'ф': case 'Ф': pacman.nextDir = DIR.LEFT; break;
+        case 'ArrowRight': case 'd': case 'D': case 'в': case 'В': pacman.nextDir = DIR.RIGHT; break;
+    }
+}
+
+function resetLevel(fullReset = false) {
+    if (fullReset) {
+        score = 0;
+        lives = 3;
+        level = 1;
+        cloneMap();
+        updateUI();
+    }
+
+    pacman = new Pacman();
+    ghosts = [
+        new Ghost('BLINKY', '#FF0000', SPAWN.BLINKY),
+        new Ghost('PINKY', '#FFB8FF', SPAWN.PINKY),
+        new Ghost('INKY', '#00FFFF', SPAWN.INKY),
+        new Ghost('CLYDE', '#FFB852', SPAWN.CLYDE)
+    ];
+
+    currentModeIndex = 0;
+    modeTimer = 0;
+    frightenedTimer = 0;
+    gameMode = GHOST_STATE.SCATTER;
+    gameState = 'PLAYING';
+
+    if (animationId) cancelAnimationFrame(animationId);
+    gameLoop();
+}
+
+function activateFrightenedMode() {
+    frightenedTimer = 60 * 6; // 6 секунд испуга
+    ghostsEatenMultiplier = 1;
+    
     ghosts.forEach(g => {
-      if(!g.scared && !g.eaten && !g.home){
-        g.mode = g.mode === 'scatter' ? 'chase' : 'scatter';
-      }
+        if (g.state !== GHOST_STATE.EATEN && g.state !== GHOST_STATE.IN_PEN) {
+            g.state = GHOST_STATE.FRIGHTENED;
+            // Призраки меняют направление при испуге
+            g.dir = {x: -g.dir.x, y: -g.dir.y};
+            g.lastNode = null; // Заставляем пересчитать путь
+        }
     });
-  }
+}
 
-  // Check ghost collision
-  ghosts.forEach(g => {
-    if(g.home || g.eaten) return;
-    if(g.x === pacman.x && g.y === pacman.y){
-      if(g.scared){
-        // Eat ghost
-        g.eaten = true;
-        g.scared = false;
-        ghostEatenCombo++;
-        score += 200 * ghostEatenCombo;
-        AudioSys.sfx.eatGhost();
-        updateScore();
-        showToast(`👻 +${200 * ghostEatenCombo}`);
-      } else {
-        // Pacman dies
-        pacmanDeath();
-      }
+function checkCollisions() {
+    for (let ghost of ghosts) {
+        let dist = getDistance(pacman.x, pacman.y, ghost.x, ghost.y);
+        
+        if (dist < TILE_SIZE * 0.8) {
+            if (ghost.state === GHOST_STATE.FRIGHTENED) {
+                // Съели призрака
+                ghost.state = GHOST_STATE.EATEN;
+                score += 200 * ghostsEatenMultiplier;
+                ghostsEatenMultiplier *= 2;
+                updateUI();
+                // Небольшая пауза эффекта съедения можно добавить здесь
+            } else if (ghost.state === GHOST_STATE.CHASE || ghost.state === GHOST_STATE.SCATTER) {
+                // Пакман умер
+                killPacman();
+            }
+        }
     }
-  });
 }
 
-function moveGhostTowards(g, target, isEaten){
-  const opposites = {up:'down',down:'up',left:'right',right:'left'};
-  const dirNames = ['up','down','left','right'];
-  const reverse = opposites[g.dir];
+function killPacman() {
+    gameState = 'DEATH';
+    pacman.dead = true;
+    lives--;
+    updateUI();
+    
+    setTimeout(() => {
+        if (lives > 0) {
+            resetLevel(false);
+        } else {
+            gameOver();
+        }
+    }, 2000);
+}
 
-  let bestDist = Infinity;
-  let bestDir = g.dir;
-
-  for(const dn of dirNames){
-    if(dn === reverse) continue;
-    const d = DIRS[dn];
-    const nx = wrapX(g.x + d.x);
-    const ny = g.y + d.y;
-
-    // Check walkable
-    const cell = map[ny]?.[nx];
-    if(cell === 1) continue; // wall
-    if(cell === 5 && !isEaten) continue; // ghost gate (only eaten can pass)
-
-    const dist = (nx-target.x)**2 + (ny-target.y)**2;
-    if(dist < bestDist){
-      bestDist = dist;
-      bestDir = dn;
+function checkWin() {
+    updateUI();
+    if (pelletsEaten >= pelletsTotal) {
+        gameState = 'WIN';
+        setTimeout(() => {
+            level++;
+            cloneMap();
+            resetLevel(false);
+        }, 2000);
     }
-  }
+}
 
-  // Add randomness for scared ghosts
-  if(g.scared && Math.random() < 0.3){
-    const validDirs = dirNames.filter(dn => {
-      if(dn === reverse) return false;
-      const dd = DIRS[dn];
-      const nx = wrapX(g.x + dd.x);
-      const ny = g.y + dd.y;
-      const cell = map[ny]?.[nx];
-      return cell !== 1 && (cell !== 5 || isEaten);
-    });
-    if(validDirs.length > 0){
-      bestDir = validDirs[Math.floor(Math.random() * validDirs.length)];
+function gameOver() {
+    gameState = 'GAMEOVER';
+    document.getElementById('overlay-title').innerText = 'ИГРА ОКОНЧЕНА';
+    document.getElementById('start-btn').innerText = 'ИГРАТЬ СНОВА';
+    document.getElementById('overlay').classList.remove('hidden');
+}
+
+function updateUI() {
+    document.getElementById('score').innerText = score;
+    document.getElementById('lives').innerText = lives;
+}
+
+// --- ОТРИСОВКА ---
+
+function drawMap() {
+    ctx.fillStyle = 'black';
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+    for (let r = 0; r < gameMap.length; r++) {
+        for (let c = 0; c < gameMap[r].length; c++) {
+            let tile = gameMap[r][c];
+            let x = c * TILE_SIZE;
+            let y = r * TILE_SIZE;
+
+            if (tile === MAP_TYPES.WALL) {
+                // Отрисовка стен в стиле неон
+                ctx.strokeStyle = '#1919A6'; // Классический синий цвет стен
+                ctx.lineWidth = 2;
+                ctx.strokeRect(x, y, TILE_SIZE, TILE_SIZE);
+            } else if (tile === MAP_TYPES.PELLET) {
+                ctx.fillStyle = '#FFB8AE';
+                ctx.beginPath();
+                ctx.arc(x + TILE_SIZE/2, y + TILE_SIZE/2, TILE_SIZE/8, 0, Math.PI*2);
+                ctx.fill();
+            } else if (tile === MAP_TYPES.POWER_PELLET) {
+                // Мигание энерджайзера
+                if (Math.floor(Date.now() / 200) % 2 === 0) {
+                    ctx.fillStyle = '#FFB8AE';
+                    ctx.beginPath();
+                    ctx.arc(x + TILE_SIZE/2, y + TILE_SIZE/2, TILE_SIZE/3.5, 0, Math.PI*2);
+                    ctx.fill();
+                }
+            } else if (tile === MAP_TYPES.GHOST_DOOR) {
+                ctx.fillStyle = 'pink';
+                ctx.fillRect(x, y + TILE_SIZE/2.5, TILE_SIZE, TILE_SIZE/5);
+            }
+        }
     }
-  }
+}
 
-  g.dir = bestDir;
-  const dd = DIRS[g.dir];
-  if(dd){
-    const nx = wrapX(g.x + dd.x);
-    const ny = g.y + dd.y;
-    const cell = map[ny]?.[nx];
-    if(cell !== 1 && (cell !== 5 || isEaten)){
-      g.x = nx;
-      g.y = ny;
+// --- ГЛАВНЫЙ ИГРОВОЙ ЦИКЛ ---
+
+function gameLoop() {
+    if (gameState === 'PLAYING') {
+        // Управление глобальными таймерами
+        if (frightenedTimer > 0) {
+            frightenedTimer--;
+            if (frightenedTimer === 0) {
+                // Возврат к нормальному состоянию
+                ghosts.forEach(g => {
+                    if (g.state === GHOST_STATE.FRIGHTENED) {
+                        g.state = gameMode;
+                    }
+                });
+            }
+        } else {
+            modeTimer++;
+            if (modeTimer >= MODE_TIMES[currentModeIndex]) {
+                modeTimer = 0;
+                currentModeIndex++;
+                gameMode = (gameMode === GHOST_STATE.SCATTER) ? GHOST_STATE.CHASE : GHOST_STATE.SCATTER;
+                
+                // Разворот призраков при смене глобального режима (классическое правило)
+                ghosts.forEach(g => {
+                    if (g.state !== GHOST_STATE.IN_PEN && g.state !== GHOST_STATE.EATEN) {
+                        g.state = gameMode;
+                        g.dir = {x: -g.dir.x, y: -g.dir.y};
+                        g.lastNode = null; // Заставляем пересчитать путь
+                    }
+                });
+            }
+        }
+
+        pacman.update();
+        ghosts.forEach(g => g.update());
+        checkCollisions();
+    } else if (gameState === 'DEATH') {
+        pacman.update(); // Для анимации смерти
     }
-  }
-}
 
-function canMove(x, y){
-  x = wrapX(x);
-  if(y < 0 || y >= ROWS) return false;
-  const cell = map[y][x];
-  return cell !== 1 && cell !== 5; // walls and gate
-}
+    // Рендер
+    drawMap();
+    if (!pacman.dead || gameState === 'DEATH') pacman.draw(ctx);
+    if (gameState !== 'DEATH') ghosts.forEach(g => g.draw(ctx));
 
-function wrapX(x){
-  if(x < 0) return COLS - 1;
-  if(x >= COLS) return 0;
-  return x;
-}
-
-function activatePowerMode(){
-  powerMode = true;
-  powerTimer = 40 - level * 3; // Shorter at higher levels
-  if(powerTimer < 15) powerTimer = 15;
-  ghostEatenCombo = 0;
-  ghosts.forEach(g => {
-    if(!g.eaten && !g.home) g.scared = true;
-  });
-}
-
-function pacmanDeath(){
-  AudioSys.sfx.die();
-  lives--;
-  updateLivesUI();
-
-  if(lives <= 0){
-    gameRunning = false;
-    gameOver();
-    return;
-  }
-
-  showToast('💀 Потерял жизнь!');
-
-  // Reset positions
-  pacman.x = 10; pacman.y = 15; pacman.dir = 'left'; pacman.nextDir = 'left';
-  ghosts.forEach((g, i) => {
-    g.x = [10,9,11,10][i];
-    g.y = [9,10,10,10][i];
-    g.dir = 'up';
-    g.scared = false;
-    g.eaten = false;
-    g.home = i > 0;
-    g.homeTimer = i * 100;
-  });
-  powerMode = false;
-}
-
-function winLevel(){
-  gameRunning = false;
-  AudioSys.sfx.win();
-  showToast('🎉 Уровень пройден!');
-
-  level++;
-  setTimeout(()=>{
-    startLevel();
-  }, 1500);
-}
-
-function gameOver(){
-  if(score > highScore){
-    highScore = score;
-    localStorage.setItem('pacman_high', highScore);
-  }
-  document.getElementById('go-title').textContent = 'GAME OVER';
-  document.getElementById('go-stats').textContent = `Очки: ${score} | Уровень: ${level} | Рекорд: ${highScore}`;
-  showMenu('game-over');
-}
-
-function updateScore(){
-  document.getElementById('score-val').textContent = score;
-}
-
-/**
- * DRAW
- */
-function draw(){
-  const canvas = document.getElementById('c');
-  const ctx = canvas.getContext('2d');
-  const cs = cellSize;
-
-  // Background
-  ctx.fillStyle = '#050508';
-  ctx.fillRect(0, 0, canvas.width, canvas.height);
-
-  // Map
-  for(let r = 0; r < ROWS; r++){
-    for(let c = 0; c < COLS; c++){
-      const x = c * cs;
-      const y = r * cs;
-      const cell = map[r][c];
-
-      if(cell === 1){
-        // Wall
-        ctx.fillStyle = '#1122aa';
-        ctx.fillRect(x, y, cs, cs);
-
-        // Wall border glow
-        ctx.strokeStyle = '#3355ff';
-        ctx.lineWidth = 1;
-
-        // Check neighbors for inner lines
-        const top = r > 0 && map[r-1][c] === 1;
-        const bottom = r < ROWS-1 && map[r+1][c] === 1;
-        const left = c > 0 && map[r][c-1] === 1;
-        const right = c < COLS-1 && map[r][c+1] === 1;
-
-        ctx.strokeStyle = '#4466ff';
-        ctx.lineWidth = 1.5;
-
-        if(!top){ ctx.beginPath(); ctx.moveTo(x, y+0.5); ctx.lineTo(x+cs, y+0.5); ctx.stroke(); }
-        if(!bottom){ ctx.beginPath(); ctx.moveTo(x, y+cs-0.5); ctx.lineTo(x+cs, y+cs-0.5); ctx.stroke(); }
-        if(!left){ ctx.beginPath(); ctx.moveTo(x+0.5, y); ctx.lineTo(x+0.5, y+cs); ctx.stroke(); }
-        if(!right){ ctx.beginPath(); ctx.moveTo(x+cs-0.5, y); ctx.lineTo(x+cs-0.5, y+cs); ctx.stroke(); }
-
-      } else if(cell === 2){
-        // Dot
-        ctx.fillStyle = '#ffb8ff';
-        ctx.beginPath();
-        ctx.arc(x + cs/2, y + cs/2, cs * 0.1, 0, Math.PI * 2);
-        ctx.fill();
-      } else if(cell === 3){
-        // Power dot (pulsing)
-        const pulse = 0.25 + Math.sin(frameCount * 0.1) * 0.1;
-        ctx.fillStyle = '#ffd700';
-        ctx.shadowBlur = 8;
-        ctx.shadowColor = '#ffd700';
-        ctx.beginPath();
-        ctx.arc(x + cs/2, y + cs/2, cs * pulse, 0, Math.PI * 2);
-        ctx.fill();
-        ctx.shadowBlur = 0;
-      } else if(cell === 5){
-        // Ghost gate
-        ctx.fillStyle = '#ffb8ff';
-        ctx.fillRect(x, y + cs * 0.4, cs, cs * 0.2);
-      }
+    // Текст при ожидании
+    if (gameState === 'WIN') {
+        ctx.fillStyle = "yellow";
+        ctx.font = "30px Courier New";
+        ctx.textAlign = "center";
+        ctx.fillText("LEVEL CLEARED!", canvas.width/2, canvas.height/2 + 50);
     }
-  }
 
-  // Ghosts
-  ghosts.forEach(g => {
-    if(g.home && g.homeTimer > 0){
-      // Bob in ghost house
-      const bobY = 10 + Math.sin(frameCount * 0.1) * 0.3;
-      drawGhost(ctx, g.x * cs + cs/2, bobY * cs + cs/2, cs, g.color, false, false);
-      return;
+    if (gameState !== 'GAMEOVER') {
+        animationId = requestAnimationFrame(gameLoop);
     }
-    if(g.eaten){
-      // Just eyes
-      drawGhostEyes(ctx, g.x * cs + cs/2, g.y * cs + cs/2, cs, g.dir);
-      return;
-    }
-    const color = g.scared ? (powerTimer < 10 && frameCount % 6 < 3 ? '#fff' : '#2222ff') : g.color;
-    drawGhost(ctx, g.x * cs + cs/2, g.y * cs + cs/2, cs, color, g.scared, false);
-  });
-
-  // Pacman
-  if(pacman.alive){
-    drawPacman(ctx, pacman.x * cs + cs/2, pacman.y * cs + cs/2, cs);
-  }
 }
 
-function drawPacman(ctx, cx, cy, cs){
-  const r = cs * 0.45;
-  const mouth = pacman.mouth * 0.4;
-  const angle = pacman.dir === 'right' ? 0 : pacman.dir === 'down' ? Math.PI/2 : pacman.dir === 'left' ? Math.PI : -Math.PI/2;
+// Запуск инициализации при загрузке
+window.onload = initGame;
 
-  ctx.fillStyle = '#ffdd00';
-  ctx.shadowBlur = 10;
-  ctx.shadowColor = '#ffdd00';
-  ctx.beginPath();
-  ctx.arc(cx, cy, r, angle + mouth, angle + Math.PI * 2 - mouth);
-  ctx.lineTo(cx, cy);
-  ctx.closePath();
-  ctx.fill();
-  ctx.shadowBlur = 0;
-
-  // Eye
-  const eyeOff = angle;
-  const ex = cx + Math.cos(eyeOff - 0.5) * r * 0.4;
-  const ey = cy + Math.sin(eyeOff - 0.5) * r * 0.4;
-  ctx.fillStyle = '#000';
-  ctx.beginPath();
-  ctx.arc(ex, ey, r * 0.12, 0, Math.PI * 2);
-  ctx.fill();
-}
-
-function drawGhost(ctx, cx, cy, cs, color, scared, eaten){
-  const r = cs * 0.42;
-
-  // Body
-  ctx.fillStyle = color;
-  if(scared) { ctx.shadowBlur = 6; ctx.shadowColor = '#2222ff'; }
-  ctx.beginPath();
-  ctx.arc(cx, cy - r * 0.15, r, Math.PI, 0);
-  ctx.lineTo(cx + r, cy + r * 0.7);
-
-  // Wavy bottom
-  const wave = Math.sin(frameCount * 0.15) * 2;
-  const segs = 3;
-  const segW = (r * 2) / segs;
-  for(let i = segs; i > 0; i--){
-    const sx = cx + r - (segs - i) * segW;
-    const sy = cy + r * 0.7 + (i % 2 === 0 ? wave : -wave);
-    ctx.lineTo(sx - segW/2, sy);
-    ctx.lineTo(sx - segW, cy + r * 0.7);
-  }
-  ctx.closePath();
-  ctx.fill();
-  ctx.shadowBlur = 0;
-
-  if(scared){
-    // Scared face
-    ctx.fillStyle = '#fff';
-    ctx.beginPath();
-    ctx.arc(cx - r*0.25, cy - r*0.15, r*0.12, 0, Math.PI*2); ctx.fill();
-    ctx.beginPath();
-    ctx.arc(cx + r*0.25, cy - r*0.15, r*0.12, 0, Math.PI*2); ctx.fill();
-
-    // Wavy mouth
-    ctx.strokeStyle = '#fff';
-    ctx.lineWidth = 1;
-    ctx.beginPath();
-    ctx.moveTo(cx - r*0.3, cy + r*0.2);
-    for(let i=0; i<5; i++){
-      ctx.lineTo(cx - r*0.3 + i*r*0.15, cy + r*0.2 + (i%2?-2:2));
-    }
-    ctx.stroke();
-  } else {
-    drawGhostEyes(ctx, cx, cy, cs, pacman.dir);
-  }
-}
-
-function drawGhostEyes(ctx, cx, cy, cs, lookDir){
-  const r = cs * 0.42;
-  const eyeR = r * 0.22;
-  const pupilR = r * 0.12;
-
-  // Eye whites
-  ctx.fillStyle = '#fff';
-  ctx.beginPath(); ctx.arc(cx - r*0.25, cy - r*0.15, eyeR, 0, Math.PI*2); ctx.fill();
-  ctx.beginPath(); ctx.arc(cx + r*0.25, cy - r*0.15, eyeR, 0, Math.PI*2); ctx.fill();
-
-  // Pupils (look towards pacman)
-  const d = DIRS[lookDir] || {x:0,y:0};
-  ctx.fillStyle = '#22f';
-  ctx.beginPath(); ctx.arc(cx - r*0.25 + d.x*3, cy - r*0.15 + d.y*3, pupilR, 0, Math.PI*2); ctx.fill();
-  ctx.beginPath(); ctx.arc(cx + r*0.25 + d.x*3, cy - r*0.15 + d.y*3, pupilR, 0, Math.PI*2); ctx.fill();
-}
-
-/**
- * INPUT
- */
-function setDir(dir){
-  if(!gameRunning) return;
-  pacman.nextDir = dir;
-}
-
-// Keyboard
-document.addEventListener('keydown', e => {
-  if(e.key === 'ArrowUp' || e.key === 'w') setDir('up');
-  if(e.key === 'ArrowDown' || e.key === 's') setDir('down');
-  if(e.key === 'ArrowLeft' || e.key === 'a') setDir('left');
-  if(e.key === 'ArrowRight' || e.key === 'd') setDir('right');
-  if(e.key === ' '){
-    e.preventDefault();
-    if(!gameRunning && document.querySelector('.overlay.active')){
-      AudioSys.init();
-      score = 0; lives = 3; level = 1;
-      updateScore(); updateLivesUI();
-      startLevel();
-      showMenu(null);
-    }
-  }
-});
-
-// D-pad
-document.querySelectorAll('.d-btn').forEach(btn => {
-  btn.addEventListener('touchstart', e => { e.preventDefault(); setDir(btn.dataset.dir); }, {passive:false});
-  btn.addEventListener('mousedown', e => { setDir(btn.dataset.dir); });
-});
-
-// Swipe
-let touchStartX, touchStartY;
-document.getElementById('c').addEventListener('touchstart', e => {
-  touchStartX = e.touches[0].clientX;
-  touchStartY = e.touches[0].clientY;
-}, {passive:true});
-document.getElementById('c').addEventListener('touchend', e => {
-  if(!touchStartX) return;
-  const dx = e.changedTouches[0].clientX - touchStartX;
-  const dy = e.changedTouches[0].clientY - touchStartY;
-  if(Math.abs(dx) > Math.abs(dy)){
-    if(Math.abs(dx) > 20) setDir(dx > 0 ? 'right' : 'left');
-  } else {
-    if(Math.abs(dy) > 20) setDir(dy > 0 ? 'down' : 'up');
-  }
-}, {passive:true});
-
-// Buttons
-document.getElementById('btn-start').onclick = () => {
-  AudioSys.init();
-  score = 0; lives = 3; level = 1;
-  updateScore(); updateLivesUI();
-  startLevel();
-  showMenu(null);
-};
-document.getElementById('btn-restart').onclick = () => {
-  score = 0; lives = 3; level = 1;
-  updateScore(); updateLivesUI();
-  startLevel();
-  showMenu(null);
-};
-document.getElementById('btn-menu').onclick = () => {
-  gameRunning = false;
-  showMenu('main');
-};
-
-// Start
-window.addEventListener('resize', () => { init(); });
-score = 0; lives = 3; level = 1;
-updateScore(); updateLivesUI();
-showMenu('main');
-
-// Pre-draw idle
-setTimeout(init, 100);
 </script>
 </body>
 </html>
