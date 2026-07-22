@@ -879,9 +879,9 @@ function renderBoard() {
           pctx.textAlign = 'center'; pctx.textBaseline = 'middle';
           pctx.fillText('💣', x + cs / 2, y + cs / 2);
         } else if (cell.neighborMines > 0) {
-          const numColors = ['', 'var(--n1)', 'var(--n2)', 'var(--n3)', 'var(--n4)', 'var(--n5)', 'var(--n6)', 'var(--n7)', 'var(--n8)'];
-          pctx.fillStyle = numColors[cell.neighborMines] || '#ffffff';
-          pctx.font = `bold ${Math.round(cs * 0.58)}px 'Russo One', sans-serif`;
+          const NUM_COLORS = ['', '#00e5ff', '#00e5a0', '#ff4d4d', '#b05bff', '#ff8c42', '#00c8ff', '#ffd60a', '#ffffff'];
+          pctx.fillStyle = NUM_COLORS[cell.neighborMines] || '#ffffff';
+          pctx.font = `bold ${Math.round(cs * 0.62)}px 'Russo One', sans-serif`;
           pctx.textAlign = 'center'; pctx.textBaseline = 'middle';
           pctx.fillText(cell.neighborMines, x + cs / 2, y + cs / 2 + 1);
         }

@@ -163,9 +163,15 @@ const AudioSys = {
 };
 
 const WINS=[[0,1,2],[3,4,5],[6,7,8],[0,3,6],[1,4,7],[2,5,8],[0,4,8],[2,4,6]];
-let board, currentPlayer='X', mode='1p', diff='hard';
-let scores={w:0, d:0, l:0}; // w: X wins, d: draws, l: O wins
+let board = Array(9).fill(null), currentPlayer='X', mode='1p', diff='hard';
+let scores={w:0, d:0, l:0};
 let locked=false;
+let aiTimeout = null, endTimeout = null;
+
+function clearPendingTimeouts() {
+  if (aiTimeout) { clearTimeout(aiTimeout); aiTimeout = null; }
+  if (endTimeout) { clearTimeout(endTimeout); endTimeout = null; }
+}
 
 function $(id){return document.getElementById(id);}
 
@@ -202,7 +208,8 @@ function handleCellClick(i){
 
   if (mode === '1p') {
       locked=true; $('status').textContent='Думает…';
-      setTimeout(()=>{aiMove();},diff==='hard'?300:100);
+      clearPendingTimeouts();
+      aiTimeout = setTimeout(()=>{aiMove();}, diff==='hard'?300:100);
   } else {
       currentPlayer = currentPlayer === 'X' ? 'O' : 'X';
       $('status').textContent=currentPlayer === 'X' ? 'Ход: ИГРОК 1 (✕)' : 'Ход: ИГРОК 2 (○)';
@@ -211,7 +218,9 @@ function handleCellClick(i){
 }
 
 function aiMove(){
+  if (locked && board.every(Boolean)) return;
   const idx=diff==='hard'?bestMove():randomMove();
+  if (idx === undefined || idx < 0 || board[idx]) return;
   board[idx]='O';
   AudioSys.sfx.placeO();
   renderBoard();
@@ -266,6 +275,7 @@ function updateScores() {
 
 function end(result){
   locked=true;
+  clearPendingTimeouts();
   $('status').style.color = 'var(--text)';
   if(result==='win'){
       scores.w++;
@@ -285,11 +295,15 @@ function end(result){
   }
   updateScores();
 
-  // Auto restart after a bit
-  setTimeout(() => { if ($('menu-main').classList.contains('active')) return; newGame(); }, 1500);
+  // Auto restart after a bit if not in menu
+  endTimeout = setTimeout(() => {
+    if ($('menu-main').classList.contains('active') || $('menu-pause').classList.contains('active')) return;
+    newGame();
+  }, 1600);
 }
 
 function newGame(){
+  clearPendingTimeouts();
   board=Array(9).fill(null); locked=false;
   currentPlayer = 'X';
   $('status').style.color = 'var(--text)';
@@ -340,11 +354,13 @@ document.querySelectorAll('.diff-btn').forEach(b=>{
 $('btn-pause').onclick = () => $('menu-pause').classList.add('active');
 $('btn-resume').onclick = () => $('menu-pause').classList.remove('active');
 $('btn-restart').onclick = () => {
+    clearPendingTimeouts();
     scores={w:0,d:0,l:0}; updateScores();
     $('menu-pause').classList.remove('active');
     newGame();
 };
 $('btn-quit').onclick = () => {
+    clearPendingTimeouts();
     $('menu-pause').classList.remove('active');
     $('menu-main').classList.add('active');
     $('main-btns').style.display='flex';

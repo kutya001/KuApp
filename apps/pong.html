@@ -597,6 +597,7 @@ class Paddle {
   }
 
   update(balls, manualTargetX = null) {
+    const prevX = this.x;
     if (this.isAI) {
       // Находим лучший мяч для отслеживания (ближайший летящий к AI)
       let targetBall = null;
@@ -661,16 +662,17 @@ class Paddle {
         else if (center > W / 2 + 15) this.x -= returnSpeed;
         this.isReacting = false;
       }
-    } else {
       // Player movement interpolation
       if (manualTargetX !== null) {
         this.targetX = manualTargetX;
       }
-      this.x += (this.targetX - (this.x + this.w / 2)) * 0.3;
+      this.x += (this.targetX - (this.x + this.w / 2)) * 0.35;
     }
 
-    // Clamp to screen
-    this.x = clamp(this.x, 0, W - this.w);
+    // Clamp to screen and calculate paddle velocity
+    const newX = clamp(this.x, 0, W - this.w);
+    this.vx = newX - prevX;
+    this.x = newX;
   }
   draw(ctx) {
     ctx.shadowBlur = 15; ctx.shadowColor = this.color;
@@ -1075,15 +1077,16 @@ const Game = {
           // Отражаем вертикальную компоненту
           ball.vy *= -1;
 
-          // Применяем english/спин на основе точки удара по ракетке
-          const maxAngle = 0.7; // Максимальный угол отскока (~40°)
+          // Применяем english/спин на основе точки удара по ракетке + передача скорости движения ракетки
+          const maxAngle = 0.75;
           const angle = hitFactor * maxAngle;
-          ball.vx = Math.sin(angle) * speedMag;
-          ball.vy = Math.sign(ball.vy) * Math.cos(angle) * speedMag;
+          const paddleSpin = (pad.vx || 0) * 0.35;
+          ball.vx = Math.sin(angle) * speedMag + paddleSpin;
+          ball.vy = Math.sign(ball.vy) * Math.abs(Math.cos(angle) * speedMag);
 
           // Push ball out to prevent sticking
-          if (pad.isAI) ball.y = pad.y + pad.h + ball.r + 1;
-          else ball.y = pad.y - ball.r - 1;
+          if (pad.isAI) ball.y = pad.y + pad.h + ball.r + 2;
+          else ball.y = pad.y - ball.r - 2;
 
           ball.color = pad.color;
           this.spawnParticles(ball.x, ball.y, pad.color, 15);
