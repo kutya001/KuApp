@@ -423,6 +423,7 @@ let _cacheEditKey  = null;
  * ═════════════════════════════════════════════════════════════════ */
 const $ = id => document.getElementById(id);
 function esc(s) { const d = document.createElement('div'); d.textContent = s; return d.innerHTML; }
+function fmt(n) { return (n || 0).toLocaleString('ru-RU'); }
 
 function toast(msg, type = '') {
     const el = $('toast');
