@@ -263,7 +263,7 @@
             </div>
             <div class="inp-group">
                 <label class="inp-label">Google Apps Script URL</label>
-                <input type="text" id="setup-gas" class="inp-field" placeholder="https://script.google.com/macros/s/.../exec">
+                <input type="text" id="setup-gas" class="inp-field" value="https://script.google.com/macros/s/AKfycbz1UKFwY4nUUQkVVSgupHY6SREofWFy2qDhlEhpP7dUaUIKmjdO-k7GqPKw0QHC0aj1yg/exec" placeholder="https://script.google.com/macros/s/AKfycbz1UKFwY4nUUQkVVSgupHY6SREofWFy2qDhlEhpP7dUaUIKmjdO-k7GqPKw0QHC0aj1yg/exec">
                 <div style="font-size:.65rem;color:var(--text-3);margin-top:4px">Вставьте URL развёрнутого GAS веб-приложения</div>
             </div>
             <div class="auth-err" id="setup-err"></div>
@@ -728,7 +728,7 @@ function switchTab(tabName) {
 function launchApp(file, appId) {
     currentSession = { appId, startTime: Date.now() };
     setLastLaunch(appId);
-    $('app-iframe').src = `./apps/${file}`;
+    $('app-iframe').src = (file.startsWith('http://') || file.startsWith('https://')) ? file : `./apps/${file}`;
     $('immersive-container').style.display = 'block';
 }
 
@@ -749,8 +749,9 @@ $('btn-float-back').addEventListener('click', () => {
  * APPS GRID
  * ═════════════════════════════════════════════════════════════════ */
 const BUILTIN_APPS = [
-    { id: 'trainer',    name: 'Тренер',  icon: '🏋️', desc: 'Таймер тренировки McGill Big 3.',  file: 'trainer.html' },
-    { id: 'dictionary', name: 'Словарь', icon: '📖', desc: 'Изучай слова на разных языках.',    file: 'dictionary.html' }
+    { id: 'gas_webapp', name: 'GAS WebApp', icon: '🌐', desc: 'Google Apps Script Веб-Приложение.', file: 'https://script.google.com/macros/s/AKfycbz1UKFwY4nUUQkVVSgupHY6SREofWFy2qDhlEhpP7dUaUIKmjdO-k7GqPKw0QHC0aj1yg/exec' },
+    { id: 'trainer',    name: 'Тренер',      icon: '🏋️', desc: 'Таймер тренировки McGill Big 3.',       file: 'trainer.html' },
+    { id: 'dictionary', name: 'Словарь',     icon: '📖', desc: 'Изучай слова на разных языках.',         file: 'dictionary.html' }
 ];
 
 async function fetchAndRenderApps() {
