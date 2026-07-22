@@ -280,6 +280,7 @@
                     <div class="auth-err" id="login-err"></div>
                     <button class="btn-primary" id="btn-do-login">Войти</button>
                     <button class="btn-secondary" id="btn-show-reg">Регистрация</button>
+                    <button class="btn-secondary" id="btn-guest-mode" style="background:rgba(91,140,255,.15);color:var(--c-prep);border-color:rgba(91,140,255,.3)">🎮 Играть без входа (Гость)</button>
                     <div class="auth-sep"></div>
                     <button class="auth-link" id="btn-goto-setup" style="display:none">⚙ Настройки подключения</button>
                 </div>
@@ -291,6 +292,7 @@
                     <div class="auth-err" id="reg-err"></div>
                     <button class="btn-primary" id="btn-do-reg">Зарегистрироваться</button>
                     <button class="btn-secondary" id="btn-show-login">← Войти</button>
+                    <button class="btn-secondary" id="btn-reg-guest-mode" style="background:rgba(91,140,255,.15);color:var(--c-prep);border-color:rgba(91,140,255,.3)">🎮 Играть без входа (Гость)</button>
                 </div>
             </div>
         </div>
@@ -313,7 +315,7 @@
             </nav>
             <div class="side-footer">
                 <span class="side-user" id="side-user-name"></span>
-                <button class="btn-icon" onclick="doLogout()" title="Выйти">
+                <button class="btn-icon btn-user-action" onclick="handleUserAction()" title="Выйти">
                     <svg viewBox="0 0 24 24"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
                 </button>
             </div>
@@ -324,7 +326,7 @@
             <header class="plat-header">
                 <div class="plat-title" id="content-title">Приложения</div>
                 <span class="hdr-user mob-only" id="hdr-user-name"></span>
-                <button class="btn-icon mob-only" onclick="doLogout()" title="Выйти">
+                <button class="btn-icon mob-only btn-user-action" onclick="handleUserAction()" title="Выйти">
                     <svg viewBox="0 0 24 24"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
                 </button>
             </header>
@@ -556,13 +558,39 @@ async function registerUser(email, password) {
 }
 
 /* ══════════════════════════════════════════════════════════════════
+ * GUEST SCORE HELPERS
+ * ═════════════════════════════════════════════════════════════════ */
+function getGuestScores() {
+    try { return JSON.parse(localStorage.getItem('mcg_guest_scores') || '{}'); } catch { return {}; }
+}
+function saveGuestScore(appId, rawScore, xpEarned) {
+    try {
+        const d = getGuestScores();
+        const prev = d[appId] || { score: 0, xp: 0 };
+        if (rawScore > prev.score) {
+            d[appId] = { score: rawScore, xp: (prev.xp || 0) + (xpEarned || 0), ts: Date.now() };
+        } else {
+            d[appId].xp = (prev.xp || 0) + (xpEarned || 0);
+        }
+        localStorage.setItem('mcg_guest_scores', JSON.stringify(d));
+    } catch {}
+}
+function getGuestTotalXP() {
+    const d = getGuestScores();
+    return Object.values(d).reduce((s, x) => s + (x.xp || 0), 0);
+}
+
+/* ══════════════════════════════════════════════════════════════════
  * PLATFORM API (accessible from iframes via window.parent.PlatformAPI)
  * ═════════════════════════════════════════════════════════════════ */
 window.PlatformAPI = {
     user: {
-        getProfile: () => currentUser ? { login: currentUser.login, role: currentUser.role, total_xp: currentUser.total_xp } : null,
+        getProfile: () => currentUser
+            ? { login: currentUser.login, role: currentUser.role, total_xp: currentUser.total_xp, isGuest: false }
+            : { login: 'Гость', role: 'guest', total_xp: getGuestTotalXP(), isGuest: true },
         isAdmin: () => (currentUser?.role || '').toLowerCase() === 'admin',
-        getRole: () => (currentUser?.role || 'user').toLowerCase()
+        isGuest: () => !currentUser,
+        getRole: () => (currentUser ? (currentUser.role || 'user') : 'guest').toLowerCase()
     },
     db: {
         read: async (range) => { validateSheetRange(range); return apiRead(range); },
@@ -582,7 +610,11 @@ window.PlatformAPI = {
     },
     gameplay: {
         submitScore: async (appId, rawScore, xpEarned) => {
-            if (!currentUser) return;
+            if (!currentUser) {
+                saveGuestScore(appId, rawScore, xpEarned);
+                toast(`🎮 Результат: ${rawScore}! Войдите в аккаунт, чтобы сохранять баллы в общий рейтинг.`, 'ok');
+                return;
+            }
             const ts = new Date().toISOString();
             await apiAppend('sys_Scores!A:E', [[ts, currentUser.login, appId, String(rawScore), String(xpEarned)]]).catch(() => {});
             try {
@@ -597,16 +629,17 @@ window.PlatformAPI = {
                     saveUser();
                 }
             } catch {}
+            toast(`🏆 Очки сохранены: ${rawScore} (+${xpEarned} XP)`, 'ok');
         }
     },
     system: {
         logSession: async (appId, durationSec) => {
-            if (!currentUser) return;
-            try { await apiAppend('sys_Logs!A:E', [[new Date().toISOString(), currentUser.login, appId, 'session', String(durationSec)]]); } catch {}
+            const u = currentUser ? currentUser.login : 'guest';
+            try { await apiAppend('sys_Logs!A:E', [[new Date().toISOString(), u, appId, 'session', String(durationSec)]]); } catch {}
         },
         log: async (appId, eventType, details) => {
-            if (!currentUser) return;
-            try { await apiAppend('sys_Logs!A:E', [[new Date().toISOString(), currentUser.login, appId, eventType, String(details || '')]]); } catch {}
+            const u = currentUser ? currentUser.login : 'guest';
+            try { await apiAppend('sys_Logs!A:E', [[new Date().toISOString(), u, appId, eventType, String(details || '')]]); } catch {}
         }
     },
     ui: {
@@ -826,7 +859,14 @@ async function renderBoardTab() {
 
         const sorted = Object.entries(userMap).sort((a, b) => b[1].totalSec - a[1].totalSec);
 
-        let html = '<div class="board-list">';
+        let html = '';
+        if (!currentUser) {
+            html += `<div style="margin:12px 16px 0;padding:12px 16px;background:var(--surface-2);border:1px solid var(--border-hi);border-radius:var(--radius-sm);text-align:center">
+                <div style="font-size:.82rem;color:var(--text);margin-bottom:8px">💡 Вы играете как <b>Гость</b>. Зарегистрируйтесь или войдите, чтобы ваши результаты сохранялись в общий рейтинг!</div>
+                <button class="btn-primary" onclick="showView('login')" style="display:inline-block;width:auto;padding:8px 18px;font-size:.8rem">🔑 Войти / Регистрация</button>
+            </div>`;
+        }
+        html += '<div class="board-list">';
         sorted.forEach(([user, data], i) => {
             const pos = i + 1;
             const posClass = pos <= 3 ? ' top' + pos : '';
@@ -1060,14 +1100,27 @@ function renderSettContent() {
 function renderSettGeneral(c) {
     const isAdmin = currentUser?.role === 'admin';
 
-    let html = `
+    let html = '';
+    if (currentUser) {
+        html += `
         <div class="panel-sec">
             <h3>👤 Аккаунт</h3>
-            <div class="panel-row"><span>Логин</span><span class="panel-badge">${esc(currentUser?.login || '—')}</span></div>
-            <div class="panel-row"><span>Роль</span><span class="panel-badge">${esc(currentUser?.role || 'user')}</span></div>
-            <div class="panel-row"><span>XP</span><span class="panel-badge">${currentUser?.total_xp || 0}</span></div>
+            <div class="panel-row"><span>Логин</span><span class="panel-badge">${esc(currentUser.login)}</span></div>
+            <div class="panel-row"><span>Роль</span><span class="panel-badge">${esc(currentUser.role || 'user')}</span></div>
+            <div class="panel-row"><span>XP</span><span class="panel-badge">${currentUser.total_xp || 0}</span></div>
             <button class="panel-btn danger" onclick="doLogout()">🚪 Выйти из аккаунта</button>
-        </div>
+        </div>`;
+    } else {
+        html += `
+        <div class="panel-sec">
+            <h3>👤 Аккаунт</h3>
+            <div class="panel-row"><span>Режим</span><span class="panel-badge" style="color:var(--c-work);font-weight:700">🎮 Гость (Без регистрации)</span></div>
+            <p style="font-size:.78rem;color:var(--text-2);margin:8px 0">Игры доступны по умолчанию без регистрации. Вы можете зарегистрироваться или войти, чтобы ваши очки и XP сохранялись в общий рейтинг.</p>
+            <button class="panel-btn accent" onclick="showView('login')">🔑 Войти или Зарегистрироваться</button>
+        </div>`;
+    }
+
+    html += `
         <div class="panel-sec">
             <h3>🔌 Подключение</h3>
             <div class="panel-row"><span>GAS Backend</span><span class="panel-badge">${cfg.gasUrl ? '✓ Подключено' : '—'}</span></div>
@@ -1566,6 +1619,8 @@ $('btn-show-login').addEventListener('click', () => {
     $('login-sub-text').textContent = 'Вход в систему';
 });
 $('btn-goto-setup').addEventListener('click', () => showView('setup'));
+$('btn-guest-mode')?.addEventListener('click', () => afterLogin());
+$('btn-reg-guest-mode')?.addEventListener('click', () => afterLogin());
 
 async function doLoginAction() {
     const login = $('login-login').value.trim();
@@ -1607,26 +1662,46 @@ $('login-pass').addEventListener('keydown', e => { if (e.key === 'Enter') doLogi
 $('reg-pass').addEventListener('keydown', e => { if (e.key === 'Enter') doRegisterAction(); });
 
 /* ══════════════════════════════════════════════════════════════════
- * LOGOUT
+ * USER ACTION / LOGOUT
  * ═════════════════════════════════════════════════════════════════ */
+function updateUserUI() {
+    const userLabel = currentUser ? currentUser.login : '👤 Гость';
+    $('hdr-user-name').textContent = userLabel;
+    $('side-user-name').textContent = userLabel;
+
+    const btnTitle = currentUser ? 'Выйти' : 'Войти';
+    const btnIcon = currentUser
+        ? '<svg viewBox="0 0 24 24"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>'
+        : '<svg viewBox="0 0 24 24"><path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4"/><polyline points="10 17 15 12 10 7"/><line x1="15" y1="12" x2="3" y2="12"/></svg>';
+
+    document.querySelectorAll('.btn-user-action').forEach(b => {
+        b.title = btnTitle;
+        b.innerHTML = btnIcon;
+    });
+}
+
+function handleUserAction() {
+    if (currentUser) {
+        doLogout();
+    } else {
+        showView('login');
+    }
+}
+
 function doLogout() {
     if (!confirm('Выйти из аккаунта?')) return;
     currentUser = null;
     saveUser();
-    $('login-login').value = '';
-    $('login-pass').value  = '';
-    $('login-sub-text').textContent = 'Вход в систему';
-    $('login-form').style.display = '';
-    $('reg-form').style.display   = 'none';
-    showView('login');
+    updateUserUI();
+    toast('Вы вышли из аккаунта. Включён режим Гостя.', 'ok');
+    switchTab('apps');
 }
 
 /* ══════════════════════════════════════════════════════════════════
  * AFTER LOGIN + INIT
  * ═════════════════════════════════════════════════════════════════ */
 function afterLogin() {
-    $('hdr-user-name').textContent  = currentUser.login;
-    $('side-user-name').textContent = currentUser.login;
+    updateUserUI();
     showView('platform');
     switchTab('apps');
     fetchAndRenderApps();
@@ -1638,8 +1713,6 @@ function afterLogin() {
 
     if (!cfg.gasUrl) {
         showView('setup');
-    } else if (!currentUser) {
-        showView('login');
     } else {
         afterLogin();
     }
