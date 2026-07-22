@@ -85,10 +85,18 @@
             .sidebar{width:260px}
         }
 
-        /* ── APPS GRID ── */
+        /* ── APPS GRID & SEARCH ── */
         #apps-search-bar{padding:10px 16px 8px;background:var(--surface);border-bottom:1px solid var(--border);flex-shrink:0}
-        .search-input{width:100%;padding:9px 12px 9px 36px;background:var(--surface-2);border:1px solid var(--border-hi);border-radius:var(--radius-sm);color:var(--text);font-family:'Manrope',sans-serif;font-size:.85rem;outline:none;background-image:url("data:image/svg+xml;charset=UTF-8,%3Csvg xmlns='http://www.w3.org/2000/svg' width='14' height='14' viewBox='0 0 24 24' fill='none' stroke='%238888aa' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Ccircle cx='11' cy='11' r='8'/%3E%3Cline x1='21' y1='21' x2='16.65' y2='16.65'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:10px center;transition:border-color .15s}
+        .search-input-wrap{position:relative;width:100%;display:flex;align-items:center}
+        .search-input{width:100%;padding:9px 32px 9px 36px;background:var(--surface-2);border:1px solid var(--border-hi);border-radius:var(--radius-sm);color:var(--text);font-family:'Manrope',sans-serif;font-size:.85rem;outline:none;background-image:url("data:image/svg+xml;charset=UTF-8,%3Csvg xmlns='http://www.w3.org/2000/svg' width='14' height='14' viewBox='0 0 24 24' fill='none' stroke='%238888aa' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Ccircle cx='11' cy='11' r='8'/%3E%3Cline x1='21' y1='21' x2='16.65' y2='16.65'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:10px center;transition:border-color .15s}
         .search-input:focus{border-color:var(--c-prep)}
+        .search-clear-btn{position:absolute;right:10px;background:none;border:none;color:var(--text-3);font-size:14px;cursor:pointer;padding:4px;display:none;transition:color .15s}
+        .search-clear-btn:hover{color:var(--text)}
+
+        .guest-banner{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:10px 14px;margin-bottom:14px;background:linear-gradient(135deg,rgba(91,140,255,.14),rgba(0,229,160,.08));border:1px solid rgba(91,140,255,.25);border-radius:var(--radius-sm);font-size:.8rem;color:var(--text)}
+        .btn-guest-login{padding:5px 14px;border-radius:6px;background:var(--c-prep);color:#fff;border:none;font-weight:700;font-size:.78rem;cursor:pointer;transition:opacity .15s;flex-shrink:0}
+        .btn-guest-login:hover{opacity:.88}
+
         #apps-scroll{flex:1;overflow-y:auto;padding:12px 12px 24px}
         .app-category{margin-bottom:20px}
         .app-cat-label{font-size:.65rem;letter-spacing:.12em;text-transform:uppercase;color:var(--text-3);font-family:'JetBrains Mono',monospace;padding:0 4px 8px}
@@ -314,7 +322,10 @@
                 <button class="side-item" data-tab="settings" onclick="switchTab('settings')"><span class="ico">⚙️</span>Настройки</button>
             </nav>
             <div class="side-footer">
-                <span class="side-user" id="side-user-name"></span>
+                <div style="flex:1;min-width:0;display:flex;flex-direction:column">
+                    <span class="side-user" id="side-user-name"></span>
+                    <span style="font-size:.62rem;color:var(--c-prep);font-weight:700;font-family:'JetBrains Mono',monospace" id="side-user-xp"></span>
+                </div>
                 <button class="btn-icon btn-user-action" onclick="handleUserAction()" title="Выйти">
                     <svg viewBox="0 0 24 24"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
                 </button>
@@ -332,7 +343,12 @@
             </header>
 
             <div class="tab-panel active" id="tab-apps">
-                <div id="apps-search-bar"><input type="search" class="search-input" id="apps-search" placeholder="Поиск приложения…" autocomplete="off"></div>
+                <div id="apps-search-bar">
+                    <div class="search-input-wrap">
+                        <input type="search" class="search-input" id="apps-search" placeholder="Поиск приложения…" autocomplete="off">
+                        <button class="search-clear-btn" id="apps-search-clear" title="Очистить">✕</button>
+                    </div>
+                </div>
                 <div id="apps-scroll"><div style="color:var(--text-3);font-size:.82rem;padding:20px 4px">Загрузка…</div></div>
             </div>
             <div class="tab-panel" id="tab-stats"><div class="tab-scroll" id="stats-content"></div></div>
@@ -761,7 +777,32 @@ function renderAppsGrid() {
     const el = $('apps-scroll');
     const q  = searchQuery.toLowerCase().trim();
     let html = '';
-    (appsData || []).forEach(cat => {
+
+    if (!currentUser && !q) {
+        html += `<div class="guest-banner">
+            <span>🎮 Вы зашли как <b>Гость</b>. Зарегистрируйтесь, чтобы сохранять баллы и XP в общий рейтинг!</span>
+            <button class="btn-guest-login" onclick="showView('login')">Войти</button>
+        </div>`;
+    }
+
+    let categoriesToRender = [];
+
+    if (!q) {
+        const allGames = [];
+        (appsData || []).forEach(cat => { (cat.games || []).forEach(g => allGames.push(g)); });
+        const recentGames = allGames
+            .filter(g => { const t = getLastLaunch(g.id || g.file); return t && Date.now() - t < 30 * 86400 * 1000; })
+            .sort((a, b) => (getLastLaunch(b.id || b.file) || 0) - (getLastLaunch(a.id || a.file) || 0))
+            .slice(0, 4);
+
+        if (recentGames.length > 0) {
+            categoriesToRender.push({ id: 'recent', label: '🔥 Недавно сыгранные', games: recentGames });
+        }
+    }
+
+    categoriesToRender = [...categoriesToRender, ...(appsData || [])];
+
+    categoriesToRender.forEach(cat => {
         const apps = q
             ? (cat.games || []).filter(g => g.name.toLowerCase().includes(q) || (g.desc || '').toLowerCase().includes(q))
             : (cat.games || []);
@@ -781,8 +822,10 @@ function renderAppsGrid() {
         });
         html += '</div></div>';
     });
-    if (!html) html = '<div style="color:var(--text-3);font-size:.82rem;padding:20px 4px">Приложения не найдены</div>';
+
+    if (!html) html = '<div style="color:var(--text-3);font-size:.82rem;padding:20px 4px;text-align:center">Приложения не найдены</div>';
     el.innerHTML = html;
+
     el.querySelectorAll('.app-tile').forEach(tile => {
         const open = () => launchApp(tile.dataset.file, tile.dataset.id || tile.dataset.file);
         tile.addEventListener('click', open);
@@ -790,7 +833,23 @@ function renderAppsGrid() {
     });
 }
 
-$('apps-search').addEventListener('input', e => { searchQuery = e.target.value; renderAppsGrid(); });
+const searchInp = $('apps-search');
+const clearBtn = $('apps-search-clear');
+if (searchInp) {
+    searchInp.addEventListener('input', e => {
+        searchQuery = e.target.value;
+        if (clearBtn) clearBtn.style.display = searchQuery ? 'block' : 'none';
+        renderAppsGrid();
+    });
+}
+if (clearBtn) {
+    clearBtn.addEventListener('click', () => {
+        searchQuery = '';
+        if (searchInp) searchInp.value = '';
+        clearBtn.style.display = 'none';
+        renderAppsGrid();
+    });
+}
 
 /* ══════════════════════════════════════════════════════════════════
  * STATS TAB — Session statistics
@@ -1704,8 +1763,13 @@ $('reg-pass').addEventListener('keydown', e => { if (e.key === 'Enter') doRegist
 function updateUserUI() {
     const isGuest = !currentUser;
     const userLabel = currentUser ? currentUser.login : '👤 Гость';
+    const xpBadge = currentUser ? `⭐ ${fmt(currentUser.total_xp || 0)} XP` : '🎮 Гость';
+
     $('hdr-user-name').textContent = userLabel;
     $('side-user-name').textContent = userLabel;
+
+    const sideXp = $('side-user-xp');
+    if (sideXp) sideXp.textContent = xpBadge;
 
     const btnTitle = currentUser ? 'Выйти' : 'Войти';
     const btnIcon = currentUser
@@ -1731,6 +1795,16 @@ function updateUserUI() {
         switchTab('apps');
     }
 }
+
+document.addEventListener('keydown', e => {
+    if (e.key === 'Escape') {
+        if ($('immersive-container').style.display === 'block') {
+            $('btn-float-back').click();
+        } else {
+            closeAllModals();
+        }
+    }
+});
 
 function handleUserAction() {
     if (currentUser) {
