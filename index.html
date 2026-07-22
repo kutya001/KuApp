@@ -558,8 +558,40 @@ async function registerUser(email, password) {
 }
 
 /* ══════════════════════════════════════════════════════════════════
- * GUEST SCORE HELPERS
+ * GUEST SCORE & IP HELPERS
  * ═════════════════════════════════════════════════════════════════ */
+let _guestIdentityCache = null;
+async function getGuestIdentity() {
+    if (currentUser) return currentUser.login;
+    if (_guestIdentityCache) return _guestIdentityCache;
+
+    try {
+        const res = await fetch('https://ipapi.co/json/', { signal: AbortSignal.timeout(3500) });
+        if (res.ok) {
+            const d = await res.json();
+            if (d.ip) {
+                const loc = [d.city, d.country_name].filter(Boolean).join(', ');
+                _guestIdentityCache = `Гость (${d.ip}${loc ? ' · ' + loc : ''})`;
+                return _guestIdentityCache;
+            }
+        }
+    } catch {}
+
+    try {
+        const res = await fetch('https://api.ipify.org?format=json', { signal: AbortSignal.timeout(3000) });
+        if (res.ok) {
+            const d = await res.json();
+            if (d.ip) {
+                _guestIdentityCache = `Гость (${d.ip})`;
+                return _guestIdentityCache;
+            }
+        }
+    } catch {}
+
+    _guestIdentityCache = 'Гость';
+    return _guestIdentityCache;
+}
+
 function getGuestScores() {
     try { return JSON.parse(localStorage.getItem('mcg_guest_scores') || '{}'); } catch { return {}; }
 }
@@ -612,6 +644,8 @@ window.PlatformAPI = {
         submitScore: async (appId, rawScore, xpEarned) => {
             if (!currentUser) {
                 saveGuestScore(appId, rawScore, xpEarned);
+                const guestUser = await getGuestIdentity();
+                apiAppend('sys_Logs!A:E', [[new Date().toISOString(), guestUser, appId, 'guest_score', `Score: ${rawScore}, XP: ${xpEarned}`]]).catch(() => {});
                 toast(`🎮 Результат: ${rawScore}! Войдите в аккаунт, чтобы сохранять баллы в общий рейтинг.`, 'ok');
                 return;
             }
@@ -634,11 +668,11 @@ window.PlatformAPI = {
     },
     system: {
         logSession: async (appId, durationSec) => {
-            const u = currentUser ? currentUser.login : 'guest';
+            const u = await getGuestIdentity();
             try { await apiAppend('sys_Logs!A:E', [[new Date().toISOString(), u, appId, 'session', String(durationSec)]]); } catch {}
         },
         log: async (appId, eventType, details) => {
-            const u = currentUser ? currentUser.login : 'guest';
+            const u = await getGuestIdentity();
             try { await apiAppend('sys_Logs!A:E', [[new Date().toISOString(), u, appId, eventType, String(details || '')]]); } catch {}
         }
     },
@@ -653,6 +687,9 @@ window.PlatformAPI = {
  * TAB NAVIGATION
  * ═════════════════════════════════════════════════════════════════ */
 function switchTab(tabName) {
+    if (!currentUser && ['board', 'data', 'settings'].includes(tabName)) {
+        tabName = 'apps';
+    }
     activeTab = tabName;
     document.querySelectorAll('.side-item, .bnav-item').forEach(btn => {
         btn.classList.toggle('active', btn.dataset.tab === tabName);
@@ -1665,19 +1702,34 @@ $('reg-pass').addEventListener('keydown', e => { if (e.key === 'Enter') doRegist
  * USER ACTION / LOGOUT
  * ═════════════════════════════════════════════════════════════════ */
 function updateUserUI() {
+    const isGuest = !currentUser;
     const userLabel = currentUser ? currentUser.login : '👤 Гость';
     $('hdr-user-name').textContent = userLabel;
     $('side-user-name').textContent = userLabel;
 
     const btnTitle = currentUser ? 'Выйти' : 'Войти';
     const btnIcon = currentUser
-        ? '<svg viewBox="0 0 24 24"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>'
+        ? '<svg viewBox="0 0 24 24"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="15" y1="12" x2="9" y2="12"/></svg>'
         : '<svg viewBox="0 0 24 24"><path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4"/><polyline points="10 17 15 12 10 7"/><line x1="15" y1="12" x2="3" y2="12"/></svg>';
 
     document.querySelectorAll('.btn-user-action').forEach(b => {
         b.title = btnTitle;
         b.innerHTML = btnIcon;
     });
+
+    const restrictedTabs = ['board', 'data', 'settings'];
+    document.querySelectorAll('.side-item, .bnav-item').forEach(btn => {
+        if (restrictedTabs.includes(btn.dataset.tab)) {
+            btn.style.display = isGuest ? 'none' : '';
+        }
+    });
+    document.querySelectorAll('.side-sep').forEach(sep => {
+        sep.style.display = isGuest ? 'none' : '';
+    });
+
+    if (isGuest && restrictedTabs.includes(activeTab)) {
+        switchTab('apps');
+    }
 }
 
 function handleUserAction() {
@@ -1706,6 +1758,9 @@ function afterLogin() {
     switchTab('apps');
     fetchAndRenderApps();
     refreshDbCache().catch(() => {});
+    if (!currentUser) {
+        getGuestIdentity().catch(() => {});
+    }
 }
 
 (function init() {
