@@ -447,12 +447,17 @@ let _dataViewSheet = null;   // currently viewed sheet name
 let _dataRows      = [];
 let _dataHeaders   = [];
 let _cacheEditKey  = null;
+let _statsAggRows  = [];     // строки вкладки «Статистика» (для фильтра по индексу)
+let _dataSheetList = [];     // имена листов вкладки «Справочники» (для onclick по индексу)
+let _cacheKeys     = [];     // ключи localStorage вкладки «Кэш» (для onclick по индексу)
 
 /* ══════════════════════════════════════════════════════════════════
  * UTILS
  * ═════════════════════════════════════════════════════════════════ */
 const $ = id => document.getElementById(id);
-function esc(s) { const d = document.createElement('div'); d.textContent = s; return d.innerHTML; }
+const ESC_MAP = { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' };
+/** Экранирует текст для HTML, включая кавычки — безопасно и в атрибутах. */
+function esc(s) { return String(s ?? '').replace(/[&<>"']/g, ch => ESC_MAP[ch]); }
 function fmt(n) { return (n || 0).toLocaleString('ru-RU'); }
 
 function toast(msg, type = '') {
@@ -522,14 +527,27 @@ function showView(name) {
  * ═════════════════════════════════════════════════════════════════ */
 async function gasCall(action, params = {}) {
     if (!cfg.gasUrl) throw new Error('GAS URL не настроен');
+    const body = { action, params };
+    if (currentUser?.token) body.token = currentUser.token;   // токен сессии (см. gas/Code.gs → AUTH)
     const r = await fetch(cfg.gasUrl, {
         method: 'POST',
-        body: JSON.stringify({ action, params })
+        body: JSON.stringify(body)
     });
     if (!r.ok) throw new Error(`HTTP ${r.status}`);
     const d = await r.json();
-    if (!d.ok) throw new Error(d.error || 'Ошибка GAS');
+    if (!d.ok) {
+        if (d.code === 'AUTH_EXPIRED' && currentUser) onSessionExpired();
+        throw new Error(d.error || 'Ошибка GAS');
+    }
     return d.data;
+}
+
+/** Сервер отверг токен — сбрасываем локальную сессию. */
+function onSessionExpired() {
+    currentUser = null;
+    saveUser();
+    updateUserUI();
+    toast('Сессия истекла — войдите снова', 'err');
 }
 
 async function apiRead(range)          { return gasCall('read', { range }); }
@@ -545,9 +563,12 @@ function validateSheetName(name) {
         throw new Error('Недопустимое имя таблицы: ' + name + '. Разрешены только буквы, цифры и _');
     }
 }
+function isSysSheet(name) { return /^sys_/i.test(String(name || '')); }
+/** Проверка диапазона для PlatformAPI.db: системные листы приложениям недоступны. */
 function validateSheetRange(range) {
-    const sheetName = range.split('!')[0];
+    const sheetName = String(range || '').split('!')[0];
     validateSheetName(sheetName);
+    if (isSysSheet(sheetName)) throw new Error('Системные таблицы (sys_*) недоступны приложениям');
 }
 async function refreshDbCache() {
     const result = await gasCall('meta');
@@ -581,27 +602,20 @@ async function dbInitAllSheets() {
 }
 
 /* ══════════════════════════════════════════════════════════════════
- * USER AUTH
- * sys_Users: [ID, Email, Password, Role, TotalXP, CreatedAt, Status]
- *             0    1      2         3     4        5          6
+ * USER AUTH — проверка пароля и выдача токена на сервере (gas/Code.gs)
+ * Сервер возвращает { login, role, total_xp, token }; токен хранится
+ * вместе с профилем в localStorage и уходит в каждый gasCall.
  * ═════════════════════════════════════════════════════════════════ */
-async function loginUser(email, password) {
-    const res  = await apiRead('sys_Users!A2:G5000');
-    const rows = res.values || [];
-    const row  = rows.find(r => r[1] === email && r[2] === password && r[6] !== 'blocked');
-    if (!row) return null;
-    return { login: row[1], role: row[3] || 'user', total_xp: parseInt(row[4]) || 0 };
-}
+async function loginUser(login, password)    { return gasCall('login',    { login, password }); }
+async function registerUser(login, password) { return gasCall('register', { login, password }); }
 
-async function registerUser(email, password) {
-    const res  = await apiRead('sys_Users!A2:G5000');
-    const rows = res.values || [];
-    if (rows.some(r => r[1] === email)) throw new Error('Пользователь уже существует');
-    const isFirst = rows.length === 0;
-    const id  = 'u_' + Date.now().toString(36);
-    const now = new Date().toISOString();
-    await apiAppend('sys_Users!A:G', [[id, email, password, isFirst ? 'admin' : 'user', '0', now, 'active']]);
-    return { login: email, role: isFirst ? 'admin' : 'user', total_xp: 0 };
+/** Подтянуть актуальные роль/XP по токену; просроченный токен сбросит сессию. */
+async function refreshProfile() {
+    if (!currentUser?.token) return;
+    try {
+        const me = await gasCall('me');
+        if (currentUser) { Object.assign(currentUser, me); saveUser(); updateUserUI(); }
+    } catch {}
 }
 
 /* ══════════════════════════════════════════════════════════════════
@@ -680,6 +694,7 @@ window.PlatformAPI = {
             return apiBatchValues(data);
         },
         ensureTables: async (tablesConfig) => {
+            (tablesConfig || []).forEach(t => { if (isSysSheet(t.name)) throw new Error('Системные таблицы (sys_*) недоступны приложениям'); });
             showLoader(true);
             try { await dbEnsureTables(tablesConfig); toast('✓ Таблицы готовы', 'ok'); }
             catch (e) { toast('Ошибка БД: ' + e.message, 'err'); throw e; }
@@ -696,21 +711,14 @@ window.PlatformAPI = {
                 toast(`🎮 Результат: ${rawScore}! Войдите в аккаунт, чтобы сохранять баллы в общий рейтинг.`, 'ok');
                 return;
             }
-            const ts = new Date().toISOString();
-            await apiAppend('sys_Scores!A:E', [[ts, currentUser.login, appId, String(rawScore), String(xpEarned)]]).catch(() => {});
+            // Сервер сам пишет sys_Scores и прибавляет XP строке пользователя (по логину из токена)
             try {
-                const res  = await apiRead('sys_Users!A2:G5000');
-                const rows = res.values || [];
-                const idx  = rows.findIndex(r => r[1] === currentUser.login);
-                if (idx >= 0) {
-                    const rowNum = idx + 2;
-                    const curXp  = parseInt(rows[idx][4]) || 0;
-                    await apiUpdate(`sys_Users!E${rowNum}`, String(curXp + xpEarned));
-                    currentUser.total_xp = curXp + xpEarned;
-                    saveUser();
-                }
-            } catch {}
-            toast(`🏆 Очки сохранены: ${rawScore} (+${xpEarned} XP)`, 'ok');
+                const res = await gasCall('addXP', { appId, rawScore, xp: xpEarned });
+                if (currentUser) { currentUser.total_xp = res.total_xp; saveUser(); updateUserUI(); }
+                toast(`🏆 Очки сохранены: ${rawScore} (+${xpEarned} XP)`, 'ok');
+            } catch (e) {
+                toast('Не удалось сохранить очки: ' + e.message, 'err');
+            }
         }
     },
     system: {
@@ -916,6 +924,7 @@ async function renderStatsTab() {
         });
 
         const rows = Object.values(agg).sort((a, b) => b.totalSec - a.totalSec);
+        _statsAggRows = rows;   // строки таблицы адресуются индексом (data-i), а не значениями
 
         // Filters
         const appIds = [...new Set(allRows.map(r => r[2]).filter(Boolean))];
@@ -935,8 +944,8 @@ async function renderStatsTab() {
         <div style="flex:1;overflow:auto;padding:0 16px 16px"><div class="table-scroll">
         <table class="data-table" id="stats-table">
             <tr><th>Пользователь</th><th>Приложение</th><th>Сессий</th><th>Общее время</th><th>Последний запуск</th></tr>`;
-        rows.forEach(r => {
-            html += `<tr data-app="${esc(r.app)}" data-user="${esc(r.user)}">
+        rows.forEach((r, i) => {
+            html += `<tr data-i="${i}">
                 <td>${esc(r.user)}</td>
                 <td>${esc(r.app)}</td>
                 <td>${r.count}</td>
@@ -954,9 +963,10 @@ async function renderStatsTab() {
 function filterStatsTable() {
     const fApp = $('stats-f-app')?.value || '';
     const fUser = $('stats-f-user')?.value || '';
-    document.querySelectorAll('#stats-table tr[data-app]').forEach(tr => {
-        const matchApp = !fApp || tr.dataset.app === fApp;
-        const matchUser = !fUser || tr.dataset.user === fUser;
+    document.querySelectorAll('#stats-table tr[data-i]').forEach(tr => {
+        const r = _statsAggRows[+tr.dataset.i] || {};
+        const matchApp = !fApp || r.app === fApp;
+        const matchUser = !fUser || r.user === fUser;
         tr.style.display = (matchApp && matchUser) ? '' : 'none';
     });
 }
@@ -1041,22 +1051,28 @@ function renderDataTab() {
         groups[prefix].push(name);
     }
 
+    const isAdmin = currentUser?.role === 'admin';
+    _dataSheetList = [];
     let html = '<div class="data-sheets">';
     for (const [prefix, sheets] of Object.entries(groups).sort()) {
         html += `<div class="data-sheet-group"><div class="data-sheet-group-title">${esc(prefix)}</div>`;
         sheets.sort().forEach(name => {
-            html += `<div class="data-sheet-item" onclick="openDataSheet('${esc(name)}')">
+            const idx = _dataSheetList.push(name) - 1;
+            html += `<div class="data-sheet-item" onclick="openDataSheetAt(${idx})">
                 <span class="ico">📄</span><span class="data-sheet-name">${esc(name)}</span><span class="data-sheet-arrow">→</span>
             </div>`;
         });
         html += '</div>';
     }
     html += `<div style="padding:12px 0">
-        <button class="panel-btn accent" onclick="createNewSheet()">+ Создать новый лист</button>
+        ${isAdmin ? '<button class="panel-btn accent" onclick="createNewSheet()">+ Создать новый лист</button>' : ''}
         <button class="panel-btn" onclick="refreshDataSheets()">🔄 Обновить список</button>
     </div></div>`;
     c.innerHTML = html;
 }
+
+function openDataSheetAt(idx) { const name = _dataSheetList[idx]; if (name !== undefined) openDataSheet(name); }
+function reloadDataSheet()    { if (_dataViewSheet) openDataSheet(_dataViewSheet); }
 
 async function openDataSheet(name) {
     _dataViewSheet = name;
@@ -1079,12 +1095,14 @@ function renderDataSheet() {
     const c = $('data-content');
     const name = _dataViewSheet;
     const sheetId = _dbSheetMeta?.get(name);
+    const isAdmin = currentUser?.role === 'admin';
 
+    // В обработчики передаются только индексы строк/столбцов — значения ячеек в разметку не попадают
     let html = `<div class="data-back" onclick="closeDataSheet()">← ${esc(name)}</div>`;
     html += `<div class="data-toolbar">
         <button class="cache-btn" onclick="addDataRow()">+ Строка</button>
-        <button class="cache-btn" onclick="openDataSheet('${esc(name)}')">🔄 Обновить</button>
-        ${sheetId !== undefined ? `<button class="cache-btn dn" onclick="deleteSheet('${esc(name)}',${sheetId})">🗑 Удалить лист</button>` : ''}
+        <button class="cache-btn" onclick="reloadDataSheet()">🔄 Обновить</button>
+        ${isAdmin && sheetId !== undefined ? `<button class="cache-btn dn" onclick="deleteCurrentSheet()">🗑 Удалить лист</button>` : ''}
     </div>`;
 
     if (!_dataHeaders.length && !_dataRows.length) {
@@ -1102,10 +1120,9 @@ function renderDataSheet() {
             const maxCols = Math.max(_dataHeaders.length, row.length);
             for (let col = 0; col < maxCols; col++) {
                 const val = row[col] || '';
-                const colLetter = colToLetter(col);
-                html += `<td class="ellipsis" ondblclick="editDataCell(this,'${esc(name)}','${colLetter}${rowNum}','${esc(val)}')" title="${esc(val)}" style="cursor:text">${esc(val)}</td>`;
+                html += `<td class="ellipsis" ondblclick="editDataCell(this,${i},${col})" title="${esc(val)}" style="cursor:text">${esc(val)}</td>`;
             }
-            html += `<td><button style="background:none;border:none;color:var(--c-danger);cursor:pointer;font-size:.8rem" onclick="deleteDataRow('${esc(name)}',${sheetId},${rowNum})" title="Удалить строку">✕</button></td></tr>`;
+            html += `<td>${isAdmin && sheetId !== undefined ? `<button style="background:none;border:none;color:var(--c-danger);cursor:pointer;font-size:.8rem" onclick="deleteDataRow(${rowNum})" title="Удалить строку">✕</button>` : ''}</td></tr>`;
         });
         html += '</table></div></div>';
     }
@@ -1119,7 +1136,12 @@ function colToLetter(col) {
     return s;
 }
 
-function editDataCell(td, sheet, cellRef, oldVal) {
+function editDataCell(td, rowIdx, colIdx) {
+    const sheet   = _dataViewSheet;
+    const row     = _dataRows[rowIdx];
+    if (!sheet || !row) return;
+    const cellRef = colToLetter(colIdx) + (rowIdx + 2);
+    const oldVal  = row[colIdx] || '';
     const input = document.createElement('input');
     input.className = 'data-cell-edit';
     input.value = oldVal;
@@ -1131,7 +1153,7 @@ function editDataCell(td, sheet, cellRef, oldVal) {
         const newVal = input.value;
         td.textContent = newVal;
         if (newVal !== oldVal) {
-            try { await apiUpdate(`${sheet}!${cellRef}`, newVal); toast('✓ Сохранено', 'ok'); }
+            try { await apiUpdate(`${sheet}!${cellRef}`, newVal); row[colIdx] = newVal; td.title = newVal; toast('✓ Сохранено', 'ok'); }
             catch (e) { toast('Ошибка: ' + e.message, 'err'); td.textContent = oldVal; }
         }
     };
@@ -1153,7 +1175,10 @@ async function addDataRow() {
     showLoader(false);
 }
 
-async function deleteDataRow(sheet, sheetId, rowNum) {
+async function deleteDataRow(rowNum) {
+    const sheet   = _dataViewSheet;
+    const sheetId = _dbSheetMeta?.get(sheet);
+    if (!sheet || sheetId === undefined) return;
     if (!confirm(`Удалить строку ${rowNum}?`)) return;
     showLoader(true);
     try {
@@ -1178,7 +1203,10 @@ async function createNewSheet() {
     showLoader(false);
 }
 
-async function deleteSheet(name, sheetId) {
+async function deleteCurrentSheet() {
+    const name    = _dataViewSheet;
+    const sheetId = _dbSheetMeta?.get(name);
+    if (!name || sheetId === undefined) return;
     if (!confirm(`Удалить лист "${name}" полностью?`)) return;
     showLoader(true);
     try {
@@ -1365,6 +1393,7 @@ function renderSettCache(c) {
     if (_cacheEditKey !== null) { renderCacheEditor(c); return; }
 
     const keys = Object.keys(localStorage).sort();
+    _cacheKeys = keys;
     let totalBytes = 0;
     keys.forEach(k => totalBytes += ((localStorage.getItem(k) || '').length * 2));
 
@@ -1378,11 +1407,11 @@ function renderSettCache(c) {
             <button class="panel-btn danger" onclick="resetAllData()">⚠️ Сбросить ВСЕ данные</button>
         </div>
         <div class="cache-list">`;
-    keys.forEach(k => {
+    keys.forEach((k, i) => {
         const val = localStorage.getItem(k) || '';
         const size = (val.length * 2);
         const sizeLabel = size < 1024 ? size + ' B' : (size / 1024).toFixed(1) + ' KB';
-        html += `<div class="cache-item" onclick="openCacheKey('${esc(k)}')">
+        html += `<div class="cache-item" onclick="openCacheKeyAt(${i})">
             <span class="cache-key">${esc(k)}</span>
             <span class="cache-size">${sizeLabel}</span>
             <span style="color:var(--text-3)">→</span>
@@ -1393,6 +1422,7 @@ function renderSettCache(c) {
 }
 
 function openCacheKey(key) { _cacheEditKey = key; renderSettingsTab(); }
+function openCacheKeyAt(i) { const k = _cacheKeys[i]; if (k !== undefined) openCacheKey(k); }
 
 function renderCacheEditor(c) {
     const key = _cacheEditKey;
@@ -1604,7 +1634,8 @@ Platform.ui.openSettings();                     // открыть настрой
 
 Примеры: \`dict_words\`, \`tetris_scores\`, \`trainer_sessions\`.
 
-Системные таблицы: \`sys_Users\`, \`sys_Logs\`, \`sys_Scores\`.
+Системные таблицы \`sys_Users\`, \`sys_Logs\`, \`sys_Scores\` приложениям недоступны —
+\`Platform.db.*\` отклоняет диапазоны с префиксом \`sys_\`. Очки отправляйте через \`Platform.gameplay.submitScore()\`.
 
 ## Регистрация приложения
 
@@ -1758,13 +1789,12 @@ async function doLoginAction() {
     if (!login || !pass) { errEl.textContent = 'Заполните все поля'; return; }
     showLoader(true);
     try {
-        const user = await loginUser(login, pass);
-        if (!user) { errEl.textContent = 'Неверный логин или пароль'; showLoader(false); return; }
+        const user = await loginUser(login, pass);   // { login, role, total_xp, token }
         currentUser = user;
         saveUser();
         showLoader(false);
         afterLogin();
-    } catch (e) { showLoader(false); errEl.textContent = 'Ошибка: ' + e.message; }
+    } catch (e) { showLoader(false); errEl.textContent = e.message; }
 }
 
 async function doRegisterAction() {
@@ -1776,12 +1806,12 @@ async function doRegisterAction() {
     if (pass.length < 4) { errEl.textContent = 'Пароль — минимум 4 символа'; return; }
     showLoader(true);
     try {
-        const user = await registerUser(login, pass);
+        const user = await registerUser(login, pass);   // { login, role, total_xp, token }
         currentUser = user;
         saveUser();
         showLoader(false);
         afterLogin();
-    } catch (e) { showLoader(false); errEl.textContent = 'Ошибка: ' + e.message; }
+    } catch (e) { showLoader(false); errEl.textContent = e.message; }
 }
 
 $('btn-do-login').addEventListener('click', doLoginAction);
@@ -1848,6 +1878,7 @@ function handleUserAction() {
 
 function doLogout() {
     if (!confirm('Выйти из аккаунта?')) return;
+    if (currentUser?.token) gasCall('logout').catch(() => {});   // отозвать токен на сервере
     currentUser = null;
     saveUser();
     updateUserUI();
@@ -1871,11 +1902,14 @@ function afterLogin() {
 
 (function init() {
     loadCfg(); loadUser();
+    // Сессия старого формата (без токена) больше не действует — переводим в режим Гостя
+    if (currentUser && !currentUser.token) { currentUser = null; saveUser(); }
 
     if (!cfg.gasUrl) {
         showView('setup');
     } else {
         afterLogin();
+        refreshProfile();
     }
 })();
 
