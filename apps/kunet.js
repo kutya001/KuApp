@@ -38,11 +38,22 @@
     return FALLBACK_URL;
   }
 
+  function myToken() {
+    var api = platform();
+    try { return (api && api.user && api.user.getToken && api.user.getToken()) || null; } catch (e) { return null; }
+  }
+
+  /** Вошёл ли пользователь по коду (гостям сеть недоступна). */
+  function isLoggedIn() {
+    var api = platform();
+    try { return !!(api && api.user && !api.user.isGuest()); } catch (e) { return false; }
+  }
+
   function myName() {
     var api = platform();
     try {
       var p = api && api.user && api.user.getProfile && api.user.getProfile();
-      if (p && !p.isGuest && p.login) return String(p.login);
+      if (p && !p.isGuest) return String(p.name || p.playerId || p.login);
     } catch (e) {}
     var g = null;
     try { g = sessionStorage.getItem('kunet_guest'); } catch (e) {}
@@ -56,9 +67,12 @@
   function call(action, params) {
     var ctrl = typeof AbortController !== 'undefined' ? new AbortController() : null;
     var timer = ctrl ? setTimeout(function () { ctrl.abort(); }, REQUEST_TIMEOUT) : null;
+    var body = { action: action, params: params || {} };
+    var token = myToken();
+    if (token) body.token = token;          // сессия платформы: roomCreate/roomJoin требуют входа по коду
     return fetch(gasUrl(), {
       method: 'POST',
-      body: JSON.stringify({ action: action, params: params || {} }),
+      body: JSON.stringify(body),
       signal: ctrl ? ctrl.signal : undefined
     }).then(function (r) {
       if (!r.ok) throw new Error('HTTP ' + r.status);
@@ -272,7 +286,23 @@
       if (ov.parentNode) ov.parentNode.removeChild(ov);
     }
 
+    function renderLoginRequired() {
+      box.innerHTML = '';
+      box.appendChild(el('div', 'kn-h', opts.title || 'ИГРА ПО СЕТИ'));
+      box.appendChild(el('div', 'kn-sub', 'Игра по сети доступна после входа по коду'));
+      box.appendChild(el('div', 'kn-empty', 'Вы играете как гость. Введите код игрока на платформе KuApp, чтобы создавать комнаты и присоединяться к ним.'));
+      var api = platform();
+      if (api && api.ui && api.ui.openLogin) {
+        var btnLogin = el('button', 'kn-btn p', 'Войти по коду');
+        btnLogin.onclick = function () { destroy(); if (opts.onClose) opts.onClose(); api.ui.openLogin(); };
+        box.appendChild(btnLogin);
+      }
+      var btnBack = el('button', 'kn-btn dim', 'Назад'); box.appendChild(btnBack);
+      btnBack.onclick = function () { destroy(); if (opts.onClose) opts.onClose(); };
+    }
+
     function renderMain() {
+      if (!isLoggedIn()) { renderLoginRequired(); return; }
       box.innerHTML = '';
       box.appendChild(el('div', 'kn-h', opts.title || 'ИГРА ПО СЕТИ'));
       box.appendChild(el('div', 'kn-sub', 'Создайте комнату или войдите в открытую'));
@@ -370,6 +400,7 @@
   window.KuNet = {
     call: call,
     myName: myName,
+    isLoggedIn: isLoggedIn,
     gasUrl: gasUrl,
     session: function (game) { return new Session(game); },
     openLobby: openLobby,

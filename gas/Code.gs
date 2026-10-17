@@ -113,7 +113,7 @@ function setTextValues(range, values) {
  * ═══════════════════════════════════════════════════ */
 
 function doGet(e) {
-  return ok({ service: 'KuApp Backend', version: '1.1' });
+  return ok({ service: 'KuApp Backend', version: '1.2' });
 }
 
 function doPost(e) {
@@ -122,12 +122,11 @@ function doPost(e) {
     var body   = JSON.parse(e.postData.contents);
     var action = body.action;
     var params = body.params || {};
-    if (isRoomAction(action)) return ok(handleRoomAction(action, params));
+    if (isRoomAction(action)) return ok(handleRoomAction(action, params, body.token));
     var ss     = getSpreadsheet();
 
     // Действия без сессии
-    if (action === 'login')    return ok(doLogin(ss, params));
-    if (action === 'register') return ok(doRegister(ss, params));
+    if (action === 'loginCode') return ok(doLoginCode(ss, params));
     if (action === 'logout')   { sessionDrop(body.token); return ok({ loggedOut: true }); }
 
     // Токен сессии: если передан, он должен быть действительным
@@ -162,26 +161,38 @@ function isRoomAction(action) {
 }
 
 /* ═══════════════════════════════════════════════════
- * AUTH — пользователи, пароли, сессии
+ * AUTH — вход по коду доступа, роли, сессии
  *
- * sys_Users: [ID, Email(login), Password, Role, TotalXP, CreatedAt, Status]
- *             A   B             C         D     E        F          G
- * Password хранится как "sha256$<соль пользователя>$<hex>", где
- * hex = SHA-256(SALT + ':' + соль пользователя + ':' + пароль).
- * Старые пароли в открытом виде принимаются один раз и перезаписываются хэшем.
+ * Коды хранятся в Script Properties (Настройки проекта → Свойства скрипта):
+ *   ADMIN_CODE  — код администратора   (по умолчанию 123321)
+ *   PLAYER_CODE — общий код игроков     (по умолчанию 112233)
+ * Если свойств нет, они создаются с значениями по умолчанию при первом входе.
+ *
+ * Роли: admin — всё; player — игры по сети, рейтинг, XP;
+ *       гость (без кода) — только локальные игры.
+ *
+ * Каждому вошедшему выдаётся персональный ID вида P-XXXXXX, который
+ * клиент хранит в localStorage и присылает при следующих входах.
+ * Все входы (успешные и неудачные) пишутся в sys_Logs.
+ *
+ * sys_Users: [ID, Email(login=ID), Password(не используется), Role, TotalXP, CreatedAt, Status, Name]
+ *             A   B                C                          D     E        F          G       H
  * ═══════════════════════════════════════════════════ */
 
 var SESSION_TTL_SEC = 21600;                        // 6 часов (максимум CacheService)
 var USERS_SHEET     = 'sys_Users';
 var SCORES_SHEET    = 'sys_Scores';
-var USERS_HEADERS   = ['ID', 'Email', 'Password', 'Role', 'TotalXP', 'CreatedAt', 'Status'];
+var LOGS_SHEET      = 'sys_Logs';
+var USERS_HEADERS   = ['ID', 'Email', 'Password', 'Role', 'TotalXP', 'CreatedAt', 'Status', 'Name'];
 var SCORES_HEADERS  = ['Timestamp', 'Email', 'AppID', 'RawScore', 'XP'];
-var HASH_PREFIX     = 'sha256$';
-var U_ID = 0, U_LOGIN = 1, U_PASS = 2, U_ROLE = 3, U_XP = 4, U_CREATED = 5, U_STATUS = 6;
+var LOGS_HEADERS    = ['Timestamp', 'Email', 'AppID', 'EventType', 'Details'];
+var U_ID = 0, U_LOGIN = 1, U_PASS = 2, U_ROLE = 3, U_XP = 4, U_CREATED = 5, U_STATUS = 6, U_NAME = 7;
+var PLAYER_ID_CHARS = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
+var DEFAULT_CODES   = { ADMIN_CODE: '123321', PLAYER_CODE: '112233' };
 
 function isSysSheet(name)   { return /^sys_/i.test(String(name || '')); }
 function isUsersSheet(name) { return String(name || '').toLowerCase() === USERS_SHEET.toLowerCase(); }
-function isLogsSheet(name)  { return String(name || '').toLowerCase() === 'sys_logs'; }
+function isLogsSheet(name)  { return String(name || '').toLowerCase() === LOGS_SHEET.toLowerCase(); }
 function isScoresSheet(name){ return String(name || '').toLowerCase() === SCORES_SHEET.toLowerCase(); }
 
 function withScriptLock(fn) {
@@ -190,70 +201,43 @@ function withScriptLock(fn) {
   try { return fn(); } finally { lock.releaseLock(); }
 }
 
-/* ── Соль и хэш ── */
+/* ── Коды доступа (Script Properties) ── */
 
-function getSalt() {
+/** → { ADMIN_CODE, PLAYER_CODE }; отсутствующие свойства создаются со значениями по умолчанию. */
+function getAccessCodes() {
   var props = PropertiesService.getScriptProperties();
-  var salt = props.getProperty('SALT');
-  if (salt) return salt;
-  return withScriptLock(function () {
-    var s = props.getProperty('SALT');
-    if (!s) {
-      s = Utilities.getUuid() + Utilities.getUuid();
-      props.setProperty('SALT', s);
-    }
-    return s;
-  });
-}
-
-function bytesToHex(bytes) {
-  var out = '';
-  for (var i = 0; i < bytes.length; i++) {
-    var h = (bytes[i] & 0xff).toString(16);
-    out += h.length === 1 ? '0' + h : h;
+  var out = {}, missing = [];
+  for (var k in DEFAULT_CODES) {
+    var v = props.getProperty(k);
+    if (v === null || v === undefined || String(v).trim() === '') missing.push(k);
+    else out[k] = String(v).trim();
+  }
+  if (missing.length) {
+    withScriptLock(function () {
+      for (var i = 0; i < missing.length; i++) {
+        var cur = props.getProperty(missing[i]);
+        if (cur === null || cur === undefined || String(cur).trim() === '') props.setProperty(missing[i], DEFAULT_CODES[missing[i]]);
+        out[missing[i]] = String(props.getProperty(missing[i])).trim();
+      }
+    });
   }
   return out;
 }
 
-function sha256Hex(str) {
-  return bytesToHex(Utilities.computeDigest(Utilities.DigestAlgorithm.SHA_256, str, Utilities.Charset.UTF_8));
-}
-
-function hashPassword(password, userSalt) {
-  userSalt = userSalt || Utilities.getUuid().replace(/-/g, '').slice(0, 16);
-  return HASH_PREFIX + userSalt + '$' + sha256Hex(getSalt() + ':' + userSalt + ':' + password);
-}
-
-function isHashed(stored) {
-  return typeof stored === 'string' && stored.indexOf(HASH_PREFIX) === 0;
-}
-
-/** Сравнение строк за постоянное время. */
 function safeEqual(a, b) {
   a = String(a); b = String(b);
   if (a.length !== b.length) return false;
-  var r = 0;
-  for (var i = 0; i < a.length; i++) r |= a.charCodeAt(i) ^ b.charCodeAt(i);
-  return r === 0;
+  var diff = 0;
+  for (var i = 0; i < a.length; i++) diff |= a.charCodeAt(i) ^ b.charCodeAt(i);
+  return diff === 0;
 }
 
-/**
- * Проверяет пароль против сохранённого значения.
- * → { match: boolean, needsRehash: boolean }
- * needsRehash = true, если в ячейке лежал пароль в открытом виде (миграция).
- */
-function verifyPassword(password, stored) {
-  stored = (stored === null || stored === undefined) ? '' : String(stored);
-  if (isHashed(stored)) {
-    var parts = stored.split('$');                   // ['sha256', userSalt, hex]
-    if (parts.length !== 3) return { match: false, needsRehash: false };
-    return { match: safeEqual(hashPassword(password, parts[1]), stored), needsRehash: false };
-  }
-  if (stored === '') return { match: false, needsRehash: false };
-  var match = safeEqual(stored, password);
-  // Старый клиент писал пароль через setValues: "0077" превратился в 77.
-  if (!match && /^\d+$/.test(password) && safeEqual(stored, String(Number(password)))) match = true;
-  return { match: match, needsRehash: true };
+/** Роль по коду доступа или null. */
+function roleForCode(code) {
+  var codes = getAccessCodes();
+  if (safeEqual(code, codes.ADMIN_CODE))  return 'admin';
+  if (safeEqual(code, codes.PLAYER_CODE)) return 'player';
+  return null;
 }
 
 /* ── Сессии (CacheService) ── */
@@ -285,21 +269,32 @@ function sessionDrop(token) {
   if (typeof token === 'string' && token) sessCache().remove(sessKey(token));
 }
 
-/* ── Лист пользователей ── */
+/** Сессия обязательна (для сетевых комнат): → { login, role } */
+function requireSession(token) {
+  var sess = sessionLoad(token);
+  if (!sess) throw new AuthError('Для игры по сети войдите по коду', 'AUTH_REQUIRED');
+  return sess;
+}
+
+/* ── Листы ── */
 
 function ensureSheet(ss, name, headers) {
   var sh = ss.getSheetByName(name);
-  if (sh) return sh;
-  sh = ss.insertSheet(name);
-  setTextValues(sh.getRange(1, 1, 1, headers.length), [headers]);
+  if (!sh) {
+    sh = ss.insertSheet(name);
+    setTextValues(sh.getRange(1, 1, 1, headers.length), [headers]);
+    return sh;
+  }
+  // дописать недостающие заголовки (например, новый столбец Name)
+  var lastCol = sh.getLastColumn();
+  if (lastCol < headers.length) {
+    var extra = headers.slice(lastCol);
+    setTextValues(sh.getRange(1, lastCol + 1, 1, extra.length), [extra]);
+  }
   return sh;
 }
 
-function usersSheet(ss) {
-  var sh = ss.getSheetByName(USERS_SHEET);
-  if (!sh) throw new Error('Лист ' + USERS_SHEET + ' не найден. Зарегистрируйте первого пользователя.');
-  return sh;
-}
+function usersSheet(ss) { return ensureSheet(ss, USERS_SHEET, USERS_HEADERS); }
 
 function usersRows(sh) {
   var last = sh.getLastRow();
@@ -316,71 +311,86 @@ function findUserRow(sh, login) {
   return { rowNum: -1, row: null, count: rows.length };
 }
 
-function userRole(row)    { return String(row[U_ROLE] || 'user').toLowerCase() || 'user'; }
+function userRole(row)    { return String(row[U_ROLE] || 'player').toLowerCase() || 'player'; }
 function userBlocked(row) { return String(row[U_STATUS] || '').toLowerCase() === 'blocked'; }
 
 function userPublic(row, token) {
-  var out = { login: String(row[U_LOGIN]), role: userRole(row), total_xp: parseInt(row[U_XP], 10) || 0 };
+  var id = String(row[U_LOGIN]);
+  var out = { login: id, playerId: id, name: String(row[U_NAME] || ''), role: userRole(row), total_xp: parseInt(row[U_XP], 10) || 0 };
   if (token) out.token = token;
   return out;
 }
 
-function validLogin(login) {
-  login = String(login === undefined || login === null ? '' : login).trim();
-  if (!login) throw new Error('Введите логин');
-  if (login.length > 64) throw new Error('Логин слишком длинный');
-  if (/[\u0000-\u001f]/.test(login)) throw new Error('Недопустимые символы в логине');
-  return login;
+/** Журнал: sys_Logs [Timestamp, Email, AppID, EventType, Details] */
+function logEvent(ss, who, appId, eventType, details) {
+  try {
+    var sh = ensureSheet(ss, LOGS_SHEET, LOGS_HEADERS);
+    setTextValues(sh.getRange(sh.getLastRow() + 1, 1, 1, LOGS_HEADERS.length),
+                  [[new Date().toISOString(), String(who || ''), String(appId || ''), String(eventType || ''), String(details || '')]]);
+  } catch (e) {}
 }
 
-function validPassword(password, forRegister) {
-  password = String(password === undefined || password === null ? '' : password);
-  if (!password) throw new Error('Введите пароль');
-  if (forRegister && password.length < 4) throw new Error('Пароль — минимум 4 символа');
-  if (password.length > 128) throw new Error('Пароль слишком длинный');
-  return password;
+function validPlayerId(id) {
+  id = String(id === undefined || id === null ? '' : id).trim().toUpperCase();
+  return /^P-[A-Z0-9]{6}$/.test(id) ? id : '';
+}
+
+function validName(name) {
+  name = String(name === undefined || name === null ? '' : name).trim().slice(0, 32);
+  if (/[\u0000-\u001f]/.test(name)) return '';
+  return name;
+}
+
+function genPlayerId(sh) {
+  for (var attempt = 0; attempt < 20; attempt++) {
+    var id = 'P-';
+    for (var i = 0; i < 6; i++) id += PLAYER_ID_CHARS.charAt(Math.floor(Math.random() * PLAYER_ID_CHARS.length));
+    if (!findUserRow(sh, id).row) return id;
+  }
+  throw new Error('Не удалось выдать ID, попробуйте ещё раз');
 }
 
 /* ── Действия ── */
 
 /**
- * Вход. params: { login, password } → { login, role, total_xp, token }
- * Пароль в открытом виде (старые аккаунты) принимается и сразу заменяется хэшем.
+ * Вход по коду доступа.
+ * params: { code, playerId?, name? } → { login, playerId, name, role, total_xp, token }
+ * playerId — ранее выданный персональный ID (если есть), иначе выдаётся новый.
  */
-function doLogin(ss, params) {
-  var login    = validLogin(params.login);
-  var password = validPassword(params.password, false);
+function doLoginCode(ss, params) {
+  var code = String(params.code === undefined || params.code === null ? '' : params.code).trim();
+  var pid  = validPlayerId(params.playerId);
+  var name = validName(params.name);
+  if (!code) throw new AuthError('Введите код доступа', 'BAD_CODE');
+  if (code.length > 64) throw new AuthError('Неверный код', 'BAD_CODE');
+
+  var role = roleForCode(code);
+  if (!role) {
+    logEvent(ss, pid || 'unknown', 'platform', 'login_failed', 'неверный код (' + code.length + ' симв.)' + (name ? ', имя: ' + name : ''));
+    throw new AuthError('Неверный код доступа', 'BAD_CODE');
+  }
+
   return withScriptLock(function () {
     var sh = usersSheet(ss);
-    var f  = findUserRow(sh, login);
-    if (!f.row) throw new AuthError('Неверный логин или пароль', 'BAD_CREDENTIALS');
-    var v = verifyPassword(password, f.row[U_PASS]);
-    if (!v.match) throw new AuthError('Неверный логин или пароль', 'BAD_CREDENTIALS');
-    if (userBlocked(f.row)) throw new AuthError('Аккаунт заблокирован', 'BLOCKED');
-    if (v.needsRehash) {
-      setTextValues(sh.getRange(f.rowNum, U_PASS + 1), [[hashPassword(password)]]);
+    var f  = pid ? findUserRow(sh, pid) : { rowNum: -1, row: null };
+    var row;
+    if (f.row) {
+      if (userBlocked(f.row)) {
+        logEvent(ss, pid, 'platform', 'login_blocked', 'роль по коду: ' + role);
+        throw new AuthError('Доступ заблокирован администратором', 'BLOCKED');
+      }
+      row = f.row.slice();
+      row[U_ROLE] = role;
+      if (name) row[U_NAME] = name;
+      setTextValues(sh.getRange(f.rowNum, U_ROLE + 1), [[role]]);
+      if (name) setTextValues(sh.getRange(f.rowNum, U_NAME + 1), [[name]]);
+    } else {
+      pid = genPlayerId(sh);
+      row = [pid, pid, '', role, '0', new Date().toISOString(), 'active', name];
+      setTextValues(sh.getRange(sh.getLastRow() + 1, 1, 1, row.length), [row]);
     }
-    var token = sessionCreate(String(f.row[U_LOGIN]), userRole(f.row));
-    return userPublic(f.row, token);
-  });
-}
-
-/**
- * Регистрация. params: { login, password } → { login, role, total_xp, token }
- * Первый пользователь получает роль admin.
- */
-function doRegister(ss, params) {
-  var login    = validLogin(params.login);
-  var password = validPassword(params.password, true);
-  if (login.length < 3) throw new Error('Логин — минимум 3 символа');
-  return withScriptLock(function () {
-    var sh = ensureSheet(ss, USERS_SHEET, USERS_HEADERS);
-    var f  = findUserRow(sh, login);
-    if (f.row) throw new Error('Пользователь уже существует');
-    var role = f.count === 0 ? 'admin' : 'user';
-    var row  = ['u_' + new Date().getTime().toString(36), login, hashPassword(password), role, '0', new Date().toISOString(), 'active'];
-    setTextValues(sh.getRange(sh.getLastRow() + 1, 1, 1, row.length), [row]);
-    var token = sessionCreate(login, role);
+    logEvent(ss, pid, 'platform', 'login', 'роль: ' + role + (name ? ', имя: ' + name : ''));
+    var token = sessionCreate(pid, role);
     return userPublic(row, token);
   });
 }
@@ -397,9 +407,8 @@ function doMe(ss, sess, token) {
 }
 
 /**
- * Начисление XP залогиненному пользователю (строка ищется по логину).
+ * Начисление XP вошедшему игроку (строка ищется по ID из токена).
  * params: { appId, rawScore, xp } → { total_xp }
- * Пишет строку в sys_Scores и увеличивает TotalXP в sys_Users.
  */
 function doAddXP(ss, sess, params) {
   var appId = String(params.appId || '').slice(0, 64);
@@ -423,7 +432,7 @@ function doAddXP(ss, sess, params) {
 /* ── Проверка прав ── */
 
 function requireAuth(sess) {
-  if (!sess) throw new AuthError('Требуется вход в аккаунт', 'AUTH_REQUIRED');
+  if (!sess) throw new AuthError('Требуется вход по коду', 'AUTH_REQUIRED');
 }
 
 /** Роль admin проверяется по таблице, а не по кэшу сессии. */
@@ -439,7 +448,7 @@ function requireAdmin(ss, sess) {
  * Политика доступа по действиям.
  *   гость (без токена): meta; read всего кроме sys_Users; append в sys_Logs;
  *                       append/update/batchValues в листы приложений (не sys_*)
- *   пользователь:       + append в sys_Scores, addXP, me
+ *   player:             + append в sys_Scores, addXP, me, сетевые комнаты
  *   admin:              + любая запись в sys_*, read sys_Users,
  *                       addSheets / deleteSheet / deleteRows
  */
@@ -740,10 +749,11 @@ function roomPublic(room, seat) {
   };
 }
 
-function handleRoomAction(action, params) {
+/** Создание и вход в комнату требуют сессии (вход по коду игрока или администратора). */
+function handleRoomAction(action, params, token) {
   switch (action) {
-    case 'roomCreate': return roomCreate(params);
-    case 'roomJoin':   return roomJoin(params);
+    case 'roomCreate': requireSession(token); return roomCreate(params);
+    case 'roomJoin':   requireSession(token); return roomJoin(params);
     case 'roomGet':    return roomGet(params);
     case 'roomMove':   return roomMove(params);
     case 'roomReset':  return roomReset(params);

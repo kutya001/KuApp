@@ -285,28 +285,18 @@
                     <svg viewBox="0 0 24 24" width="42" height="42" fill="none" stroke="var(--c-prep)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="12 2 2 7 12 12 22 7 12 2"/><polyline points="2 17 12 22 22 17"/><polyline points="2 12 12 17 22 12"/></svg>
                 </div>
                 <div class="auth-logo-name">KuApp</div>
-                <div class="auth-logo-sub" id="login-sub-text">Вход в систему</div>
+                <div class="auth-logo-sub" id="login-sub-text">Вход по коду доступа</div>
             </div>
             <div id="login-form">
                 <div style="display:flex;flex-direction:column;gap:14px">
-                    <div class="inp-group"><label class="inp-label">Логин</label><input type="text" id="login-login" class="inp-field" autocomplete="username" placeholder="username"></div>
-                    <div class="inp-group"><label class="inp-label">Пароль</label><input type="password" id="login-pass" class="inp-field" autocomplete="current-password" placeholder="••••••"></div>
+                    <div class="inp-group"><label class="inp-label">Код доступа</label><input type="password" id="login-code" class="inp-field" inputmode="numeric" autocomplete="one-time-code" placeholder="••••••"></div>
+                    <div class="inp-group"><label class="inp-label">Имя (необязательно)</label><input type="text" id="login-name" class="inp-field" maxlength="32" autocomplete="nickname" placeholder="Как вас называть в играх"></div>
                     <div class="auth-err" id="login-err"></div>
                     <button class="btn-primary" id="btn-do-login">Войти</button>
-                    <button class="btn-secondary" id="btn-show-reg">Регистрация</button>
                     <button class="btn-secondary" id="btn-guest-mode" style="background:rgba(91,140,255,.15);color:var(--c-prep);border-color:rgba(91,140,255,.3)">🎮 Играть без входа (Гость)</button>
+                    <p style="font-size:.72rem;color:var(--text-2);text-align:center;margin:0;line-height:1.5">Код игрока открывает игры по сети и общий рейтинг. Код администратора — управление таблицами. Без кода доступны только локальные игры.</p>
                     <div class="auth-sep"></div>
                     <button class="auth-link" id="btn-goto-setup" style="display:none">⚙ Настройки подключения</button>
-                </div>
-            </div>
-            <div id="reg-form" style="display:none">
-                <div style="display:flex;flex-direction:column;gap:14px">
-                    <div class="inp-group"><label class="inp-label">Логин</label><input type="text" id="reg-login" class="inp-field" autocomplete="username" placeholder="username"></div>
-                    <div class="inp-group"><label class="inp-label">Пароль</label><input type="password" id="reg-pass" class="inp-field" autocomplete="new-password" placeholder="••••••"></div>
-                    <div class="auth-err" id="reg-err"></div>
-                    <button class="btn-primary" id="btn-do-reg">Зарегистрироваться</button>
-                    <button class="btn-secondary" id="btn-show-login">← Войти</button>
-                    <button class="btn-secondary" id="btn-reg-guest-mode" style="background:rgba(91,140,255,.15);color:var(--c-prep);border-color:rgba(91,140,255,.3)">🎮 Играть без входа (Гость)</button>
                 </div>
             </div>
         </div>
@@ -418,11 +408,12 @@
  * ═════════════════════════════════════════════════════════════════ */
 const LS_CFG  = 'mcg_config';
 const LS_USER = 'mcg_user';
+const LS_PID  = 'kuapp_pid';   // персональный ID игрока (P-XXXXXX), выдаётся сервером при первом входе
 const LS_LAUNCHES = 'mcg_launches';
 
 /* ── DB Schema (sys_ prefix) ── */
 const DB_SYSTEM_SCHEMA = {
-    sys_Users:  { headers: ['ID','Email','Password','Role','TotalXP','CreatedAt','Status'] },
+    sys_Users:  { headers: ['ID','Email','Password','Role','TotalXP','CreatedAt','Status','Name'] },
     sys_Logs:   { headers: ['Timestamp','Email','AppID','EventType','Details'] },
     sys_Scores: { headers: ['Timestamp','Email','AppID','RawScore','XP'] }
 };
@@ -602,12 +593,18 @@ async function dbInitAllSheets() {
 }
 
 /* ══════════════════════════════════════════════════════════════════
- * USER AUTH — проверка пароля и выдача токена на сервере (gas/Code.gs)
- * Сервер возвращает { login, role, total_xp, token }; токен хранится
- * вместе с профилем в localStorage и уходит в каждый gasCall.
+ * USER AUTH — вход по коду доступа (gas/Code.gs → AUTH)
+ * Коды лежат в Script Properties: ADMIN_CODE (админ), PLAYER_CODE (игроки).
+ * Сервер возвращает { login, playerId, name, role, total_xp, token };
+ * персональный ID хранится в localStorage и присылается при следующих входах.
  * ═════════════════════════════════════════════════════════════════ */
-async function loginUser(login, password)    { return gasCall('login',    { login, password }); }
-async function registerUser(login, password) { return gasCall('register', { login, password }); }
+function getStoredPlayerId() { try { return localStorage.getItem(LS_PID) || ''; } catch { return ''; } }
+function storePlayerId(id)   { try { if (id) localStorage.setItem(LS_PID, id); } catch {} }
+async function loginByCode(code, name) {
+    const user = await gasCall('loginCode', { code, name, playerId: getStoredPlayerId() });
+    storePlayerId(user.playerId);
+    return user;
+}
 
 /** Подтянуть актуальные роль/XP по токену; просроченный токен сбросит сессию. */
 async function refreshProfile() {
@@ -679,11 +676,12 @@ function getGuestTotalXP() {
 window.PlatformAPI = {
     user: {
         getProfile: () => currentUser
-            ? { login: currentUser.login, role: currentUser.role, total_xp: currentUser.total_xp, isGuest: false }
-            : { login: 'Гость', role: 'guest', total_xp: getGuestTotalXP(), isGuest: true },
+            ? { login: currentUser.login, playerId: currentUser.playerId, name: currentUser.name || '', role: currentUser.role, total_xp: currentUser.total_xp, isGuest: false }
+            : { login: 'Гость', playerId: '', name: '', role: 'guest', total_xp: getGuestTotalXP(), isGuest: true },
         isAdmin: () => (currentUser?.role || '').toLowerCase() === 'admin',
         isGuest: () => !currentUser,
-        getRole: () => (currentUser ? (currentUser.role || 'user') : 'guest').toLowerCase()
+        getRole: () => (currentUser ? (currentUser.role || 'player') : 'guest').toLowerCase(),
+        getToken: () => currentUser?.token || null      // для сетевых комнат (kunet.js)
     },
     db: {
         read: async (range) => { validateSheetRange(range); return apiRead(range); },
@@ -734,7 +732,8 @@ window.PlatformAPI = {
     ui: {
         showToast:  (msg, type) => toast(msg, type),
         showLoader: (on)        => showLoader(on),
-        openSettings: ()        => switchTab('settings')
+        openSettings: ()        => switchTab('settings'),
+        openLogin: ()           => { $('btn-float-back').click(); showView('login'); }
     }
 };
 
@@ -1261,18 +1260,19 @@ function renderSettGeneral(c) {
         html += `
         <div class="panel-sec">
             <h3>👤 Аккаунт</h3>
-            <div class="panel-row"><span>Логин</span><span class="panel-badge">${esc(currentUser.login)}</span></div>
-            <div class="panel-row"><span>Роль</span><span class="panel-badge">${esc(currentUser.role || 'user')}</span></div>
+            <div class="panel-row"><span>Персональный ID</span><span class="panel-badge">${esc(currentUser.playerId || currentUser.login)}</span></div>
+            <div class="panel-row"><span>Имя</span><span class="panel-badge">${esc(currentUser.name || '—')}</span></div>
+            <div class="panel-row"><span>Роль</span><span class="panel-badge">${esc(currentUser.role === 'admin' ? 'администратор' : 'игрок')}</span></div>
             <div class="panel-row"><span>XP</span><span class="panel-badge">${currentUser.total_xp || 0}</span></div>
-            <button class="panel-btn danger" onclick="doLogout()">🚪 Выйти из аккаунта</button>
+            <button class="panel-btn danger" onclick="doLogout()">🚪 Выйти</button>
         </div>`;
     } else {
         html += `
         <div class="panel-sec">
             <h3>👤 Аккаунт</h3>
-            <div class="panel-row"><span>Режим</span><span class="panel-badge" style="color:var(--c-work);font-weight:700">🎮 Гость (Без регистрации)</span></div>
-            <p style="font-size:.78rem;color:var(--text-2);margin:8px 0">Игры доступны по умолчанию без регистрации. Вы можете зарегистрироваться или войти, чтобы ваши очки и XP сохранялись в общий рейтинг.</p>
-            <button class="panel-btn accent" onclick="showView('login')">🔑 Войти или Зарегистрироваться</button>
+            <div class="panel-row"><span>Режим</span><span class="panel-badge" style="color:var(--c-work);font-weight:700">🎮 Гость</span></div>
+            <p style="font-size:.78rem;color:var(--text-2);margin:8px 0">Локальные игры доступны без входа. Введите код игрока, чтобы играть по сети и попадать в общий рейтинг.</p>
+            <button class="panel-btn accent" onclick="showView('login')">🔑 Войти по коду</button>
         </div>`;
     }
 
@@ -1309,7 +1309,7 @@ async function loadAdminUsers() {
     const c = $('admin-users');
     if (!c) return;
     try {
-        const res = await apiRead('sys_Users!A2:G5000');
+        const res = await apiRead('sys_Users!A2:H5000');
         _adminUsers = res.values || [];
         if (!_adminUsers.length) {
             c.innerHTML = '<p style="color:var(--text-2);font-size:.82rem">Нет пользователей</p>';
@@ -1317,16 +1317,16 @@ async function loadAdminUsers() {
         }
         let html = '<div class="users-list">';
         _adminUsers.forEach((r, i) => {
-            const [id, email, pwd, role, xp, created, status] = [...r, '', '', '', '', '', '', ''];
+            const [id, email, pwd, role, xp, created, status, name] = [...r, '', '', '', '', '', '', '', ''];
             const isSelf = email === currentUser?.login;
             const isBlocked = status === 'blocked';
             html += `<div class="user-row">
-                <span class="u-email">${esc(email)}</span>
-                <span class="u-role ${role === 'admin' ? 'admin' : ''}">${esc(role || 'user')}</span>
+                <span class="u-email">${esc(name ? name + ' · ' + email : email)}</span>
+                <span class="u-role ${role === 'admin' ? 'admin' : ''}">${esc(role || 'player')}</span>
                 ${isBlocked ? '<span style="color:var(--c-danger);font-size:.75rem">⛔ заблокирован</span>' : ''}
                 <div class="u-meta">XP: ${xp || 0} · ${created ? formatTs(created) : '—'}</div>
                 ${isSelf ? '' : `<div class="u-actions">
-                    <button onclick="adminToggleRole(${i})">${(role || 'user') === 'admin' ? '→user' : '→admin'}</button>
+                    <button onclick="adminToggleRole(${i})">${(role || 'player') === 'admin' ? '→player' : '→admin'}</button>
                     <button onclick="adminToggleBlock(${i})">${isBlocked ? '✓ разблок.' : '⛔ блок.'}</button>
                 </div>`}
             </div>`;
@@ -1340,7 +1340,7 @@ async function loadAdminUsers() {
 
 async function adminToggleRole(idx) {
     const r = _adminUsers[idx]; if (!r) return;
-    const newRole = (r[3] || 'user') === 'admin' ? 'user' : 'admin';
+    const newRole = (r[3] || 'player') === 'admin' ? 'player' : 'admin';
     showLoader(true);
     try { await apiUpdate(`sys_Users!D${idx + 2}`, newRole); toast('Роль изменена', 'ok'); loadAdminUsers(); }
     catch (e) { toast('Ошибка: ' + e.message, 'err'); }
@@ -1767,65 +1767,38 @@ $('btn-setup-save').addEventListener('click', async () => {
 /* ══════════════════════════════════════════════════════════════════
  * LOGIN / REGISTER
  * ═════════════════════════════════════════════════════════════════ */
-$('btn-show-reg').addEventListener('click', () => {
-    $('login-form').style.display = 'none';
-    $('reg-form').style.display   = '';
-    $('login-sub-text').textContent = 'Регистрация';
-});
-$('btn-show-login').addEventListener('click', () => {
-    $('reg-form').style.display   = 'none';
-    $('login-form').style.display = '';
-    $('login-sub-text').textContent = 'Вход в систему';
-});
 $('btn-goto-setup').addEventListener('click', () => showView('setup'));
 $('btn-guest-mode')?.addEventListener('click', () => afterLogin());
-$('btn-reg-guest-mode')?.addEventListener('click', () => afterLogin());
 
 async function doLoginAction() {
-    const login = $('login-login').value.trim();
-    const pass  = $('login-pass').value;
+    const code  = $('login-code').value.trim();
+    const name  = $('login-name').value.trim();
     const errEl = $('login-err');
     errEl.textContent = '';
-    if (!login || !pass) { errEl.textContent = 'Заполните все поля'; return; }
+    if (!code) { errEl.textContent = 'Введите код доступа'; return; }
     showLoader(true);
     try {
-        const user = await loginUser(login, pass);   // { login, role, total_xp, token }
+        const user = await loginByCode(code, name);   // { login, playerId, name, role, total_xp, token }
         currentUser = user;
         saveUser();
+        $('login-code').value = '';
         showLoader(false);
-        afterLogin();
-    } catch (e) { showLoader(false); errEl.textContent = e.message; }
-}
-
-async function doRegisterAction() {
-    const login = $('reg-login').value.trim();
-    const pass  = $('reg-pass').value;
-    const errEl = $('reg-err');
-    errEl.textContent = '';
-    if (!login || !pass) { errEl.textContent = 'Заполните все поля'; return; }
-    if (pass.length < 4) { errEl.textContent = 'Пароль — минимум 4 символа'; return; }
-    showLoader(true);
-    try {
-        const user = await registerUser(login, pass);   // { login, role, total_xp, token }
-        currentUser = user;
-        saveUser();
-        showLoader(false);
+        toast(user.role === 'admin' ? '🔑 Вход администратора' : `🎮 Добро пожаловать, ${user.name || user.playerId}!`, 'ok');
         afterLogin();
     } catch (e) { showLoader(false); errEl.textContent = e.message; }
 }
 
 $('btn-do-login').addEventListener('click', doLoginAction);
-$('btn-do-reg').addEventListener('click', doRegisterAction);
-$('login-pass').addEventListener('keydown', e => { if (e.key === 'Enter') doLoginAction(); });
-$('reg-pass').addEventListener('keydown', e => { if (e.key === 'Enter') doRegisterAction(); });
+$('login-code').addEventListener('keydown', e => { if (e.key === 'Enter') doLoginAction(); });
+$('login-name').addEventListener('keydown', e => { if (e.key === 'Enter') doLoginAction(); });
 
 /* ══════════════════════════════════════════════════════════════════
  * USER ACTION / LOGOUT
  * ═════════════════════════════════════════════════════════════════ */
 function updateUserUI() {
     const isGuest = !currentUser;
-    const userLabel = currentUser ? currentUser.login : '👤 Гость';
-    const xpBadge = currentUser ? `⭐ ${fmt(currentUser.total_xp || 0)} XP` : '🎮 Гость';
+    const userLabel = currentUser ? (currentUser.name || currentUser.playerId || currentUser.login) : '👤 Гость';
+    const xpBadge = currentUser ? `${currentUser.role === 'admin' ? '🔑 админ · ' : ''}⭐ ${fmt(currentUser.total_xp || 0)} XP` : '🎮 Гость';
 
     $('hdr-user-name').textContent = userLabel;
     $('side-user-name').textContent = userLabel;
@@ -1877,7 +1850,7 @@ function handleUserAction() {
 }
 
 function doLogout() {
-    if (!confirm('Выйти из аккаунта?')) return;
+    if (!confirm('Выйти? Персональный ID сохранится на этом устройстве.')) return;
     if (currentUser?.token) gasCall('logout').catch(() => {});   // отозвать токен на сервере
     currentUser = null;
     saveUser();
@@ -1902,8 +1875,8 @@ function afterLogin() {
 
 (function init() {
     loadCfg(); loadUser();
-    // Сессия старого формата (без токена) больше не действует — переводим в режим Гостя
-    if (currentUser && !currentUser.token) { currentUser = null; saveUser(); }
+    // Сессия старого формата (без токена или без персонального ID) больше не действует — режим Гостя
+    if (currentUser && (!currentUser.token || !currentUser.playerId)) { currentUser = null; saveUser(); }
 
     if (!cfg.gasUrl) {
         showView('setup');
