@@ -26,6 +26,8 @@
   /* ── Player panels ── */
   .panel{display:flex;flex-direction:column;align-items:center;gap:6px;transition:transform .3s}
   .panel.flip{transform:rotate(180deg)}
+  #wrap.netflip #panel-1{order:3}#wrap.netflip #board-box{order:2}#wrap.netflip #panel-0{order:1}
+  #wrap.netflip #cv{transform:rotate(180deg)}
   .plabel{font-size:.68rem;letter-spacing:.12em;text-transform:uppercase;color:var(--text2);height:14px;white-space:nowrap}
   .plabel.on{color:var(--text)}
   .wbtn{min-width:96px;height:46px;padding:0 18px;border:none;border-radius:10px;display:flex;align-items:center;justify-content:center;gap:12px;color:#fff;font:800 1.15rem 'JetBrains Mono',monospace;cursor:pointer;transition:opacity .2s,filter .2s,box-shadow .2s,transform .1s;opacity:.4;filter:saturate(.55)}
@@ -107,6 +109,7 @@
       </div>
       <button class="btn btn-primary" id="btn-1p">1 Игрок</button>
       <button class="btn" id="btn-2p">2 Игрока</button>
+      <button class="btn" id="btn-net" style="border-color:#00e5a0">По сети</button>
       <button class="btn btn-dim" id="btn-rules">Правила</button>
     </div>
     <div class="col" id="diff-btns" style="display:none">
@@ -156,6 +159,7 @@
   </div>
 </div>
 
+<script src="kunet.js"></script>
 <script>
 'use strict';
 /* ═══════════════════════════════════════════════════════════════
@@ -370,7 +374,7 @@ function aiChoose(s, level) {
  * ═════════════════════════════════════════════════════════════ */
 const $ = id => document.getElementById(id);
 const COL = ['#ef4444', '#3b82f6'];
-const NAMES = { '1p': ['Вы', 'ИИ'], '2p': ['Красный', 'Синий'] };
+const NAMES = { '1p': ['Вы', 'ИИ'], '2p': ['Красный', 'Синий'], 'net': ['Красный', 'Синий'] };
 const MAX_PLY = 300;
 
 let S = newState(), mode = '1p', level = 'medium';
@@ -382,8 +386,73 @@ const cv = $('cv'), ctx = cv.getContext('2d');
 let G = { size: 300, pad: 8, cs: 26, gp: 6.5, P: 32.5, dpr: 1 };
 const disp = [{ x: 0, y: 0 }, { x: 0, y: 0 }];   // animated pawn positions (grid units)
 
-function isHuman(p) { return mode === '2p' || p === 0; }
-function canAct() { return !gameOver && !aiBusy && isHuman(S.turn) && !anyMenu(); }
+function isHuman(p) { return mode === 'net' ? p === mySeat : (mode === '2p' || p === 0); }
+function canAct() {
+  if (gameOver || aiBusy || !isHuman(S.turn) || anyMenu()) return false;
+  if (mode === 'net') return !!(net && net.room && net.isMyTurn() && !net.busy);
+  return true;
+}
+
+/* ═══════════════════════════════════════════════════════════════
+ * NET — сетевая партия через KuNet (seat 0 = красный, seat 1 = синий)
+ * ═════════════════════════════════════════════════════════════ */
+let net = null, mySeat = 0, netRound = 0;
+const isNet = () => mode === 'net' && net && net.room;
+function nameOf(p) { return isNet() ? (net.room.players[p] || NAMES.net[p]) : NAMES[mode][p]; }
+function serialize(s) {
+  return { pos: [[s.pos[0][0], s.pos[0][1]], [s.pos[1][0], s.pos[1][1]]], walls: [s.walls[0], s.walls[1]],
+           h: Array.from(s.h), v: Array.from(s.v), turn: s.turn, ply: s.ply };
+}
+function deserialize(o) {
+  const s = newState();
+  if (!o) return s;
+  s.pos = [[o.pos[0][0], o.pos[0][1]], [o.pos[1][0], o.pos[1][1]]];
+  s.walls = [o.walls[0], o.walls[1]];
+  s.h = Int8Array.from(o.h || []); s.v = Int8Array.from(o.v || []);
+  if (s.h.length !== 64) s.h = new Int8Array(64);
+  if (s.v.length !== 64) s.v = new Int8Array(64);
+  s.turn = o.turn === 1 ? 1 : 0; s.ply = o.ply | 0;
+  return s;
+}
+function netApply(room) {
+  if (!isNet() || !room || !room.state) return;
+  if (room.round !== netRound) { netRound = room.round; ['menu-end'].forEach(hide); newGame(); }
+  S = deserialize(room.state);
+  history = []; armed = false; ghost = null;
+  const lm = room.lastMove && room.lastMove.move;
+  if (lm && lm.t === 'w' && room.lastMove.by !== mySeat) { lastWall = { o: lm.o, r: lm.r, c: lm.c, t: performance.now() }; AudioSys.sfx.wall(); }
+  else if (lm && lm.t === 'm' && room.lastMove.by !== mySeat) AudioSys.sfx.move();
+  const mover = room.lastMove ? room.lastMove.by : -1;
+  if (mover >= 0 && isGoal(mover, S.pos[mover][0], S.pos[mover][1])) { if (!gameOver) finish(mover); return; }
+  if (S.ply >= MAX_PLY) { if (!gameOver) finish(-1); return; }
+  if (room.status === 'closed') { gameOver = true; }
+  updateHUD();
+}
+function netSend(action, finished) {
+  const payload = action.t === 'w' ? { t: 'w', o: action.o, r: action.r, c: action.c } : { t: 'm', r: action.r, c: action.c };
+  net.move(serialize(S), S.turn, payload, finished).catch(e => {
+    if (!isNet()) return;
+    toast(/устарело/.test(e.message) ? 'Синхронизация…' : 'Нет связи: ' + e.message);
+  });
+}
+function startNet(sess) {
+  net = sess; mode = 'net'; mySeat = sess.seat; netRound = sess.room.round;
+  if (sess.room.meta && sess.room.meta.gm) chooseGoalMode(sess.room.meta.gm);
+  $('wrap').classList.toggle('netflip', mySeat === 1);
+  hide('menu-main'); AudioSys.init();
+  newGame();
+  sess.onUpdate = room => netApply(room);
+  sess.onClosed = () => { gameOver = true; aiBusy = false; armed = false; ghost = null; updateHUD(); toast('Соперник вышел из игры'); $('end-title').textContent = 'Соперник вышел'; $('end-title').style.color = '#fff'; $('end-sub').textContent = ''; $('end-score').style.display = 'none'; $('end-stats').textContent = ''; show('menu-end'); };
+  sess.onError = () => toast('Нет связи с сервером…');
+  netApply(sess.room);
+  sess.startPolling();
+}
+function leaveNet() {
+  if (net) { net.onUpdate = net.onClosed = net.onError = null; net.leave(); }
+  net = null; if (mode === 'net') mode = '1p';
+  $('wrap').classList.remove('netflip');
+}
+window.addEventListener('pagehide', () => { if (net) net.leaveBeacon(); });
 function anyMenu() { return document.querySelector('.overlay.active') !== null; }
 
 function toast(msg) {
@@ -415,19 +484,19 @@ function updateHUD() {
     b.classList.toggle('active', active);
     b.classList.toggle('armed', active && armed);
     b.classList.toggle('empty', S.walls[p] === 0);
-    const lb = $('plabel-' + p), nm = NAMES[mode][p];
+    const lb = $('plabel-' + p), nm = nameOf(p);
     let txt = nm;
     if (active) {
-      if (!isHuman(p)) txt = 'ИИ думает…';
+      if (!isHuman(p)) txt = mode === 'net' ? 'Ход: ' + nm : 'ИИ думает…';
       else if (armed) txt = 'Проведите по доске';
-      else txt = mode === '1p' ? 'Ваш ход' : 'Ход: ' + nm;
+      else txt = (mode === '1p' || mode === 'net') ? 'Ваш ход' : 'Ход: ' + nm;
     }
     if (gameOver && winner === p) txt = nm + ' — победа';
     lb.textContent = txt;
     lb.classList.toggle('on', active);
   }
   $('panel-1').classList.toggle('flip', mode === '2p');
-  $('btn-undo').disabled = gameOver || aiBusy || !history.some(e => isHuman(e.by));
+  $('btn-undo').disabled = gameOver || aiBusy || mode === 'net' || !history.some(e => isHuman(e.by));
 }
 
 /* ── Actions ── */
@@ -440,7 +509,10 @@ function commit(n, action) {
   else AudioSys.sfx.move();
   if (isHuman(p) && action.t === 'm') humanMoves++;
 
-  if (action.t === 'm' && isGoal(p, S.pos[p][0], S.pos[p][1])) return finish(p);
+  const won = action.t === 'm' && isGoal(p, S.pos[p][0], S.pos[p][1]);
+  const over = won || S.ply >= MAX_PLY;
+  if (isNet() && p === mySeat) netSend(action, over);
+  if (won) return finish(p);
   if (S.ply >= MAX_PLY) return finish(-1);
   updateHUD();
   scheduleAI();
@@ -487,6 +559,10 @@ function finish(w) {
 
   let title, sub = '', scoreTxt = '', statsTxt = '', color = '#fff';
   if (w === -1) { title = 'Ничья'; sub = 'Слишком долгая партия'; }
+  else if (mode === 'net') {
+    title = w === mySeat ? 'Победа!' : 'Поражение'; color = COL[w];
+    sub = nameOf(w) + ' дошёл первым · стен осталось: ' + S.walls[w];
+  }
   else if (mode === '2p') {
     title = (w === 0 ? 'Красный' : 'Синий') + ' победил!'; color = COL[w];
     sub = 'Осталось стен: ' + S.walls[w];
@@ -511,7 +587,7 @@ function finish(w) {
     const lvName = { easy: 'Легко', medium: 'Средне', hard: 'Сложно' }[level];
     statsTxt = (GM === 'center' ? 'В центр · ' : 'К краю · ') + lvName + ': побед ' + rec.w + ' · поражений ' + rec.l;
   }
-  (w === 0 || mode === '2p') && w !== -1 ? AudioSys.sfx.win() : AudioSys.sfx.lose();
+  (w === 0 || mode === '2p' || (mode === 'net' && w === mySeat)) && w !== -1 ? AudioSys.sfx.win() : AudioSys.sfx.lose();
 
   $('end-title').textContent = title; $('end-title').style.color = color;
   $('end-sub').textContent = sub;
@@ -534,7 +610,9 @@ function newGame() {
  * ═════════════════════════════════════════════════════════════ */
 function localXY(e) {
   const rc = cv.getBoundingClientRect();
-  return [e.clientX - rc.left - G.pad, e.clientY - rc.top - G.pad];
+  let x = e.clientX - rc.left, y = e.clientY - rc.top;
+  if (mode === 'net' && mySeat === 1) { x = G.size - x; y = G.size - y; }   // доска повёрнута на 180°
+  return [x - G.pad, y - G.pad];
 }
 // Orientation: swipe direction wins once the finger has moved; otherwise the nearest groove.
 function wallAt(x, y, forced) {
@@ -703,6 +781,15 @@ $('btn-1p').onclick = () => { $('main-btns').style.display = 'none'; $('diff-btn
 $('btn-back-main').onclick = () => { $('diff-btns').style.display = 'none'; $('main-btns').style.display = 'flex'; };
 $('btn-start-ai').onclick = () => { AudioSys.init(); mode = '1p'; hide('menu-main'); newGame(); };
 $('btn-2p').onclick = () => { AudioSys.init(); mode = '2p'; hide('menu-main'); newGame(); };
+$('btn-net').onclick = () => {
+  AudioSys.init();
+  KuNet.openLobby({
+    game: 'wallrush', title: 'WALL RUSH · ПО СЕТИ',
+    meta: { gm: GM, label: GM === 'center' ? 'В центр' : 'К краю' },
+    initialState: () => serialize(newState()),
+    onStart: startNet
+  });
+};
 document.querySelectorAll('.diff-btn[data-d]').forEach(b => b.addEventListener('click', () => {
   level = b.dataset.d;
   document.querySelectorAll('.diff-btn[data-d]').forEach(x => x.classList.toggle('active', x === b));
@@ -714,11 +801,12 @@ $('btn-rules-close').onclick = () => { hide('menu-rules'); show(rulesReturn); };
 
 $('btn-pause').onclick = () => { if (!anyMenu()) { armed = false; ghost = null; updateHUD(); show('menu-pause'); } };
 $('btn-resume').onclick = () => { hide('menu-pause'); updateHUD(); };
-$('btn-restart').onclick = () => { hide('menu-pause'); newGame(); };
+$('btn-restart').onclick = () => { hide('menu-pause'); if (isNet()) { netApply(net.room); return; } newGame(); };
 $('btn-undo').onclick = () => undo();
 
 const toMenu = () => {
   clearTimeout(aiTimer); clearTimeout(endTimer);
+  leaveNet();
   gameOver = true; aiBusy = false;
   ['menu-pause', 'menu-end', 'menu-rules'].forEach(hide);
   $('diff-btns').style.display = 'none'; $('main-btns').style.display = 'flex';
@@ -726,7 +814,16 @@ const toMenu = () => {
 };
 $('btn-quit').onclick = toMenu;
 $('btn-end-menu').onclick = toMenu;
-$('btn-again').onclick = () => { hide('menu-end'); newGame(); };
+$('btn-again').onclick = () => {
+  hide('menu-end');
+  if (isNet()) {
+    if (net.room.status === 'closed') { toMenu(); return; }
+    toast('Новая партия…');
+    net.reset(serialize(newState()), 0).then(r => netApply(r)).catch(e => toast('Ошибка: ' + e.message));
+    return;
+  }
+  newGame();
+};
 
 const MODE_SUB = {
   edge: 'Доведи фишку до своего ряда. Строй стены.',

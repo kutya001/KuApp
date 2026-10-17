@@ -81,6 +81,7 @@ function doPost(e) {
     var body   = JSON.parse(e.postData.contents);
     var action = body.action;
     var params = body.params || {};
+    if (isRoomAction(action)) return ok(handleRoomAction(action, params));
     var ss     = getSpreadsheet();
 
     switch (action) {
@@ -97,6 +98,11 @@ function doPost(e) {
   } catch (err) {
     return fail(err.message);
   }
+}
+
+/** Действия, которым не нужна таблица (онлайн-комнаты). */
+function isRoomAction(action) {
+  return typeof action === 'string' && action.indexOf('room') === 0;
 }
 
 /* ═══════════════════════════════════════════════════
@@ -246,4 +252,260 @@ function doDeleteRows(ss, params) {
     target.deleteRow(r); // deleteRow использует 1-based индекс
   }
   return { deleted: endIndex - startIndex };
+}
+
+/* ═══════════════════════════════════════════════════
+ * ONLINE ROOMS — сетевая игра для пошаговых игр
+ *
+ * Комнаты живут в CacheService (до 6 часов), таблица не нужна.
+ * Модель: клиент, чей сейчас ход, присылает новое состояние
+ * целиком (roomMove) с ожидаемой версией; сервер проверяет
+ * токен игрока, очередь хода и версию, затем увеличивает ver.
+ * Второй клиент опрашивает roomGet с последней известной ver
+ * и получает { unchanged: true }, пока ничего не изменилось.
+ *
+ * Действия: roomCreate, roomJoin, roomGet, roomMove, roomReset,
+ *           roomLeave, roomList
+ * ═══════════════════════════════════════════════════ */
+
+var ROOM_TTL_SEC     = 21600;                      // максимум CacheService
+var ROOM_WAIT_MAX_MS = 30 * 60 * 1000;             // комната в ожидании живёт 30 мин
+var ROOM_CODE_CHARS  = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
+var ROOM_MAX_STATE   = 60000;                      // байт JSON состояния
+
+function roomCache()        { return CacheService.getScriptCache(); }
+function roomKey(id)        { return 'room:' + id; }
+function roomIndexKey(game) { return 'rooms:' + game; }
+
+function roomNow() { return new Date().getTime(); }
+
+function roomLoad(id) {
+  if (typeof id !== 'string' || !/^[A-Z0-9]{4,8}$/.test(id)) throw new Error('Некорректный код комнаты');
+  var raw = roomCache().get(roomKey(id));
+  return raw ? JSON.parse(raw) : null;
+}
+
+function roomSave(room) {
+  room.updated = roomNow();
+  roomCache().put(roomKey(room.id), JSON.stringify(room), ROOM_TTL_SEC);
+}
+
+function roomWithLock(fn) {
+  var lock = LockService.getScriptLock();
+  lock.waitLock(10000);
+  try { return fn(); } finally { lock.releaseLock(); }
+}
+
+function roomIndexRead(game) {
+  var raw = roomCache().get(roomIndexKey(game));
+  return raw ? JSON.parse(raw) : [];
+}
+function roomIndexWrite(game, ids) {
+  roomCache().put(roomIndexKey(game), JSON.stringify(ids), ROOM_TTL_SEC);
+}
+function roomIndexAdd(game, id) {
+  var ids = roomIndexRead(game).filter(function (x) { return x !== id; });
+  ids.push(id);
+  roomIndexWrite(game, ids.slice(-50));
+}
+function roomIndexRemove(game, id) {
+  roomIndexWrite(game, roomIndexRead(game).filter(function (x) { return x !== id; }));
+}
+
+function roomValidGame(game) {
+  if (typeof game !== 'string' || !/^[a-z0-9_]{1,24}$/.test(game)) throw new Error('Некорректный идентификатор игры');
+  return game;
+}
+function roomValidName(name) {
+  name = String(name || '').trim().slice(0, 32);
+  return name || 'Игрок';
+}
+function roomValidState(state) {
+  var json = JSON.stringify(state === undefined ? null : state);
+  if (json.length > ROOM_MAX_STATE) throw new Error('Состояние слишком большое');
+  return state;
+}
+
+function roomGenCode() {
+  for (var attempt = 0; attempt < 20; attempt++) {
+    var code = '';
+    for (var i = 0; i < 4; i++) code += ROOM_CODE_CHARS.charAt(Math.floor(Math.random() * ROOM_CODE_CHARS.length));
+    if (!roomCache().get(roomKey(code))) return code;
+  }
+  throw new Error('Не удалось создать код комнаты, попробуйте ещё раз');
+}
+
+function roomSeatOf(room, token) {
+  if (!token) return -1;
+  for (var i = 0; i < room.players.length; i++) if (room.players[i].token === token) return i;
+  return -1;
+}
+
+/** Публичное представление комнаты (без чужих токенов). */
+function roomPublic(room, seat) {
+  return {
+    id: room.id, game: room.game, status: room.status,
+    players: room.players.map(function (p) { return p.name; }),
+    seat: seat, turn: room.turn, ver: room.ver, round: room.round,
+    state: room.state, meta: room.meta || null, lastMove: room.lastMove || null,
+    leftBy: typeof room.leftBy === 'number' ? room.leftBy : -1,
+    created: room.created, updated: room.updated, now: roomNow()
+  };
+}
+
+function handleRoomAction(action, params) {
+  switch (action) {
+    case 'roomCreate': return roomCreate(params);
+    case 'roomJoin':   return roomJoin(params);
+    case 'roomGet':    return roomGet(params);
+    case 'roomMove':   return roomMove(params);
+    case 'roomReset':  return roomReset(params);
+    case 'roomLeave':  return roomLeave(params);
+    case 'roomList':   return roomList(params);
+    default:           throw new Error('Неизвестное действие: ' + action);
+  }
+}
+
+/**
+ * Создать комнату. params: { game, player, state, meta }
+ * → публичная комната + token создателя (seat 0).
+ */
+function roomCreate(params) {
+  var game  = roomValidGame(params.game);
+  var name  = roomValidName(params.player);
+  var state = roomValidState(params.state);
+  return roomWithLock(function () {
+    var room = {
+      id: roomGenCode(), game: game, status: 'waiting',
+      players: [{ name: name, token: Utilities.getUuid() }],
+      turn: 0, ver: 1, round: 1, state: state, meta: params.meta || null,
+      lastMove: null, created: roomNow()
+    };
+    roomSave(room);
+    roomIndexAdd(game, room.id);
+    var pub = roomPublic(room, 0); pub.token = room.players[0].token;
+    return pub;
+  });
+}
+
+/** Войти в комнату. params: { id, player } → публичная комната + token (seat 1). */
+function roomJoin(params) {
+  var id   = String(params.id || '').toUpperCase().trim();
+  var name = roomValidName(params.player);
+  return roomWithLock(function () {
+    var room = roomLoad(id);
+    if (!room) throw new Error('Комната ' + id + ' не найдена или уже закрыта');
+    if (room.status !== 'waiting' || room.players.length >= 2) throw new Error('В комнате уже идёт игра');
+    if (room.players[0].name === name) name = name + ' (2)';
+    room.players.push({ name: name, token: Utilities.getUuid() });
+    room.status = 'playing';
+    room.ver++;
+    roomSave(room);
+    roomIndexRemove(room.game, room.id);
+    var pub = roomPublic(room, 1); pub.token = room.players[1].token;
+    return pub;
+  });
+}
+
+/**
+ * Получить состояние. params: { id, ver?, token? }
+ * Если ver совпадает с текущей — { unchanged: true, ver, status, now }.
+ */
+function roomGet(params) {
+  var room = roomLoad(String(params.id || '').toUpperCase().trim());
+  if (!room) throw new Error('Комната не найдена или истекла');
+  var seat = roomSeatOf(room, params.token);
+  if (typeof params.ver === 'number' && params.ver === room.ver) {
+    return { unchanged: true, ver: room.ver, status: room.status, now: roomNow() };
+  }
+  return roomPublic(room, seat);
+}
+
+/**
+ * Сделать ход. params: { id, token, ver, state, turn, move?, finished? }
+ * ver — версия, на которой построен ход (защита от гонок).
+ */
+function roomMove(params) {
+  var id    = String(params.id || '').toUpperCase().trim();
+  var state = roomValidState(params.state);
+  var turn  = params.turn === 1 ? 1 : 0;
+  return roomWithLock(function () {
+    var room = roomLoad(id);
+    if (!room) throw new Error('Комната не найдена или истекла');
+    var seat = roomSeatOf(room, params.token);
+    if (seat < 0) throw new Error('Вы не участник этой комнаты');
+    if (room.status !== 'playing') throw new Error('Игра не идёт (' + room.status + ')');
+    if (room.turn !== seat) throw new Error('Сейчас не ваш ход');
+    if (typeof params.ver === 'number' && params.ver !== room.ver) {
+      var pub = roomPublic(room, seat); pub.stale = true; return pub;
+    }
+    room.state = state;
+    room.turn = turn;
+    room.lastMove = { by: seat, move: params.move === undefined ? null : params.move, at: roomNow() };
+    if (params.finished) room.status = 'finished';
+    room.ver++;
+    roomSave(room);
+    return roomPublic(room, seat);
+  });
+}
+
+/**
+ * Начать новую партию в той же комнате. params: { id, token, state, round, turn? }
+ * Идемпотентно: если партия с таким round уже начата — вернёт текущую комнату.
+ */
+function roomReset(params) {
+  var id    = String(params.id || '').toUpperCase().trim();
+  var state = roomValidState(params.state);
+  return roomWithLock(function () {
+    var room = roomLoad(id);
+    if (!room) throw new Error('Комната не найдена или истекла');
+    var seat = roomSeatOf(room, params.token);
+    if (seat < 0) throw new Error('Вы не участник этой комнаты');
+    if (room.status === 'closed') throw new Error('Соперник покинул комнату');
+    if (room.players.length < 2) throw new Error('Соперник ещё не присоединился');
+    var fromRound = typeof params.round === 'number' ? params.round : room.round;
+    if (room.round !== fromRound) return roomPublic(room, seat);     // уже сброшено другим игроком
+    room.round++;
+    room.state = state;
+    room.turn = params.turn === 1 ? 1 : 0;
+    room.status = 'playing';
+    room.lastMove = null;
+    room.ver++;
+    roomSave(room);
+    return roomPublic(room, seat);
+  });
+}
+
+/** Покинуть комнату. params: { id, token } */
+function roomLeave(params) {
+  var id = String(params.id || '').toUpperCase().trim();
+  return roomWithLock(function () {
+    var room = roomLoad(id);
+    if (!room) return { closed: true };
+    var seat = roomSeatOf(room, params.token);
+    if (seat < 0) throw new Error('Вы не участник этой комнаты');
+    room.status = 'closed';
+    room.leftBy = seat;
+    room.ver++;
+    roomSave(room);
+    roomIndexRemove(room.game, room.id);
+    return roomPublic(room, seat);
+  });
+}
+
+/** Список открытых комнат игры. params: { game } → { rooms: [{ id, host, created, meta }] } */
+function roomList(params) {
+  var game = roomValidGame(params.game);
+  var ids = roomIndexRead(game), alive = [], out = [], now = roomNow();
+  for (var i = 0; i < ids.length; i++) {
+    var raw = roomCache().get(roomKey(ids[i]));
+    if (!raw) continue;
+    var room = JSON.parse(raw);
+    if (room.status !== 'waiting' || now - room.created > ROOM_WAIT_MAX_MS) continue;
+    alive.push(room.id);
+    out.push({ id: room.id, host: room.players[0].name, created: room.created, meta: room.meta || null });
+  }
+  if (alive.length !== ids.length) roomIndexWrite(game, alive);
+  out.sort(function (a, b) { return b.created - a.created; });
+  return { rooms: out, now: now };
 }

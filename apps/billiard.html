@@ -67,6 +67,7 @@
                     Выберите шар
                 </div>
                 <div class="flex gap-2">
+                    <button onclick="toggleNet()" id="btn-net" class="ui-panel px-4 py-2 rounded-full text-[10px] font-bold uppercase tracking-widest hover:bg-white/10 transition-colors text-emerald-400">По сети</button>
                     <button onclick="toggleTheme()" class="ui-panel px-4 py-2 rounded-full text-[10px] font-bold uppercase tracking-widest hover:bg-white/10 transition-colors text-white">Темы</button>
                     <button onclick="toggleNumbers()" class="ui-panel px-4 py-2 rounded-full text-[10px] font-bold uppercase tracking-widest hover:bg-white/10 transition-colors text-white" id="btn-numbers">Номера: ВКЛ</button>
                     <div class="ui-panel flex items-center gap-2 px-4 py-2 rounded-full cursor-pointer hover:bg-white/10 transition-colors">
@@ -125,6 +126,7 @@
         </div>
     </div>
 
+    <script src="kunet.js"></script>
     <script>
         // === НАСТРОЙКИ ===
         const themes = [
@@ -219,6 +221,117 @@
             ballInHand: false, hitOccurred: false, foul: false, pocketedThisTurn: 0       
         };
 
+        // === СЕТЕВАЯ ИГРА (KuNet): seat 0 = Игрок 1, seat 1 = Игрок 2 ===
+        // Ударивший игрок после остановки шаров шлёт снимок стола + параметры удара;
+        // соперник проигрывает удар у себя (анимация) и затем ставит шары по снимку.
+        let net = null, mySeat = 0, netRound = 0, replaying = false, replayState = null, pendingShot = null, netFinished = false;
+        const replayQueue = [];
+        const isNet = () => !!(net && net.room);
+        function canControl() {
+            return !isNet() || (net.room.status === 'playing' && net.isMyTurn() && !replaying && !net.busy && replayQueue.length === 0);
+        }
+        function ballsSnapshot() { return balls.map(b => ({ x: +b.pos.x.toFixed(2), y: +b.pos.y.toFixed(2), a: b.active ? 1 : 0 })); }
+        function snapshot(shot) {
+            return { balls: ballsSnapshot(), score1: gameState.score1, score2: gameState.score2,
+                     pocketed1: gameState.pocketed1.slice(), pocketed2: gameState.pocketed2.slice(),
+                     currentPlayer: gameState.currentPlayer, selected: balls.indexOf(gameState.selectedBall),
+                     ballInHand: !!gameState.ballInHand, shot: shot || null };
+        }
+        function placeBalls(list) {
+            list.forEach((o, i) => { const b = balls[i]; if (!b) return; b.pos = new Vec2(o.x, o.y); b.active = !!o.a; b.vel = new Vec2(0, 0); b.spin = new Vec2(0, 0); b.sideSpin = 0; });
+        }
+        function applySnapshot(s) {
+            if (!s || !s.balls) return;
+            placeBalls(s.balls);
+            gameState.score1 = s.score1 | 0; gameState.score2 = s.score2 | 0;
+            gameState.pocketed1 = (s.pocketed1 || []).slice(); gameState.pocketed2 = (s.pocketed2 || []).slice();
+            gameState.currentPlayer = s.currentPlayer === 2 ? 2 : 1;
+            gameState.ballInHand = !!s.ballInHand; gameState.ballsMoving = false;
+            gameState.hitOccurred = false; gameState.turnValid = false; gameState.foul = false; gameState.pocketedThisTurn = 0;
+            const sel = balls[s.selected]; gameState.selectedBall = sel && sel.active ? sel : (balls.find(b => b.active) || null);
+            updateHUD(); resetSpin(); netStatus();
+        }
+        function afterApply() {
+            if (isNet() && net.room.status === 'finished' && !netFinished) netShowWinner();
+        }
+        function netName(p) { return isNet() ? (net.room.players[p - 1] || ('Игрок ' + p)) : ('Игрок ' + p); }
+        function netStatus() {
+            if (!isNet()) return;
+            if (net.room.status === 'closed') { setStatus('Соперник вышел'); return; }
+            if (net.room.status === 'finished') return;
+            setStatus(gameState.currentPlayer === mySeat + 1 ? 'Ваш ход. Цельтесь.' : 'Ход: ' + netName(gameState.currentPlayer) + '…');
+        }
+        function netShowWinner() {
+            netFinished = true;
+            const winner = gameState.score1 >= 8 ? 1 : (gameState.score2 >= 8 ? 2 : (gameState.score1 >= gameState.score2 ? 1 : 2));
+            const mine = winner === mySeat + 1;
+            showModal(mine ? 'ПОБЕДА!' : 'ПОРАЖЕНИЕ', (mine ? 'Вы' : netName(winner)) + ' первым забил 8 шаров. Нажмите, чтобы сыграть ещё раз.', netRematch);
+        }
+        function netRematch() {
+            if (!isNet()) { initGame(); return; }
+            if (net.room.status === 'closed') { leaveNet(); initGame(); return; }
+            setStatus('Новая партия…');
+            const snap = (() => { initGame(); return snapshot(null); })();
+            net.reset(snap, 0).then(r => netApply(r)).catch(e => setStatus('Ошибка: ' + e.message));
+        }
+        function startReplay(s) {
+            const sh = s.shot;
+            placeBalls(sh.start || s.balls);
+            const b = balls[sh.idx];
+            if (!b || !b.active) { applySnapshot(s); afterApply(); return nextReplay(); }
+            replayState = s; replaying = true;
+            gameState.selectedBall = b; gameState.hitOccurred = false; gameState.pocketedThisTurn = 0;
+            b.vel = new Vec2(sh.vel.x, sh.vel.y); b.spin = new Vec2(sh.spin.x, sh.spin.y); b.sideSpin = sh.side || 0;
+            gameState.ballsMoving = true;
+            playSound('cue', b.vel.mag()); setStatus('Удар соперника…');
+        }
+        function nextReplay() {
+            if (replaying) return;
+            const s = replayQueue.shift();
+            if (!s) return;
+            if (s.shot && s.shot.start) startReplay(s); else { applySnapshot(s); afterApply(); nextReplay(); }
+        }
+        function netApply(room) {
+            if (!isNet() || !room || !room.state) return;
+            if (room.round !== netRound) { netRound = room.round; replayQueue.length = 0; replaying = false; replayState = null; netFinished = false; closeModalSilent(); initGame(); }
+            if (room.lastMove && room.lastMove.by === mySeat) { netStatus(); return; }   // это моё же состояние
+            const s = room.state;
+            replayQueue.push(room.lastMove ? s : Object.assign({}, s, { shot: null }));
+            nextReplay();
+        }
+        function startNet(sess) {
+            net = sess; mySeat = sess.seat; netRound = sess.room.round; netFinished = false; pendingShot = null;
+            replayQueue.length = 0; replaying = false; replayState = null;
+            initGame();
+            applySnapshot(sess.room.state);
+            sess.onUpdate = room => netApply(room);
+            sess.onClosed = () => { replayQueue.length = 0; replaying = false; updateHUD(); setStatus('Соперник вышел'); showModal('Соперник вышел', 'Комната закрыта. Нажмите, чтобы вернуться к локальной игре.', () => { leaveNet(); initGame(); }); };
+            sess.onError = () => { if (!gameState.ballsMoving) setStatus('Нет связи с сервером…'); };
+            document.getElementById('btn-net').innerText = 'Выйти';
+            netStatus();
+            sess.startPolling();
+        }
+        function leaveNet() {
+            if (net) { net.onUpdate = net.onClosed = net.onError = null; net.leave(); }
+            net = null; replaying = false; replayQueue.length = 0; replayState = null; pendingShot = null; netFinished = false;
+            document.getElementById('btn-net').innerText = 'По сети';
+        }
+        function toggleNet() {
+            if (audioCtx.state === 'suspended') audioCtx.resume();
+            if (isNet()) { leaveNet(); initGame(); return; }
+            KuNet.openLobby({
+                game: 'billiard', title: 'БИЛЬЯРД · ПО СЕТИ',
+                initialState: () => { initGame(); return snapshot(null); },
+                onStart: startNet
+            });
+        }
+        function closeModalSilent() {
+            modalCallback = null;
+            document.getElementById('modal-message').classList.add('opacity-0', 'pointer-events-none');
+            document.getElementById('modal-content').classList.add('scale-95');
+        }
+        window.addEventListener('pagehide', () => { if (net) net.leaveBeacon(); });
+
         function darkenColor(hex, percent) {
             let num = parseInt(hex.replace("#", ""), 16), amt = Math.round(2.55 * percent),
                 R = (num >> 16) - amt, B = (num >> 8 & 0x00FF) - amt, G = (num & 0x0000FF) - amt;
@@ -308,6 +421,8 @@
             gameState.score1 = 0; gameState.score2 = 0;
             gameState.pocketed1 = []; gameState.pocketed2 = [];
             gameState.currentPlayer = 1; gameState.ballInHand = false; gameState.aimAngle = 0;
+            gameState.ballsMoving = false; gameState.hitOccurred = false; gameState.turnValid = false; gameState.foul = false; gameState.pocketedThisTurn = 0;
+            gameState.aimPower = 0; gameState.isPlacingCue = false; gameState.isAimingOnCanvas = false;
 
             let startBall = new Ball(HOUSE_X * 0.8, TABLE_H / 2, '#facc15', 0);
             balls.push(startBall);
@@ -324,7 +439,7 @@
             }
             
             gameState.selectedBall = startBall;
-            updateHUD(); setStatus("Выберите шар для удара.");
+            updateHUD(); setStatus("Выберите шар для удара."); netStatus();
         }
 
         // === ФИЗИКА ===
@@ -420,16 +535,26 @@
         }
 
         function handlePocketedBall(ball) {
+            if (replaying) { if (ball === gameState.selectedBall) gameState.selectedBall = null; return; }   // итог придёт снимком
             gameState.turnValid = true; gameState.pocketedThisTurn++;
             if (ball === gameState.selectedBall) gameState.selectedBall = null; 
             let symbol = ball.number > 0 ? ball.number : "Б"; 
             if (gameState.currentPlayer === 1) { gameState.score1++; gameState.pocketed1.push(symbol); } 
             else { gameState.score2++; gameState.pocketed2.push(symbol); }
             updateHUD();
-            if (gameState.score1 >= 8 || gameState.score2 >= 8) { let winner = gameState.score1 >= 8 ? 1 : 2; showModal("ПОБЕДА!", `Игрок ${winner} первым забил 8 шаров!`, initGame); }
+            if (gameState.score1 >= 8 || gameState.score2 >= 8) {
+                let winner = gameState.score1 >= 8 ? 1 : 2;
+                if (isNet()) netShowWinner();
+                else showModal("ПОБЕДА!", `Игрок ${winner} первым забил 8 шаров!`, initGame);
+            }
         }
 
         function onTurnEnd() {
+            if (replaying) {   // проигрывание чужого удара закончилось — ставим шары по снимку
+                replaying = false; const s = replayState; replayState = null;
+                applySnapshot(s); afterApply(); nextReplay();
+                return;
+            }
             if (!gameState.hitOccurred && gameState.pocketedThisTurn === 0) {
                 gameState.foul = true;
                 if (gameState.currentPlayer === 1) { gameState.score2++; gameState.pocketed2.push("Ш"); } 
@@ -442,6 +567,12 @@
             let activeBalls = balls.filter(b => b.active);
             if (!gameState.selectedBall || !gameState.selectedBall.active) gameState.selectedBall = activeBalls.length > 0 ? activeBalls[0] : null;
             updateHUD(); setStatus(`Ход Игрока ${gameState.currentPlayer}.`); resetSpin();
+            if (isNet() && pendingShot) {
+                const shot = pendingShot; pendingShot = null;
+                net.move(snapshot(shot), gameState.currentPlayer - 1, null, netFinished)
+                    .then(() => netStatus())
+                    .catch(e => setStatus(/устарело/.test(e.message) ? 'Синхронизация…' : 'Нет связи: ' + e.message));
+            } else netStatus();
         }
 
         function castRay(start, dir, radius, ignoreBall) {
@@ -533,7 +664,7 @@
         }
 
         function drawAim() {
-            if (gameState.ballsMoving || !gameState.selectedBall) return;
+            if (gameState.ballsMoving || !gameState.selectedBall || !canControl()) return;
             let isFull = document.getElementById('full-trajectory-cb').checked;
             let tb = gameState.selectedBall;
             let dir = new Vec2(Math.cos(gameState.aimAngle), Math.sin(gameState.aimAngle));
@@ -592,6 +723,7 @@
         function updateHUD() {
             const p1 = document.getElementById('player1-panel'); const p2 = document.getElementById('player2-panel');
             const n1 = document.getElementById('name1'); const n2 = document.getElementById('name2');
+            n1.textContent = netName(1) + (isNet() && mySeat === 0 ? ' (вы)' : ''); n2.textContent = netName(2) + (isNet() && mySeat === 1 ? ' (вы)' : '');
 
             if (gameState.currentPlayer === 1) {
                 p1.classList.remove('opacity-50'); p2.classList.add('opacity-50');
@@ -639,8 +771,8 @@
             spinDot.style.transform = `translate(calc(-50% + ${x}px), calc(-50% + ${y}px))`; gameState.spin = new Vec2(x / r, y / r);
         }
         function resetSpin() { spinDot.style.transform = `translate(-50%, -50%)`; gameState.spin = new Vec2(0, 0); }
-        spinCtrl.addEventListener('mousedown', (e) => { isSpinDragging = true; updateSpin(e); }); window.addEventListener('mousemove', (e) => { if (isSpinDragging) updateSpin(e); }); window.addEventListener('mouseup', () => { isSpinDragging = false; });
-        spinCtrl.addEventListener('touchstart', (e) => { isSpinDragging = true; updateSpin(e); e.preventDefault(); }, {passive: false}); window.addEventListener('touchmove', (e) => { if (isSpinDragging) updateSpin(e); }, {passive: false}); window.addEventListener('touchend', () => { isSpinDragging = false; });
+        spinCtrl.addEventListener('mousedown', (e) => { if (!canControl()) return; isSpinDragging = true; updateSpin(e); }); window.addEventListener('mousemove', (e) => { if (isSpinDragging) updateSpin(e); }); window.addEventListener('mouseup', () => { isSpinDragging = false; });
+        spinCtrl.addEventListener('touchstart', (e) => { if (!canControl()) return; isSpinDragging = true; updateSpin(e); e.preventDefault(); }, {passive: false}); window.addEventListener('touchmove', (e) => { if (isSpinDragging) updateSpin(e); }, {passive: false}); window.addEventListener('touchend', () => { isSpinDragging = false; });
 
         // Сила
         const powerSlider = document.getElementById('power-slider'); const powerFill = document.getElementById('power-fill'); const powerHandle = document.getElementById('power-handle'); let isPowerDragging = false;
@@ -654,22 +786,24 @@
             if (gameState.aimPower > 100 && !gameState.ballsMoving && gameState.selectedBall) {
                 gameState.hitOccurred = false; gameState.foul = false; gameState.pocketedThisTurn = 0;
                 let dir = new Vec2(Math.cos(gameState.aimAngle), Math.sin(gameState.aimAngle));
+                if (isNet()) pendingShot = { idx: balls.indexOf(gameState.selectedBall), start: ballsSnapshot() };
                 gameState.selectedBall.vel = dir.mult(gameState.aimPower);
                 gameState.selectedBall.spin = dir.mult(gameState.aimPower * -gameState.spin.y * 2.5);
                 gameState.selectedBall.sideSpin = gameState.spin.x * gameState.aimPower * 0.8;
+                if (pendingShot) { const sb = gameState.selectedBall; pendingShot.vel = { x: sb.vel.x, y: sb.vel.y }; pendingShot.spin = { x: sb.spin.x, y: sb.spin.y }; pendingShot.side = sb.sideSpin; }
                 playSound('cue', gameState.aimPower);
             }
             gameState.aimPower = 0; powerFill.style.height = `0%`; powerHandle.style.bottom = `100%`;
         }
-        powerSlider.addEventListener('mousedown', (e) => { if(gameState.ballsMoving || !gameState.selectedBall) return; isPowerDragging = true; updatePowerFromSlider(e); }); window.addEventListener('mousemove', (e) => { if (isPowerDragging) updatePowerFromSlider(e); }); window.addEventListener('mouseup', () => { if (isPowerDragging) { isPowerDragging = false; executeShot(); }});
-        powerSlider.addEventListener('touchstart', (e) => { if(gameState.ballsMoving || !gameState.selectedBall) return; isPowerDragging = true; updatePowerFromSlider(e); e.preventDefault(); }, {passive: false}); window.addEventListener('touchmove', (e) => { if (isPowerDragging) updatePowerFromSlider(e); }, {passive: false}); window.addEventListener('touchend', () => { if (isPowerDragging) { isPowerDragging = false; executeShot(); }});
+        powerSlider.addEventListener('mousedown', (e) => { if(gameState.ballsMoving || !gameState.selectedBall || !canControl()) return; isPowerDragging = true; updatePowerFromSlider(e); }); window.addEventListener('mousemove', (e) => { if (isPowerDragging) updatePowerFromSlider(e); }); window.addEventListener('mouseup', () => { if (isPowerDragging) { isPowerDragging = false; executeShot(); }});
+        powerSlider.addEventListener('touchstart', (e) => { if(gameState.ballsMoving || !gameState.selectedBall || !canControl()) return; isPowerDragging = true; updatePowerFromSlider(e); e.preventDefault(); }, {passive: false}); window.addEventListener('touchmove', (e) => { if (isPowerDragging) updatePowerFromSlider(e); }, {passive: false}); window.addEventListener('touchend', () => { if (isPowerDragging) { isPowerDragging = false; executeShot(); }});
 
         // МИКРО-ПРИЦЕЛ (Ruler Wheel)
         const microAimArea = document.getElementById('micro-aim-area'); const microAimRuler = document.getElementById('micro-aim-ruler');
         let microAimDragging = false; let lastMicroAimX = 0; let rulerOffset = 0;
         
         function handleMicroAimStart(e) {
-            if(gameState.ballsMoving || !gameState.selectedBall) return;
+            if(gameState.ballsMoving || !gameState.selectedBall || !canControl()) return;
             microAimDragging = true; lastMicroAimX = e.touches ? e.touches[0].clientX : e.clientX;
         }
         function handleMicroAimMove(e) {
@@ -699,7 +833,7 @@
         }
         function handleCanvasStart(e) {
             if(audioCtx.state === 'suspended') audioCtx.resume();
-            if (gameState.ballsMoving) return;
+            if (gameState.ballsMoving || !canControl()) return;
             let touchPos = getMousePosInMM(e);
             let clickedBall = null;
             for (let b of balls) { if (b.active && touchPos.sub(b.pos).mag() < b.radius * 2) { clickedBall = b; break; } }

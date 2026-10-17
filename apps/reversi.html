@@ -28,25 +28,72 @@ button:hover{background:#1a1a24}
 #msg{position:fixed;inset:0;background:rgba(10,10,15,.88);display:none;flex-direction:column;align-items:center;justify-content:center;gap:12px}
 #msg h2{font-size:1.2rem}#msg p{font-size:.78rem;color:#8888aa}
 #mBtn{background:#00e5a0;color:#000;border:none;padding:11px 32px;border-radius:10px;font-size:.9rem;font-weight:700;cursor:pointer;font-family:inherit}
+#btnNet.on{border-color:#00e5a0;color:#00e5a0}
+#turn.me{color:#00e5a0}#turn.off{color:#ff4466}
 </style>
 </head>
 <body>
 <div id="top">
-  <div class="sc"><div class="sc-val" id="bsc">2</div><div class="sc-lbl">⚫ Вы</div></div>
+  <div class="sc"><div class="sc-val" id="bsc">2</div><div class="sc-lbl" id="blbl">⚫ Вы</div></div>
   <div id="turn">Ваш ход</div>
-  <div class="sc"><div class="sc-val" id="wsc">2</div><div class="sc-lbl">⚪ ИИ</div></div>
+  <div class="sc"><div class="sc-val" id="wsc">2</div><div class="sc-lbl" id="wlbl">⚪ ИИ</div></div>
 </div>
 <div id="board"></div>
-<div id="btns"><button id="btnNew">Новая игра</button></div>
+<div id="btns"><button id="btnNew">Новая игра</button><button id="btnNet">По сети</button></div>
 <div id="msg"><h2 id="mt"></h2><p id="mp"></p><button id="mBtn">Ещё раз</button></div>
 
+<script src="kunet.js"></script>
 <script>
 const DIR=[[-1,-1],[-1,0],[-1,1],[0,-1],[0,1],[1,-1],[1,0],[1,1]];
 let board,turn,locked;
 
+/* ── Сетевая партия (KuNet): seat 0 = ⚫ (1), seat 1 = ⚪ (2) ── */
+let net=null, mySide=1, netRound=0, aiTimer=null;
+const isNet=()=>net&&net.room;
+function initialBoard(){const b=Array(64).fill(0);b[27]=2;b[28]=1;b[35]=1;b[36]=2;return b;}
+function netName(side){return isNet()?(net.room.players[side-1]||'?'):(side===1?'Вы':'ИИ');}
+function setLabels(){
+  document.getElementById('blbl').textContent='⚫ '+(isNet()?netName(1):'Вы');
+  document.getElementById('wlbl').textContent='⚪ '+(isNet()?netName(2):'ИИ');
+  document.getElementById('btnNet').classList.toggle('on',!!isNet());
+  document.getElementById('btnNet').textContent=isNet()?'Выйти из сети':'По сети';
+}
+function netApply(room){
+  if(!isNet()||!room||!room.state) return;
+  if(room.round!==netRound){netRound=room.round;document.getElementById('msg').style.display='none';}
+  board=(room.state.board||initialBoard()).slice();
+  turn=room.state.turn===2?2:1;
+  locked=false;
+  render();
+  if(room.status==='finished'||(!valid(1).length&&!valid(2).length)) endGame();
+}
+function startNet(sess){
+  net=sess;netRound=sess.room.round;mySide=sess.seat+1;
+  clearTimeout(aiTimer);
+  setLabels();
+  sess.onUpdate=room=>netApply(room);
+  sess.onClosed=()=>{locked=true;const t=document.getElementById('turn');t.textContent='Соперник вышел';t.className='off';render();};
+  sess.onError=()=>{if(!locked){document.getElementById('turn').textContent='Нет связи…';}};
+  netApply(sess.room);
+  sess.startPolling();
+}
+function leaveNet(){
+  if(net){net.onUpdate=net.onClosed=net.onError=null;net.leave();}
+  net=null;mySide=1;setLabels();
+}
+window.addEventListener('pagehide',()=>{if(net)net.leaveBeacon();});
+
 function newGame(){
-  board=Array(64).fill(0);
-  board[27]=2;board[28]=1;board[35]=1;board[36]=2;
+  clearTimeout(aiTimer);
+  if(isNet()){
+    if(net.room.status==='closed'){leaveNet();}
+    else{
+      document.getElementById('turn').textContent='Новая партия…';
+      net.reset({board:initialBoard(),turn:1},0).then(r=>netApply(r)).catch(()=>{});
+      return;
+    }
+  }
+  board=initialBoard();
   turn=1;locked=false;
   document.getElementById('msg').style.display='none';
   render();
@@ -87,26 +134,44 @@ function score(){
 function render(){
   const g=document.getElementById('board');g.innerHTML='';
   const hints=valid(turn);
+  const mine=isNet()?(turn===mySide&&!locked&&net.room.status==='playing'):turn===1;
   for(let i=0;i<64;i++){
     const d=document.createElement('div');
-    d.className='cell'+(hints.includes(i)&&turn===1?' hint':'');
+    d.className='cell'+(hints.includes(i)&&mine?' hint':'');
     if(board[i]){
       const disc=document.createElement('div');
       disc.className='disc '+(board[i]===1?'b':'w');
       d.appendChild(disc);
     }
-    if(turn===1&&hints.includes(i)) d.addEventListener('click',()=>playerMove(i));
+    if(mine&&hints.includes(i)) d.addEventListener('click',()=>playerMove(i));
     g.appendChild(d);
   }
   score();
-  document.getElementById('turn').textContent=turn===1?'Ваш ход':'ИИ думает…';
+  const t=document.getElementById('turn');
+  if(isNet()){
+    if(net.room.status==='closed'){t.textContent='Соперник вышел';t.className='off';}
+    else{t.textContent=turn===mySide?'Ваш ход ('+(mySide===1?'⚫':'⚪')+')':'Ход: '+netName(turn);t.className=turn===mySide?'me':'';}
+  } else {t.className='';t.textContent=turn===1?'Ваш ход':'ИИ думает…';}
 }
 
 function playerMove(i){
+  if(isNet()){
+    if(locked||turn!==mySide||!net.isMyTurn()||net.busy) return;
+    if(!place(i,mySide)) return;
+    // очередь хода с учётом пропусков
+    turn=3-turn;
+    if(!valid(turn).length) turn=3-turn;
+    const finished=!valid(1).length&&!valid(2).length;
+    locked=true;render();
+    net.move({board:board.slice(),turn},turn-1,{i},finished)
+      .then(()=>{locked=false;render();if(finished)endGame();})
+      .catch(e=>{if(!isNet())return;document.getElementById('turn').textContent=/устарело/.test(e.message)?'Синхронизация…':'Нет связи: '+e.message;});
+    return;
+  }
   if(locked||turn!==1) return;
   if(!place(i,1)) return;
   locked=true;render();
-  setTimeout(nextTurn,300);
+  aiTimer=setTimeout(nextTurn,300);
 }
 
 function nextTurn(){
@@ -116,7 +181,7 @@ function nextTurn(){
     if(!valid(turn).length){endGame();return;}
   }
   render();
-  if(turn===2) setTimeout(aiMove,400);
+  if(turn===2) aiTimer=setTimeout(aiMove,400);
   else locked=false;
 }
 
@@ -127,13 +192,15 @@ function aiMove(){
   const cornerMove=moves.find(m=>corners.includes(m));
   let best=cornerMove||moves.reduce((a,b)=>flips(b,2).length>flips(a,2).length?b:a);
   place(best,2);render();
-  setTimeout(nextTurn,300);
+  aiTimer=setTimeout(nextTurn,300);
 }
 
 function endGame(){
   const{b,w}=score();
   let res=b>w?'🎉 Победа! Чёрные':'⚪ Победа! Белые';
+  if(isNet()&&b!==w){const winSide=b>w?1:2;res=winSide===mySide?'🎉 Вы победили!':'😔 Победил '+netName(winSide);}
   if(b===w) res='🤝 Ничья';
+  locked=true;
   document.getElementById('mt').textContent=res;
   document.getElementById('mp').textContent=`⚫ ${b} : ${w} ⚪`;
   document.getElementById('msg').style.display='flex';
@@ -141,6 +208,14 @@ function endGame(){
 
 document.getElementById('btnNew').addEventListener('click',newGame);
 document.getElementById('mBtn').addEventListener('click',newGame);
+document.getElementById('btnNet').addEventListener('click',()=>{
+  if(isNet()){leaveNet();newGame();return;}
+  KuNet.openLobby({
+    game:'reversi',title:'РЕВЕРСИ · ПО СЕТИ',
+    initialState:()=>({board:initialBoard(),turn:1}),
+    onStart:startNet
+  });
+});
 newGame();
 </script>
 </body>

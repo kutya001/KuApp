@@ -117,6 +117,7 @@
     <div id="main-btns" style="display:flex; flex-direction:column; align-items:center; width:100%;">
       <button class="btn btn-primary" id="btn-1p">1 Игрок</button>
       <button class="btn" id="btn-2p">2 Игрока</button>
+      <button class="btn" id="btn-net" style="border-color:var(--g)">По сети</button>
     </div>
 
     <div id="diff-btns" style="display:none; flex-direction:column; align-items:center; width:100%;">
@@ -140,6 +141,7 @@
 
 </div>
 
+<script src="kunet.js"></script>
 <script>
 /**
  * AUDIO SYSTEM
@@ -168,6 +170,57 @@ let scores={w:0, d:0, l:0};
 let locked=false;
 let aiTimeout = null, endTimeout = null;
 
+/* ── Сетевая партия (KuNet): seat 0 = ✕, seat 1 = ○ ── */
+let net = null, mySym = 'X', netRound = 0;
+const isNet = () => mode === 'net' && net && net.room;
+const symOfSeat = s => s === 0 ? 'X' : 'O';
+function netName(sym) { return net && net.room ? (net.room.players[sym === 'X' ? 0 : 1] || '?') : (sym === 'X' ? 'Игрок 1' : 'Игрок 2'); }
+function netStatus() {
+  if (!isNet() || locked) return;
+  if (net.room.status === 'closed') { $('status').textContent = 'Соперник вышел'; $('status').style.color = 'var(--r)'; return; }
+  const mine = currentPlayer === mySym;
+  $('status').textContent = mine ? `Ваш ход (${mySym === 'X' ? '✕' : '○'})` : 'Ход: ' + netName(currentPlayer);
+  $('status').style.color = currentPlayer === 'X' ? 'var(--b)' : 'var(--r)';
+}
+function netSerialize() { return { board: board.slice(), current: currentPlayer }; }
+/* Применить состояние комнаты (ход соперника, новая партия, рассинхрон). */
+function netApply(room) {
+  if (!isNet() || !room || !room.state) return;
+  if (room.round !== netRound) { netRound = room.round; clearPendingTimeouts(); locked = false; }
+  board = (room.state.board || Array(9).fill(null)).slice();
+  currentPlayer = room.state.current === 'O' ? 'O' : 'X';
+  renderBoard();
+  const wx = checkWin(board, 'X'), wo = checkWin(board, 'O');
+  if (wx) { highlight(wx); if (!locked) end('win'); return; }
+  if (wo) { highlight(wo); if (!locked) end('win2'); return; }
+  if (board.every(Boolean)) { if (!locked) end('draw'); return; }
+  locked = false; renderBoard(); netStatus();
+}
+function netSend(finished) {
+  const next = currentPlayer === 'X' ? 0 : 1;
+  net.move(netSerialize(), next, null, finished).catch(e => {
+    if (!isNet()) return;
+    $('status').textContent = e.message.includes('устарело') ? 'Синхронизация…' : 'Нет связи: ' + e.message;
+  });
+}
+function startNet(sess) {
+  net = sess; mode = 'net'; netRound = sess.room.round; mySym = symOfSeat(sess.seat);
+  $('lbl-p1').textContent = netName('X'); $('lbl-p2').textContent = netName('O');
+  scores = { w: 0, d: 0, l: 0 }; updateScores();
+  $('menu-main').classList.remove('active');
+  AudioSys.init();
+  sess.onUpdate = room => netApply(room);
+  sess.onClosed = () => { clearPendingTimeouts(); locked = true; $('status').textContent = 'Соперник вышел'; $('status').style.color = 'var(--r)'; renderBoard(); };
+  sess.onError = () => { if (!locked) $('status').textContent = 'Нет связи…'; };
+  netApply(sess.room);
+  sess.startPolling();
+}
+function leaveNet() {
+  if (net) { net.onUpdate = net.onClosed = net.onError = null; net.leave(); }
+  net = null; if (mode === 'net') mode = '1p';
+}
+window.addEventListener('pagehide', () => { if (net) net.leaveBeacon(); });
+
 function clearPendingTimeouts() {
   if (aiTimeout) { clearTimeout(aiTimeout); aiTimeout = null; }
   if (endTimeout) { clearTimeout(endTimeout); endTimeout = null; }
@@ -192,6 +245,7 @@ function checkWin(b,p){
 
 function handleCellClick(i){
   if(board[i]||locked) return;
+  if (isNet() && (currentPlayer !== mySym || !net.isMyTurn() || net.busy)) return;
   board[i] = currentPlayer;
   if (currentPlayer === 'X') AudioSys.sfx.placeX();
   else AudioSys.sfx.placeO();
@@ -201,12 +255,17 @@ function handleCellClick(i){
   const w=checkWin(board, currentPlayer);
   if(w){
      highlight(w);
+     if (isNet()) netSend(true);
      end(currentPlayer === 'X' ? 'win' : (mode==='1p'?'lose':'win2'));
      return;
   }
-  if(board.every(Boolean)){end('draw');return;}
+  if(board.every(Boolean)){ if (isNet()) netSend(true); end('draw');return;}
 
-  if (mode === '1p') {
+  if (isNet()) {
+      currentPlayer = currentPlayer === 'X' ? 'O' : 'X';
+      netSend(false);
+      netStatus();
+  } else if (mode === '1p') {
       locked=true; $('status').textContent='Думает…';
       clearPendingTimeouts();
       aiTimeout = setTimeout(()=>{aiMove();}, diff==='hard'?300:100);
@@ -279,14 +338,14 @@ function end(result){
   $('status').style.color = 'var(--text)';
   if(result==='win'){
       scores.w++;
-      $('status').textContent= mode==='1p' ? '🎉 Вы победили!' : '🎉 Игрок 1 победил!';
+      $('status').textContent= mode==='1p' ? '🎉 Вы победили!' : (isNet() ? (mySym === 'X' ? '🎉 Вы победили!' : '😔 ' + netName('X') + ' победил') : '🎉 Игрок 1 победил!');
       AudioSys.sfx.win();
   } else if(result==='lose'){
       scores.l++;
       $('status').textContent='🤖 ИИ победил';
   } else if (result==='win2') {
       scores.l++;
-      $('status').textContent='🎉 Игрок 2 победил!';
+      $('status').textContent= isNet() ? (mySym === 'O' ? '🎉 Вы победили!' : '😔 ' + netName('O') + ' победил') : '🎉 Игрок 2 победил!';
       AudioSys.sfx.win();
   } else {
       scores.d++;
@@ -298,6 +357,13 @@ function end(result){
   // Auto restart after a bit if not in menu
   endTimeout = setTimeout(() => {
     if ($('menu-main').classList.contains('active') || $('menu-pause').classList.contains('active')) return;
+    if (isNet()) {
+      // Новая партия в той же комнате: запрос идемпотентен, кто первый — тот и сбросил.
+      if (net.room.status === 'closed') return;
+      $('status').textContent = 'Новая партия…';
+      net.reset({ board: Array(9).fill(null), current: 'X' }, 0).then(room => netApply(room)).catch(() => {});
+      return;
+    }
     newGame();
   }, 1600);
 }
@@ -334,6 +400,15 @@ $('btn-back-main').onclick = () => {
     $('main-btns').style.display='flex';
 };
 
+$('btn-net').onclick = () => {
+    AudioSys.init();
+    KuNet.openLobby({
+      game: 'tictac', title: 'КРЕСТИКИ-НОЛИКИ · ПО СЕТИ',
+      initialState: () => ({ board: Array(9).fill(null), current: 'X' }),
+      onStart: startNet
+    });
+};
+
 $('btn-start-ai').onclick = () => {
     $('lbl-p1').textContent = 'Вы';
     $('lbl-p2').textContent = 'ИИ';
@@ -357,10 +432,12 @@ $('btn-restart').onclick = () => {
     clearPendingTimeouts();
     scores={w:0,d:0,l:0}; updateScores();
     $('menu-pause').classList.remove('active');
+    if (isNet()) { netApply(net.room); return; }
     newGame();
 };
 $('btn-quit').onclick = () => {
     clearPendingTimeouts();
+    leaveNet();
     $('menu-pause').classList.remove('active');
     $('menu-main').classList.add('active');
     $('main-btns').style.display='flex';

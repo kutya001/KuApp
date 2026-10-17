@@ -74,6 +74,7 @@ KuApp/
 │
 ├── apps/                               # Все приложения
 │   ├── index.json                      # Каталог приложений (категории, файлы)
+│   ├── kunet.js                        # Сетевая игра (комнаты через GAS)
 │   ├── trainer.html                    # 🏋️ Тренер KuApp
 │   ├── dictionary.html                 # 📖 Словарь
 │   ├── TrainingProgramBuilder.html     # 🤾 Конструктор программ
@@ -151,6 +152,38 @@ Platform.ui.showToast(msg, type)   // type: 'ok' | 'err' | ''
 Platform.ui.showLoader(on)
 Platform.ui.openSettings()
 ```
+
+### Сетевая игра (KuNet)
+
+Пошаговые игры можно играть вдвоём по сети через тот же GAS-бэкенд: **Крестики-нолики, Реверси, Wall Rush, Бильярд**.
+Комнаты живут в `CacheService` (до 6 часов), таблица не используется. Клиент, чей ход, отправляет новое состояние
+целиком с ожидаемой версией; сервер проверяет токен игрока, очередь хода и версию. Второй клиент опрашивает
+комнату раз в 2 с (4 с, когда ходит сам). Задержка хода — около 1–3 с, поэтому игры реального времени
+(Пинг-понг) остаются локальными.
+
+Клиентская библиотека: `apps/kunet.js`. Подключение в игре:
+
+```html
+<script src="kunet.js"></script>
+<script>
+KuNet.openLobby({
+  game: 'tictac', title: 'КРЕСТИКИ-НОЛИКИ · ПО СЕТИ',
+  initialState: () => ({ board: Array(9).fill(null), current: 'X' }),
+  onStart: (sess) => {           // комната укомплектована
+    sess.seat;                   // 0 — создатель (ходит первым), 1 — гость
+    sess.onUpdate = room => applyState(room.state);
+    sess.onClosed = () => showOpponentLeft();
+    sess.startPolling();
+  }
+});
+// мой ход:            sess.move(state, nextSeat, moveInfo, finished)
+// новая партия:       sess.reset(initialState, 0)   (идемпотентно, может нажать любой)
+// выход:              sess.leave()
+</script>
+```
+
+Действия GAS (`gas/Code.gs`): `roomCreate`, `roomJoin`, `roomGet`, `roomMove`, `roomReset`, `roomLeave`, `roomList`.
+Код комнаты — 4 символа; открытые комнаты видны в лобби игры 30 минут.
 
 ### База данных (Google Sheets)
 
