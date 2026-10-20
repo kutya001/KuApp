@@ -27,7 +27,7 @@
   .panel{display:flex;flex-direction:column;align-items:center;gap:6px;transition:transform .3s}
   .panel.flip{transform:rotate(180deg)}
   #wrap.netflip #panel-1{order:3}#wrap.netflip #board-box{order:2}#wrap.netflip #panel-0{order:1}
-  #wrap.netflip #cv{transform:rotate(180deg)}
+  #wrap.netflip:not(.race) #cv{transform:rotate(180deg)}
   .plabel{font-size:.68rem;letter-spacing:.12em;text-transform:uppercase;color:var(--text2);height:14px;white-space:nowrap}
   .plabel.on{color:var(--text)}
   .wbtn{min-width:96px;height:46px;padding:0 18px;border:none;border-radius:10px;display:flex;align-items:center;justify-content:center;gap:12px;color:#fff;font:800 1.15rem 'JetBrains Mono',monospace;cursor:pointer;transition:opacity .2s,filter .2s,box-shadow .2s,transform .1s;opacity:.4;filter:saturate(.55)}
@@ -57,6 +57,8 @@
   .seg{display:flex;gap:8px;margin-bottom:20px;width:80%;max-width:260px}
   .diff-btn{flex:1;background:transparent;border:1px solid var(--text2);color:var(--text2);padding:9px 0;border-radius:8px;font:.78rem 'JetBrains Mono',monospace;cursor:pointer;transition:all .2s}
   .diff-btn.active{border-color:var(--blue);color:#fff;background:rgba(59,130,246,.18)}
+  #mode-selectors{max-width:300px;width:90%}
+  #mode-selectors .diff-btn{padding:9px 2px;font-size:.74rem}
   .lbl{color:var(--text2);font-size:.78rem;margin-bottom:10px}
 
   #rules-text{max-width:340px;font-size:.78rem;line-height:1.55;color:#d0d0e0;margin-bottom:22px}
@@ -106,6 +108,7 @@
       <div class="seg" id="mode-selectors">
         <button class="diff-btn active" data-m="edge">К краю</button>
         <button class="diff-btn" data-m="center">В центр</button>
+        <button class="diff-btn" data-m="race">🏁 Гонка</button>
       </div>
       <button class="btn btn-primary" id="btn-1p">1 Игрок</button>
       <button class="btn" id="btn-2p">2 Игрока</button>
@@ -130,8 +133,9 @@
     <ul id="rules-text">
       <li><b>Режим «К краю»:</b> первым довести фишку до дальнего ряда своего цвета. <span class="r">Красный</span> идёт вверх, <span class="b">синий</span> — вниз.</li>
       <li><b>Режим «В центр»:</b> <span class="r">красный</span> стартует с левого края, <span class="b">синий</span> — с правого. Побеждает тот, кто первым встанет на <b>золотую клетку</b> в центре поля.</li>
+      <li><b>Режим «Гонка»:</b> вытянутая трасса 7×11. Обе фишки стартуют с <b>одной линии старта</b> внизу, финиш общий — <b>клетчатый ряд</b> наверху. Кто первым пересечёт финиш — победил. Стены тормозят и соперника, и вас: перекрывайте его полосу, не загоняя себя в тупик.</li>
       <li><b>Ход:</b> шаг фишкой на 1 клетку <b>или</b> одна стена.</li>
-      <li><b>Стена</b> перекрывает 2 клетки. У каждого игрока по <b>10</b> стен. Стены нельзя накладывать и пересекать.</li>
+      <li><b>Стена</b> перекрывает 2 клетки. У каждого игрока по <b>10</b> стен (в гонке — <span class="r">8</span> и <span class="b">9</span>: синий ходит вторым и получает стену в запас). Стены нельзя накладывать и пересекать.</li>
       <li>Нельзя полностью замуровать соперника — путь к цели должен оставаться у обоих.</li>
       <li><b>Прыжок:</b> соперника рядом можно перепрыгнуть. Если за ним стена — шаг по диагонали.</li>
       <li><b>Управление:</b> тап по подсвеченной клетке — ход. Тап по своей кнопке стен, затем проведите пальцем по доске и отпустите.</li>
@@ -192,63 +196,82 @@ const AudioSys = {
 };
 
 /* ═══════════════════════════════════════════════════════════════
- * ENGINE  (9×9, walls anchored on 8×8 grid intersections)
- *  player 0 = Red, starts bottom, goal row 0
- *  player 1 = Blue, starts top,   goal row 8
- *  h[r*8+c]: horizontal wall below rows r, cols c..c+1
- *  v[r*8+c]: vertical wall right of col c, rows r..r+1
+ * ENGINE  (rectangular ROWS×COLS board, walls anchored on the
+ *          (ROWS-1)×(COLS-1) grid intersections)
+ *  edge:   9×9  — red bottom → row 0, blue top → last row
+ *  center: 9×9  — red left, blue right → the centre cell
+ *  race:   7×11 — both start on the bottom start line → shared finish row 0
+ *  h[r*AC+c]: horizontal wall below row r, cols c..c+1
+ *  v[r*AC+c]: vertical wall right of col c, rows r..r+1
  * ═════════════════════════════════════════════════════════════ */
-const N = 9, A = 8, WALLS = 10, CENTER = 4 * 9 + 4;
-// Game goal: 'edge' — reach the far row; 'center' — reach the centre cell
+const MODES = {
+  edge:   { rows: 9,  cols: 9, walls: [10, 10] },
+  center: { rows: 9,  cols: 9, walls: [10, 10] },
+  // blue moves second, so it gets one extra wall to balance the tempo
+  race:   { rows: 11, cols: 7, walls: [8, 9] },
+};
+const MAXCELLS = 256;
+let ROWS = 9, COLS = 9, AR = 8, AC = 8, NW = 64, CENTER = 40, WALLS = [10, 10];
+// Game goal: 'edge' — reach the far row; 'center' — reach the centre cell; 'race' — reach the finish first
 let GM = 'edge';
-const GOALMASK = [new Uint8Array(81), new Uint8Array(81)];
+const GOALMASK = [new Uint8Array(MAXCELLS), new Uint8Array(MAXCELLS)];
 let BFS_ORDER = [[0, 2, 3, 1], [1, 2, 3, 0]];   // explore the "forward" direction first
 function setGoalMode(m) {
-  GM = m === 'center' ? 'center' : 'edge';
+  GM = MODES[m] ? m : 'edge';
+  const cfg = MODES[GM];
+  ROWS = cfg.rows; COLS = cfg.cols; AR = ROWS - 1; AC = COLS - 1; NW = AR * AC;
+  CENTER = ((ROWS - 1) >> 1) * COLS + ((COLS - 1) >> 1);
+  WALLS = cfg.walls;
   GOALMASK[0].fill(0); GOALMASK[1].fill(0);
   if (GM === 'center') {
     GOALMASK[0][CENTER] = GOALMASK[1][CENTER] = 1;
     BFS_ORDER = [[3, 0, 1, 2], [2, 0, 1, 3]];
+  } else if (GM === 'race') {
+    for (let c = 0; c < COLS; c++) GOALMASK[0][c] = GOALMASK[1][c] = 1;
+    BFS_ORDER = [[0, 2, 3, 1], [0, 3, 2, 1]];
   } else {
-    for (let c = 0; c < N; c++) { GOALMASK[0][c] = 1; GOALMASK[1][72 + c] = 1; }
+    for (let c = 0; c < COLS; c++) { GOALMASK[0][c] = 1; GOALMASK[1][AR * COLS + c] = 1; }
     BFS_ORDER = [[0, 2, 3, 1], [1, 2, 3, 0]];
   }
 }
-const isGoal = (p, r, c) => GOALMASK[p][r * 9 + c] === 1;
+const isGoal = (p, r, c) => GOALMASK[p][r * COLS + c] === 1;
 setGoalMode('edge');
 const DR = [-1, 1, 0, 0], DC = [0, 0, -1, 1];
 
 function newState() {
-  const pos = GM === 'center' ? [[4, 0], [4, 8]] : [[8, 4], [0, 4]];
-  return { pos, walls: [WALLS, WALLS], h: new Int8Array(64), v: new Int8Array(64), turn: 0, ply: 0 };
+  const mid = (COLS - 1) >> 1, midR = (ROWS - 1) >> 1;
+  const pos = GM === 'center' ? [[midR, 0], [midR, AC]]
+            : GM === 'race'   ? [[AR, mid - 1], [AR, mid + 1]]
+            :                   [[AR, mid], [0, mid]];
+  return { pos, walls: [WALLS[0], WALLS[1]], h: new Int8Array(NW), v: new Int8Array(NW), turn: 0, ply: 0 };
 }
 function clone(s) {
   return { pos: [[s.pos[0][0], s.pos[0][1]], [s.pos[1][0], s.pos[1][1]]], walls: [s.walls[0], s.walls[1]],
            h: s.h.slice(), v: s.v.slice(), turn: s.turn, ply: s.ply };
 }
-const H = (s, r, c) => r >= 0 && r < A && c >= 0 && c < A && s.h[r * A + c] !== 0;
-const V = (s, r, c) => r >= 0 && r < A && c >= 0 && c < A && s.v[r * A + c] !== 0;
+const H = (s, r, c) => r >= 0 && r < AR && c >= 0 && c < AC && s.h[r * AC + c] !== 0;
+const V = (s, r, c) => r >= 0 && r < AR && c >= 0 && c < AC && s.v[r * AC + c] !== 0;
 
 function blocked(s, r, c, d) {
   switch (d) {
     case 0: return r === 0 || H(s, r - 1, c) || H(s, r - 1, c - 1);
-    case 1: return r === 8 || H(s, r, c) || H(s, r, c - 1);
+    case 1: return r === AR || H(s, r, c) || H(s, r, c - 1);
     case 2: return c === 0 || V(s, r, c - 1) || V(s, r - 1, c - 1);
-    default: return c === 8 || V(s, r, c) || V(s, r - 1, c);
+    default: return c === AC || V(s, r, c) || V(s, r - 1, c);
   }
 }
 
-const Q = new Int16Array(81), DIST = new Int16Array(81), PAR = new Int16Array(81);
-// Shortest distance (pawns ignored) to the goal row. 999 if unreachable.
+const Q = new Int16Array(MAXCELLS), DIST = new Int16Array(MAXCELLS), PAR = new Int16Array(MAXCELLS);
+// Shortest distance (pawns ignored) to the goal. 999 if unreachable.
 function bfs(s, p, wantPath) {
   DIST.fill(-1);
-  const st = s.pos[p][0] * 9 + s.pos[p][1], goal = GOALMASK[p];
+  const st = s.pos[p][0] * COLS + s.pos[p][1], goal = GOALMASK[p];
   // explore the forward direction first so paths look natural
   const order = BFS_ORDER[p];
   let head = 0, tail = 0;
   Q[tail++] = st; DIST[st] = 0; PAR[st] = -1;
   while (head < tail) {
-    const cur = Q[head++], r = (cur / 9) | 0, c = cur % 9;
+    const cur = Q[head++], r = (cur / COLS) | 0, c = cur % COLS;
     if (goal[cur]) {
       if (!wantPath) return DIST[cur];
       const path = []; for (let x = cur; x !== -1; x = PAR[x]) path.push(x);
@@ -256,7 +279,7 @@ function bfs(s, p, wantPath) {
     }
     for (const d of order) {
       if (blocked(s, r, c, d)) continue;
-      const n = (r + DR[d]) * 9 + c + DC[d];
+      const n = (r + DR[d]) * COLS + c + DC[d];
       if (DIST[n] !== -1) continue;
       DIST[n] = DIST[cur] + 1; PAR[n] = cur; Q[tail++] = n;
     }
@@ -279,8 +302,8 @@ function legalMoves(s, p) {
 }
 
 function wallFits(s, o, r, c) {
-  if (r < 0 || r >= A || c < 0 || c >= A) return false;
-  const i = r * A + c;
+  if (r < 0 || r >= AR || c < 0 || c >= AC) return false;
+  const i = r * AC + c;
   if (o === 'h') return !s.h[i] && !H(s, r, c - 1) && !H(s, r, c + 1) && !s.v[i];
   return !s.v[i] && !V(s, r - 1, c) && !V(s, r + 1, c) && !s.h[i];
 }
@@ -288,7 +311,7 @@ function wallFits(s, o, r, c) {
 function tryWall(s, o, r, c, p) {
   if (s.walls[p] <= 0 || !wallFits(s, o, r, c)) return null;
   const n = clone(s);
-  (o === 'h' ? n.h : n.v)[r * A + c] = p + 1;
+  (o === 'h' ? n.h : n.v)[r * AC + c] = p + 1;
   n.walls[p]--;
   if (bfs(n, 0) >= 999 || bfs(n, 1) >= 999) return null;
   n.turn = 1 - p; n.ply++;
@@ -305,7 +328,7 @@ function doMove(s, r, c, p) {
 function candWalls(s, p) {
   const op = 1 - p, seen = new Set(), out = [];
   const add = (o, r, c) => {
-    const k = o + (r * A + c);
+    const k = o + (r * AC + c);
     if (seen.has(k)) return; seen.add(k);
     if (wallFits(s, o, r, c)) out.push([o, r, c]);
   };
@@ -313,7 +336,7 @@ function candWalls(s, p) {
   if (res) {
     const path = res.path;
     for (let i = 0; i + 1 < path.length; i++) {
-      const a = path[i], b = path[i + 1], ar = (a / 9) | 0, ac = a % 9, br = (b / 9) | 0, bc = b % 9;
+      const a = path[i], b = path[i + 1], ar = (a / COLS) | 0, ac = a % COLS, br = (b / COLS) | 0, bc = b % COLS;
       if (ac === bc) { const r = Math.min(ar, br); add('h', r, ac - 1); add('h', r, ac); }
       else { const c = Math.min(ac, bc); add('v', ar - 1, c); add('v', ar, c); }
     }
@@ -383,7 +406,7 @@ let gameOver = true, aiBusy = false, aiTimer = null, endTimer = null;
 let humanMoves = 0, winner = -1, lastWall = null;
 
 const cv = $('cv'), ctx = cv.getContext('2d');
-let G = { size: 300, pad: 8, cs: 26, gp: 6.5, P: 32.5, dpr: 1 };
+let G = { w: 300, h: 300, pad: 8, cs: 26, gp: 6.5, P: 32.5, dpr: 1 };
 const disp = [{ x: 0, y: 0 }, { x: 0, y: 0 }];   // animated pawn positions (grid units)
 
 function isHuman(p) { return mode === 'net' ? p === mySeat : (mode === '2p' || p === 0); }
@@ -409,8 +432,8 @@ function deserialize(o) {
   s.pos = [[o.pos[0][0], o.pos[0][1]], [o.pos[1][0], o.pos[1][1]]];
   s.walls = [o.walls[0], o.walls[1]];
   s.h = Int8Array.from(o.h || []); s.v = Int8Array.from(o.v || []);
-  if (s.h.length !== 64) s.h = new Int8Array(64);
-  if (s.v.length !== 64) s.v = new Int8Array(64);
+  if (s.h.length !== NW) s.h = new Int8Array(NW);
+  if (s.v.length !== NW) s.v = new Int8Array(NW);
   s.turn = o.turn === 1 ? 1 : 0; s.ply = o.ply | 0;
   return s;
 }
@@ -454,6 +477,9 @@ function leaveNet() {
 }
 window.addEventListener('pagehide', () => { if (net) net.leaveBeacon(); });
 function anyMenu() { return document.querySelector('.overlay.active') !== null; }
+// В гонке трасса общая и направлена вверх для обоих — доску не поворачиваем.
+function boardFlipped() { return mode === 'net' && mySeat === 1 && GM !== 'race'; }
+const MODE_NAME = { edge: 'К краю', center: 'В центр', race: 'Гонка' };
 
 function toast(msg) {
   const t = $('toast'); t.textContent = msg; t.classList.add('show');
@@ -465,13 +491,14 @@ function layout() {
   const wrap = $('wrap');
   const availW = wrap.clientWidth - 24;
   const availH = wrap.clientHeight - 2 * 80 - 48;
-  const size = Math.max(220, Math.floor(Math.min(availW, availH, 600)));
-  const pad = size * .028;
-  const cs = (size - 2 * pad) / (N + (N - 1) * .25);
-  const gp = cs * .25;
-  G = { size, pad, cs, gp, P: cs + gp, dpr: window.devicePixelRatio || 1 };
-  cv.style.width = cv.style.height = size + 'px';
-  cv.width = cv.height = Math.round(size * G.dpr);
+  // board size in cell units: cells + grooves (¼ cell) + padding on both sides
+  const GK = .25, PK = .32;
+  const uw = COLS + AC * GK + 2 * PK, uh = ROWS + AR * GK + 2 * PK, um = Math.max(uw, uh);
+  const cs = Math.max(220 / um, Math.min(availW / uw, availH / uh, 600 / um));
+  const gp = cs * GK, pad = cs * PK, w = cs * uw, h = cs * uh;
+  G = { w, h, pad, cs, gp, P: cs + gp, dpr: window.devicePixelRatio || 1 };
+  cv.style.width = w + 'px'; cv.style.height = h + 'px';
+  cv.width = Math.round(w * G.dpr); cv.height = Math.round(h * G.dpr);
   ctx.setTransform(G.dpr, 0, 0, G.dpr, 0, 0);
 }
 window.addEventListener('resize', layout);
@@ -491,11 +518,12 @@ function updateHUD() {
       else if (armed) txt = 'Проведите по доске';
       else txt = (mode === '1p' || mode === 'net') ? 'Ваш ход' : 'Ход: ' + nm;
     }
-    if (gameOver && winner === p) txt = nm + ' — победа';
+    if (gameOver && winner === p) txt = nm + ' — ' + (GM === 'race' ? 'финиш!' : 'победа');
+    else if (GM === 'race') { const d = bfs(S, p); if (d < 999) txt += ' · 🏁 ' + d; }
     lb.textContent = txt;
     lb.classList.toggle('on', active);
   }
-  $('panel-1').classList.toggle('flip', mode === '2p');
+  $('panel-1').classList.toggle('flip', mode === '2p' && GM !== 'race');
   $('btn-undo').disabled = gameOver || aiBusy || mode === 'net' || !history.some(e => isHuman(e.by));
 }
 
@@ -561,13 +589,13 @@ function finish(w) {
   if (w === -1) { title = 'Ничья'; sub = 'Слишком долгая партия'; }
   else if (mode === 'net') {
     title = w === mySeat ? 'Победа!' : 'Поражение'; color = COL[w];
-    sub = nameOf(w) + ' дошёл первым · стен осталось: ' + S.walls[w];
+    sub = nameOf(w) + (GM === 'race' ? ' финишировал первым' : ' дошёл первым') + ' · стен осталось: ' + S.walls[w];
   }
   else if (mode === '2p') {
     title = (w === 0 ? 'Красный' : 'Синий') + ' победил!'; color = COL[w];
     sub = 'Осталось стен: ' + S.walls[w];
   } else {
-    const key = GM === 'center' ? 'center_' + level : level;
+    const key = GM === 'edge' ? level : GM + '_' + level;
     const st = loadStats(), rec = st[key] || { w: 0, l: 0 };
     if (w === 0) {
       title = 'Победа!'; color = COL[0];
@@ -581,11 +609,11 @@ function finish(w) {
         if (api && api.gameplay) api.gameplay.submitScore('wallrush', score, Math.round(score / 10));
       } catch (e) {}
     } else {
-      title = 'Поражение'; color = COL[1]; sub = 'ИИ дошёл первым'; rec.l++;
+      title = 'Поражение'; color = COL[1]; sub = GM === 'race' ? 'ИИ финишировал первым' : 'ИИ дошёл первым'; rec.l++;
     }
     st[key] = rec; saveStats(st);
     const lvName = { easy: 'Легко', medium: 'Средне', hard: 'Сложно' }[level];
-    statsTxt = (GM === 'center' ? 'В центр · ' : 'К краю · ') + lvName + ': побед ' + rec.w + ' · поражений ' + rec.l;
+    statsTxt = MODE_NAME[GM] + ' · ' + lvName + ': побед ' + rec.w + ' · поражений ' + rec.l;
   }
   (w === 0 || mode === '2p' || (mode === 'net' && w === mySeat)) && w !== -1 ? AudioSys.sfx.win() : AudioSys.sfx.lose();
 
@@ -611,21 +639,21 @@ function newGame() {
 function localXY(e) {
   const rc = cv.getBoundingClientRect();
   let x = e.clientX - rc.left, y = e.clientY - rc.top;
-  if (mode === 'net' && mySeat === 1) { x = G.size - x; y = G.size - y; }   // доска повёрнута на 180°
+  if (boardFlipped()) { x = G.w - x; y = G.h - y; }   // доска повёрнута на 180°
   return [x - G.pad, y - G.pad];
 }
 // Orientation: swipe direction wins once the finger has moved; otherwise the nearest groove.
 function wallAt(x, y, forced) {
   const fx = (x + G.gp / 2) / G.P, fy = (y + G.gp / 2) / G.P;
   const dx = Math.abs(fx - Math.round(fx)), dy = Math.abs(fy - Math.round(fy));
-  const clampI = v => Math.min(8, Math.max(1, Math.round(v)));
+  const clampI = (v, n) => Math.min(n - 1, Math.max(1, Math.round(v)));
   const o = forced || (dy <= dx ? 'h' : 'v');
-  return { o, r: clampI(fy) - 1, c: clampI(fx) - 1 };
+  return { o, r: clampI(fy, ROWS) - 1, c: clampI(fx, COLS) - 1 };
 }
 let dragStart = null;
 function cellAt(x, y) {
   const c = Math.floor((x + G.gp / 2) / G.P), r = Math.floor((y + G.gp / 2) / G.P);
-  return (r >= 0 && r < N && c >= 0 && c < N) ? [r, c] : null;
+  return (r >= 0 && r < ROWS && c >= 0 && c < COLS) ? [r, c] : null;
 }
 function setGhost(e) {
   const [x, y] = localXY(e);
@@ -698,25 +726,45 @@ function drawWall(o, r, c, color, scale = 1, alpha = 1) {
 }
 
 function frame(now) {
-  const { size, pad, cs, P } = G;
-  ctx.clearRect(0, 0, size, size);
-  ctx.fillStyle = '#1b1b1d'; rr(0, 0, size, size, 18); ctx.fill();
+  const { w: bw, h: bh, pad, cs, gp, P } = G;
+  ctx.clearRect(0, 0, bw, bh);
+  ctx.fillStyle = '#1b1b1d'; rr(0, 0, bw, bh, 18); ctx.fill();
 
   // cells
-  for (let r = 0; r < N; r++) for (let c = 0; c < N; c++) {
+  for (let r = 0; r < ROWS; r++) for (let c = 0; c < COLS; c++) {
     const x = pad + c * P, y = pad + r * P;
-    let fill = '#2a2a2c', stroke = '#343437';
+    let fill = '#2a2a2c', stroke = '#343437', flag = false;
     if (GM === 'edge') {
       if (r === 0) { fill = '#5c2b2f'; stroke = '#77393d'; }
-      else if (r === 8) { fill = '#2b3b58'; stroke = '#3d527c'; }
-    } else if (r * 9 + c === CENTER) { fill = '#5a4a1c'; stroke = '#8a7330'; }
+      else if (r === AR) { fill = '#2b3b58'; stroke = '#3d527c'; }
+    } else if (GM === 'race') {
+      if (r === 0) { fill = '#2a2a2c'; stroke = '#8a7330'; flag = true; }
+      else if (r === AR) { fill = '#233029'; stroke = '#31443a'; }
+    } else if (r * COLS + c === CENTER) { fill = '#5a4a1c'; stroke = '#8a7330'; }
     ctx.fillStyle = fill; rr(x, y, cs, cs, cs * .06); ctx.fill();
+    if (flag) {   // chequered finish flag
+      ctx.save(); ctx.clip();
+      const q = cs / 4; ctx.fillStyle = 'rgba(236,236,244,.22)';
+      for (let i = 0; i < 4; i++) for (let j = 0; j < 4; j++) if ((i + j) % 2 === 0) ctx.fillRect(x + j * q, y + i * q, q, q);
+      ctx.restore();
+    }
     ctx.strokeStyle = stroke; ctx.lineWidth = 1; ctx.stroke();
+  }
+
+  // race: glowing frame around the finish row
+  if (GM === 'race') {
+    const k = .5 + .5 * Math.sin(now / 420);
+    ctx.save();
+    ctx.strokeStyle = '#f5c542'; ctx.shadowColor = '#f5c542'; ctx.shadowBlur = 4 + 8 * k;
+    ctx.lineWidth = Math.max(1.5, cs * .05); ctx.globalAlpha = .55 + .35 * k;
+    rr(pad - gp * .35, pad - gp * .35, COLS * P - gp + gp * .7, cs + gp * .7, cs * .12); ctx.stroke();
+    ctx.restore();
   }
 
   // centre target
   if (GM === 'center') {
-    const x = pad + 4 * P + cs / 2, y = pad + 4 * P + cs / 2;
+    const cr = (CENTER / COLS) | 0, cc = CENTER % COLS;
+    const x = pad + cc * P + cs / 2, y = pad + cr * P + cs / 2;
     const k = .5 + .5 * Math.sin(now / 420);
     ctx.save();
     ctx.strokeStyle = '#f5c542'; ctx.shadowColor = '#f5c542'; ctx.shadowBlur = 6 + 8 * k;
@@ -738,9 +786,9 @@ function frame(now) {
   }
 
   // walls
-  for (let r = 0; r < A; r++) for (let c = 0; c < A; c++) {
+  for (let r = 0; r < AR; r++) for (let c = 0; c < AC; c++) {
     for (const o of ['h', 'v']) {
-      const own = (o === 'h' ? S.h : S.v)[r * A + c];
+      const own = (o === 'h' ? S.h : S.v)[r * AC + c];
       if (!own) continue;
       let sc = 1;
       if (lastWall && lastWall.o === o && lastWall.r === r && lastWall.c === c) {
@@ -785,7 +833,7 @@ $('btn-net').onclick = () => {
   AudioSys.init();
   KuNet.openLobby({
     game: 'wallrush', title: 'WALL RUSH · ПО СЕТИ',
-    meta: { gm: GM, label: GM === 'center' ? 'В центр' : 'К краю' },
+    meta: { gm: GM, label: MODE_NAME[GM] },
     initialState: () => serialize(newState()),
     onStart: startNet
   });
@@ -827,16 +875,18 @@ $('btn-again').onclick = () => {
 
 const MODE_SUB = {
   edge: 'Доведи фишку до своего ряда. Строй стены.',
-  center: 'С краёв — к центру. Строй стены.'
+  center: 'С краёв — к центру. Строй стены.',
+  race: 'Общий старт и финиш. Кто быстрее?'
 };
 function chooseGoalMode(m) {
   setGoalMode(m);
   try { localStorage.setItem('wallrush_mode', GM); } catch (e) {}
   document.querySelectorAll('.diff-btn[data-m]').forEach(x => x.classList.toggle('active', x.dataset.m === GM));
   $('menu-sub').textContent = MODE_SUB[GM];
-  S = newState();
+  $('wrap').classList.toggle('race', GM === 'race');
+  S = newState(); history = []; ghost = null; lastWall = null;
   for (const p of [0, 1]) { disp[p].x = S.pos[p][1]; disp[p].y = S.pos[p][0]; }
-  updateHUD();
+  layout(); updateHUD();
 }
 document.querySelectorAll('.diff-btn[data-m]').forEach(b => b.addEventListener('click', () => chooseGoalMode(b.dataset.m)));
 
