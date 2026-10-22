@@ -69,12 +69,15 @@
 KuApp/
 ├── index.html                          # Платформа — хаб, авторизация, навигация
 ├── manifest.json                       # PWA-манифест
-├── sw.js                               # Service Worker (кэш app-v7)
+├── sw.js                               # Service Worker (кэш app-v13)
 ├── icon-256.png / icon-512.png         # Иконки PWA
 │
 ├── apps/                               # Все приложения
 │   ├── index.json                      # Каталог приложений (категории, файлы)
 │   ├── kunet.js                        # Сетевая игра (комнаты через GAS)
+│   ├── ku-arcade.css                   # Единый стиль игр «Неоновая аркада» (эталон — Тетрис)
+│   ├── ku-arcade.js                    # Хелперы стиля: неоновый логотип, тост, режим «внутри платформы»
+│   ├── fonts/                          # Russo One + Rubik для игр (локально, SIL OFL)
 │   ├── trainer.html                    # 🏋️ Тренер KuApp
 │   ├── dictionary.html                 # 📖 Словарь
 │   ├── TrainingProgramBuilder.html     # 🤾 Конструктор программ
@@ -363,20 +366,20 @@ https://docs.google.com/spreadsheets/d/ВОТ_ЭТОТ_ID/edit
 |---|---|
 | **Файл** | `apps/tetris.html` |
 | **Категория** | 🎯 Другое |
-| **Описание** | Полноценный тетрис с 4 режимами, редактором уровней и темами |
+| **Описание** | Неоновый тетрис: 4 режима, темы, рекорды, достижения — эталон единого стиля игр |
 
 **Режимы игры:**
-- **🎮 Classic** — бесконечная игра, заканчивается при переполнении
-- **⚡ Sprint** — очистить 40 линий на время
-- **🏃 Marathon** — 15 уровней, 150 линий
-- **🧘 Zen** — без проигрыша, свободная практика
+- **🎮 Классический** — бесконечная игра, уровень растёт каждые 10 линий
+- **🏃 Спринт** — 40 линий на время
+- **⏱️ Ультра** — максимум очков за 2 минуты
+- **🧩 Block Blast** — перетаскивай фигуры на поле, очищай ряды и столбцы
 
 **Возможности:**
-- Главное меню с выбором режима
-- 6 тем оформления, 4 цветовые палитры, 3 стиля блоков
-- Редакторов уровней (создание, сохранение, загрузка, удаление)
-- 7-bag рандомайзер, lock delay, wall kicks
-- Адаптивное touch-управление с блокировкой направления
+- SRS-повороты с wall kicks, T-Spin, Perfect Clear, Back-to-Back, комбо, удержание (Hold), ghost-фигура, 7-bag, lock delay
+- Музыка «Коробейники», звуки, вибрация; 5 тем (Неон, Закат, Океан, Ретро, Конфеты), размер поля и масштаб
+- История партий, 18 достижений, статистика, экспорт/импорт данных (JSON)
+- Клавиши: ← → ↓, ↑/X и Z — повороты, пробел — сброс, C/Shift — удержание, P/Esc — пауза
+- Телефон: тап — поворот, свайп в стороны — движение, вниз — сброс, вверх — удержание
 
 ---
 
@@ -392,7 +395,7 @@ https://docs.google.com/spreadsheets/d/ВОТ_ЭТОТ_ID/edit
 - Тапай 🏋️ для набора очков силы
 - Система улучшений: множитель кликов, автокликер (CPS)
 - Визуальная шкала энергии
-- Прогрессия по уровням
+- Прогрессия по уровням, прогресс сохраняется (`clicker_save`)
 
 ---
 
@@ -650,15 +653,18 @@ https://docs.google.com/spreadsheets/d/ВОТ_ЭТОТ_ID/edit
 ## 6. PWA и офлайн-режим
 
 - **Установка:** на Android/iOS нажмите «Добавить на главный экран» в браузере
-- **Версия кэша:** `app-v5`
+- **Версия кэша:** `app-v13`
 
 **Стратегия кэширования (Service Worker):**
 
 | Тип | Стратегия | Файлы |
 |---|---|---|
-| Оболочка | Cache First | `index.html`, `manifest.json`, иконки |
-| Приложения | Network First | Все `apps/*.html`, `workouts/*.json` |
+| Оболочка | Cache First (предзагрузка при установке) | `index.html`, `manifest.json`, иконки |
+| Приложения | Cache First (кэшируются при первом открытии) | `apps/*` (игры, `ku-arcade.*`, шрифты), `workouts/*.json` |
 | Внешние API | Bypass (не кэшируются) | Google Sheets API, OAuth, CDN |
+
+> После любых изменений в `apps/` поднимайте `CACHE_NAME` в `sw.js` — иначе установленное PWA продолжит
+> показывать старые версии игр из кэша.
 
 **Команды SW (через postMessage):**
 - `CLEAR_CACHE` — очистить все кэши
@@ -672,7 +678,7 @@ https://docs.google.com/spreadsheets/d/ВОТ_ЭТОТ_ID/edit
 | Компонент | Технология |
 |---|---|
 | Frontend | Vanilla HTML5 / CSS3 / JavaScript (ES2022) |
-| Шрифты | Google Fonts: Manrope, JetBrains Mono |
+| Шрифты | Платформа — Google Fonts (Manrope, JetBrains Mono); игры — Russo One + Rubik локально в `apps/fonts/` (SIL OFL) |
 | Бэкенд | Google Apps Script (прокси к Google Sheets) |
 | Аутентификация | Кастомная (username/password через Google Sheets) |
 | Хранилище данных | Google Sheets API v4 |
@@ -742,6 +748,49 @@ https://docs.google.com/spreadsheets/d/ВОТ_ЭТОТ_ID/edit
 </body>
 </html>
 ```
+
+### Оформление игр — единый стиль `ku-arcade`
+
+Все игры оформлены в одном стиле «Неоновая аркада», эталон — Тетрис: тёмно-синий градиент с неоновыми пятнами
+и сеткой, стеклянные панели и кнопки, заголовки шрифтом Russo One, текст — Rubik, акценты `#00e5ff` / `#ff4dd2`,
+палитра фигур Тетриса как общая палитра. Стиль лежит в `apps/ku-arcade.css` + `apps/ku-arcade.js`, классы с префиксом
+`ku-`, переменные совпадают с Тетрисом (`--bg1`, `--accent`, …).
+
+```html
+<link rel="stylesheet" href="ku-arcade.css">
+<script src="ku-arcade.js"></script>
+<body class="ku">
+<main class="ku-app">
+  <section id="screen-menu" class="ku-screen menu active">
+    <h1 class="ku-logo">МОЯ ИГРА</h1>                       <!-- буквы раскрасятся автоматически -->
+    <p class="ku-tagline">Неоновая аркада • Рекорды</p>
+    <div class="ku-menu-btns">
+      <button class="ku-btn big primary">🎮 Играть<span class="best">Рекорд: 0</span></button>
+    </div>
+    <div class="ku-menu-row"><button class="ku-btn ghost">📖 Правила</button></div>
+  </section>
+  <section id="screen-game" class="ku-screen fit">
+    <header class="ku-top">
+      <div class="ku-top-left"></div>                        <!-- здесь кнопка «←» платформы -->
+      <div class="ku-top-title"><div class="t">РЕЖИМ</div><div class="s">СЧЁТ: <b>0</b></div></div>
+      <div class="ku-top-actions"><button class="ku-btn icon" aria-label="Пауза">⏸</button></div>
+    </header>
+    <div class="ku-hud"><div class="ku-stat"><span>Очки</span><b>0</b></div></div>
+    <div class="ku-board"><canvas></canvas></div>
+  </section>
+</main>
+<div class="ku-overlay" id="pause"><div class="ku-card"><h2>⏸ ПАУЗА</h2>
+  <button class="ku-btn primary">Продолжить</button><button class="ku-btn ghost">В меню</button></div></div>
+```
+
+Правила:
+- Внутри платформы левый верхний угол (~64×64 px) закрыт кнопкой «←» платформы — `ku-arcade.js` ставит
+  `html.ku-embedded`, шапка `.ku-top` сама освобождает это место. Кнопки игры — только справа; не рисуйте
+  важный текст и HUD в этом углу канваса.
+- Пауза и конец игры — `.ku-overlay > .ku-card` (показ классом `open`), правила/настройки — `.ku-overlay > .ku-modal`.
+- Кнопки: `.ku-btn` + `primary | accent2 | green | gold | red | blue | ghost | danger | warn`, размеры `big | duo | sm | icon`;
+  переключатели — `.ku-seg`; показатели — `.ku-hud > .ku-stat`; поле — `.ku-board`; тост — `KuArcade.toast()`.
+- На канвасе — палитра набора (`KuArcade.color('--accent')`) и шрифты Russo One / Rubik.
 
 ### Регистрация приложения
 

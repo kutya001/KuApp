@@ -2,146 +2,420 @@
 <html lang="ru">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width,initial-scale=1,user-scalable=no">
-<title>Атлет</title>
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
+<title>Атлет — кликер</title>
+<link rel="stylesheet" href="ku-arcade.css">
+<script src="ku-arcade.js"></script>
 <style>
-*{box-sizing:border-box;margin:0;padding:0}
-body{background:#0a0a0f;color:#f0f0f8;font-family:'JetBrains Mono',monospace;display:flex;flex-direction:column;align-items:center;height:100dvh;overflow:hidden;user-select:none}
-#hero-area{display:flex;flex-direction:column;align-items:center;padding:16px;flex-shrink:0}
-#athlete{font-size:5rem;cursor:pointer;transition:transform .1s;line-height:1}
-#athlete:active{transform:scale(.9)}
-#energy-bar{width:200px;height:8px;background:#1a1a24;border-radius:4px;margin-top:8px;overflow:hidden}
-#energy-fill{height:100%;background:linear-gradient(90deg,#5b8cff,#00e5a0);width:0%;transition:width .2s}
-#stats{display:flex;gap:16px;margin-top:10px;font-size:.72rem;color:#8888aa}
-.stat .val{font-size:1rem;font-weight:700;color:#f0f0f8}
-#score-big{font-size:1.6rem;font-weight:700;color:#ffd700;margin-top:4px}
-#score-lbl{font-size:.6rem;color:#8888aa;letter-spacing:.1em}
-#auto-lbl{font-size:.65rem;color:#00e5a0;min-height:14px}
-#shop{flex:1;overflow-y:auto;width:100%;padding:0 12px 16px}
-.upgrade{background:#1a1a24;border:1px solid #22222f;border-radius:10px;padding:10px 12px;margin-bottom:8px;display:flex;align-items:center;gap:12px;cursor:pointer;transition:background .15s,border-color .15s}
-.upgrade:hover{background:#22222f}
-.upgrade.can{border-color:#5b8cff}
-.upgrade.can:active{background:#1f1f36}
-.upgrade.maxed{opacity:.45;cursor:default}
-.upg-icon{font-size:1.8rem;flex-shrink:0}
-.upg-info{flex:1}
-.upg-name{font-size:.82rem;font-weight:700}
-.upg-desc{font-size:.68rem;color:#8888aa;margin-top:1px}
-.upg-cost{font-size:.72rem;color:#ffd700;margin-top:2px}
-.upg-lv{font-size:.65rem;color:#5b8cff;background:rgba(91,140,255,.1);padding:2px 7px;border-radius:4px;flex-shrink:0}
-#floats{position:fixed;inset:0;pointer-events:none;overflow:hidden}
-.float{position:absolute;font-size:.85rem;font-weight:700;color:#ffd700;animation:floatUp 1s ease-out forwards;pointer-events:none}
-@keyframes floatUp{0%{opacity:1;transform:translateY(0)}100%{opacity:0;transform:translateY(-60px)}}
+  html,body{height:100%;overflow:hidden}
+
+  /* ── Шапка: неоновый логотип + ранг ── */
+  .clk-top .ku-top-title{overflow:visible}
+  /* ширина центра шапки = экран − поля 28 − две боковые колонки по 92 (две иконки справа) − зазоры 16;
+     .ku-top.clk-top — сильнее, чем html.ku-embedded .ku-logo из набора (отступ логотипа меню здесь не нужен) */
+  .ku-top.clk-top .ku-logo{font-size:28px;margin:0;width:min(190px,calc(100vw - 228px));letter-spacing:.14em;line-height:1.15}
+  .rank{font-family:var(--font-display);font-size:11px;letter-spacing:1.5px;color:var(--accent);margin-top:3px;white-space:nowrap;text-transform:uppercase}
+
+  /* ── Раскладка: герой сверху, магазин прокручивается ── */
+  #main{flex:1;min-height:0;width:100%;max-width:980px;display:flex;flex-direction:column;align-items:center}
+  .hero{display:flex;flex-direction:column;align-items:center;flex:none;width:100%}
+  .score{display:flex;flex-direction:column;align-items:center;margin-top:2px}
+  .score b{font-family:var(--font-display);font-weight:400;font-size:38px;line-height:1.1;color:var(--gold);
+    text-shadow:0 0 18px rgba(255,214,10,.45);font-variant-numeric:tabular-nums;white-space:nowrap}
+
+  /* ── Большая кнопка тапа ── */
+  #tap{position:relative;width:156px;height:156px;border-radius:50%;margin:12px 0 10px;padding:0;cursor:pointer;flex:none;
+    touch-action:manipulation;-webkit-touch-callout:none;color:inherit;font:inherit;
+    border:1px solid var(--panel-border);
+    background:radial-gradient(circle at 50% 36%,rgba(255,255,255,.16),rgba(255,255,255,.03) 64%),
+               linear-gradient(160deg,rgba(0,229,255,.12),rgba(255,77,210,.12));
+    box-shadow:0 0 34px rgba(0,229,255,.28),0 0 64px rgba(255,77,210,.16),inset 0 1px 0 rgba(255,255,255,.2);
+    display:flex;align-items:center;justify-content:center;transition:box-shadow .2s}
+  #tap::before{content:'';position:absolute;inset:-7px;border-radius:50%;padding:3px;
+    background:conic-gradient(from 0deg,var(--accent),var(--accent2),var(--purple),var(--yellow),var(--accent));
+    -webkit-mask:linear-gradient(#000 0 0) content-box,linear-gradient(#000 0 0);-webkit-mask-composite:xor;
+    mask:linear-gradient(#000 0 0) content-box exclude,linear-gradient(#000 0 0);
+    animation:ringSpin 7s linear infinite;opacity:.9;pointer-events:none}
+  #tap:focus-visible{outline:2px solid var(--accent);outline-offset:10px}
+  #tap.hit{animation:tapHit .16s ease-out}
+  #athlete{font-size:80px;line-height:1;filter:drop-shadow(0 6px 18px rgba(0,0,0,.5));pointer-events:none}
+  @keyframes ringSpin{to{transform:rotate(360deg)}}
+  @keyframes tapHit{40%{transform:scale(.92)}}
+  @media (hover:hover){#tap:hover{box-shadow:0 0 44px rgba(0,229,255,.4),0 0 74px rgba(255,77,210,.22),inset 0 1px 0 rgba(255,255,255,.2)}}
+
+  .energy{width:min(300px,80vw);margin:2px 0 0}
+  .energy .ku-pbar{height:8px}
+  .energy .ku-pbar i{background:linear-gradient(90deg,var(--yellow),var(--accent))}
+  .elbl{font-size:11.5px;color:var(--muted);text-align:center;margin-top:6px;letter-spacing:.3px;white-space:nowrap}
+  .elbl b{color:var(--gold);font-weight:600}
+  .hero .ku-hud{margin:12px 0 8px}
+
+  /* ── Магазин ── */
+  .shop-wrap{flex:1;min-height:0;width:100%;max-width:560px;display:flex;flex-direction:column}
+  .shop-head{display:flex;justify-content:space-between;align-items:center;padding:4px 4px 8px;flex:none}
+  #shop{flex:1;min-height:0;overflow-y:auto;-webkit-overflow-scrolling:touch;display:flex;flex-direction:column;gap:8px;padding:2px 2px 14px}
+  .ku-btn.upg{width:100%;flex:none;justify-content:flex-start;text-align:left;gap:12px;padding:10px 12px;border-radius:16px;font-weight:400}
+  .upg .ic{width:46px;height:46px;flex:none;border-radius:14px;display:flex;align-items:center;justify-content:center;font-size:26px;
+    background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.08);transition:background .2s,border-color .2s}
+  .upg .info{flex:1;min-width:0;display:flex;flex-direction:column;gap:2px}
+  .upg .nm{font-weight:700;font-size:14.5px}
+  .upg .ds{font-size:12px;color:var(--muted)}
+  .upg .row{display:flex;align-items:center;gap:10px;margin-top:4px}
+  .upg .cost{font-family:var(--font-display);font-size:13px;color:var(--muted);white-space:nowrap}
+  .upg .ku-pbar{height:4px;flex:1}
+  .upg .lv{flex:none;font-size:10px;padding:5px 8px;white-space:nowrap}
+  .ku-btn.upg.can{border-color:color-mix(in srgb,var(--accent) 60%,transparent);
+    box-shadow:var(--shadow-btn),0 0 16px color-mix(in srgb,var(--accent) 22%,transparent)}
+  .upg.can .cost{color:var(--gold)}
+  .upg.can .ic{background:color-mix(in srgb,var(--accent) 14%,transparent);border-color:color-mix(in srgb,var(--accent) 40%,transparent)}
+  .ku-btn.upg:disabled{opacity:.55}
+  .upg.max .lv{color:var(--gold);border-color:#ffd60a44;background:rgba(255,214,10,.08)}
+  .upg.max .ku-pbar i{background:linear-gradient(90deg,var(--gold),var(--orange));box-shadow:none}
+
+  /* ── Всплывающие «+N» ── */
+  #floats{position:fixed;inset:0;pointer-events:none;overflow:hidden;z-index:50}
+  .float{position:absolute;font-family:var(--font-display);font-size:20px;line-height:1;color:var(--gold);white-space:nowrap;
+    transform:translate(-50%,-50%);text-shadow:0 0 12px rgba(255,214,10,.7),0 2px 6px rgba(0,0,0,.6);animation:floatUp .9s ease-out forwards}
+  @keyframes floatUp{0%{opacity:0;transform:translate(-50%,-30%) scale(.7)}15%{opacity:1;transform:translate(-50%,-60%) scale(1.1)}
+    100%{opacity:0;transform:translate(-50%,-260%) scale(1)}}
+
+  /* ── Широкий экран: герой слева, магазин справа ── */
+  @media (min-width:900px) and (min-height:560px){
+    #main{flex-direction:row;align-items:stretch;justify-content:center;gap:32px}
+    .hero{width:380px;justify-content:center}
+    .shop-wrap{width:460px;flex:none;padding-top:8px}
+  }
+  /* ── Невысокий экран: компактнее герой, чтобы магазину осталось место ── */
+  @media (max-height:700px){
+    #tap{width:124px;height:124px;margin:8px 0 8px}
+    #athlete{font-size:62px}
+    .score b{font-size:32px}
+    .hero .ku-hud{margin:8px 0 6px}
+    .hero .ku-stat{padding:4px 10px}
+  }
+  @media (prefers-reduced-motion:reduce){#tap::before{animation:none}}
 </style>
 </head>
-<body>
-<div id="hero-area">
-  <div id="athlete">🏋️</div>
-  <div id="energy-bar"><div id="energy-fill"></div></div>
-  <div id="auto-lbl"></div>
-  <div id="score-big">0</div>
-  <div id="score-lbl">ОЧКИ СИЛЫ</div>
-  <div id="stats">
-    <div class="stat"><div class="val" id="cpc">1</div><div>за тап</div></div>
-    <div class="stat"><div class="val" id="cps">0</div><div>в сек</div></div>
+<body class="ku">
+<main class="ku-app">
+  <section id="screen-main" class="ku-screen fit active">
+    <header class="ku-top clk-top">
+      <div class="ku-top-left"></div>
+      <div class="ku-top-title"><h1 class="ku-logo">АТЛЕТ</h1><div class="rank" id="rank">Новичок</div></div>
+      <div class="ku-top-actions">
+        <button class="ku-btn icon" id="btn-help" aria-label="Как играть"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M9.6 9.2a2.5 2.5 0 0 1 4.8.9c0 1.7-2.4 2.2-2.4 3.6"/><line x1="12" y1="17" x2="12" y2="17.01"/></svg></button>
+        <button class="ku-btn icon" id="btn-reset" aria-label="Начать заново"><svg viewBox="0 0 24 24"><path d="M3 12a9 9 0 1 0 3-6.7"/><polyline points="3 4 3 9 8 9"/></svg></button>
+      </div>
+    </header>
+
+    <div id="main">
+      <div class="hero">
+        <div class="score"><b id="score">0</b><span class="ku-label">Очки силы</span></div>
+        <button id="tap" type="button" aria-label="Тренироваться"><span id="athlete">🏋️</span></button>
+        <div class="energy">
+          <div class="ku-pbar"><i id="energy-fill"></i></div>
+          <div class="elbl" id="energy-lbl">⚡ Энергия 0/100</div>
+        </div>
+        <div class="ku-hud">
+          <div class="ku-stat"><span>За тап</span><b id="cpc">1</b></div>
+          <div class="ku-stat good"><span>В секунду</span><b id="cps">0</b></div>
+          <div class="ku-stat c2"><span>Бонус</span><b id="bonus">+0%</b></div>
+        </div>
+      </div>
+      <div class="shop-wrap">
+        <div class="shop-head"><span class="ku-label">🛒 Прокачка</span><span class="ku-label" id="shop-sum">0 улучшений</span></div>
+        <div id="shop"></div>
+      </div>
+    </div>
+  </section>
+</main>
+
+<!-- ═══ КАК ИГРАТЬ ═══ -->
+<div class="ku-overlay" id="md-help"><div class="ku-modal">
+  <header><h2>📖 Как играть</h2><button class="ku-btn icon" data-close aria-label="Закрыть">✕</button></header>
+  <div class="ku-body">
+    <h3>Тренировка</h3>
+    <ul class="ku-rules">
+      <li><b>Тапай по атлету</b> — каждый тап приносит очки силы (сила тапа × бонус энергии).</li>
+      <li><b>Энергия ⚡:</b> каждый тап +2. Каждая единица энергии — <b>+1%</b> к силе тапа. Без тапов энергия тает (−10 в секунду).</li>
+    </ul>
+    <h3>Прокачка</h3>
+    <ul class="ku-rules">
+      <li><b>💪 Тренировка</b> — +1 к силе тапа, <b>🎽 Экипировка</b> — сила тапа ×1,5.</li>
+      <li><b>🥤 Протеин</b> и <b>🏃 Кардио</b> — очки идут сами, каждую секунду.</li>
+      <li><b>😴 Сон</b> — больше запас энергии, а значит и выше потолок бонуса.</li>
+      <li><b>🧘 Медитация</b> — энергия копится сама и перестаёт таять.</li>
+      <li><b>🏆 Чемпион</b> — всё ×2: и тап, и доход в секунду (в том числе от будущих улучшений).</li>
+    </ul>
+    <h3>Прогресс</h3>
+    <ul class="ku-rules"><li>Сохраняется автоматически. Кнопка ↻ — начать заново.</li></ul>
   </div>
-</div>
-<div id="shop"></div>
+  <footer><button class="ku-btn primary" data-close>Понятно</button></footer>
+</div></div>
+
 <div id="floats"></div>
+<div class="ku-toast" id="toast"></div>
 
 <script>
-let pts=0,perClick=1,perSec=0,energy=0,maxEnergy=100;
-let upgrades=[
-  {id:0,icon:'💪',name:'Тренировка',desc:'Сила тапа +1',base:15,mult:1.6,effect:'click',val:1,lvl:0,max:20},
-  {id:1,icon:'🥤',name:'Протеин',desc:'+0.5 очков/сек',base:50,mult:1.7,effect:'auto',val:0.5,lvl:0,max:20},
-  {id:2,icon:'😴',name:'Сон',desc:'Макс энергия +20',base:80,mult:1.5,effect:'energy',val:20,lvl:0,max:10},
-  {id:3,icon:'🎽',name:'Экипировка',desc:'Сила тапа ×1.5',base:200,mult:2.0,effect:'click_mult',val:1.5,lvl:0,max:5},
-  {id:4,icon:'🏃',name:'Кардио',desc:'+2 очков/сек',base:300,mult:1.8,effect:'auto',val:2,lvl:0,max:15},
-  {id:5,icon:'🧘',name:'Медитация',desc:'Энергия: +5/сек авто',base:500,mult:2.0,effect:'energy_auto',val:5,lvl:0,max:10},
-  {id:6,icon:'🏆',name:'Чемпион',desc:'Все ×2',base:2000,mult:3.0,effect:'all_mult',val:2,lvl:0,max:3},
+'use strict';
+const $ = id => document.getElementById(id);
+
+/* ═══════════════════════════════════════════════════════════════
+ * ДАННЫЕ
+ * ═════════════════════════════════════════════════════════════ */
+const UPG = [
+  {id:0,icon:'💪',name:'Тренировка',desc:'Сила тапа +1',base:15,mult:1.6,effect:'click',val:1,max:20},
+  {id:1,icon:'🥤',name:'Протеин',desc:'+0,5 очков/сек',base:50,mult:1.7,effect:'auto',val:0.5,max:20},
+  {id:2,icon:'😴',name:'Сон',desc:'Макс. энергия +20',base:80,mult:1.5,effect:'energy',val:20,max:10},
+  {id:3,icon:'🎽',name:'Экипировка',desc:'Сила тапа ×1,5',base:200,mult:2.0,effect:'click_mult',val:1.5,max:5},
+  {id:4,icon:'🏃',name:'Кардио',desc:'+2 очка/сек',base:300,mult:1.8,effect:'auto',val:2,max:15},
+  {id:5,icon:'🧘',name:'Медитация',desc:'Энергия: +5/сек авто',base:500,mult:2.0,effect:'energy_auto',val:5,max:10},
+  {id:6,icon:'🏆',name:'Чемпион',desc:'Все ×2',base:2000,mult:3.0,effect:'all_mult',val:2,max:3},
 ];
-let energyAuto=0;
+const FRAMES = ['🏋️','💪','🤸','🏅','🥇'];
+const RANKS = ['Новичок','Любитель','Спортсмен','Мастер спорта','Чемпион'];
+const SAVE_KEY = 'clicker_save', SAVE_V = 1;
+const TAP_ENERGY = 2, ENERGY_DECAY = 10;     // как раньше: +2 за тап, −0,5 за тик 50 мс = −10 в секунду
 
-function cost(u){return Math.floor(u.base*Math.pow(u.mult,u.lvl));}
+let pts = 0, energy = 0;
+const lv = UPG.map(() => 0);
+let perClick = 1, perSec = 0, maxEnergy = 100, energyAuto = 0;
+let dirty = false;
 
-function renderShop(){
-  const s=document.getElementById('shop');s.innerHTML='';
-  upgrades.forEach(u=>{
-    if(u.lvl>=u.max) return; // убираем из списка если максимум
-    const c=cost(u);
-    const div=document.createElement('div');
-    div.className='upgrade'+(pts>=c?' can':'')+(u.lvl>=u.max?' maxed':'');
-    div.innerHTML=`
-      <div class="upg-icon">${u.icon}</div>
-      <div class="upg-info">
-        <div class="upg-name">${u.name}</div>
-        <div class="upg-desc">${u.desc}</div>
-        <div class="upg-cost">${u.lvl>=u.max?'МАКСИМУМ':'🪙 '+fmt(c)}</div>
-      </div>
-      <div class="upg-lv">ур.${u.lvl}</div>`;
-    if(u.lvl<u.max) div.addEventListener('click',()=>buy(u));
-    s.appendChild(div);
+function cost(u) { return Math.floor(u.base * Math.pow(u.mult, lv[u.id])); }
+
+// [fix] Показатели считаются из уровней, а не накапливаются при покупке: раньше «×1,5»/«Все ×2» умножали
+// только то, что уже куплено (покупки после множителя давали меньше), и порядок покупок менял итог.
+function recalc() {
+  let click = 1, auto = 0, emax = 100, eauto = 0, cm = 1, am = 1;
+  for (const u of UPG) {
+    const n = lv[u.id];
+    if (!n) continue;
+    if (u.effect === 'click') click += u.val * n;
+    else if (u.effect === 'auto') auto += u.val * n;
+    else if (u.effect === 'energy') emax += u.val * n;
+    else if (u.effect === 'click_mult') cm *= Math.pow(u.val, n);
+    else if (u.effect === 'energy_auto') eauto += u.val * n;
+    else if (u.effect === 'all_mult') { cm *= Math.pow(u.val, n); am *= Math.pow(u.val, n); }
+  }
+  perClick = Math.max(1, Math.round(click * cm));
+  perSec = Math.round(auto * am * 10) / 10;
+  maxEnergy = emax;
+  energyAuto = eauto;
+  energy = Math.min(energy, maxEnergy);
+}
+// [fix] бонус = +1% за единицу энергии. Раньше бонус = энергия/максимум, и «Сон» (больше максимум)
+// только понижал бонус. Теперь при 100 энергии бонус тот же (+100%), а «Сон» поднимает потолок.
+const bonusPct = () => Math.floor(energy);
+
+/* ═══════════════════════════════════════════════════════════════
+ * СОХРАНЕНИЕ (раньше прогресса не было: перезагрузка = всё заново)
+ * ═════════════════════════════════════════════════════════════ */
+function save() {
+  dirty = false;
+  try {
+    localStorage.setItem(SAVE_KEY, JSON.stringify({ v: SAVE_V, pts, lv, energy: Math.round(energy * 10) / 10, t: Date.now() }));
+  } catch (e) {}
+}
+function load() {
+  let d = null;
+  try { d = JSON.parse(localStorage.getItem(SAVE_KEY) || 'null'); } catch (e) { d = null; }
+  if (!d || typeof d !== 'object' || d.v !== SAVE_V) return;
+  if (Number.isFinite(d.pts) && d.pts >= 0) pts = d.pts;
+  if (Array.isArray(d.lv)) UPG.forEach(u => {
+    const n = Math.floor(Number(d.lv[u.id]) || 0);
+    lv[u.id] = Math.max(0, Math.min(u.max, n));
+  });
+  if (Number.isFinite(d.energy) && d.energy >= 0) energy = d.energy;
+}
+
+/* ═══════════════════════════════════════════════════════════════
+ * ФОРМАТ ЧИСЕЛ: 1 250 · 0,5 · 12,3K · 4,5M · 1,2B …
+ * (раньше 0,5/сек показывалось как «0», после миллиардов — «1500.0M»)
+ * ═════════════════════════════════════════════════════════════ */
+const SUF = ['', 'K', 'M', 'B', 'T', 'Qa', 'Qi', 'Sx', 'Sp'];
+function fmt(n, dec) {
+  n = Number(n);
+  if (!Number.isFinite(n) || n < 0) n = 0;
+  if (n < 10000) {
+    if (dec && n % 1 !== 0) return (Math.round(n * 10) / 10).toFixed(1).replace('.', ',').replace(',0', '');
+    return Math.floor(n).toLocaleString('ru-RU');
+  }
+  let i = 0;
+  while (n >= 1000 && i < SUF.length - 1) { n /= 1000; i++; }
+  const s = n >= 100 ? String(Math.floor(n)) : (Math.floor(n * 10) / 10).toFixed(1).replace('.', ',').replace(/,0$/, '');
+  return s + SUF[i];
+}
+const ptsWord = n => { n = Math.floor(n); const a = n % 100, b = n % 10; return (b === 1 && a !== 11) ? 'очка' : 'очков'; };
+
+/* ═══════════════════════════════════════════════════════════════
+ * ОТРИСОВКА — только изменившиеся значения (раньше магазин пересоздавался
+ * 20 раз в секунду, и клик по улучшению «терялся» между pointerdown и click)
+ * ═════════════════════════════════════════════════════════════ */
+const shown = {};
+function setText(id, txt) { if (shown[id] !== txt) { shown[id] = txt; $(id).textContent = txt; } }
+function setWidth(el, key, w) { if (shown[key] !== w) { shown[key] = w; el.style.width = w; } }
+
+const cards = [];
+function buildShop() {
+  const shop = $('shop');
+  UPG.forEach(u => {
+    const b = document.createElement('button');
+    b.type = 'button';
+    b.className = 'ku-btn upg';
+    b.innerHTML = `<span class="ic">${u.icon}</span><span class="info"><span class="nm">${u.name}</span>` +
+      `<span class="ds">${u.desc}</span><span class="row"><span class="cost"></span><span class="ku-pbar"><i></i></span></span></span>` +
+      `<span class="ku-chip lv"></span>`;
+    b.addEventListener('click', () => buy(u));
+    shop.appendChild(b);
+    cards[u.id] = { el: b, cost: b.querySelector('.cost'), bar: b.querySelector('.ku-pbar i'), lv: b.querySelector('.lv'), st: '', ct: '', lt: '', w: '' };
   });
 }
-
-function buy(u){
-  const c=cost(u);if(pts<c) return;
-  pts-=c;u.lvl++;
-  if(u.effect==='click') perClick+=u.val;
-  else if(u.effect==='auto') perSec+=u.val;
-  else if(u.effect==='energy') maxEnergy+=u.val;
-  else if(u.effect==='click_mult') perClick=Math.round(perClick*u.val);
-  else if(u.effect==='energy_auto') energyAuto+=u.val;
-  else if(u.effect==='all_mult'){perClick=Math.round(perClick*u.val);perSec=Math.round(perSec*u.val*10)/10;}
-  document.getElementById('cpc').textContent=fmt(perClick);
-  document.getElementById('cps').textContent=fmt(perSec);
-  renderShop();updateScore();
+function renderCard(u) {
+  const c = cards[u.id], n = lv[u.id], isMax = n >= u.max, price = isMax ? 0 : cost(u);
+  const st = isMax ? 'max' : pts >= price ? 'can' : 'lack';
+  if (c.st !== st) {
+    c.st = st;
+    c.el.classList.toggle('can', st === 'can');
+    c.el.classList.toggle('max', st === 'max');
+    c.el.disabled = st === 'max';
+  }
+  const ct = isMax ? 'МАКСИМУМ' : '🪙 ' + fmt(price);
+  if (c.ct !== ct) { c.ct = ct; c.cost.textContent = ct; }
+  const lt = isMax ? 'МАКС' : `УР. ${n}/${u.max}`;
+  if (c.lt !== lt) { c.lt = lt; c.lv.textContent = lt; }
+  const w = isMax ? '100%' : Math.min(100, Math.floor(pts / price * 100)) + '%';
+  if (c.w !== w) { c.w = w; c.bar.style.width = w; }
+}
+function render() {
+  setText('score', fmt(pts));
+  const b = bonusPct();
+  setWidth($('energy-fill'), 'ew', (Math.round(energy / maxEnergy * 200) / 2) + '%');
+  const lbl = `⚡ Энергия ${Math.floor(energy)}/${maxEnergy}` + (energyAuto ? ` · +${energyAuto}/с` : '');
+  if (shown.el !== lbl + b) {
+    shown.el = lbl + b;
+    $('energy-lbl').innerHTML = lbl + (b > 0 ? ` · бонус <b>+${b}%</b>` : '');
+  }
+  setText('cpc', fmt(perClick));
+  setText('cps', fmt(perSec, true));
+  setText('bonus', '+' + b + '%');
+  UPG.forEach(renderCard);
+}
+function renderRank() {
+  const total = lv.reduce((a, n) => a + n, 0);
+  const i = Math.min(FRAMES.length - 1, Math.floor(total / 5));
+  setText('athlete', FRAMES[i]);
+  setText('rank', RANKS[i]);
+  const maxed = UPG.filter(u => lv[u.id] >= u.max).length;
+  setText('shop-sum', maxed === UPG.length ? 'Всё на максимуме 🏆' : `Куплено: ${total}`);
 }
 
-function tap(e){
-  const bonus=1+energy/maxEnergy;
-  const gain=Math.ceil(perClick*bonus);
-  pts+=gain;energy=Math.min(maxEnergy,energy+2);
-  spawnFloat(e.clientX||window.innerWidth/2,e.clientY||120,'+'+fmt(gain));
-  updateScore();renderShop();
+/* ═══════════════════════════════════════════════════════════════
+ * ДЕЙСТВИЯ
+ * ═════════════════════════════════════════════════════════════ */
+function buy(u) {
+  if (lv[u.id] >= u.max) return;
+  const c = cost(u);
+  if (pts < c) {
+    const el = cards[u.id].el;
+    el.classList.remove('ku-shake-x'); void el.offsetWidth; el.classList.add('ku-shake-x');
+    const need = Math.ceil(c - pts);
+    KuArcade.toast(`Не хватает ${fmt(need)} ${ptsWord(need)}`, 'bad', 1400);
+    return;
+  }
+  pts -= c;
+  lv[u.id]++;
+  recalc();
+  renderRank();
+  render();
+  save();
+  if (lv[u.id] >= u.max) KuArcade.toast(`${u.icon} ${u.name}: максимум!`, 'gold', 1600);
 }
 
-function spawnFloat(x,y,txt){
-  const f=document.createElement('div');f.className='float';
-  f.textContent=txt;f.style.left=(x-20)+'px';f.style.top=(y-20)+'px';
-  document.getElementById('floats').appendChild(f);
-  setTimeout(()=>f.remove(),1000);
+function spawnFloat(x, y, txt) {
+  const box = $('floats');
+  if (box.childElementCount > 30) box.firstElementChild.remove();
+  const f = document.createElement('div');
+  f.className = 'float';
+  f.textContent = txt;
+  f.style.left = x + 'px'; f.style.top = y + 'px';
+  box.appendChild(f);
+  setTimeout(() => f.remove(), 950);
 }
 
-function fmt(n){if(n>=1e6) return(n/1e6).toFixed(1)+'M';if(n>=1e3) return(n/1e3).toFixed(1)+'K';return Math.floor(n);}
-
-function updateScore(){
-  document.getElementById('score-big').textContent=fmt(pts);
-  document.getElementById('energy-fill').style.width=(energy/maxEnergy*100)+'%';
-  const pct=Math.round(energy/maxEnergy*100);
-  document.getElementById('auto-lbl').textContent=pct>0?`⚡ ${pct}% бонус к тапу`:'';
+function tap(x, y) {
+  const gain = Math.ceil(perClick * (1 + bonusPct() / 100));
+  pts += gain;
+  energy = Math.min(maxEnergy, energy + TAP_ENERGY);
+  dirty = true;
+  spawnFloat(x + (Math.random() - 0.5) * 30, y - 10, '+' + fmt(gain));
+  const t = $('tap');
+  t.classList.remove('hit'); void t.offsetWidth; t.classList.add('hit');
+  render();
 }
 
-// Автоклик
-setInterval(()=>{
-  if(perSec>0){pts+=perSec/20;renderShop();updateScore();}
-  if(energyAuto>0){energy=Math.min(maxEnergy,energy+energyAuto/20);}
-  else if(energy>0){energy=Math.max(0,energy-0.5);}
-  updateScore();
-},50);
+const tapBtn = $('tap');
+// Тап — на pointerdown (мгновенно, несколько пальцев = несколько тапов), Enter/Пробел — на keydown (без автоповтора).
+// «Хвостовой» click после указателя/клавиши не считаем (по времени, а не по e.detail: после тача Chromium
+// иногда присылает click с detail = 0) — без двойных начислений. Одиночный click (экранный диктор) — тап.
+let lastInput = -1e9;
+const tapCenter = () => { const r = tapBtn.getBoundingClientRect(); tap(r.left + r.width / 2, r.top + r.height * 0.3); };
+tapBtn.addEventListener('pointerdown', e => {
+  if (e.pointerType === 'mouse' && e.button !== 0) return;
+  e.preventDefault();
+  lastInput = performance.now();
+  tap(e.clientX, e.clientY);
+});
+['pointerup', 'pointercancel'].forEach(t => tapBtn.addEventListener(t, () => { lastInput = performance.now(); }));
+tapBtn.addEventListener('keydown', e => {
+  if (e.code !== 'Enter' && e.code !== 'NumpadEnter' && e.code !== 'Space') return;
+  e.preventDefault();
+  lastInput = performance.now();
+  if (!e.repeat) tapCenter();
+});
+tapBtn.addEventListener('keyup', e => { if (e.code === 'Space') { e.preventDefault(); lastInput = performance.now(); } });
+tapBtn.addEventListener('click', () => { if (performance.now() - lastInput > 700) tapCenter(); });
+tapBtn.addEventListener('contextmenu', e => e.preventDefault());
 
-const athl=document.getElementById('athlete');
-athl.addEventListener('click',tap);
-athl.addEventListener('touchstart',e=>{e.preventDefault();tap(e.touches[0]);},{passive:false});
+/* ── Доход и энергия: по реальному времени, а не «+1/20 за тик» ── */
+let lastTick = performance.now();
+setInterval(() => {
+  const now = performance.now();
+  const dt = Math.min(1, Math.max(0, (now - lastTick) / 1000));
+  lastTick = now;
+  if (perSec > 0) { pts += perSec * dt; dirty = true; }
+  if (energyAuto > 0) energy = Math.min(maxEnergy, energy + energyAuto * dt);
+  else if (energy > 0) energy = Math.max(0, energy - ENERGY_DECAY * dt);
+  render();
+}, 100);
+setInterval(() => { if (dirty) save(); }, 4000);
+document.addEventListener('visibilitychange', () => { if (document.hidden) save(); });
+window.addEventListener('pagehide', save);
 
-// Смена атлета по уровню
-setInterval(()=>{
-  const frames=['🏋️','💪','🤸','🏅','🥇'];
-  const lvl=Math.min(4,Math.floor(upgrades.reduce((a,u)=>a+u.lvl,0)/5));
-  athl.textContent=frames[lvl];
-},2000);
+/* ── Окна ── */
+const open = id => $(id).classList.add('open');
+const close = id => $(id).classList.remove('open');
+$('btn-help').onclick = () => open('md-help');
+document.querySelectorAll('[data-close]').forEach(b => b.addEventListener('click', () => close(b.closest('.ku-overlay').id)));
+$('btn-reset').onclick = () => {
+  KuArcade.confirm('Очки силы и вся прокачка обнулятся. Отменить это нельзя.',
+    { title: 'НАЧАТЬ ЗАНОВО?', ok: '↻ Сбросить прогресс', cancel: 'Отмена', danger: true }).then(yes => {
+    if (!yes) return;
+    pts = 0; energy = 0; lv.fill(0);
+    recalc(); renderRank(); render(); save();
+    KuArcade.toast('Прогресс сброшен — новый сезон!', 'gold');
+  });
+};
+document.addEventListener('keydown', e => {
+  if (e.code === 'Escape') document.querySelectorAll('.ku-overlay.open').forEach(o => o.classList.remove('open'));
+});
 
-renderShop();updateScore();
+/* ── Старт ── */
+load();
+recalc();
+buildShop();
+renderRank();
+render();
 </script>
 </body>
 </html>

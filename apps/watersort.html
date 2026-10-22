@@ -2,290 +2,229 @@
 <html lang="ru">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width,initial-scale=1,user-scalable=no">
-<title>Сортировка цветов PRO</title>
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+<title>Water Sort Pro</title>
+<link rel="stylesheet" href="ku-arcade.css">
+<script src="ku-arcade.js"></script>
 <style>
-  @import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;700;800;900&display=swap');
+  html,body{height:100%;overflow:hidden}
+  #screen-game,#screen-game *{touch-action:none}
+  #screen-game .ku-hud{margin-bottom:8px}
+  #live-stars{color:var(--gold);letter-spacing:3px}
+  .off{color:rgba(255,255,255,.18)}
+  #prog{width:min(340px,80vw);flex:none;margin-bottom:2px}
 
-  *{box-sizing:border-box;margin:0;padding:0; user-select:none; touch-action:none;}
-  :root{
-    --bg:#050508;--text:#f0f0f8;--text2:#8888aa;
-    --accent:#5b8cff;--success:#00e5a0;--gold:#ffd700;--danger:#ff4466;
-    --ui-bg:rgba(8,8,16,0.92);--tube-border:#2c2c40;
-  }
-  body{
-    background:var(--bg);color:var(--text);
-    font-family:'JetBrains Mono',monospace;
-    display:flex;flex-direction:column;align-items:center;
-    height:100dvh;overflow:hidden;
-  }
+  /* ── Пробирки: стекло набора, жидкости — палитра набора ── */
+  #tubes-area{flex:1;min-height:0;width:100%;max-width:760px;display:flex;align-items:center;justify-content:center}
+  #tubes{display:flex;flex-wrap:wrap;justify-content:center;align-items:flex-end;column-gap:var(--gx,12px);row-gap:var(--gy,14px)}
+  .tube-outer{position:relative;display:flex;flex-direction:column;align-items:center;gap:7px;padding-top:20px;cursor:pointer;-webkit-touch-callout:none}
+  .tube{position:relative;width:var(--tw,44px);height:var(--th,150px);border:1.5px solid rgba(255,255,255,.2);
+    border-radius:4px 4px calc(var(--tw,44px)/2) calc(var(--tw,44px)/2);
+    background:linear-gradient(90deg,rgba(255,255,255,.09),rgba(255,255,255,.025) 38%,rgba(255,255,255,.02) 62%,rgba(255,255,255,.07));
+    box-shadow:inset 0 -10px 18px rgba(0,0,0,.3),0 10px 24px rgba(0,0,0,.35);
+    transition:transform .18s ease,border-color .2s,box-shadow .2s}
+  .tube::before{content:'';position:absolute;left:-5px;right:-5px;top:-7px;height:8px;border-radius:5px;
+    border:1.5px solid rgba(255,255,255,.26);background:linear-gradient(180deg,rgba(255,255,255,.14),rgba(255,255,255,.03))}
+  .liq{position:absolute;left:3px;right:3px;bottom:3px;top:12%;display:flex;flex-direction:column-reverse;overflow:hidden;
+    border-radius:0 0 calc(var(--tw,44px)/2 - 4px) calc(var(--tw,44px)/2 - 4px)}
+  .seg{flex:none;height:25%;position:relative;background:var(--c);box-shadow:inset 0 0 12px rgba(255,255,255,.14)}
+  .seg::before{content:'';position:absolute;inset:0;background:linear-gradient(90deg,rgba(255,255,255,.3),rgba(255,255,255,0) 35%,rgba(0,0,0,0) 70%,rgba(0,0,0,.18))}
+  .seg.top::after{content:'';position:absolute;left:0;right:0;top:0;height:3px;background:color-mix(in srgb,var(--c) 45%,#fff)}
+  .shine{position:absolute;left:16%;top:9%;bottom:16%;width:11%;border-radius:6px;pointer-events:none;
+    background:linear-gradient(180deg,rgba(255,255,255,.32),rgba(255,255,255,.03))}
+  .tube-num{font:400 11px var(--font-display);color:var(--muted);opacity:.65;height:14px;line-height:14px}
+  .tube-outer.sel .tube{transform:translateY(-16px);border-color:var(--accent);
+    box-shadow:0 0 18px color-mix(in srgb,var(--accent) 45%,transparent),inset 0 -10px 18px rgba(0,0,0,.3)}
+  .tube-outer.done .tube{border-color:color-mix(in srgb,var(--dc) 70%,#fff);animation:wsDone 2.2s ease-in-out infinite;
+    box-shadow:0 0 16px color-mix(in srgb,var(--dc) 50%,transparent),inset 0 -10px 18px rgba(0,0,0,.25)}
+  .tube-outer.done .tube-num{color:var(--good);opacity:1}
+  .tube-outer.hint .tube{border-color:var(--gold);box-shadow:0 0 22px rgba(255,214,10,.6),inset 0 -10px 18px rgba(0,0,0,.3)}
+  .tube-outer.hint .tube-num{color:var(--gold);opacity:1}
+  .tube-outer.bad .tube{animation:kuShakeX .35s}
+  .tube.flying{z-index:20}
+  @keyframes wsDone{50%{box-shadow:0 0 28px color-mix(in srgb,var(--dc) 75%,transparent),inset 0 -10px 18px rgba(0,0,0,.25)}}
+  .ws-stream{position:fixed;z-index:30;pointer-events:none;border-radius:3px;background:var(--c);box-shadow:0 0 10px var(--c)}
+  #bottom{display:flex;gap:10px;justify-content:center;margin-top:6px;flex:none}
+  #btn-hint b{font-family:var(--font-display);font-weight:400;color:var(--gold)}
 
-  #game-wrapper{
-    position:relative; width:100%; max-width:450px; height:100%;
-    display:flex;flex-direction:column;align-items:center;
-    padding:10px 8px;
-  }
+  /* три кнопки справа в шапке: «УРОВЕНЬ 12» должен помещаться на 360 px */
+  #lvl-title{letter-spacing:1px}
 
-  /* Scanlines */
-  #game-wrapper::after{
-    content:" ";display:block;position:absolute;inset:0;
-    background:linear-gradient(rgba(18,16,16,0) 50%,rgba(0,0,0,0.15) 50%);
-    z-index:5;background-size:100% 3px;pointer-events:none;mix-blend-mode:overlay;opacity:0.2;
-  }
+  /* мини-пробирки в меню */
+  .ws-hero{display:flex;gap:16px;justify-content:center;align-items:flex-end;margin-top:14px;--tw:26px;--th:82px}
+  .ws-hero .tube-outer{padding-top:8px;cursor:default}
 
-  /* Top bar */
-  #top-bar{
-    display:flex;justify-content:space-between;align-items:center;
-    width:100%;padding:4px 4px 8px;z-index:10;position:relative;
-  }
-  #level-title{font-size:.85rem;font-weight:700;color:var(--accent);}
-  #stats{display:flex;gap:12px;font-size:.65rem;color:var(--text2);align-items:center;}
-  #stats span{display:flex;align-items:center;gap:3px;}
-  .stat-val{font-weight:700;color:var(--text);font-size:.8rem;}
+  /* выбор уровня */
+  .lv-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:10px}
+  .lv{aspect-ratio:1;border-radius:14px;border:1px solid var(--panel-border);background:var(--glass);color:var(--text);cursor:pointer;
+    display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;font:400 20px var(--font-display);
+    box-shadow:var(--shadow-btn);transition:transform .15s,border-color .2s}
+  .lv small{font:600 11px var(--font-body);letter-spacing:1px;color:var(--gold);min-height:13px}
+  .lv.cur{border-color:var(--accent);box-shadow:0 0 16px color-mix(in srgb,var(--accent) 40%,transparent)}
+  .lv:disabled{opacity:.35;cursor:default}
+  .lv:not(:disabled):active{transform:scale(.95)}
+  #lv-note{max-width:none;margin-top:14px}
 
-  /* Progress bar */
-  #progress-bar{
-    width:100%;height:3px;background:rgba(255,255,255,0.04);border-radius:2px;
-    margin-bottom:8px;overflow:hidden;position:relative;z-index:10;
-  }
-  #progress-fill{
-    height:100%;width:0%;background:linear-gradient(90deg,var(--success),var(--accent));
-    box-shadow:0 0 8px var(--success);transition:width .3s ease;
-  }
+  /* звёзды в окне победы */
+  .ws-stars{display:flex;gap:10px;justify-content:center;font-size:38px;line-height:1}
+  .ws-stars span{color:rgba(255,255,255,.14);transition:color .3s,text-shadow .3s,transform .35s cubic-bezier(.34,1.56,.64,1)}
+  .ws-stars span.lit{color:var(--gold);text-shadow:0 0 18px rgba(255,214,10,.6);transform:scale(1.12)}
 
-  /* Tubes area */
-  #tubes-area{
-    flex:1;display:flex;align-items:center;justify-content:center;
-    width:100%;position:relative;z-index:10;
-  }
-  #tubes-wrap{
-    display:flex;flex-wrap:wrap;gap:10px;
-    align-items:flex-end;justify-content:center;
-    padding:0 8px;
-  }
-
-  .tube-outer{
-    display:flex;flex-direction:column;align-items:center;gap:3px;cursor:pointer;
-    transition:transform .15s;
-  }
-  .tube-outer:active{transform:scale(.95);}
-
-  .tube{
-    width:42px;height:150px;
-    border:2px solid var(--tube-border);border-top:none;
-    border-radius:0 0 20px 20px;
-    display:flex;flex-direction:column-reverse;overflow:hidden;
-    background:rgba(17,17,24,0.6);position:relative;
-    transition:border-color .25s, box-shadow .25s, transform .2s;
-  }
-  .tube.sel{
-    transform:translateY(-14px);
-    border-color:var(--accent);
-    box-shadow:0 0 15px rgba(91,140,255,0.4), inset 0 0 10px rgba(91,140,255,0.1);
-  }
-  .tube.done{
-    border-color:var(--success);
-    box-shadow:0 0 12px rgba(0,229,160,0.3);
-    animation:donePulse 2s ease infinite;
-  }
-  @keyframes donePulse{0%,100%{box-shadow:0 0 8px rgba(0,229,160,0.2);}50%{box-shadow:0 0 18px rgba(0,229,160,0.5);}}
-
-  .seg{
-    width:100%;transition:height .2s ease, background .2s;
-    position:relative;
-  }
-  .seg::after{
-    content:'';position:absolute;top:0;left:0;right:0;height:30%;
-    background:linear-gradient(to bottom,rgba(255,255,255,0.15),transparent);
-    pointer-events:none;
-  }
-
-  /* Pour animation */
-  .tube.pouring{
-    animation:pourShake .3s ease;
-  }
-  @keyframes pourShake{
-    0%{transform:translateY(-14px) rotate(0);}
-    25%{transform:translateY(-14px) rotate(-3deg);}
-    75%{transform:translateY(-14px) rotate(3deg);}
-    100%{transform:translateY(0) rotate(0);}
-  }
-
-  .tube-num{font-size:.55rem;color:rgba(255,255,255,0.2);}
-
-  /* Bottom controls */
-  #bottom-bar{
-    display:flex;justify-content:center;gap:8px;margin-top:8px;
-    position:relative;z-index:10;flex-wrap:wrap;
-  }
-  .ctrl-btn{
-    background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.1);
-    color:var(--text2);padding:7px 12px;border-radius:8px;font-family:inherit;
-    font-size:.6rem;cursor:pointer;transition:all .2s;display:flex;align-items:center;gap:3px;
-  }
-  .ctrl-btn:hover{border-color:var(--accent);color:var(--accent);}
-  .ctrl-btn:active{transform:scale(.95);}
-
-  /* Overlay */
-  .overlay{
-    position:absolute;inset:0;background:var(--ui-bg);backdrop-filter:blur(8px);
-    display:flex;flex-direction:column;align-items:center;justify-content:center;
-    z-index:50;opacity:0;pointer-events:none;transition:opacity .35s ease;
-  }
-  .overlay.active{opacity:1;pointer-events:auto;}
-
-  .menu-title{
-    font-size:1.8rem;font-weight:900;margin-bottom:6px;text-align:center;
-    background:linear-gradient(135deg,var(--accent),var(--success),var(--gold));
-    background-size:200% 200%;
-    -webkit-background-clip:text;-webkit-text-fill-color:transparent;
-    filter:drop-shadow(0 0 12px rgba(0,229,160,0.3));
-    animation:gradShift 3s ease infinite;
-  }
-  @keyframes gradShift{0%,100%{background-position:0% 50%;}50%{background-position:100% 50%;}}
-
-  .menu-subtitle{
-    font-size:.7rem;color:var(--text2);margin-bottom:20px;
-    text-align:center;max-width:85%;line-height:1.6;
-  }
-
-  .btn{
-    background:transparent;color:#fff;border:2px solid var(--accent);
-    padding:11px 28px;border-radius:10px;font-size:.85rem;font-weight:700;
-    font-family:inherit;cursor:pointer;margin-bottom:8px;width:80%;max-width:240px;
-    transition:all .25s;text-transform:uppercase;letter-spacing:.1em;
-    position:relative;overflow:hidden;
-  }
-  .btn::before{
-    content:'';position:absolute;top:0;left:-100%;width:100%;height:100%;
-    background:linear-gradient(90deg,transparent,rgba(255,255,255,0.12),transparent);
-    transition:left .6s;
-  }
-  .btn:hover::before{left:100%;}
-  .btn:active{transform:scale(.96);}
-  .btn-primary{background:var(--accent);color:#000;box-shadow:0 0 20px rgba(91,140,255,0.35);}
-  .btn-green{border-color:var(--success);color:var(--success);}
-  .btn-green:hover{background:rgba(0,229,160,0.1);}
-  .btn-gold{border-color:var(--gold);color:var(--gold);}
-  .btn-gold:hover{background:rgba(255,215,0,0.1);}
-
-  /* Level Grid */
-  .level-grid{
-    display:grid;grid-template-columns:repeat(4,1fr);gap:8px;
-    width:90%;max-width:320px;max-height:50vh;overflow-y:auto;
-    margin-bottom:14px;padding:4px;
-  }
-  .level-grid::-webkit-scrollbar{width:5px;}
-  .level-grid::-webkit-scrollbar-track{background:rgba(0,0,0,0.2);border-radius:3px;}
-  .level-grid::-webkit-scrollbar-thumb{background:var(--accent);border-radius:3px;}
-
-  .level-cell{
-    aspect-ratio:1;border-radius:8px;display:flex;flex-direction:column;
-    align-items:center;justify-content:center;font-size:.9rem;font-weight:700;
-    cursor:pointer;transition:all .2s;border:2px solid transparent;
-    background:rgba(255,255,255,0.04);color:var(--text2);
-  }
-  .level-cell .stars-row{font-size:.45rem;margin-top:2px;}
-  .level-cell .stars-row .s-on{color:var(--gold);}
-  .level-cell .stars-row .s-off{color:#333;}
-
-  .level-cell.unlocked{border-color:rgba(91,140,255,0.3);background:rgba(91,140,255,0.06);color:var(--text);}
-  .level-cell.unlocked:hover{border-color:var(--accent);background:rgba(91,140,255,0.15);box-shadow:0 0 12px rgba(91,140,255,0.3);transform:scale(1.05);}
-  .level-cell.locked{opacity:.3;cursor:not-allowed;}
-  .level-cell.current{border-color:var(--gold);background:rgba(255,215,0,0.08);animation:currPulse 1.5s ease infinite;}
-  @keyframes currPulse{0%,100%{box-shadow:0 0 5px rgba(255,215,0,0.2);}50%{box-shadow:0 0 18px rgba(255,215,0,0.5);}}
-
-  /* Stars in overlay */
-  .stars-container{display:flex;gap:8px;margin:6px 0 10px;}
-  .star-icon{font-size:1.6rem;color:#333;transition:all .4s cubic-bezier(0.34,1.56,0.64,1);}
-  .star-icon.lit{color:var(--gold);text-shadow:0 0 10px rgba(255,215,0,0.5);transform:scale(1.1);}
-
-  .hint-text{
-    font-size:.55rem;color:var(--text2);margin-top:12px;text-align:center;
-    border-top:1px solid rgba(255,255,255,0.06);padding-top:12px;line-height:1.6;
+  @media (max-height:700px){
+    #screen-game .ku-top{margin-bottom:4px}
+    #screen-game .ku-hud{margin:0 0 6px}
+    #screen-game .ku-stat{padding:4px 10px}
+    #screen-game .ku-stat b{font-size:15px}
   }
 </style>
 </head>
-<body>
+<body class="ku">
+<main class="ku-app">
 
-<div id="game-wrapper">
-  <div id="top-bar">
-    <div id="level-title">УР 1</div>
-    <div id="stats">
-      <span>🎯 Ходы <span class="stat-val" id="move-count">0</span></span>
-      <span>⏱ <span class="stat-val" id="timer-val">0</span></span>
+  <!-- ═══ МЕНЮ ═══ -->
+  <section id="screen-menu" class="ku-screen menu active">
+    <h1 class="ku-logo">WATER SORT</h1>
+    <p class="ku-tagline">Pro • Головоломка • 12 уровней • Звёзды</p>
+    <div class="ws-hero" id="hero" aria-hidden="true"></div>
+    <div class="ku-pills"><span>🧪 Переливай по цвету</span><span>↶ Отмена хода</span><span>💡 Подсказки</span><span>⭐ 3 звезды</span></div>
+    <div class="ku-menu-btns">
+      <button class="ku-btn big primary" id="btn-campaign">🧪 Кампания<span class="best" id="camp-sub">Уровень 1 из 12</span></button>
+      <button class="ku-btn big accent2" id="btn-levels">🗂 Выбор уровня<span class="best" id="levels-sub">★ 0 / 36</span></button>
     </div>
-  </div>
-  <div id="progress-bar"><div id="progress-fill"></div></div>
+    <div class="ku-menu-row"><button class="ku-btn ghost" id="btn-rules">📖 Правила</button></div>
+    <div class="ku-menu-stats" id="menu-stats"></div>
+    <div class="ku-menu-hint">Тап по пробирке, затем по другой — перелить · двойной тап или долгое нажатие — авто-перелив<br>Клавиши: U — отмена · H — подсказка · R — заново · N — новая раскладка · P — пауза</div>
+  </section>
 
-  <div id="tubes-area">
-    <div id="tubes-wrap"></div>
-  </div>
-
-  <div id="bottom-bar">
-    <button class="ctrl-btn" id="btnUndo">↩️ Отмена</button>
-    <button class="ctrl-btn" id="btnHint">💡 Подсказка</button>
-    <button class="ctrl-btn" id="btnNew">🔄 Новая</button>
-  </div>
-
-  <!-- Main Menu -->
-  <div class="overlay active" id="menu-main">
-    <div class="menu-title">WATER SORT PRO</div>
-    <div class="menu-subtitle">Переливай жидкости по пробиркам.<br>Собери один цвет в каждой.</div>
-    <button class="btn btn-primary" id="btn-campaign">🧪 Кампания</button>
-    <div class="hint-text">
-      Нажми на пробирку, затем на другую для перелива.<br>
-      Двойной тап = авто-перелив всех одинаковых сверху.
+  <!-- ═══ ИГРА ═══ -->
+  <section id="screen-game" class="ku-screen fit">
+    <header class="ku-top">
+      <div class="ku-top-left"></div>
+      <div class="ku-top-title"><div class="t" id="lvl-title">УРОВЕНЬ 1</div><div class="s" id="live-stars">★★★</div></div>
+      <div class="ku-top-actions">
+        <button class="ku-btn icon" id="btn-undo" aria-label="Отменить ход"><svg viewBox="0 0 24 24"><polyline points="9 14 4 9 9 4"/><path d="M20 20v-7a4 4 0 0 0-4-4H4"/></svg></button>
+        <button class="ku-btn icon" id="btn-restart" aria-label="Начать уровень заново"><svg viewBox="0 0 24 24"><path d="M20 12a8 8 0 1 1-2.34-5.66"/><polyline points="20 4 20 9 15 9"/></svg></button>
+        <button class="ku-btn icon" id="btn-pause" aria-label="Пауза"><svg viewBox="0 0 24 24"><line x1="9" y1="5" x2="9" y2="19"/><line x1="15" y1="5" x2="15" y2="19"/></svg></button>
+      </div>
+    </header>
+    <div class="ku-hud">
+      <div class="ku-stat"><span>Ходы</span><b id="moves">0</b></div>
+      <div class="ku-stat gold"><span>Цель ★★★</span><b id="par">12</b></div>
+      <div class="ku-stat c2"><span>Время</span><b id="time">0:00</b></div>
     </div>
-  </div>
+    <div class="ku-pbar" id="prog"><i id="prog-fill"></i></div>
+    <div id="tubes-area"><div id="tubes"></div></div>
+    <div id="bottom"><button class="ku-btn sm" id="btn-hint">💡 Подсказка <b id="hint-n">3</b></button></div>
+  </section>
+</main>
 
-  <!-- Level Select -->
-  <div class="overlay" id="menu-levels">
-    <div class="menu-title" style="font-size:1.3rem;">ВЫБОР УРОВНЯ</div>
-    <div class="level-grid" id="level-grid"></div>
-    <button class="btn btn-gold" id="btn-levels-back" style="max-width:160px;padding:9px 18px;font-size:.75rem;">Назад</button>
-  </div>
-
-  <!-- Level Complete -->
-  <div class="overlay" id="menu-level-up">
-    <div class="menu-title" style="font-size:1.3rem;color:var(--success);">РЕШЕНО!</div>
-    <div class="stars-container" id="stars-container">
-      <span class="star-icon" id="star-1">★</span>
-      <span class="star-icon" id="star-2">★</span>
-      <span class="star-icon" id="star-3">★</span>
-    </div>
-    <p class="menu-subtitle" id="lvl-stats">Ходов: 0 | Время: 0с</p>
-    <button class="btn btn-primary" id="btn-next-level">Следующий уровень →</button>
-    <button class="btn btn-gold" id="btn-replay" style="max-width:180px;padding:9px 16px;font-size:.75rem;">🔄 Повторить</button>
+<!-- ═══ ВЫБОР УРОВНЯ ═══ -->
+<div class="ku-overlay" id="levels">
+  <div class="ku-modal">
+    <header><h2>🗂 Уровни</h2><button class="ku-btn icon" id="btn-levels-x" aria-label="Закрыть">✕</button></header>
+    <div class="ku-body"><div class="lv-grid" id="lv-grid"></div><p class="ku-hint" id="lv-note"></p></div>
   </div>
 </div>
 
+<!-- ═══ ПРАВИЛА ═══ -->
+<div class="ku-overlay" id="rules">
+  <div class="ku-modal">
+    <header><h2>📖 Правила</h2><button class="ku-btn icon" id="btn-rules-x" aria-label="Закрыть">✕</button></header>
+    <div class="ku-body">
+      <h3>Цель</h3>
+      <ul class="ku-rules">
+        <li>Соберите в каждой пробирке жидкость <b>одного цвета</b>. Пустые пробирки — ваш запас для манёвра.</li>
+        <li>Каждая раскладка гарантированно решаема.</li>
+      </ul>
+      <h3>Как переливать</h3>
+      <ul class="ku-rules">
+        <li>Тап по пробирке, затем по другой — перелить.</li>
+        <li>Наливать можно в <b>пустую</b> пробирку или поверх <b>того же цвета</b>, пока есть место (в пробирке 4 слоя).</li>
+        <li>Переливается весь верхний слой одного цвета — сколько поместится.</li>
+        <li><b>Двойной тап</b> или <b>долгое нажатие</b> — авто-перелив в подходящую пробирку.</li>
+      </ul>
+      <h3>Помощь</h3>
+      <ul class="ku-rules">
+        <li><b>↶</b> — отменить ход, <b>↻</b> — начать уровень заново, <b>🎲</b> в паузе — новая раскладка.</li>
+        <li><b>💡 Подсказка</b> показывает ход, ведущий к решению (3 на уровень). Если раскладка зашла в тупик — игра предупредит.</li>
+      </ul>
+      <h3>Звёзды</h3>
+      <ul class="ku-rules">
+        <li><b>★★★</b> — не больше цели ходов, <b>★★</b> — до 1,5× цели, <b>★</b> — уровень решён.</li>
+      </ul>
+    </div>
+    <footer><button class="ku-btn primary" id="btn-rules-ok">Понятно</button></footer>
+  </div>
+</div>
+
+<!-- ═══ ПАУЗА ═══ -->
+<div class="ku-overlay" id="pause">
+  <div class="ku-card">
+    <h2>⏸ ПАУЗА</h2>
+    <button class="ku-btn primary" id="btn-resume">Продолжить</button>
+    <button class="ku-btn" id="btn-restart2">Заново</button>
+    <button class="ku-btn" id="btn-new">🎲 Новая раскладка</button>
+    <button class="ku-btn" id="btn-rules2">📖 Правила</button>
+    <button class="ku-btn ghost" id="btn-quit">В меню</button>
+  </div>
+</div>
+
+<!-- ═══ УРОВЕНЬ РЕШЁН ═══ -->
+<div class="ku-overlay" id="win">
+  <div class="ku-card">
+    <h2 class="win" id="win-title">РЕШЕНО!</h2>
+    <div class="ws-stars" id="win-stars"><span>★</span><span>★</span><span>★</span></div>
+    <div class="ku-new-best" id="win-best" hidden>🏆 НОВЫЙ РЕКОРД ХОДОВ!</div>
+    <div class="ku-over-stats">
+      <div>Ходов<b id="w-moves">0</b></div>
+      <div>Цель ★★★<b id="w-par">0</b></div>
+      <div>Время<b id="w-time">0:00</b></div>
+      <div>Лучший результат<b id="w-best">0</b></div>
+    </div>
+    <button class="ku-btn primary" id="btn-next">Следующий уровень →</button>
+    <button class="ku-btn" id="btn-replay">🔄 Повторить</button>
+    <button class="ku-btn ghost" id="btn-win-menu">В меню</button>
+  </div>
+</div>
+
+<div class="ku-toast" id="toast"></div>
+
 <script>
+'use strict';
 /**
  * AUDIO ENGINE
  */
 const AudioSys = {
   ctx: null,
-  init(){ if(!this.ctx) this.ctx = new (window.AudioContext||window.webkitAudioContext)(); if(this.ctx.state==='suspended') this.ctx.resume(); },
+  init(){
+    try {
+      if(!this.ctx) this.ctx = new (window.AudioContext||window.webkitAudioContext)();
+      if(this.ctx.state==='suspended') this.ctx.resume();
+    } catch(e) {}
+  },
   tone(f,t,d,v=.5,s=null){
     if(!this.ctx) return;
-    const o=this.ctx.createOscillator(),g=this.ctx.createGain();
-    o.type=t;o.connect(g);g.connect(this.ctx.destination);
-    const n=this.ctx.currentTime;
-    o.frequency.setValueAtTime(f,n);
-    if(s) o.frequency.exponentialRampToValueAtTime(s,n+d);
-    g.gain.setValueAtTime(v,n);g.gain.exponentialRampToValueAtTime(.01,n+d);
-    o.start(n);o.stop(n+d);
+    try {
+      const o=this.ctx.createOscillator(),g=this.ctx.createGain();
+      o.type=t;o.connect(g);g.connect(this.ctx.destination);
+      const n=this.ctx.currentTime;
+      o.frequency.setValueAtTime(f,n);
+      if(s) o.frequency.exponentialRampToValueAtTime(s,n+d);
+      g.gain.setValueAtTime(v,n);g.gain.exponentialRampToValueAtTime(.01,n+d);
+      o.start(n);o.stop(n+d);
+    } catch(e) {}
   },
   noise(d,v=.3){
     if(!this.ctx) return;
-    const sz=this.ctx.sampleRate*d,buf=this.ctx.createBuffer(1,sz,this.ctx.sampleRate);
-    const dt=buf.getChannelData(0);for(let i=0;i<sz;i++) dt[i]=Math.random()*2-1;
-    const src=this.ctx.createBufferSource();src.buffer=buf;
-    const f=this.ctx.createBiquadFilter();f.type='bandpass';f.frequency.value=800;
-    const g=this.ctx.createGain();g.gain.setValueAtTime(v,this.ctx.currentTime);
-    g.gain.exponentialRampToValueAtTime(.01,this.ctx.currentTime+d);
-    src.connect(f);f.connect(g);g.connect(this.ctx.destination);src.start();
+    try {
+      const sz=this.ctx.sampleRate*d,buf=this.ctx.createBuffer(1,sz,this.ctx.sampleRate);
+      const dt=buf.getChannelData(0);for(let i=0;i<sz;i++) dt[i]=Math.random()*2-1;
+      const src=this.ctx.createBufferSource();src.buffer=buf;
+      const f=this.ctx.createBiquadFilter();f.type='bandpass';f.frequency.value=800;
+      const g=this.ctx.createGain();g.gain.setValueAtTime(v,this.ctx.currentTime);
+      g.gain.exponentialRampToValueAtTime(.01,this.ctx.currentTime+d);
+      src.connect(f);f.connect(g);g.connect(this.ctx.destination);src.start();
+    } catch(e) {}
   },
   sfx:{
     select:()=>AudioSys.tone(400,'sine',.06,.15),
@@ -314,99 +253,166 @@ const LEVELS = [
   { id:12, name:"УР 12", colors:8, empty:2, par:60  },
 ];
 
+// Палитра набора (тот же порядок оттенков, что и раньше: синий, зелёный, оранжевый, красный, жёлтый, фиолетовый, голубой, розовый)
 const COLORS = [
-  '#5b8cff','#00e5a0','#ff8c42','#ff4466',
-  '#ffd700','#b05bff','#00c8ff','#ff69b4'
+  '#5b8cff','#51f58b','#ff9f43','#ff5d7d',
+  '#ffd60a','#c77dff','#00e5ff','#ff4dd2'
 ];
 const CAP = 4;
+const SEG_H = 100 / CAP;     // % высоты жидкости на один слой
+const REDUCED = window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+/**
+ * STORAGE (ключи прежние; доступ к localStorage может быть запрещён — не падаем)
+ */
+function loadJSON(k){
+  try { const v = JSON.parse(localStorage.getItem(k) || '{}'); return v && typeof v === 'object' ? v : {}; }
+  catch(e) { return {}; }
+}
+function saveJSON(k, v){ try { localStorage.setItem(k, JSON.stringify(v)); } catch(e) {} }
+let completed = loadJSON('watersort_completed');
+let bestMoves = loadJSON('watersort_best');
+function saveProgress(){ saveJSON('watersort_completed', completed); saveJSON('watersort_best', bestMoves); }
+
+// Пройден — есть результат. (Старые версии помечали следующий уровень «пройденным» для разблокировки —
+// такой флаг без результата считаем просто открытым уровнем.)
+const isCompleted = id => !!completed[id] && bestMoves[id] > 0;
+const isUnlocked = i => i === 0 || isCompleted(LEVELS[i - 1].id) || !!completed[LEVELS[i].id];
+const starsFor = (cfg, m) => m <= cfg.par ? 3 : m <= cfg.par * 1.5 ? 2 : 1;
+function nextCampaignIdx(){
+  for (let i = 0; i < LEVELS.length; i++) if (!isCompleted(LEVELS[i].id)) return i;
+  return -1;
+}
+
+/**
+ * SOLVER — поиск в глубину по «полезным» ходам с запоминанием позиций.
+ * Нужен, чтобы выдавать только решаемые раскладки и давать честные подсказки.
+ */
+const isDone = t => t.length === CAP && t.every(c => c === t[0]);
+const isSolved = ts => ts.every(t => t.length === 0 || isDone(t));
+function runLen(t){ let n = 0; for (let k = t.length - 1; k >= 0 && t[k] === t[t.length - 1]; k--) n++; return n; }
+// [from, to, count, приоритет]: без бессмысленных ходов (из собранной пробирки; однородную — в пустую);
+// из пустых пробирок рассматриваем только первую (они одинаковы)
+function usefulMoves(ts){
+  const out = [];
+  for (let f = 0; f < ts.length; f++) {
+    const a = ts[f];
+    if (!a.length || isDone(a)) continue;
+    const c = a[a.length - 1], r = runLen(a), uniform = r === a.length;
+    let emptyUsed = false;
+    for (let t = 0; t < ts.length; t++) {
+      if (t === f) continue;
+      const b = ts[t];
+      if (b.length >= CAP) continue;
+      if (!b.length) { if (uniform || emptyUsed) continue; emptyUsed = true; out.push([f, t, r, 2]); }
+      else if (b[b.length - 1] === c) { const k = Math.min(r, CAP - b.length); out.push([f, t, k, k === r ? 0 : 1]); }
+    }
+  }
+  return out.sort((x, y) => x[3] - y[3]);
+}
+function solve(start, limit){
+  const ts = start.map(t => t.slice()), seen = new Set(), path = [];
+  let nodes = 0, cut = false;
+  const key = () => ts.map(t => t.join('')).sort().join('|');
+  function dfs(){
+    if (isSolved(ts)) return true;
+    if (++nodes > limit) { cut = true; return false; }
+    if (path.length > 300) { cut = true; return false; }
+    const k = key();
+    if (seen.has(k)) return false;
+    seen.add(k);
+    for (const [f, t, n] of usefulMoves(ts)) {
+      for (let i = 0; i < n; i++) ts[t].push(ts[f].pop());
+      path.push([f, t]);
+      if (dfs()) return true;
+      path.pop();
+      for (let i = 0; i < n; i++) ts[f].push(ts[t].pop());
+      if (cut) return false;
+    }
+    return false;
+  }
+  const ok = dfs();
+  return { ok, path: ok ? path : null, unsolvable: !ok && !cut };
+}
 
 /**
  * GAME ENGINE
  */
-let tubes, sel, moves, history, sec, tid, levelIdx, over, hintsLeft;
-let completed = JSON.parse(localStorage.getItem('watersort_completed')||'{}');
-let bestMoves = JSON.parse(localStorage.getItem('watersort_best')||'{}');
+let tubes = [], startTubes = [], sel = null, moves = 0, history = [], sec = 0, levelIdx = 0, over = true, hintsLeft = 3;
+let paused = false, screen = 'menu', anim = null, deadWarned = false, hintTimer = 0, starTimers = [];
+let lastTap = { i: -1, t: 0 }, suppressClickUntil = 0;
 
 function $(id){ return document.getElementById(id); }
+const fmtTime = s => Math.floor(s / 60) + ':' + String(s % 60).padStart(2, '0');
+const show = id => $(id).classList.add('open');
+const hide = id => $(id).classList.remove('open');
+const isOpen = id => $(id).classList.contains('open');
+const anyOverlay = () => document.querySelector('.ku-overlay.open') !== null;
 
-function showMenu(id){
-  document.querySelectorAll('.overlay').forEach(m=>m.classList.remove('active'));
-  if(id) $('menu-'+id)?.classList.add('active');
+function showScreen(name){
+  screen = name;
+  $('screen-menu').classList.toggle('active', name === 'menu');
+  $('screen-game').classList.toggle('active', name === 'game');
+  if (name === 'menu') refreshMenu();
 }
 
-function buildLevelGrid(){
-  const grid=$('level-grid'); grid.innerHTML='';
-  const maxUnlocked=Math.max(1,...Object.keys(completed).map(Number).filter(k=>completed[k]));
-  LEVELS.forEach((lvl,i)=>{
-    const cell=document.createElement('div');
-    cell.className='level-cell';
-    const unlocked=i<=maxUnlocked||i===0;
-    const comp=completed[lvl.id];
-    if(comp){
-      const stars=bestMoves[lvl.id]||0;
-      cell.classList.add('unlocked');
-      cell.innerHTML=`<span>${lvl.id}</span><div class="stars-row">${'★'.repeat(Math.min(3,stars)).split('').map(c=>`<span class="s-on">${c}</span>`).join('')}${'☆'.repeat(Math.max(0,3-stars)).split('').map(c=>`<span class="s-off">${c}</span>`).join('')}</div>`;
-    } else if(unlocked&&i===maxUnlocked&&maxUnlocked>0){
-      cell.classList.add('current'); cell.innerHTML=`<span>${lvl.id}</span>`;
-    } else if(unlocked){
-      cell.classList.add('unlocked'); cell.innerHTML=`<span>${lvl.id}</span>`;
-    } else {
-      cell.classList.add('locked'); cell.innerHTML=`<span>🔒</span>`;
-    }
-    if(unlocked) cell.onclick=()=>{ levelIdx=i; startLevel(i); };
-    grid.appendChild(cell);
-  });
-}
-
+// Случайная раскладка, но только решаемая (раньше с одной пустой пробиркой нерешаемыми
+// выходили ~65–95% раскладок уровней 7, 9, 11)
 function generateLevel(cfg){
   const {colors, empty} = cfg;
   let pool=[];
   for(let c=0;c<colors;c++) for(let i=0;i<CAP;i++) pool.push(c);
-
-  // Shuffle with solvability check: start solved, then make random valid moves backwards
-  // Simple approach: shuffle and retry if unsolvable (check if at least one valid move exists)
-  let attempts=0;
-  do {
+  let res = null;
+  for (let attempt = 0; attempt < 500; attempt++) {
     // Fisher-Yates shuffle
     for(let i=pool.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[pool[i],pool[j]]=[pool[j],pool[i]];}
-
-    // Check: no tube should already be complete
-    let valid=true;
-    for(let t=0;t<colors;t++){
-      const tube=pool.slice(t*CAP,t*CAP+CAP);
-      if(tube.every(c=>c===tube[0])) { valid=false; break; }
-    }
-    if(valid) break;
-    attempts++;
-  } while(attempts<100);
-
-  tubes=[];
-  for(let t=0;t<colors;t++) tubes.push(pool.slice(t*CAP,t*CAP+CAP));
-  for(let t=0;t<empty;t++) tubes.push([]);
+    const ts = [];
+    for(let t=0;t<colors;t++) ts.push(pool.slice(t*CAP,t*CAP+CAP));
+    for(let t=0;t<empty;t++) ts.push([]);
+    // ни одна пробирка не должна быть собрана заранее
+    if (ts.some(t => isDone(t))) continue;
+    res = ts;
+    if (solve(ts, 25000).ok) return ts;
+  }
+  return res;
 }
 
 function startLevel(idx){
   AudioSys.init();
-  levelIdx=idx;
-  const cfg=LEVELS[idx];
-
-  generateLevel(cfg);
-  sel=null; moves=0; sec=0; over=false; hintsLeft=3;
-  history=[];
-
-  $('level-title').textContent=cfg.name;
-  $('move-count').textContent='0';
-  $('timer-val').textContent='0';
-  $('btnHint').textContent=`💡 ${hintsLeft}`;
-  $('progress-fill').style.width='0%';
-
-  showMenu(null);
+  finishAnim();
+  levelIdx = Math.max(0, Math.min(LEVELS.length - 1, idx));
+  startTubes = generateLevel(LEVELS[levelIdx]);
+  resetBoard();
+  ['win', 'pause', 'levels', 'rules'].forEach(hide);
+  paused = false;
+  showScreen('game');
+  layoutTubes();
   render();
+  updateHUD();
+}
 
-  clearInterval(tid);
-  tid=setInterval(()=>{
-    if(!over){sec++;$('timer-val').textContent=sec;}
-  },1000);
+// Та же раскладка с начала (↻)
+function resetBoard(){
+  tubes = startTubes.map(t => t.slice());
+  sel = null; moves = 0; sec = 0; over = false; hintsLeft = 3; history = []; deadWarned = false;
+  clearTimeout(hintTimer);
+  starTimers.forEach(clearTimeout); starTimers = [];
+}
+function restartLevel(){
+  finishAnim();
+  if (!startTubes.length) return;
+  hide('win'); hide('pause'); paused = false;
+  resetBoard();
+  render();
+  updateHUD();
+}
+// ↻ в шапке и клавиша R стоят рядом с отменой — спрашиваем, если уже есть ходы
+function askRestart(){
+  finishAnim();
+  if (screen !== 'game' || paused || anyOverlay()) return;
+  if (over || moves === 0 || !window.KuArcade || !KuArcade.confirm) { restartLevel(); return; }
+  KuArcade.confirm('Начать уровень заново? Ходы на этой раскладке будут сброшены.',
+    { title: 'ЗАНОВО?', ok: 'Заново', cancel: 'Отмена' }).then(ok => { if (ok) restartLevel(); });
 }
 
 function canPour(from, to){
@@ -420,92 +426,205 @@ function canPour(from, to){
 function doPour(from, to){
   if(!canPour(from,to)) return false;
 
-  const topColor=tubes[from][tubes[from].length-1];
+  const src = tubes[from], topColor = src[src.length-1];
   let cnt=0;
-  for(let k=tubes[from].length-1;k>=0&&tubes[from][k]===topColor;k++) cnt++;
+  // было k++ — цикл всегда останавливался после первого слоя
+  for(let k=src.length-1;k>=0&&src[k]===topColor;k--) cnt++;
   const canMove=Math.min(cnt, CAP-tubes[to].length);
   if(canMove===0) return false;
 
+  const before = tubes[to].length;
   history.push({from, to, count:canMove, tubes:tubes.map(t=>[...t])});
-
-  for(let k=0;k<canMove;k++) tubes[to].push(tubes[from].pop());
+  for(let k=0;k<canMove;k++) tubes[to].push(src.pop());
   moves++;
-  $('move-count').textContent=moves;
-
-  // Animate
-  const tubeEls=$('tubes-wrap').children;
-  if(tubeEls[to]) { tubeEls[to].classList.add('pouring'); setTimeout(()=>tubeEls[to]?.classList.remove('pouring'),300); }
-
-  updateProgress();
-  render();
+  sel = null;
   AudioSys.sfx.pour();
 
-  // Check win
-  if(checkWin()){
-    over=true;
-    clearInterval(tid);
-    levelComplete();
-  }
+  const won = checkWin();
+  if (won) over = true;                 // ввод блокируется сразу, окно победы — после анимации
+  const filled = !won && isDone(tubes[to]);
+  updateHUD();
+  animatePour(from, to, COLORS[topColor], canMove, before, () => {
+    render();
+    if (won) levelComplete();
+    else { if (filled) AudioSys.sfx.complete(); setTimeout(checkDeadEnd, 0); }
+  });
   return true;
 }
 
+/**
+ * Анимация переливания: пробирка подлетает к цели, наклоняется, течёт струя, слои уходят/прибывают.
+ * Модель уже обновлена; новое касание во время анимации мгновенно её завершает (finishAnim),
+ * поэтому ввод не теряется и состояние всегда согласовано.
+ */
+function segEl(ci, top){
+  const s = document.createElement('div');
+  s.className = 'seg' + (top ? ' top' : '');
+  s.style.setProperty('--c', typeof ci === 'number' ? COLORS[ci] : ci);
+  return s;
+}
+function finishAnim(){
+  if (!anim) return;
+  const a = anim; anim = null;
+  a.timers.forEach(clearTimeout);
+  a.anims.forEach(x => { try { x.cancel(); } catch(e) {} });
+  if (a.stream) a.stream.remove();
+  a.done();
+}
+function animatePour(from, to, color, k, before, done){
+  finishAnim();
+  const els = $('tubes').children, S = els[from], T = els[to];
+  if (!S || !T || REDUCED || !S.animate) { done(); return; }
+  const st = S.querySelector('.tube'), tt = T.querySelector('.tube');
+  const sr = st.getBoundingClientRect(), tr = tt.getBoundingClientRect(), ar = $('tubes-area').getBoundingClientRect();
+  const lift = S.classList.contains('sel') ? 16 : 0;
+  const h = st.offsetHeight, w = st.offsetWidth;
+  const cx = sr.left + sr.width / 2, cy = sr.top + sr.height / 2 + lift;
+  const tcx = tr.left + tr.width / 2;
+  // цель в левой половине — подлетаем справа и наклоняем влево (так пробирка не уходит за край)
+  const sgn = tcx < ar.left + ar.width / 2 ? -1 : 1;
+  const deg = 72 * sgn, rad = deg * Math.PI / 180;
+  const mx = tcx - sgn * tr.width * 0.12, my = tr.top - 10;             // где окажется горлышко
+  const dx = mx - (cx + h / 2 * Math.sin(rad)), dy = my - (cy - h / 2 * Math.cos(rad));
+  const fly = `translate(${dx.toFixed(1)}px,${dy.toFixed(1)}px) rotate(${deg}deg)`;
+  const a = { timers: [], anims: [], stream: null, done };
+  anim = a;
+
+  st.classList.add('flying');
+  st.style.transition = 'none';     // CSS-переход подъёма иначе перебивает анимацию полёта (переходы сильнее в каскаде)
+  a.anims.push(st.animate([{ transform: lift ? 'translateY(-16px)' : 'none' }, { transform: fly }],
+    { duration: 190, easing: 'cubic-bezier(.3,.7,.35,1)', fill: 'forwards' }));
+  const tl = tt.querySelector('.liq'), sl = st.querySelector('.liq');
+  const take = Array.from(sl.children).slice(-k);
+  const add = [];
+  tl.querySelectorAll('.seg.top').forEach(s => s.classList.remove('top'));
+  for (let i = 0; i < k; i++) { const s = segEl(color, i === k - 1); s.style.height = '0%'; tl.appendChild(s); add.push(s); }
+
+  a.timers.push(setTimeout(() => {
+    const lr = tl.getBoundingClientRect();
+    const surf = lr.bottom - lr.height * before / CAP;
+    const L = Math.max(8, surf - my), sw = Math.max(4, Math.round(w * 0.16));
+    const s = document.createElement('div');
+    s.className = 'ws-stream';
+    s.style.setProperty('--c', color);
+    s.style.left = (mx - sw / 2) + 'px'; s.style.top = my + 'px'; s.style.width = sw + 'px'; s.style.height = '0px';
+    document.body.appendChild(s);
+    a.stream = s;
+    a.anims.push(s.animate([{ height: '0px' }, { height: L + 'px' }], { duration: 90, fill: 'forwards' }));
+    take.forEach(seg => a.anims.push(seg.animate([{ height: SEG_H + '%' }, { height: '0%' }], { duration: 260, easing: 'ease-in', fill: 'forwards' })));
+    add.forEach(seg => a.anims.push(seg.animate([{ height: '0%' }, { height: SEG_H + '%' }], { duration: 260, delay: 50, easing: 'ease-out', fill: 'forwards' })));
+    a.timers.push(setTimeout(() => {
+      a.anims.push(s.animate([{ top: my + 'px', height: L + 'px' }, { top: (my + L) + 'px', height: '0px' }], { duration: 90, fill: 'forwards' }));
+      a.anims.push(st.animate([{ transform: fly }, { transform: 'none' }], { duration: 190, easing: 'cubic-bezier(.4,0,.6,1)', fill: 'forwards' }));
+      a.timers.push(setTimeout(() => { if (anim === a) finishAnim(); }, 200));
+    }, 320));
+  }, 190));
+}
+
+// Выбор пробирки без перерисовки — подъём анимируется CSS-переходом
+function setSel(i){
+  const els = $('tubes').children;
+  if (sel !== null && els[sel]) els[sel].classList.remove('sel');
+  sel = i;
+  if (i !== null && els[i]) els[i].classList.add('sel');
+}
+
+function shake(i){
+  const el = $('tubes').children[i];
+  if (!el) return;
+  el.classList.remove('bad'); void el.offsetWidth; el.classList.add('bad');
+  setTimeout(() => el.classList.remove('bad'), 360);
+}
+
 function clickTube(i){
-  if(over) return;
+  if (over || paused || screen !== 'game') return;
+  finishAnim();
+  const now = performance.now();
+  const dbl = lastTap.i === i && now - lastTap.t < 320;
+  lastTap = { i, t: now };
 
   if(sel===null){
-    if(tubes[i].length===0){ AudioSys.sfx.error(); return; }
-    sel=i;
+    if(tubes[i].length===0){ AudioSys.sfx.error(); shake(i); return; }
+    setSel(i);
     AudioSys.sfx.select();
-    render();
     return;
   }
 
-  if(sel===i){ sel=null; render(); return; }
+  if(sel===i){
+    // Двойной тап — авто-перелив
+    if (dbl) { lastTap = { i: -1, t: 0 }; sel = null; autoPour(i); return; }
+    setSel(null); return;
+  }
 
-  if(!doPour(sel, i)){
+  const from = sel;
+  sel = null;
+  if(!doPour(from, i)){
     AudioSys.sfx.error();
-    sel=null; render();
-  } else {
-    sel=null;
+    sel = from; setSel(null);
+    shake(i);
   }
 }
 
+// Авто-перелив: верхний слой — в лучшую подходящую пробирку (свой цвет и хватает места > свой цвет > пустая)
+function autoPour(i){
+  finishAnim();
+  if (over || paused) return;
+  const t = tubes[i];
+  if (!t.length || isDone(t)) { AudioSys.sfx.error(); shake(i); return; }
+  const run = runLen(t), uniform = run === t.length;
+  let best = -1, bestScore = -1;
+  tubes.forEach((b, j) => {
+    if (j === i || !canPour(i, j)) return;
+    let s;
+    if (!b.length) { if (uniform) return; s = 1; }
+    else s = 10 + (CAP - b.length >= run ? 5 : 0) + b.length;
+    if (s > bestScore) { bestScore = s; best = j; }
+  });
+  if (sel !== null && sel !== i) setSel(null);   // другая выбранная пробирка опускается; эта (двойной тап) летит с подъёма
+  sel = null;
+  if (best < 0) { AudioSys.sfx.error(); render(); shake(i); return; }
+  doPour(i, best);
+}
+
 function doUndo(){
-  if(history.length===0||over) return;
+  finishAnim();
+  if(history.length===0||over||paused) return;
   const action=history.pop();
   tubes=action.tubes;
   moves=Math.max(0, moves-1);
-  $('move-count').textContent=moves;
   sel=null;
-  updateProgress();
+  deadWarned=false;
   render();
+  updateHUD();
+  AudioSys.sfx.select();
 }
 
 function doHint(){
-  if(over||hintsLeft<=0) return;
-  // Find a valid pour that brings us closer to solution
-  for(let from=0; from<tubes.length; from++){
-    if(tubes[from].length===0) continue;
-    for(let to=0; to<tubes.length; to++){
-      if(canPour(from, to)){
-        // Prefer pours that complete a tube or put same colors together
-        const topColor=tubes[from][tubes[from].length-1];
-        const sameInTo=tubes[to].filter(c=>c===topColor).length;
-        if(sameInTo>0 || tubes[to].length===0){
-          hintsLeft--;
-          $('btnHint').textContent=`💡 ${hintsLeft}`;
-          // Highlight source and target
-          const tubeEls=$('tubes-wrap').children;
-          if(tubeEls[from]) { tubeEls[from].style.boxShadow='0 0 15px rgba(255,215,0,0.6)'; tubeEls[from].style.borderColor='#ffd700'; }
-          if(tubeEls[to]) { tubeEls[to].style.boxShadow='0 0 15px rgba(255,215,0,0.6)'; tubeEls[to].style.borderColor='#ffd700'; }
-          setTimeout(()=>{
-            if(tubeEls[from]) { tubeEls[from].style.boxShadow=''; tubeEls[from].style.borderColor=''; }
-            if(tubeEls[to]) { tubeEls[to].style.boxShadow=''; tubeEls[to].style.borderColor=''; }
-          }, 3000);
-          return;
-        }
-      }
-    }
+  finishAnim();
+  if (over || paused) return;
+  if (hintsLeft <= 0) { KuArcade.toast('Подсказки на этот уровень закончились'); return; }
+  const r = solve(tubes, 60000);
+  let mv = r.ok && r.path.length ? r.path[0] : null;
+  if (!mv && r.unsolvable) { KuArcade.toast('Тупик: отмените ход ↶ или начните заново ↻', 'bad', 2800); return; }
+  if (!mv) { const m = usefulMoves(tubes)[0]; if (m) mv = [m[0], m[1]]; }
+  if (!mv) return;
+  hintsLeft--;
+  sel = null;
+  render();
+  updateHUD();
+  const els = $('tubes').children;
+  els[mv[0]].classList.add('hint');
+  els[mv[1]].classList.add('hint');
+  clearTimeout(hintTimer);
+  hintTimer = setTimeout(() => { if (els[mv[0]]) els[mv[0]].classList.remove('hint'); if (els[mv[1]]) els[mv[1]].classList.remove('hint'); }, 2600);
+}
+
+// После хода: предупредить, если раскладка зашла в тупик (решатель доказал, что решения нет)
+function checkDeadEnd(){
+  if (over || anim || deadWarned || screen !== 'game') return;
+  if (!usefulMoves(tubes).length || solve(tubes, 20000).unsolvable) {
+    deadWarned = true;
+    KuArcade.toast('Тупик: так уже не решить — отмените ход ↶', 'bad', 2800);
   }
 }
 
@@ -520,117 +639,236 @@ function updateProgress(){
   tubes.forEach(t=>{
     if(t.length===CAP&&t.every(c=>c===t[0])) correctSegments+=CAP;
   });
-  $('progress-fill').style.width=(correctSegments/totalSegments*100)+'%';
+  $('prog-fill').style.width=(correctSegments/totalSegments*100)+'%';
+}
+
+function starsHTML(n){ return '★'.repeat(n) + '<span class="off">' + '★'.repeat(3 - n) + '</span>'; }
+
+function updateHUD(){
+  const cfg = LEVELS[levelIdx];
+  $('lvl-title').textContent = 'УРОВЕНЬ ' + cfg.id;
+  $('moves').textContent = moves;
+  $('par').textContent = cfg.par;
+  $('time').textContent = fmtTime(sec);
+  $('live-stars').innerHTML = starsHTML(starsFor(cfg, moves));
+  $('hint-n').textContent = hintsLeft;
+  $('btn-hint').disabled = over;
+  $('btn-undo').disabled = over || history.length === 0;
+  updateProgress();
 }
 
 function levelComplete(){
   AudioSys.sfx.win();
 
   const cfg=LEVELS[levelIdx];
-  const ratio=cfg.par/moves; // Lower moves = better
-  const stars=moves<=cfg.par?3:moves<=cfg.par*1.5?2:1;
+  const stars=starsFor(cfg, moves);
+  const prev = bestMoves[cfg.id] || 0;
 
   completed[cfg.id]=true;
-  if(!bestMoves[cfg.id]||moves<bestMoves[cfg.id]) bestMoves[cfg.id]=moves;
-  localStorage.setItem('watersort_completed',JSON.stringify(completed));
-  localStorage.setItem('watersort_best',JSON.stringify(bestMoves));
+  if(!prev||moves<prev) bestMoves[cfg.id]=moves;
+  saveProgress();
 
-  // Unlock next
-  const nextId=cfg.id+1;
-  if(nextId<=LEVELS.length&&!completed[nextId]){
-    completed[nextId]=true;
-    localStorage.setItem('watersort_completed',JSON.stringify(completed));
-  }
+  const all = nextCampaignIdx() < 0;
+  $('win-title').textContent = all && levelIdx === LEVELS.length - 1 ? 'ВСЕ УРОВНИ ПРОЙДЕНЫ!' : 'РЕШЕНО!';
+  $('win-best').hidden = !(prev && moves < prev);
+  $('w-moves').textContent = moves;
+  $('w-par').textContent = '≤ ' + cfg.par;
+  $('w-time').textContent = fmtTime(sec);
+  $('w-best').textContent = bestMoves[cfg.id];
+  $('btn-next').hidden = levelIdx >= LEVELS.length - 1;
 
-  for(let i=1;i<=3;i++){
-    setTimeout(()=>{
-      $('star-'+i).classList.toggle('lit',i<=stars);
-    },i*250);
-  }
-
-  $('lvl-stats').textContent=`Ходов: ${moves} (цель: ${cfg.par}) | Время: ${sec}с`;
-  $('btn-next-level').style.display=levelIdx<LEVELS.length-1?'block':'none';
-  showMenu('level-up');
+  const spans = $('win-stars').children;
+  for (const s of spans) s.classList.remove('lit');
+  starTimers.forEach(clearTimeout);
+  starTimers = [0, 1, 2].map(i => setTimeout(() => spans[i].classList.toggle('lit', i < stars), 260 + i * 230));
+  updateHUD();
+  show('win');
 }
 
 function render(){
-  const w=$('tubes-wrap');
+  const w=$('tubes');
   w.innerHTML='';
-  const cfg=LEVELS[levelIdx]||LEVELS[0];
-
-  tubes.forEach((tube,i)=>{
-    const outer=document.createElement('div');
-    outer.className='tube-outer';
-
-    const div=document.createElement('div');
-    const done=tube.length===CAP&&tube.every(c=>c===tube[0]);
-    div.className='tube'+(i===sel?' sel':'')+(done?' done':'');
-
-    // Tube height based on content
-    const fillPct=tube.length/CAP*100;
-
-    tube.forEach((c,si)=>{
-      const seg=document.createElement('div');
-      seg.className='seg';
-      seg.style.height=(100/CAP)+'%';
-      seg.style.background=COLORS[c];
-      // Slight gradient overlay for depth
-      seg.style.boxShadow='inset 0 0 8px rgba(0,0,0,0.2)';
-      div.appendChild(seg);
-    });
-
-    outer.appendChild(div);
-
-    const lbl=document.createElement('div');
-    lbl.className='tube-num';
-    lbl.textContent=done?'✅':(i+1);
-    outer.appendChild(lbl);
-
-    outer.addEventListener('click',()=>clickTube(i));
-
-    // Long press for auto-pour (pour all of top color)
-    let pt;
-    outer.addEventListener('touchstart',()=>{pt=setTimeout(()=>{
-      // Auto pour: try to pour from this tube to any valid target
-      if(tube.length>0){
-        for(let t=0;t<tubes.length;t++){
-          if(t!==i&&canPour(i,t)){
-            clickTube(i);
-            setTimeout(()=>clickTube(t),50);
-            break;
-          }
-        }
-      }
-    },500);},{passive:true});
-    outer.addEventListener('touchend',()=>clearTimeout(pt),{passive:true});
-    outer.addEventListener('touchmove',()=>clearTimeout(pt),{passive:true});
-
-    w.appendChild(outer);
-  });
+  tubes.forEach((tube,i)=>w.appendChild(tubeEl(tube, i === sel, i)));
 }
 
-// Buttons
-$('btn-campaign').onclick=()=>{levelIdx=0;startLevel(0);};
-$('btnUndo').onclick=()=>doUndo();
-$('btnHint').onclick=()=>doHint();
-$('btnNew').onclick=()=>{if(levelIdx!==undefined)startLevel(levelIdx);else startLevel(0);};
-$('btn-levels-back').onclick=()=>showMenu('main');
-$('btn-next-level').onclick=()=>{if(levelIdx<LEVELS.length-1)startLevel(levelIdx+1);};
+function tubeEl(tube, selected, i){
+  const outer=document.createElement('div');
+  const done=isDone(tube);
+  outer.className='tube-outer'+(selected?' sel':'')+(done?' done':'');
+  if (i !== undefined) outer.dataset.i = i;
+  if (done) outer.style.setProperty('--dc', COLORS[tube[0]]);
+
+  const div=document.createElement('div');
+  div.className='tube';
+  const liq=document.createElement('div');
+  liq.className='liq';
+  tube.forEach((c,si)=>liq.appendChild(segEl(c, si === tube.length - 1)));
+  div.appendChild(liq);
+  const shine=document.createElement('i');
+  shine.className='shine';
+  div.appendChild(shine);
+  outer.appendChild(div);
+
+  const lbl=document.createElement('div');
+  lbl.className='tube-num';
+  lbl.textContent=done?'✓':(i===undefined?'':i+1);
+  outer.appendChild(lbl);
+  return outer;
+}
+
+// Размер пробирок под экран: перебираем 1–3 ряда и берём самые крупные
+function layoutTubes(){
+  const area = $('tubes-area'), wrap = $('tubes');
+  if (!area.clientHeight || !tubes.length) return;
+  finishAnim();
+  const n = tubes.length, W = area.clientWidth - 8, H = area.clientHeight - 8;
+  const RATIO = 3.4, EXTRA = 20 + 21, GY = 14;          // подъём выбранной + подпись
+  let best = null;
+  for (let rows = 1; rows <= 3; rows++) {
+    const per = Math.ceil(n / rows);
+    const gx = Math.max(8, Math.min(22, W * 0.035));
+    const tw = Math.min((W - gx * (per - 1)) / per, ((H - GY * (rows - 1)) / rows - EXTRA) / RATIO, 62);
+    if (!best || tw > best.tw * 1.08) best = { rows, per, tw, gx };
+  }
+  const tw = Math.max(18, Math.floor(best.tw)), th = Math.round(tw * RATIO);
+  wrap.style.setProperty('--tw', tw + 'px');
+  wrap.style.setProperty('--th', th + 'px');
+  wrap.style.setProperty('--gx', best.gx.toFixed(1) + 'px');
+  wrap.style.setProperty('--gy', GY + 'px');
+  wrap.style.width = Math.ceil(best.per * tw + (best.per - 1) * best.gx) + 'px';
+}
+window.addEventListener('resize', layoutTubes);
+
+/**
+ * MENU / LEVELS
+ */
+function refreshMenu(){
+  const done = LEVELS.filter(l => isCompleted(l.id)).length;
+  const stars = LEVELS.reduce((s, l) => s + (isCompleted(l.id) ? starsFor(l, bestMoves[l.id]) : 0), 0);
+  const next = nextCampaignIdx();
+  $('camp-sub').textContent = next < 0 ? 'Все уровни пройдены!' : done ? 'Продолжить: уровень ' + LEVELS[next].id + ' из ' + LEVELS.length : 'Уровень 1 из ' + LEVELS.length;
+  $('levels-sub').textContent = '★ ' + stars + ' / ' + LEVELS.length * 3;
+  $('menu-stats').textContent = 'Пройдено уровней: ' + done + ' из ' + LEVELS.length + ' • Звёзд: ' + stars + ' / ' + LEVELS.length * 3;
+}
+
+function buildLevelGrid(){
+  const grid=$('lv-grid'); grid.innerHTML='';
+  const next = nextCampaignIdx();
+  LEVELS.forEach((lvl,i)=>{
+    const b=document.createElement('button');
+    b.className='lv'+(i===next?' cur':'');
+    const unlocked = isUnlocked(i);
+    b.disabled = !unlocked;
+    if (!unlocked) b.innerHTML = '🔒<small></small>';
+    else b.innerHTML = lvl.id + '<small>' + (isCompleted(lvl.id) ? starsHTML(starsFor(lvl, bestMoves[lvl.id])) : '') + '</small>';
+    b.onclick=()=>startLevel(i);
+    grid.appendChild(b);
+  });
+  const done = LEVELS.filter(l => isCompleted(l.id)).length;
+  $('lv-note').textContent = done ? 'Пройдено ' + done + ' из ' + LEVELS.length + '. Звёзды — по лучшему результату ходов.' : 'Пройдите уровень, чтобы открыть следующий.';
+}
+
+function buildHero(){
+  const h = $('hero');
+  h.innerHTML = '';
+  [[0, 6, 0, 4], [6, 4, 6], [4], [1, 1, 1, 1]].forEach(t => h.appendChild(tubeEl(t, false)));
+}
+
+function pauseGame(){
+  finishAnim();
+  if (screen !== 'game' || over || anyOverlay()) return;
+  paused = true;
+  sel = null; render();
+  show('pause');
+}
+function resumeGame(){ hide('pause'); paused = false; }
+function toMenu(){
+  finishAnim();
+  ['win', 'pause', 'levels', 'rules'].forEach(hide);
+  paused = false;
+  showScreen('menu');
+}
+
+// Таймер уровня: идёт только на экране игры, без пауз и окон, во время решения
+setInterval(()=>{
+  if (screen !== 'game' || paused || over || document.hidden || anyOverlay()) return;
+  sec++;
+  $('time').textContent = fmtTime(sec);
+},1000);
+
+/**
+ * INPUT
+ */
+const tubesEl = $('tubes');
+// Долгое нажатие — авто-перелив
+let lp = null;
+const cancelLP = () => { if (lp) { clearTimeout(lp.t); lp = null; } };
+tubesEl.addEventListener('pointerdown', e => {
+  suppressClickUntil = 0;                             // новое касание — клики снова принимаются
+  const o = e.target.closest('.tube-outer');
+  if (!o) return;
+  const i = +o.dataset.i;
+  cancelLP();
+  lp = { x: e.clientX, y: e.clientY, t: setTimeout(() => {
+    lp = null;
+    // отпускание пальца не должно сработать как тап (сколько бы ни держали) — до следующего касания
+    suppressClickUntil = Infinity;
+    lastTap = { i: -1, t: 0 };
+    autoPour(i);
+  }, 480) };
+});
+tubesEl.addEventListener('pointermove', e => { if (lp && Math.hypot(e.clientX - lp.x, e.clientY - lp.y) > 12) cancelLP(); });
+tubesEl.addEventListener('pointerup', cancelLP);
+tubesEl.addEventListener('pointercancel', cancelLP);
+tubesEl.addEventListener('click', e => {
+  if (performance.now() < suppressClickUntil) return;
+  const o = e.target.closest('.tube-outer');
+  if (o) clickTube(+o.dataset.i);
+});
+
+$('btn-campaign').onclick=()=>{ const i = nextCampaignIdx(); if (i < 0) { buildLevelGrid(); show('levels'); } else startLevel(i); };
+$('btn-levels').onclick=()=>{ buildLevelGrid(); show('levels'); };
+$('btn-levels-x').onclick=()=>hide('levels');
+let rulesReturn = null;
+$('btn-rules').onclick=()=>{ rulesReturn = null; show('rules'); };
+$('btn-rules2').onclick=()=>{ rulesReturn = 'pause'; hide('pause'); show('rules'); };
+const closeRules = () => { hide('rules'); if (rulesReturn) show(rulesReturn); };
+$('btn-rules-ok').onclick = $('btn-rules-x').onclick = closeRules;
+
+$('btn-undo').onclick=()=>doUndo();
+$('btn-restart').onclick=()=>askRestart();
+$('btn-hint').onclick=()=>doHint();
+$('btn-pause').onclick=()=>pauseGame();
+$('btn-resume').onclick=()=>resumeGame();
+$('btn-restart2').onclick=()=>restartLevel();
+$('btn-new').onclick=()=>startLevel(levelIdx);
+$('btn-quit').onclick=()=>toMenu();
+$('btn-next').onclick=()=>{ if(levelIdx<LEVELS.length-1) startLevel(levelIdx+1); };
 $('btn-replay').onclick=()=>startLevel(levelIdx);
+$('btn-win-menu').onclick=()=>toMenu();
 
-document.querySelectorAll('.dbtn')?.forEach(b=>b.addEventListener('click',()=>{
-  // Not used in new UI
-}));
-
-// Keyboard
+// Keyboard (e.code — работает и в русской раскладке)
 document.addEventListener('keydown',e=>{
-  if(e.code==='KeyU') doUndo();
-  if(e.code==='KeyH') doHint();
-  if(e.code==='KeyR'&&levelIdx!==undefined) startLevel(levelIdx);
+  const c = e.code;
+  if (c === 'Escape') {
+    if (isOpen('rules')) closeRules();
+    else if (isOpen('levels')) hide('levels');
+    else if (isOpen('pause')) resumeGame();
+    else if (screen === 'game' && !anyOverlay()) pauseGame();
+    return;
+  }
+  if (screen !== 'game') return;
+  if (c === 'KeyP') { if (isOpen('pause')) resumeGame(); else pauseGame(); return; }
+  if (paused || anyOverlay()) return;
+  if(c==='KeyU') doUndo();
+  else if(c==='KeyH') doHint();
+  else if(c==='KeyR') askRestart();
+  else if(c==='KeyN') startLevel(levelIdx);
 });
 
 // Show main menu on load
-showMenu('main');
+buildHero();
+showScreen('menu');
 </script>
 </body>
 </html>

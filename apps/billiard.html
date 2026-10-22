@@ -1,868 +1,1237 @@
 <!DOCTYPE html>
 <html lang="ru">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Русский Бильярд: Свободная Пирамида PRO</title>
-    <script src="https://cdn.tailwindcss.com"></script>
-    <style>
-        body { touch-action: none; background-color: #05080a; overflow: hidden; font-family: system-ui, -apple-system, sans-serif; user-select: none; -webkit-user-select: none;}
-        
-        /* Стол занимает максимум места, но UI плавает поверх */
-        #game-container { position: absolute; top: 0; left: 0; width: 100vw; height: 100vh; display: flex; align-items: center; justify-content: center; z-index: 1; padding: max(2vh, 10px); }
-        canvas { touch-action: none; box-shadow: 0 40px 100px rgba(0,0,0,1); border-radius: 1vw; max-width: 100%; max-height: 100%; aspect-ratio: 2/1; object-fit: contain; cursor: crosshair; }
-        
-        /* UI Elements */
-        #ui-layer { position: absolute; top: 0; left: 0; width: 100vw; height: 100vh; z-index: 10; pointer-events: none; display: flex; flex-direction: column; justify-content: space-between; }
-        .ui-panel { pointer-events: auto; background: rgba(10, 15, 20, 0.75); backdrop-filter: blur(10px); border: 1px solid rgba(255,255,255,0.1); box-shadow: 0 10px 30px rgba(0,0,0,0.5); }
-        
-        /* Шкала силы (Лево) */
-        .power-track { position: relative; width: 36px; height: 35vh; min-height: 200px; background: rgba(0,0,0,0.8); border-radius: 18px; border: 2px solid #2a3f54; box-shadow: inset 0 10px 20px rgba(0,0,0,0.8); overflow: hidden; touch-action: none; }
-        .power-fill { position: absolute; bottom: 0; width: 100%; background: linear-gradient(to top, #ef4444, #eab308, #22c55e); border-radius: 16px; transition: height 0.05s; pointer-events: none; }
-        .power-handle { position: absolute; left: 50%; transform: translate(-50%, 50%); width: 48px; height: 12px; background: #fff; border-radius: 6px; box-shadow: 0 0 10px rgba(255,255,255,0.5); pointer-events: none; z-index: 2; }
-        .power-overlay { position: absolute; inset: 0; background: repeating-linear-gradient(to bottom, transparent, transparent 10%, rgba(255,255,255,0.05) 10%, rgba(255,255,255,0.05) 11%); pointer-events: none; }
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+<title>Русский бильярд — Свободная пирамида</title>
+<link rel="stylesheet" href="ku-arcade.css">
+<script src="ku-arcade.js"></script>
+<style>
+  html,body{height:100%;overflow:hidden}
+  #screen-game,#screen-game *{touch-action:none}
+  .ku-top-title .s{max-width:100%;overflow:hidden;text-overflow:ellipsis;text-transform:uppercase;font-size:13px}
 
-        /* Микро-прицел (Низ) */
-        .micro-aim-track { position: relative; width: 40vw; min-width: 250px; height: 40px; background: rgba(0,0,0,0.8); border-radius: 8px; border: 1px solid #2a3f54; overflow: hidden; touch-action: none; display: flex; align-items: center; justify-content: center; cursor: ew-resize; }
-        .micro-aim-ruler { width: 200%; height: 100%; background: repeating-linear-gradient(to right, rgba(255,255,255,0.2) 0, rgba(255,255,255,0.2) 2px, transparent 2px, transparent 20px); transition: transform 0.1s linear; pointer-events: none; }
-        .micro-aim-center { position: absolute; left: 50%; top: 0; bottom: 0; width: 2px; background: #10b981; box-shadow: 0 0 8px #10b981; pointer-events: none; transform: translateX(-50%); }
+  /* ── Панели игроков (счёт, забитые шары, чей ход) ── */
+  .bl-hud{display:flex;gap:8px;width:100%;max-width:560px;margin:0 auto 8px;flex:none}
+  .bl-player{--pc:var(--accent);--pg:0,229,255;flex:1 1 0;min-width:0;display:grid;grid-template-columns:minmax(0,1fr) auto;align-items:center;
+    column-gap:8px;row-gap:5px;padding:7px 10px 7px 12px;border-radius:14px;background:var(--glass-panel);border:1px solid var(--panel-border);
+    backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);opacity:.55;transition:opacity .25s,border-color .25s,box-shadow .25s}
+  #player2-panel{--pc:var(--accent2);--pg:255,77,210}
+  .bl-player.on{opacity:1;border-color:rgba(var(--pg),.65);box-shadow:0 0 18px rgba(var(--pg),.28)}
+  .bl-pname{font-family:var(--font-display);font-size:10px;letter-spacing:1.3px;line-height:1.2;text-transform:uppercase;color:var(--muted);
+    white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .bl-player.on .bl-pname{color:var(--text)}
+  .bl-pname{grid-column:1;grid-row:1}
+  .bl-score{grid-column:2;grid-row:1;font-family:var(--font-display);font-weight:400;font-size:22px;line-height:1;color:var(--pc);
+    font-variant-numeric:tabular-nums;white-space:nowrap}
+  .bl-score small{font-size:12px;color:var(--muted)}
+  .bl-score.pop span{display:inline-block;animation:kuScorePop .35s ease}
+  .bl-balls{grid-column:1/3;grid-row:2;display:flex;gap:3px;min-width:0;overflow:hidden}
+  .bl-ball{width:14px;height:14px;flex:none;border-radius:50%;display:flex;align-items:center;justify-content:center;
+    font:700 8px/1 var(--font-body);color:#16181f;background:radial-gradient(circle at 35% 30%,#fff,#f3efd9 55%,#b7b196);
+    box-shadow:inset -1px -1px 2px rgba(0,0,0,.35)}
+  .bl-ball.cue{background:radial-gradient(circle at 35% 30%,#fff6bf,#facc15 55%,#9a7400)}
+  .bl-ball.pen{background:radial-gradient(circle at 35% 30%,#ffc6d2,#ff5d7d 55%,#9c1834);color:#fff}
+  .bl-ball.empty{background:rgba(255,255,255,.04);border:1px dashed rgba(255,255,255,.16);box-shadow:none}
+  .bl-more{font-size:10px;color:var(--muted);align-self:center}
 
-        /* Винт (Право) */
-        #spin-control { background: radial-gradient(circle, #e2e8f0 0%, #94a3b8 100%); box-shadow: inset -4px -4px 8px rgba(0,0,0,0.4), inset 2px 2px 5px rgba(255,255,255,0.8), 0 5px 15px rgba(0,0,0,0.6); }
-        #spin-dot { transition: transform 0.1s; }
-        
-        .ball-icon { width: 22px; height: 22px; border-radius: 50%; background: #fffff0; color: black; font-size: 10px; display: flex; align-items: center; justify-content: center; font-weight: bold; box-shadow: inset -3px -3px 5px rgba(0,0,0,0.4); }
-        .ball-empty { width: 22px; height: 22px; border-radius: 50%; background: rgba(255,255,255,0.03); border: 1px dashed rgba(255,255,255,0.1); }
-    </style>
+  /* ── Игровая зона: сила · стол · (винт + микро-прицел). Ориентацию стола выбирает JS ── */
+  #play{flex:1;min-height:0;width:100%;display:grid;gap:10px;justify-content:center;align-content:center;align-items:center}
+  #play.vert{grid-template-columns:auto auto;grid-template-areas:"power board" "dock dock"}
+  #play.horz{grid-template-columns:auto auto auto;grid-template-areas:"power board dock"}
+  #power-box{grid-area:power} #board-box{grid-area:board;line-height:0;justify-self:center} #dock{grid-area:dock}
+  #dock{display:flex;gap:12px;align-items:center;justify-content:center;min-width:0}
+  #play.vert #dock{width:100%}
+  #play.horz #dock{flex-direction:column;width:176px}
+  #board-box>canvas{cursor:crosshair}
+  .bl-ctl{display:flex;flex-direction:column;align-items:center;gap:6px;flex:none;min-width:0}
+  .bl-cap{font-size:9.5px;letter-spacing:1px;color:var(--muted);text-transform:uppercase;white-space:nowrap}
+
+  /* Шкала силы: потянуть вниз и отпустить — удар */
+  .power-track{position:relative;width:34px;height:200px;border-radius:17px;background:rgba(4,6,22,.6);border:1px solid var(--panel-border);
+    box-shadow:inset 0 6px 16px rgba(0,0,0,.55);overflow:hidden;cursor:ns-resize}
+  .power-fill{position:absolute;top:0;left:0;right:0;height:0;pointer-events:none;
+    background:linear-gradient(to bottom,var(--green),var(--gold) 55%,var(--red));box-shadow:0 0 12px rgba(255,93,125,.45)}
+  .power-handle{position:absolute;left:50%;top:0;width:28px;height:8px;border-radius:4px;background:#fff;transform:translate(-50%,-50%);
+    box-shadow:0 0 10px var(--accent);pointer-events:none}
+  .power-ticks{position:absolute;inset:0;pointer-events:none;
+    background:repeating-linear-gradient(to bottom,transparent 0 9%,rgba(255,255,255,.07) 9% 10%)}
+
+  /* Винт */
+  .bl-spin-head{display:flex;align-items:center;gap:6px;height:24px}
+  #btn-spin-reset{width:24px;height:24px;border-radius:8px;font-size:12px}
+  #btn-spin-reset svg{width:13px;height:13px}
+  #spin-control{position:relative;width:60px;height:60px;border-radius:50%;cursor:crosshair;
+    background:radial-gradient(circle at 38% 32%,#fff,#e5e8f4 45%,#98a1c2);border:2px solid rgba(0,229,255,.45);
+    box-shadow:0 0 14px rgba(0,229,255,.22),inset -4px -5px 9px rgba(0,0,0,.3)}
+  #spin-control::before,#spin-control::after{content:'';position:absolute;background:rgba(10,14,40,.22);pointer-events:none}
+  #spin-control::before{left:0;right:0;top:50%;height:1px}
+  #spin-control::after{top:0;bottom:0;left:50%;width:1px}
+  #spin-dot{position:absolute;left:50%;top:50%;width:14px;height:14px;border-radius:50%;background:var(--red);border:2px solid #fff;
+    box-shadow:0 0 8px var(--red);transform:translate(-50%,-50%);pointer-events:none;transition:transform .08s}
+
+  /* Микро-прицел */
+  #aim-box{flex:1 1 auto}
+  #play.horz #aim-box{width:100%;flex:none}
+  .micro-aim-track{position:relative;width:100%;min-width:150px;height:40px;border-radius:12px;background:rgba(4,6,22,.6);
+    border:1px solid var(--panel-border);overflow:hidden;cursor:ew-resize}
+  .micro-aim-ruler{position:absolute;top:0;bottom:0;left:-40px;right:-40px;pointer-events:none;
+    background:repeating-linear-gradient(to right,rgba(255,255,255,.22) 0 2px,transparent 2px 20px)}
+  .micro-aim-center{position:absolute;left:50%;top:0;bottom:0;width:2px;transform:translateX(-50%);pointer-events:none;
+    background:var(--accent);box-shadow:0 0 8px var(--accent)}
+
+  /* Настройки: цвет сукна */
+  .bl-swatches{display:flex;flex-wrap:wrap;gap:10px;margin:2px 0 8px}
+  .bl-swatch{width:42px;height:42px;border-radius:12px;cursor:pointer;border:2px solid rgba(255,255,255,.14);
+    background:radial-gradient(circle at 40% 35%,var(--hi),var(--cl));box-shadow:inset 0 1px 0 rgba(255,255,255,.2);transition:.2s}
+  .bl-swatch.active{border-color:var(--accent);box-shadow:0 0 0 2px rgba(0,229,255,.45),0 0 14px rgba(0,229,255,.35)}
+  #modal-desc{white-space:pre-line}
+  @media (max-height:700px){
+    .bl-player{padding:5px 9px 5px 11px;row-gap:3px}
+    .bl-score{font-size:19px}
+    #spin-control{width:52px;height:52px}
+  }
+</style>
 </head>
-<body>
+<body class="ku">
+<main class="ku-app">
 
-    <!-- СТОЛ (Холст на заднем плане) -->
-    <div id="game-container">
-        <canvas id="billiardCanvas"></canvas>
+  <!-- ═══ МЕНЮ ═══ -->
+  <section id="screen-menu" class="ku-screen menu active">
+    <h1 class="ku-logo">БИЛЬЯРД</h1>
+    <p class="ku-tagline">Свободная пирамида • 16 шаров • До 8 очков</p>
+    <div class="ku-pills"><span>🎱 Реалистичная физика</span><span>🌀 Винт</span><span>🎯 Траектория</span><span>👥 Вдвоём</span><span>🌐 По сети</span></div>
+    <div class="ku-menu-btns">
+      <button class="ku-btn big primary" id="btn-local">👥 Вдвоём<span class="best">на одном устройстве</span></button>
+      <button class="ku-btn big green" id="btn-net">🌐 По сети<span class="best">с другом по коду комнаты</span></button>
+    </div>
+    <div class="ku-menu-row">
+      <button class="ku-btn ghost" id="btn-rules">📖 Правила</button>
+      <button class="ku-btn ghost" id="btn-settings">⚙️ Настройки</button>
+    </div>
+    <div class="ku-menu-stats">Биток — любой шар • Забил — бьёшь ещё • Промах — штраф</div>
+    <div class="ku-menu-hint">Тап по шару — выбрать биток · тап и ведение по столу — прицел · «Сила»: потяни вниз и отпусти<br>
+      Клавиши: ← → — точный прицел (Shift — крупнее) · P / Esc — пауза</div>
+  </section>
+
+  <!-- ═══ ИГРА ═══ -->
+  <section id="screen-game" class="ku-screen fit">
+    <header class="ku-top">
+      <div class="ku-top-left"></div>
+      <div class="ku-top-title"><div class="t" id="game-title">ВДВОЁМ</div><div class="s" id="game-status">Ход: Игрок 1</div></div>
+      <div class="ku-top-actions">
+        <button class="ku-btn icon" id="btn-settings2" aria-label="Настройки"><svg viewBox="0 0 24 24"><line x1="4" y1="7" x2="20" y2="7"/><line x1="4" y1="17" x2="20" y2="17"/><circle cx="9" cy="7" r="2.2"/><circle cx="15" cy="17" r="2.2"/></svg></button>
+        <button class="ku-btn icon" id="btn-pause" aria-label="Пауза"><svg viewBox="0 0 24 24"><line x1="9" y1="5" x2="9" y2="19"/><line x1="15" y1="5" x2="15" y2="19"/></svg></button>
+      </div>
+    </header>
+
+    <div class="bl-hud">
+      <div class="bl-player on" id="player1-panel">
+        <div class="bl-pname" id="name1">Игрок 1</div>
+        <b class="bl-score" id="score1-box"><span id="score1">0</span><small>/8</small></b>
+        <div class="bl-balls" id="pocketed1"></div>
+      </div>
+      <div class="bl-player" id="player2-panel">
+        <div class="bl-pname" id="name2">Игрок 2</div>
+        <b class="bl-score" id="score2-box"><span id="score2">0</span><small>/8</small></b>
+        <div class="bl-balls" id="pocketed2"></div>
+      </div>
     </div>
 
-    <!-- UI СЛОЙ (Парит над столом) -->
-    <div id="ui-layer">
-        
-        <!-- ШАПКА И СЧЕТ -->
-        <header class="w-full flex justify-between items-start p-4 md:p-6">
-            <div class="ui-panel rounded-2xl px-6 py-3 flex items-center gap-6">
-                <!-- Игрок 1 -->
-                <div id="player1-panel" class="flex flex-col items-center gap-1 transition-all duration-300">
-                    <span class="text-[10px] md:text-xs uppercase font-bold tracking-widest text-emerald-400" id="name1">Игрок 1</span>
-                    <div id="pocketed1" class="flex gap-1"></div>
-                </div>
-                <div class="w-px h-8 bg-white/20"></div>
-                <!-- Игрок 2 -->
-                <div id="player2-panel" class="flex flex-col items-center gap-1 transition-all duration-300 opacity-50">
-                    <span class="text-[10px] md:text-xs uppercase font-bold tracking-widest text-white" id="name2">Игрок 2</span>
-                    <div id="pocketed2" class="flex gap-1"></div>
-                </div>
-            </div>
-
-            <!-- Статус и Настройки -->
-            <div class="flex flex-col items-end gap-2">
-                <div id="game-status" class="ui-panel px-4 py-2 rounded-full text-xs font-bold text-emerald-400 tracking-wide">
-                    Выберите шар
-                </div>
-                <div class="flex gap-2">
-                    <button onclick="toggleNet()" id="btn-net" class="ui-panel px-4 py-2 rounded-full text-[10px] font-bold uppercase tracking-widest hover:bg-white/10 transition-colors text-emerald-400">По сети</button>
-                    <button onclick="toggleTheme()" class="ui-panel px-4 py-2 rounded-full text-[10px] font-bold uppercase tracking-widest hover:bg-white/10 transition-colors text-white">Темы</button>
-                    <button onclick="toggleNumbers()" class="ui-panel px-4 py-2 rounded-full text-[10px] font-bold uppercase tracking-widest hover:bg-white/10 transition-colors text-white" id="btn-numbers">Номера: ВКЛ</button>
-                    <div class="ui-panel flex items-center gap-2 px-4 py-2 rounded-full cursor-pointer hover:bg-white/10 transition-colors">
-                        <input type="checkbox" id="full-trajectory-cb" class="w-4 h-4 accent-emerald-500 cursor-pointer pointer-events-none">
-                        <label for="full-trajectory-cb" class="text-[10px] font-bold uppercase tracking-widest cursor-pointer select-none text-white">Траектория</label>
-                    </div>
-                </div>
-            </div>
-        </header>
-
-        <!-- ЦЕНТРАЛЬНАЯ ОСЬ С ЭЛЕМЕНТАМИ УПРАВЛЕНИЯ -->
-        <div class="flex-1 flex justify-between items-center px-4 md:px-8">
-            
-            <!-- ЛЕВО: Сила удара -->
-            <div class="ui-panel p-4 rounded-[2rem] flex flex-col items-center gap-3">
-                <span class="text-[10px] font-bold uppercase tracking-widest text-red-400">Сила</span>
-                <div id="power-slider" class="power-track cursor-ns-resize">
-                    <div class="power-overlay"></div>
-                    <div id="power-fill" class="power-fill" style="height: 0%;"></div>
-                    <div id="power-handle" class="power-handle" style="bottom: 100%;"></div>
-                </div>
-                <span class="text-[9px] text-gray-400 uppercase">Тяни вниз</span>
-            </div>
-
-            <!-- ПРАВО: Винт -->
-            <div class="ui-panel p-4 rounded-[2rem] flex flex-col items-center gap-3">
-                <span class="text-[10px] font-bold uppercase tracking-widest text-blue-400">Винт</span>
-                <div id="spin-control" class="relative w-20 h-20 md:w-24 md:h-24 rounded-full border-4 border-gray-800 cursor-crosshair touch-none">
-                    <div class="absolute top-1/2 left-0 w-full h-px bg-black/30"></div>
-                    <div class="absolute top-0 left-1/2 w-px h-full bg-black/30"></div>
-                    <div id="spin-dot" class="absolute top-1/2 left-1/2 w-4 h-4 bg-red-600 rounded-full border-[3px] border-white shadow-md -translate-x-1/2 -translate-y-1/2 pointer-events-none"></div>
-                </div>
-                <button onclick="resetSpin()" class="text-[9px] uppercase font-bold bg-white/10 hover:bg-white/20 px-4 py-1.5 rounded-full transition-colors w-full text-white border border-gray-600">Сброс</button>
-            </div>
+    <div id="play" class="vert">
+      <!-- Сила удара -->
+      <div id="power-box" class="bl-ctl">
+        <span class="ku-label">Сила</span>
+        <div id="power-slider" class="power-track">
+          <div class="power-ticks"></div>
+          <div id="power-fill" class="power-fill"></div>
+          <div id="power-handle" class="power-handle"></div>
         </div>
-
-        <!-- ПОДВАЛ: Микро-прицел -->
-        <footer class="w-full flex justify-center pb-6 md:pb-8">
-            <div class="ui-panel p-3 px-6 rounded-2xl flex flex-col items-center gap-2">
-                <span class="text-[10px] font-bold uppercase tracking-widest text-emerald-400">Микро-прицел (Угол)</span>
-                <div id="micro-aim-area" class="micro-aim-track">
-                    <div id="micro-aim-ruler" class="micro-aim-ruler"></div>
-                    <div class="micro-aim-center"></div>
-                </div>
-                <span class="text-[9px] text-gray-400 uppercase tracking-widest">Свайп влево / вправо для точной наводки (ММ)</span>
-            </div>
-        </footer>
-    </div>
-
-    <!-- Модальные окна -->
-    <div id="modal-message" class="absolute inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-md transition-opacity duration-300 opacity-0 pointer-events-none">
-        <div class="ui-panel p-8 rounded-3xl text-center shadow-2xl transform scale-95 transition-transform duration-300" id="modal-content">
-            <h2 id="modal-title" class="text-3xl md:text-4xl font-black text-white mb-3">Заголовок</h2>
-            <p id="modal-desc" class="text-gray-300 mb-8 text-sm md:text-lg max-w-md mx-auto">Описание события</p>
-            <button onclick="closeModal()" class="bg-emerald-600 hover:bg-emerald-500 text-white px-10 py-3 rounded-full font-bold text-lg transition-colors pointer-events-auto shadow-lg shadow-emerald-900/50">Продолжить</button>
+        <span class="bl-cap">тяни ↓</span>
+      </div>
+      <!-- Стол -->
+      <div id="board-box" class="ku-board"><canvas id="billiardCanvas"></canvas></div>
+      <!-- Винт и микро-прицел -->
+      <div id="dock">
+        <div id="spin-box" class="bl-ctl">
+          <div class="bl-spin-head"><span class="ku-label">Винт</span>
+            <button class="ku-btn icon" id="btn-spin-reset" aria-label="Сбросить винт" title="Сбросить винт"><svg viewBox="0 0 24 24"><polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 1 0 2.13-9.36L1 10"/></svg></button></div>
+          <div id="spin-control"><div id="spin-dot"></div></div>
         </div>
+        <div id="aim-box" class="bl-ctl">
+          <span class="ku-label">Микро-прицел</span>
+          <div id="micro-aim-area" class="micro-aim-track">
+            <div id="micro-aim-ruler" class="micro-aim-ruler"></div>
+            <div class="micro-aim-center"></div>
+          </div>
+          <span class="bl-cap">веди влево / вправо</span>
+        </div>
+      </div>
     </div>
+  </section>
+</main>
 
-    <script src="kunet.js"></script>
-    <script>
-        // === НАСТРОЙКИ ===
-        const themes = [
-            { name: "Classic Green", cloth: "#105a22", cushion: "#0b3d16", jaw: "#07240d" },
-            { name: "Tournament Blue", cloth: "#1e3a8a", cushion: "#1e40af", jaw: "#1e3a8a" }, // tailwind blue-900/800
-            { name: "Royal Burgundy", cloth: "#7f1d1d", cushion: "#991b1b", jaw: "#7f1d1d" }, // tailwind red-900/800
-            { name: "Graphite Black", cloth: "#1f2937", cushion: "#334155", jaw: "#1e293b" }, // tailwind gray-800/700/800
-            { name: "Coffee Brown", cloth: "#78350f", cushion: "#92400e", jaw: "#713f12" }  // tailwind amber-900/800/900
-        ];
-        let currentThemeIndex = 0;
-        let showNumbers = true;
+<!-- ═══ ПАУЗА ═══ -->
+<div class="ku-overlay" id="menu-pause">
+  <div class="ku-card">
+    <h2>⏸ ПАУЗА</h2>
+    <button class="ku-btn primary" id="btn-resume">Продолжить</button>
+    <button class="ku-btn" id="btn-restart">Начать заново</button>
+    <button class="ku-btn" id="btn-settings3">⚙️ Настройки</button>
+    <button class="ku-btn" id="btn-rules2">📖 Правила</button>
+    <button class="ku-btn ghost" id="btn-quit">В меню</button>
+  </div>
+</div>
 
-        function toggleTheme() {
-            currentThemeIndex = (currentThemeIndex + 1) % themes.length;
+<!-- ═══ СООБЩЕНИЯ: фол, победа, соперник вышел ═══ -->
+<div class="ku-overlay" id="modal-message">
+  <div class="ku-card">
+    <h2 id="modal-title">ФОЛ</h2>
+    <p id="modal-desc"></p>
+    <div class="ku-over-stats" id="modal-stats" style="display:none">
+      <div><span id="ms-name1">Игрок 1</span><b id="ms-score1">0</b></div>
+      <div><span id="ms-name2">Игрок 2</span><b id="ms-score2">0</b></div>
+    </div>
+    <button class="ku-btn primary" id="modal-ok">Продолжить</button>
+    <button class="ku-btn ghost" id="modal-menu" style="display:none">В меню</button>
+  </div>
+</div>
+
+<!-- ═══ ПРАВИЛА ═══ -->
+<div class="ku-overlay" id="menu-rules">
+  <div class="ku-modal">
+    <header><h2>📖 Правила</h2><button class="ku-btn icon" id="btn-rules-x" aria-label="Закрыть">✕</button></header>
+    <div class="ku-body">
+      <h3>Свободная пирамида</h3>
+      <ul class="ku-rules">
+        <li><b>16 шаров:</b> 15 белых с номерами и жёлтый. <b>Битком может быть любой шар</b> — выберите его тапом.</li>
+        <li><b>Цель:</b> первым набрать <b>8 очков</b>. Каждый забитый шар — очко, в том числе биток, ушедший в лузу после удара по другому шару («свояк»).</li>
+        <li><b>Забили</b> — бьёте ещё раз. <b>Не забили</b> — ход переходит сопернику.</li>
+        <li><b>Фол «промах»:</b> биток не коснулся ни одного шара. Сопернику — штрафное очко (<b>Ш</b>), ход переходит. Если биток при этом упал в лузу, он не засчитывается и возвращается на заднюю отметку.</li>
+      </ul>
+      <h3>Управление</h3>
+      <ul class="ku-rules">
+        <li><b>Тап по шару</b> — выбрать биток. <b>Тап или ведение по столу</b> — направление удара (вести можно и от самого битка).</li>
+        <li><b>Микро-прицел</b> — проведите по линейке влево/вправо для точной доводки; на клавиатуре ← →, с Shift — крупнее.</li>
+        <li><b>Винт</b> — точка удара по битку: выше центра — накат, ниже — оттяжка, в стороны — боковой винт.</li>
+        <li><b>Сила</b> — потяните ползунок вниз и отпустите: чем ниже, тем сильнее удар. Вернули ползунок наверх — удар отменён.</li>
+        <li>Линия прицела <b>зелёная</b>, если шар идёт в лузу. Полная траектория, номера шаров и цвет сукна — в настройках.</li>
+      </ul>
+    </div>
+    <footer><button class="ku-btn primary" id="btn-rules-close">Понятно</button></footer>
+  </div>
+</div>
+
+<!-- ═══ НАСТРОЙКИ ═══ -->
+<div class="ku-overlay" id="menu-settings">
+  <div class="ku-modal">
+    <header><h2>⚙️ Настройки</h2><button class="ku-btn icon" id="btn-settings-x" aria-label="Закрыть">✕</button></header>
+    <div class="ku-body">
+      <h3>Сукно</h3>
+      <div class="bl-swatches" id="swatches"></div>
+      <div class="ku-muted" id="theme-label" style="font-size:13px"></div>
+      <h3>Стол</h3>
+      <label class="ku-switch-row">Номера на шарах<input type="checkbox" id="opt-numbers"><span class="ku-switch"></span></label>
+      <label class="ku-switch-row">Полная траектория<input type="checkbox" id="opt-traj"><span class="ku-switch"></span></label>
+    </div>
+    <footer><button class="ku-btn primary" id="btn-settings-close">Готово</button></footer>
+  </div>
+</div>
+
+<div class="ku-toast" id="toast"></div>
+
+<script src="kunet.js"></script>
+<script>
+'use strict';
+const $ = id => document.getElementById(id);
+const store = {
+  get(k) { try { return localStorage.getItem(k); } catch (e) { return null; } },
+  set(k, v) { try { localStorage.setItem(k, v); } catch (e) {} }
+};
+function toast(msg, kind) { if (window.KuArcade) KuArcade.toast(msg, kind); }
+
+// === НАСТРОЙКИ (сукно — скин стола; борта и UI — в стиле набора) ===
+const themes = [
+  { name: 'Бирюза',   cloth: '#0d5c58', clothHi: '#167f78', cushion: '#0a4744', jaw: '#06302e', edge: '#00e5ff' },
+  { name: 'Классика', cloth: '#105a22', clothHi: '#1b7a33', cushion: '#0b3d16', jaw: '#07240d', edge: '#51f58b' },
+  { name: 'Турнир',   cloth: '#1e3a8a', clothHi: '#2b50b3', cushion: '#1e40af', jaw: '#1e3a8a', edge: '#5b8cff' },
+  { name: 'Бордо',    cloth: '#7f1d1d', clothHi: '#9f2b2b', cushion: '#991b1b', jaw: '#7f1d1d', edge: '#ff5d7d' },
+  { name: 'Графит',   cloth: '#1f2937', clothHi: '#2d3b50', cushion: '#334155', jaw: '#1e293b', edge: '#c77dff' },
+  { name: 'Кофе',     cloth: '#78350f', clothHi: '#964716', cushion: '#92400e', jaw: '#713f12', edge: '#ff9f43' }
+];
+const prefs = { theme: 0, numbers: true, traj: false };
+try { Object.assign(prefs, JSON.parse(store.get('billiard_prefs') || '{}')); } catch (e) {}
+let currentThemeIndex = (prefs.theme >= 0 && prefs.theme < themes.length) ? prefs.theme | 0 : 0;
+let showNumbers = prefs.numbers !== false;
+let fullTrajectory = !!prefs.traj;
+function savePrefs() { store.set('billiard_prefs', JSON.stringify({ theme: currentThemeIndex, numbers: showNumbers, traj: fullTrajectory })); }
+
+// === ВЕКТОРНАЯ МАТЕМАТИКА ===
+class Vec2 {
+  constructor(x, y) { this.x = x; this.y = y; }
+  add(v) { return new Vec2(this.x + v.x, this.y + v.y); }
+  sub(v) { return new Vec2(this.x - v.x, this.y - v.y); }
+  mult(n) { return new Vec2(this.x * n, this.y * n); }
+  mag() { return Math.sqrt(this.x * this.x + this.y * this.y); }
+  norm() { let m = this.mag(); return m === 0 ? new Vec2(0, 0) : new Vec2(this.x / m, this.y / m); }
+  dot(v) { return this.x * v.x + this.y * v.y; }
+  copy() { return new Vec2(this.x, this.y); }
+}
+
+// === АУДИО ДВИЖОК ===
+let audioCtx = null;
+try { audioCtx = new (window.AudioContext || window.webkitAudioContext)(); } catch (e) { audioCtx = null; }
+function resumeAudio() { try { if (audioCtx && audioCtx.state === 'suspended') audioCtx.resume(); } catch (e) {} }
+function playSound(type, intensity) {
+  if (!audioCtx) return;
+  if (audioCtx.state === 'suspended') resumeAudio();
+  if (intensity < 10) return;
+  try {
+    const osc = audioCtx.createOscillator();
+    const gainNode = audioCtx.createGain();
+    const filter = audioCtx.createBiquadFilter();
+
+    osc.connect(filter); filter.connect(gainNode); gainNode.connect(audioCtx.destination);
+    let vol = Math.min(intensity / 5000, 1.0);
+
+    if (type === 'hit') {
+      osc.type = 'sine'; osc.frequency.setValueAtTime(800 + Math.random() * 200, audioCtx.currentTime);
+      osc.frequency.exponentialRampToValueAtTime(100, audioCtx.currentTime + 0.05);
+      filter.type = 'highpass'; filter.frequency.value = 500;
+      gainNode.gain.setValueAtTime(vol, audioCtx.currentTime); gainNode.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.05);
+      osc.start(); osc.stop(audioCtx.currentTime + 0.05);
+    } else if (type === 'cushion') {
+      osc.type = 'triangle'; osc.frequency.setValueAtTime(150, audioCtx.currentTime);
+      filter.type = 'lowpass'; filter.frequency.value = 400;
+      gainNode.gain.setValueAtTime(vol * 0.8, audioCtx.currentTime); gainNode.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.1);
+      osc.start(); osc.stop(audioCtx.currentTime + 0.1);
+    } else if (type === 'pocket') {
+      osc.type = 'sine'; osc.frequency.setValueAtTime(300, audioCtx.currentTime);
+      osc.frequency.linearRampToValueAtTime(100, audioCtx.currentTime + 0.2);
+      gainNode.gain.setValueAtTime(1.0, audioCtx.currentTime); gainNode.gain.linearRampToValueAtTime(0.01, audioCtx.currentTime + 0.2);
+      osc.start(); osc.stop(audioCtx.currentTime + 0.2);
+    } else if (type === 'cue') {
+      osc.type = 'square'; osc.frequency.setValueAtTime(400, audioCtx.currentTime);
+      osc.frequency.exponentialRampToValueAtTime(50, audioCtx.currentTime + 0.1);
+      filter.type = 'lowpass'; filter.frequency.value = 800;
+      gainNode.gain.setValueAtTime(vol, audioCtx.currentTime); gainNode.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.1);
+      osc.start(); osc.stop(audioCtx.currentTime + 0.1);
+    }
+  } catch (e) {}
+}
+
+// === СТАНДАРТЫ РУССКОГО БИЛЬЯРДА (ММ) ===
+const TABLE_W = 3550; const TABLE_H = 1775; const RAIL_W = 180;
+const BALL_R = 34;    const BALL_MASS = 0.290;
+const CORNER_OP = 72; const MIDDLE_OP = 82; const JAW_R = 5;
+const HOUSE_X = TABLE_W * 0.25;
+const PHYSICS_STEPS = 10; const MIN_VELOCITY = 5; const MAX_POWER = 6000; const FRICTION = 300;
+const FULL_W = TABLE_W + RAIL_W * 2, FULL_H = TABLE_H + RAIL_W * 2;     // стол с бортами, мм
+const PHYS_DT = (1.0 / 60.0) / PHYSICS_STEPS;                             // подшаг физики, как раньше
+
+const canvas = $('billiardCanvas');
+const ctx = canvas.getContext('2d', { alpha: false });
+let scale = 1;              // CSS px на 1 мм (для перевода касаний)
+let vertical = false;       // стол повёрнут вертикально (портретный экран)
+let dpr = 1;
+let LIGHT = { x: -1, y: -1 };   // направление на свет в координатах стола (блик — в экранный левый верх)
+
+let balls = []; let pockets = []; let jaws = [];
+
+let gameState = {
+  currentPlayer: 1, score1: 0, score2: 0,
+  pocketed1: [], pocketed2: [],
+  selectedBall: null,
+  aimAngle: 0, aimPower: 0,
+  ballsMoving: false, turnValid: false,
+  spin: new Vec2(0, 0),
+  ballInHand: false, hitOccurred: false, foul: false, pocketedThisTurn: 0,
+  foulPotted: []
+};
+
+// === СЕТЕВАЯ ИГРА (KuNet): seat 0 = Игрок 1, seat 1 = Игрок 2 ===
+// Ударивший игрок после остановки шаров шлёт снимок стола + параметры удара;
+// соперник проигрывает удар у себя (анимация) и затем ставит шары по снимку.
+let net = null, mySeat = 0, netRound = 0, replaying = false, replayState = null, pendingShot = null, netFinished = false;
+const replayQueue = [];
+const isNet = () => !!(net && net.room);
+function canControl() {
+  return !isNet() || (net.room.status === 'playing' && net.isMyTurn() && !replaying && !net.busy && replayQueue.length === 0);
+}
+function ballsSnapshot() { return balls.map(b => ({ x: +b.pos.x.toFixed(2), y: +b.pos.y.toFixed(2), a: b.active ? 1 : 0 })); }
+function snapshot(shot) {
+  return { balls: ballsSnapshot(), score1: gameState.score1, score2: gameState.score2,
+           pocketed1: gameState.pocketed1.slice(), pocketed2: gameState.pocketed2.slice(),
+           currentPlayer: gameState.currentPlayer, selected: balls.indexOf(gameState.selectedBall),
+           ballInHand: !!gameState.ballInHand, shot: shot || null };
+}
+function placeBalls(list) {
+  list.forEach((o, i) => { const b = balls[i]; if (!b) return; b.pos = new Vec2(o.x, o.y); b.active = !!o.a; b.vel = new Vec2(0, 0); b.spin = new Vec2(0, 0); b.sideSpin = 0; });
+}
+function applySnapshot(s) {
+  if (!s || !s.balls) return;
+  placeBalls(s.balls);
+  gameState.score1 = s.score1 | 0; gameState.score2 = s.score2 | 0;
+  gameState.pocketed1 = (s.pocketed1 || []).slice(); gameState.pocketed2 = (s.pocketed2 || []).slice();
+  gameState.currentPlayer = s.currentPlayer === 2 ? 2 : 1;
+  gameState.ballInHand = !!s.ballInHand; gameState.ballsMoving = false;
+  gameState.hitOccurred = false; gameState.turnValid = false; gameState.foul = false; gameState.pocketedThisTurn = 0; gameState.foulPotted = [];
+  const sel = balls[s.selected]; gameState.selectedBall = sel && sel.active ? sel : (balls.find(b => b.active) || null);
+  updateHUD(); resetSpin(); netStatus();
+}
+function afterApply() {
+  if (isNet() && net.room.status === 'finished' && !netFinished) netShowWinner();
+}
+function netName(p) { return isNet() ? (net.room.players[p - 1] || ('Игрок ' + p)) : ('Игрок ' + p); }
+function netStatus() {
+  if (!isNet()) return;
+  if (net.room.status === 'closed') { setStatus('Соперник вышел'); return; }
+  if (net.room.status === 'finished') return;
+  setStatus(gameState.currentPlayer === mySeat + 1 ? 'Ваш ход' : 'Ход: ' + netName(gameState.currentPlayer) + '…');
+}
+function netShowWinner() {
+  netFinished = true;
+  const winner = gameState.score1 >= 8 ? 1 : (gameState.score2 >= 8 ? 2 : (gameState.score1 >= gameState.score2 ? 1 : 2));
+  const mine = winner === mySeat + 1;
+  setStatus(mine ? 'Победа!' : 'Поражение');
+  showModal(mine ? 'ПОБЕДА!' : 'ПОРАЖЕНИЕ', mine ? 'Вы первыми набрали 8 очков!' : 'Соперник (' + netName(winner) + ') первым набрал 8 очков.', netRematch,
+            { cls: mine ? 'win' : 'lose', ok: 'Играть снова', menu: true, stats: true });
+}
+function netRematch() {
+  if (!isNet()) { initGame(); return; }
+  if (net.room.status === 'closed') { leaveNet(); initGame(); return; }
+  setStatus('Новая партия…');
+  const snap = (() => { initGame(); return snapshot(null); })();
+  net.reset(snap, 0).then(r => netApply(r)).catch(e => { setStatus('Нет связи'); toast('Ошибка: ' + e.message, 'bad'); });
+}
+function startReplay(s) {
+  const sh = s.shot;
+  placeBalls(sh.start || s.balls);
+  const b = balls[sh.idx];
+  if (!b || !b.active) { applySnapshot(s); afterApply(); return nextReplay(); }
+  replayState = s; replaying = true;
+  gameState.selectedBall = b; gameState.hitOccurred = false; gameState.pocketedThisTurn = 0; gameState.foulPotted = [];
+  b.vel = new Vec2(sh.vel.x, sh.vel.y); b.spin = new Vec2(sh.spin.x, sh.spin.y); b.sideSpin = sh.side || 0;
+  gameState.ballsMoving = true;
+  playSound('cue', b.vel.mag()); setStatus('Удар соперника…');
+}
+function nextReplay() {
+  if (replaying) return;
+  const s = replayQueue.shift();
+  if (!s) return;
+  if (s.shot && s.shot.start) startReplay(s); else { applySnapshot(s); afterApply(); nextReplay(); }
+}
+function netApply(room) {
+  if (!isNet() || !room || !room.state) return;
+  if (room.round !== netRound) { netRound = room.round; replayQueue.length = 0; replaying = false; replayState = null; netFinished = false; closeModalSilent(); initGame(); }
+  if (room.lastMove && room.lastMove.by === mySeat) { netStatus(); return; }   // это моё же состояние
+  const s = room.state;
+  replayQueue.push(room.lastMove ? s : Object.assign({}, s, { shot: null }));
+  nextReplay();
+}
+function startNet(sess) {
+  net = sess; mySeat = sess.seat; netRound = sess.room.round; netFinished = false; pendingShot = null;
+  replayQueue.length = 0; replaying = false; replayState = null;
+  initGame();
+  applySnapshot(sess.room.state);
+  sess.onUpdate = room => netApply(room);
+  sess.onClosed = () => {
+    replayQueue.length = 0; replaying = false; updateHUD(); setStatus('Соперник вышел');
+    closeOverlays();   // пауза/правила/настройки не должны оставаться под окном (и после него — поверх новой партии)
+    showModal('СОПЕРНИК ВЫШЕЛ', 'Комната закрыта. Можно сыграть вдвоём на этом устройстве.', () => { leaveNet(); initGame(); },
+              { ok: 'Играть вдвоём', menu: true });
+  };
+  sess.onError = () => { if (!gameState.ballsMoving) setStatus('Нет связи…'); };
+  updateTitle(); updateHUD();
+  netStatus();
+  sess.startPolling();
+}
+function leaveNet() {
+  if (net) { net.onUpdate = net.onClosed = net.onError = null; net.leave(); }
+  net = null; replaying = false; replayQueue.length = 0; replayState = null; pendingShot = null; netFinished = false;
+  updateTitle();
+}
+function openNetLobby() {
+  resumeAudio();
+  if (isNet()) leaveNet();
+  KuNet.openLobby({
+    game: 'billiard', title: 'БИЛЬЯРД · ПО СЕТИ',
+    initialState: () => { initGame(); return snapshot(null); },
+    onStart: sess => { showScreen('game'); startNet(sess); }
+  });
+}
+window.addEventListener('pagehide', () => { if (net) net.leaveBeacon(); });
+
+function darkenColor(hex, percent) {
+  let num = parseInt(hex.replace("#", ""), 16), amt = Math.round(2.55 * percent),
+      R = (num >> 16) - amt, B = (num >> 8 & 0x00FF) - amt, G = (num & 0x0000FF) - amt;
+  return "#" + (0x1000000 + (R < 255 ? R < 1 ? 0 : R : 255) * 0x10000 + (B < 255 ? B < 1 ? 0 : B : 255) * 0x100 + (G < 255 ? G < 1 ? 0 : G : 255)).toString(16).slice(1);
+}
+
+// === КЛАССЫ СИМУЛЯЦИИ ===
+class Jaw { constructor(x, y) { this.pos = new Vec2(x, y); this.r = JAW_R; } }
+class Pocket { constructor(x, y, isMiddle) { this.pos = new Vec2(x, y); this.r = isMiddle ? 45 : 42; this.isMiddle = isMiddle; } }
+
+class Ball {
+  constructor(x, y, color, number = 0) {
+    this.number = number;
+    this.pos = new Vec2(x, y);
+    this.vel = new Vec2(0, 0); this.spin = new Vec2(0, 0); this.sideSpin = 0;
+    this.radius = BALL_R; this.mass = BALL_MASS; this.color = color; this.dark = darkenColor(color, 60); this.active = true;
+  }
+
+  draw() {
+    if (!this.active) return;
+    const r = this.radius, x = this.pos.x, y = this.pos.y;
+
+    // Тень шара (в экранный правый-нижний угол при любой ориентации стола)
+    ctx.beginPath(); ctx.arc(x - LIGHT.x * 8, y - LIGHT.y * 8, r, 0, Math.PI * 2);
+    ctx.fillStyle = 'rgba(0, 0, 0, 0.45)'; ctx.fill();
+
+    // Тело шара
+    ctx.beginPath(); ctx.arc(x, y, r, 0, Math.PI * 2);
+    const grad = ctx.createRadialGradient(x + LIGHT.x * r * 0.3, y + LIGHT.y * r * 0.3, r * 0.1, x, y, r);
+    grad.addColorStop(0, '#ffffff'); grad.addColorStop(0.35, this.color); grad.addColorStop(1, this.dark);
+    ctx.fillStyle = grad; ctx.fill();
+
+    if (this.number > 0 && showNumbers) {
+      ctx.fillStyle = '#16181f'; ctx.font = `700 ${Math.round(r * 1.05)}px Rubik, system-ui, sans-serif`;
+      ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+      if (vertical) { ctx.save(); ctx.translate(x, y); ctx.rotate(Math.PI / 2); ctx.fillText(this.number, 0, 2); ctx.restore(); }
+      else ctx.fillText(this.number, x, y + 2);
+    }
+
+    // Блик
+    ctx.beginPath(); ctx.arc(x + LIGHT.x * r * 0.35, y + LIGHT.y * r * 0.35, r * 0.25, 0, Math.PI * 2);
+    ctx.fillStyle = 'rgba(255,255,255,0.28)'; ctx.fill();
+
+    if (gameState.selectedBall === this) {
+      ctx.save();
+      ctx.beginPath(); ctx.arc(x, y, r + 7, 0, Math.PI * 2);
+      ctx.strokeStyle = '#00e5ff'; ctx.shadowColor = '#00e5ff'; ctx.shadowBlur = 8;
+      ctx.lineWidth = 4; ctx.setLineDash([9, 7]); ctx.stroke();
+      ctx.restore();
+    }
+  }
+}
+
+// === ГЕОМЕТРИЯ СТОЛА ===
+let cOff = (CORNER_OP + 2 * JAW_R) / Math.SQRT2 - JAW_R;
+let mOff = (MIDDLE_OP + 2 * JAW_R) / 2;
+
+function buildTable() {
+  jaws = [
+    new Jaw(cOff, -JAW_R), new Jaw(-JAW_R, cOff),
+    new Jaw(TABLE_W / 2 - mOff, -JAW_R), new Jaw(TABLE_W / 2 + mOff, -JAW_R),
+    new Jaw(TABLE_W - cOff, -JAW_R), new Jaw(TABLE_W + JAW_R, cOff),
+    new Jaw(cOff, TABLE_H + JAW_R), new Jaw(-JAW_R, TABLE_H - cOff),
+    new Jaw(TABLE_W / 2 - mOff, TABLE_H + JAW_R), new Jaw(TABLE_W / 2 + mOff, TABLE_H + JAW_R),
+    new Jaw(TABLE_W - cOff, TABLE_H + JAW_R), new Jaw(TABLE_W + JAW_R, TABLE_H - cOff)
+  ];
+  pockets = [
+    new Pocket(-20, -20, false), new Pocket(TABLE_W / 2, -30, true), new Pocket(TABLE_W + 20, -20, false),
+    new Pocket(-20, TABLE_H + 20, false), new Pocket(TABLE_W / 2, TABLE_H + 30, true), new Pocket(TABLE_W + 20, TABLE_H + 20, false)
+  ];
+}
+
+// === РАЗМЕР И ОРИЕНТАЦИЯ ===
+// Холст = CSS-размер × devicePixelRatio (раньше — фиксированные 3910×2135 px, ~8 Мп на каждый кадр).
+// В портретном экране стол поворачивается вертикально (дом — внизу), иначе на телефоне он крошечный.
+function layout() {
+  const play = $('play');
+  if (!play.clientHeight) return;                       // экран игры скрыт
+  const FRAME = 16, GAP = 10;                            // рамка .ku-board: padding 7 + border 1
+  const pw = $('power-box').offsetWidth || 44;
+  const W = play.clientWidth, H = play.clientHeight;
+  play.className = 'vert';
+  const dockH = $('dock').offsetHeight;
+  const vLong = Math.min(H - dockH - GAP - FRAME, (W - pw - GAP - FRAME) * FULL_W / FULL_H);
+  play.className = 'horz';
+  const dockW = $('dock').offsetWidth;
+  const hLong = Math.min(W - pw - dockW - 2 * GAP - FRAME, (H - FRAME) * FULL_W / FULL_H);
+  vertical = vLong > hLong * 1.04;
+  play.className = vertical ? 'vert' : 'horz';
+  const long = Math.max(200, Math.min(vertical ? vLong : hLong, 1500));
+  const cssW = Math.round(vertical ? long * FULL_H / FULL_W : long);
+  const cssH = Math.round(vertical ? long : long * FULL_H / FULL_W);
+  dpr = Math.min(window.devicePixelRatio || 1, 2);
+  canvas.style.width = cssW + 'px'; canvas.style.height = cssH + 'px';
+  canvas.width = Math.round(cssW * dpr); canvas.height = Math.round(cssH * dpr);
+  scale = (vertical ? cssH : cssW) / FULL_W;
+  LIGHT = vertical ? { x: 1, y: -1 } : { x: -1, y: -1 };
+  $('power-slider').style.height = Math.max(90, Math.min(cssH + FRAME - 46, 320)) + 'px';
+  baseTransform();
+}
+function baseTransform() {
+  const k = scale * dpr;
+  if (vertical) ctx.setTransform(0, -k, k, 0, 0, FULL_W * k);   // x стола → вверх экрана, y стола → вправо
+  else ctx.setTransform(k, 0, 0, k, 0, 0);
+}
+function resize() { layout(); }
+
+function initGame() {
+  layout(); balls = [];
+  gameState.score1 = 0; gameState.score2 = 0;
+  gameState.pocketed1 = []; gameState.pocketed2 = [];
+  gameState.currentPlayer = 1; gameState.ballInHand = false; gameState.aimAngle = 0;
+  gameState.ballsMoving = false; gameState.hitOccurred = false; gameState.turnValid = false; gameState.foul = false; gameState.pocketedThisTurn = 0;
+  gameState.foulPotted = [];
+  gameState.aimPower = 0; gameState.isPlacingCue = false; gameState.isAimingOnCanvas = false;
+  physAcc = 0;
+
+  let startBall = new Ball(HOUSE_X * 0.8, TABLE_H / 2, '#facc15', 0);
+  balls.push(startBall);
+
+  const startX = TABLE_W * 0.72; const startY = TABLE_H / 2;
+  let idCounter = 1;
+
+  for (let row = 0; row < 5; row++) {
+    for (let col = 0; col <= row; col++) {
+      const bx = startX + row * (BALL_R * Math.sqrt(3) + 0.1);
+      const by = startY - (row * BALL_R) + (col * (BALL_R * 2 + 0.1));
+      balls.push(new Ball(bx, by, '#fffff0', idCounter++));
+    }
+  }
+
+  gameState.selectedBall = startBall;
+  resetSpin(); setPowerUI(0);
+  updateTitle(); updateHUD(); setStatus('Ход: Игрок 1'); netStatus();
+}
+
+// === ФИЗИКА ===
+function resolveCollisions() {
+  for (let i = 0; i < balls.length; i++) {
+    if (!balls[i].active) continue;
+    for (let j = i + 1; j < balls.length; j++) {
+      if (!balls[j].active) continue;
+      let a = balls[i]; let b = balls[j];
+      let delta = b.pos.sub(a.pos); let dist = delta.mag(); let minDist = a.radius + b.radius;
+
+      if (dist < minDist) {
+        let overlap = minDist - dist; let normal = delta.norm();
+        a.pos = a.pos.sub(normal.mult(overlap / 2)); b.pos = b.pos.add(normal.mult(overlap / 2));
+        let relVel = a.vel.sub(b.vel); let speed = relVel.dot(normal);
+        if (speed > 0) {
+          if (a === gameState.selectedBall || b === gameState.selectedBall) gameState.hitOccurred = true;
+          playSound('hit', speed);
+          let impulse = (1.96) * speed / (1 / a.mass + 1 / b.mass);
+          a.vel = a.vel.sub(normal.mult(impulse / a.mass)); b.vel = b.vel.add(normal.mult(impulse / b.mass));
+          let tangent = new Vec2(-normal.y, normal.x); let relTangentVel = relVel.dot(tangent);
+          let throwImpulse = relTangentVel * 0.03;
+          a.vel = a.vel.sub(tangent.mult(throwImpulse)); b.vel = b.vel.add(tangent.mult(throwImpulse));
         }
+      }
+    }
+  }
 
-        function toggleNumbers() {
-            showNumbers = !showNumbers;
-            document.getElementById('btn-numbers').innerText = `Номера: ${showNumbers ? 'ВКЛ' : 'ВЫКЛ'}`;
+  for (let b of balls) {
+    if (!b.active) continue;
+    for (let jaw of jaws) {
+      let delta = b.pos.sub(jaw.pos); let dist = delta.mag(); let minDist = b.radius + jaw.r;
+      if (dist < minDist) {
+        b.pos = b.pos.add(delta.norm().mult(minDist - dist));
+        let speed = b.vel.dot(delta.norm());
+        if (speed < 0) { b.vel = b.vel.sub(delta.norm().mult(speed * 1.6)); playSound('cushion', Math.abs(speed)); }
+      }
+    }
+  }
+}
+
+function updatePhysics(dt) {
+  let moving = false;
+  for (let b of balls) {
+    if (!b.active) continue;
+    let slip = b.spin.sub(b.vel); let slipMag = slip.mag();
+
+    if (b.vel.mag() > MIN_VELOCITY || slipMag > MIN_VELOCITY || Math.abs(b.sideSpin) > MIN_VELOCITY) {
+      moving = true;
+      if (slipMag > 10) { let fric = slip.mult(5.0 * dt); b.vel = b.vel.add(fric); b.spin = b.spin.sub(fric.mult(2.5)); }
+      b.pos = b.pos.add(b.vel.mult(dt));
+      let speed = b.vel.mag();
+      if (speed > 0) { let drop = FRICTION * dt; let mult = Math.max(0, speed - drop) / speed; b.vel = b.vel.mult(mult); b.spin = b.spin.mult(mult); }
+      b.sideSpin *= (1 - 0.5 * dt);
+
+      let e_cushion = 0.8; let r = b.radius;
+      if (b.pos.y - r < 0) {
+        if (!((b.pos.x < cOff) || (Math.abs(b.pos.x - TABLE_W / 2) < mOff) || (b.pos.x > TABLE_W - cOff))) {
+          b.pos.y = r; b.vel.y *= -e_cushion; b.spin.y *= -e_cushion; b.vel.x -= b.sideSpin * 0.2; b.sideSpin *= 0.5; playSound('cushion', Math.abs(b.vel.y));
         }
-
-        // === ВЕКТОРНАЯ МАТЕМАТИКА ===
-        class Vec2 {
-            constructor(x, y) { this.x = x; this.y = y; }
-            add(v) { return new Vec2(this.x + v.x, this.y + v.y); }
-            sub(v) { return new Vec2(this.x - v.x, this.y - v.y); }
-            mult(n) { return new Vec2(this.x * n, this.y * n); }
-            mag() { return Math.sqrt(this.x * this.x + this.y * this.y); }
-            norm() { let m = this.mag(); return m === 0 ? new Vec2(0,0) : new Vec2(this.x/m, this.y/m); }
-            dot(v) { return this.x * v.x + this.y * v.y; }
-            copy() { return new Vec2(this.x, this.y); }
+      }
+      if (b.pos.y + r > TABLE_H) {
+        if (!((b.pos.x < cOff) || (Math.abs(b.pos.x - TABLE_W / 2) < mOff) || (b.pos.x > TABLE_W - cOff))) {
+          b.pos.y = TABLE_H - r; b.vel.y *= -e_cushion; b.spin.y *= -e_cushion; b.vel.x += b.sideSpin * 0.2; b.sideSpin *= 0.5; playSound('cushion', Math.abs(b.vel.y));
         }
-
-        // === АУДИО ДВИЖОК ===
-        const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-        function playSound(type, intensity) {
-            if (audioCtx.state === 'suspended') audioCtx.resume();
-            if (intensity < 10) return;
-
-            const osc = audioCtx.createOscillator();
-            const gainNode = audioCtx.createGain();
-            const filter = audioCtx.createBiquadFilter();
-
-            osc.connect(filter); filter.connect(gainNode); gainNode.connect(audioCtx.destination);
-            let vol = Math.min(intensity / 5000, 1.0);
-            
-            if (type === 'hit') {
-                osc.type = 'sine'; osc.frequency.setValueAtTime(800 + Math.random()*200, audioCtx.currentTime);
-                osc.frequency.exponentialRampToValueAtTime(100, audioCtx.currentTime + 0.05);
-                filter.type = 'highpass'; filter.frequency.value = 500;
-                gainNode.gain.setValueAtTime(vol, audioCtx.currentTime); gainNode.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.05);
-                osc.start(); osc.stop(audioCtx.currentTime + 0.05);
-            } else if (type === 'cushion') {
-                osc.type = 'triangle'; osc.frequency.setValueAtTime(150, audioCtx.currentTime);
-                filter.type = 'lowpass'; filter.frequency.value = 400;
-                gainNode.gain.setValueAtTime(vol * 0.8, audioCtx.currentTime); gainNode.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.1);
-                osc.start(); osc.stop(audioCtx.currentTime + 0.1);
-            } else if (type === 'pocket') {
-                osc.type = 'sine'; osc.frequency.setValueAtTime(300, audioCtx.currentTime);
-                osc.frequency.linearRampToValueAtTime(100, audioCtx.currentTime + 0.2);
-                gainNode.gain.setValueAtTime(1.0, audioCtx.currentTime); gainNode.gain.linearRampToValueAtTime(0.01, audioCtx.currentTime + 0.2);
-                osc.start(); osc.stop(audioCtx.currentTime + 0.2);
-            } else if (type === 'cue') {
-                osc.type = 'square'; osc.frequency.setValueAtTime(400, audioCtx.currentTime);
-                osc.frequency.exponentialRampToValueAtTime(50, audioCtx.currentTime + 0.1);
-                filter.type = 'lowpass'; filter.frequency.value = 800;
-                gainNode.gain.setValueAtTime(vol, audioCtx.currentTime); gainNode.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.1);
-                osc.start(); osc.stop(audioCtx.currentTime + 0.1);
-            }
+      }
+      if (b.pos.x - r < 0) {
+        if (!((b.pos.y < cOff) || (b.pos.y > TABLE_H - cOff))) {
+          b.pos.x = r; b.vel.x *= -e_cushion; b.spin.x *= -e_cushion; b.vel.y += b.sideSpin * 0.2; b.sideSpin *= 0.5; playSound('cushion', Math.abs(b.vel.x));
         }
-
-        // === СТАНДАРТЫ РУССКОГО БИЛЬЯРДА (ММ) ===
-        const TABLE_W = 3550; const TABLE_H = 1775; const RAIL_W = 180;   
-        const BALL_R = 34;    const BALL_MASS = 0.290; 
-        const CORNER_OP = 72; const MIDDLE_OP = 82; const JAW_R = 5;      
-        const HOUSE_X = TABLE_W * 0.25; 
-        const PHYSICS_STEPS = 10; const MIN_VELOCITY = 5; const MAX_POWER = 6000; const FRICTION = 300; 
-
-        const canvas = document.getElementById('billiardCanvas');
-        const ctx = canvas.getContext('2d', { alpha: false });
-        let scale = 1; 
-        
-        let balls = []; let pockets = []; let jaws = []; 
-
-        let gameState = {
-            currentPlayer: 1, score1: 0, score2: 0,
-            pocketed1: [], pocketed2: [], 
-            selectedBall: null,           
-            aimAngle: 0, aimPower: 0,
-            ballsMoving: false, turnValid: false, 
-            spin: new Vec2(0, 0),
-            ballInHand: false, hitOccurred: false, foul: false, pocketedThisTurn: 0       
-        };
-
-        // === СЕТЕВАЯ ИГРА (KuNet): seat 0 = Игрок 1, seat 1 = Игрок 2 ===
-        // Ударивший игрок после остановки шаров шлёт снимок стола + параметры удара;
-        // соперник проигрывает удар у себя (анимация) и затем ставит шары по снимку.
-        let net = null, mySeat = 0, netRound = 0, replaying = false, replayState = null, pendingShot = null, netFinished = false;
-        const replayQueue = [];
-        const isNet = () => !!(net && net.room);
-        function canControl() {
-            return !isNet() || (net.room.status === 'playing' && net.isMyTurn() && !replaying && !net.busy && replayQueue.length === 0);
+      }
+      if (b.pos.x + r > TABLE_W) {
+        if (!((b.pos.y < cOff) || (b.pos.y > TABLE_H - cOff))) {
+          b.pos.x = TABLE_W - r; b.vel.x *= -e_cushion; b.spin.x *= -e_cushion; b.vel.y -= b.sideSpin * 0.2; b.sideSpin *= 0.5; playSound('cushion', Math.abs(b.vel.x));
         }
-        function ballsSnapshot() { return balls.map(b => ({ x: +b.pos.x.toFixed(2), y: +b.pos.y.toFixed(2), a: b.active ? 1 : 0 })); }
-        function snapshot(shot) {
-            return { balls: ballsSnapshot(), score1: gameState.score1, score2: gameState.score2,
-                     pocketed1: gameState.pocketed1.slice(), pocketed2: gameState.pocketed2.slice(),
-                     currentPlayer: gameState.currentPlayer, selected: balls.indexOf(gameState.selectedBall),
-                     ballInHand: !!gameState.ballInHand, shot: shot || null };
-        }
-        function placeBalls(list) {
-            list.forEach((o, i) => { const b = balls[i]; if (!b) return; b.pos = new Vec2(o.x, o.y); b.active = !!o.a; b.vel = new Vec2(0, 0); b.spin = new Vec2(0, 0); b.sideSpin = 0; });
-        }
-        function applySnapshot(s) {
-            if (!s || !s.balls) return;
-            placeBalls(s.balls);
-            gameState.score1 = s.score1 | 0; gameState.score2 = s.score2 | 0;
-            gameState.pocketed1 = (s.pocketed1 || []).slice(); gameState.pocketed2 = (s.pocketed2 || []).slice();
-            gameState.currentPlayer = s.currentPlayer === 2 ? 2 : 1;
-            gameState.ballInHand = !!s.ballInHand; gameState.ballsMoving = false;
-            gameState.hitOccurred = false; gameState.turnValid = false; gameState.foul = false; gameState.pocketedThisTurn = 0;
-            const sel = balls[s.selected]; gameState.selectedBall = sel && sel.active ? sel : (balls.find(b => b.active) || null);
-            updateHUD(); resetSpin(); netStatus();
-        }
-        function afterApply() {
-            if (isNet() && net.room.status === 'finished' && !netFinished) netShowWinner();
-        }
-        function netName(p) { return isNet() ? (net.room.players[p - 1] || ('Игрок ' + p)) : ('Игрок ' + p); }
-        function netStatus() {
-            if (!isNet()) return;
-            if (net.room.status === 'closed') { setStatus('Соперник вышел'); return; }
-            if (net.room.status === 'finished') return;
-            setStatus(gameState.currentPlayer === mySeat + 1 ? 'Ваш ход. Цельтесь.' : 'Ход: ' + netName(gameState.currentPlayer) + '…');
-        }
-        function netShowWinner() {
-            netFinished = true;
-            const winner = gameState.score1 >= 8 ? 1 : (gameState.score2 >= 8 ? 2 : (gameState.score1 >= gameState.score2 ? 1 : 2));
-            const mine = winner === mySeat + 1;
-            showModal(mine ? 'ПОБЕДА!' : 'ПОРАЖЕНИЕ', (mine ? 'Вы' : netName(winner)) + ' первым забил 8 шаров. Нажмите, чтобы сыграть ещё раз.', netRematch);
-        }
-        function netRematch() {
-            if (!isNet()) { initGame(); return; }
-            if (net.room.status === 'closed') { leaveNet(); initGame(); return; }
-            setStatus('Новая партия…');
-            const snap = (() => { initGame(); return snapshot(null); })();
-            net.reset(snap, 0).then(r => netApply(r)).catch(e => setStatus('Ошибка: ' + e.message));
-        }
-        function startReplay(s) {
-            const sh = s.shot;
-            placeBalls(sh.start || s.balls);
-            const b = balls[sh.idx];
-            if (!b || !b.active) { applySnapshot(s); afterApply(); return nextReplay(); }
-            replayState = s; replaying = true;
-            gameState.selectedBall = b; gameState.hitOccurred = false; gameState.pocketedThisTurn = 0;
-            b.vel = new Vec2(sh.vel.x, sh.vel.y); b.spin = new Vec2(sh.spin.x, sh.spin.y); b.sideSpin = sh.side || 0;
-            gameState.ballsMoving = true;
-            playSound('cue', b.vel.mag()); setStatus('Удар соперника…');
-        }
-        function nextReplay() {
-            if (replaying) return;
-            const s = replayQueue.shift();
-            if (!s) return;
-            if (s.shot && s.shot.start) startReplay(s); else { applySnapshot(s); afterApply(); nextReplay(); }
-        }
-        function netApply(room) {
-            if (!isNet() || !room || !room.state) return;
-            if (room.round !== netRound) { netRound = room.round; replayQueue.length = 0; replaying = false; replayState = null; netFinished = false; closeModalSilent(); initGame(); }
-            if (room.lastMove && room.lastMove.by === mySeat) { netStatus(); return; }   // это моё же состояние
-            const s = room.state;
-            replayQueue.push(room.lastMove ? s : Object.assign({}, s, { shot: null }));
-            nextReplay();
-        }
-        function startNet(sess) {
-            net = sess; mySeat = sess.seat; netRound = sess.room.round; netFinished = false; pendingShot = null;
-            replayQueue.length = 0; replaying = false; replayState = null;
-            initGame();
-            applySnapshot(sess.room.state);
-            sess.onUpdate = room => netApply(room);
-            sess.onClosed = () => { replayQueue.length = 0; replaying = false; updateHUD(); setStatus('Соперник вышел'); showModal('Соперник вышел', 'Комната закрыта. Нажмите, чтобы вернуться к локальной игре.', () => { leaveNet(); initGame(); }); };
-            sess.onError = () => { if (!gameState.ballsMoving) setStatus('Нет связи с сервером…'); };
-            document.getElementById('btn-net').innerText = 'Выйти';
-            netStatus();
-            sess.startPolling();
-        }
-        function leaveNet() {
-            if (net) { net.onUpdate = net.onClosed = net.onError = null; net.leave(); }
-            net = null; replaying = false; replayQueue.length = 0; replayState = null; pendingShot = null; netFinished = false;
-            document.getElementById('btn-net').innerText = 'По сети';
-        }
-        function toggleNet() {
-            if (audioCtx.state === 'suspended') audioCtx.resume();
-            if (isNet()) { leaveNet(); initGame(); return; }
-            KuNet.openLobby({
-                game: 'billiard', title: 'БИЛЬЯРД · ПО СЕТИ',
-                initialState: () => { initGame(); return snapshot(null); },
-                onStart: startNet
-            });
-        }
-        function closeModalSilent() {
-            modalCallback = null;
-            document.getElementById('modal-message').classList.add('opacity-0', 'pointer-events-none');
-            document.getElementById('modal-content').classList.add('scale-95');
-        }
-        window.addEventListener('pagehide', () => { if (net) net.leaveBeacon(); });
+      }
+    } else { b.vel = new Vec2(0, 0); b.spin = new Vec2(0, 0); b.sideSpin = 0; }
+  }
 
-        function darkenColor(hex, percent) {
-            let num = parseInt(hex.replace("#", ""), 16), amt = Math.round(2.55 * percent),
-                R = (num >> 16) - amt, B = (num >> 8 & 0x00FF) - amt, G = (num & 0x0000FF) - amt;
-            return "#" + (0x1000000 + (R<255?R<1?0:R:255)*0x10000 + (B<255?B<1?0:B:255)*0x100 + (G<255?G<1?0:G:255)).toString(16).slice(1);
-        }
+  resolveCollisions();
 
-        // === КЛАССЫ СИМУЛЯЦИИ ===
-        class Jaw { constructor(x, y) { this.pos = new Vec2(x, y); this.r = JAW_R; } }
-        class Pocket { constructor(x, y, isMiddle) { this.pos = new Vec2(x, y); this.r = isMiddle ? 45 : 42; this.isMiddle = isMiddle; } }
+  for (let b of balls) {
+    if (!b.active) continue;
+    for (let p of pockets) {
+      if (b.pos.sub(p.pos).mag() < p.r) {
+        playSound('pocket', 5000); b.active = false; b.vel = new Vec2(0, 0); b.spin = new Vec2(0, 0); handlePocketedBall(b); break;
+      }
+    }
+  }
 
-        class Ball {
-            constructor(x, y, color, number = 0) {
-                this.number = number;
-                this.pos = new Vec2(x, y);
-                this.vel = new Vec2(0, 0); this.spin = new Vec2(0, 0); this.sideSpin = 0;               
-                this.radius = BALL_R; this.mass = BALL_MASS; this.color = color; this.active = true;
-            }
+  if (gameState.ballsMoving && !moving) { gameState.ballsMoving = false; onTurnEnd(); }
+  else if (moving) { gameState.ballsMoving = true; if (!replaying) setStatus('Шары катятся…'); }
+}
 
-            draw() {
-                if (!this.active) return;
-                
-                // Тень шара
-                ctx.beginPath(); ctx.arc(this.pos.x + 8, this.pos.y + 8, this.radius, 0, Math.PI * 2);
-                ctx.fillStyle = 'rgba(0, 0, 0, 0.5)'; ctx.fill();
+function handlePocketedBall(ball) {
+  if (ball === gameState.selectedBall) gameState.selectedBall = null;
+  if (replaying) return;   // итог придёт снимком
+  // Биток упал в лузу, ни разу не коснувшись другого шара (другие шары до первого соударения не движутся) —
+  // это фол «промах»: шар не засчитывается и вернётся на стол. Раньше такой шар давал очко и ход сохранялся.
+  if (!gameState.hitOccurred) { gameState.foulPotted.push(ball); return; }
+  gameState.turnValid = true; gameState.pocketedThisTurn++;
+  let symbol = ball.number > 0 ? ball.number : "Б";
+  if (gameState.currentPlayer === 1) { gameState.score1++; gameState.pocketed1.push(symbol); }
+  else { gameState.score2++; gameState.pocketed2.push(symbol); }
+  updateHUD(); popScore(gameState.currentPlayer);
+}
 
-                // Тело шара
-                ctx.beginPath(); ctx.arc(this.pos.x, this.pos.y, this.radius, 0, Math.PI * 2);
-                const grad = ctx.createRadialGradient(this.pos.x - this.radius*0.3, this.pos.y - this.radius*0.3, this.radius*0.1, this.pos.x, this.pos.y, this.radius);
-                grad.addColorStop(0, '#ffffff'); grad.addColorStop(0.35, this.color); grad.addColorStop(1, darkenColor(this.color, 60));
-                ctx.fillStyle = grad; ctx.fill();
+// Шар, забитый при фоле, ставится на заднюю отметку (или ближайшее свободное место на продольной линии)
+function respotBall(ball) {
+  const y = TABLE_H / 2, x0 = TABLE_W * 0.75, step = BALL_R * 2 + 2;
+  const free = x => balls.every(o => o === ball || !o.active || Math.hypot(o.pos.x - x, o.pos.y - y) >= BALL_R * 2 + 1);
+  let x = null;
+  for (let xx = x0; xx <= TABLE_W - BALL_R; xx += step) if (free(xx)) { x = xx; break; }
+  if (x === null) for (let xx = x0 - step; xx >= BALL_R; xx -= step) if (free(xx)) { x = xx; break; }
+  if (x === null) x = x0;
+  ball.pos = new Vec2(x, y); ball.vel = new Vec2(0, 0); ball.spin = new Vec2(0, 0); ball.sideSpin = 0; ball.active = true;
+}
 
-                if (this.number > 0 && showNumbers) {
-                    ctx.fillStyle = '#111'; ctx.font = `bold ${this.radius * 1.1}px Arial`;
-                    ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
-                    ctx.fillText(this.number, this.pos.x, this.pos.y + 2);
-                }
+function onTurnEnd() {
+  if (replaying) {   // проигрывание чужого удара закончилось — ставим шары по снимку
+    replaying = false; const s = replayState; replayState = null;
+    applySnapshot(s); afterApply(); nextReplay();
+    return;
+  }
+  const shooter = gameState.currentPlayer;
+  let foulMsg = null;
+  // Фол «промах»: биток не коснулся ни одного шара (даже если сам упал в лузу)
+  if (!gameState.hitOccurred) {
+    gameState.foul = true;
+    if (shooter === 1) { gameState.score2++; gameState.pocketed2.push("Ш"); }
+    else { gameState.score1++; gameState.pocketed1.push("Ш"); }
+    popScore(shooter === 1 ? 2 : 1);
+    const back = gameState.foulPotted.length > 0;
+    gameState.foulPotted.forEach(respotBall);
+    foulMsg = back ? 'Биток упал в лузу, не коснувшись других шаров. Он не засчитан и вернулся на стол, сопернику — штрафное очко.'
+                   : 'Ваш шар никого не коснулся. Соперник получает штрафное очко.';
+  }
+  gameState.foulPotted = [];
+  if (!gameState.turnValid || gameState.foul) gameState.currentPlayer = gameState.currentPlayer === 1 ? 2 : 1;
+  gameState.turnValid = false; gameState.foul = false; gameState.hitOccurred = false; gameState.pocketedThisTurn = 0;
 
-                // Блик
-                ctx.beginPath(); ctx.arc(this.pos.x - this.radius*0.35, this.pos.y - this.radius*0.35, this.radius*0.25, 0, Math.PI*2);
-                ctx.fillStyle = 'rgba(255,255,255,0.25)'; ctx.fill();
+  let activeBalls = balls.filter(b => b.active);
+  if (!gameState.selectedBall || !gameState.selectedBall.active) gameState.selectedBall = activeBalls.length > 0 ? activeBalls[0] : null;
+  updateHUD(); resetSpin();
 
-                if (gameState.selectedBall === this) {
-                    ctx.beginPath(); ctx.arc(this.pos.x, this.pos.y, this.radius + 6, 0, Math.PI * 2);
-                    ctx.strokeStyle = 'rgba(16, 185, 129, 1)'; ctx.lineWidth = 3; ctx.setLineDash([8, 6]); ctx.stroke(); ctx.setLineDash([]);
-                }
-            }
-        }
+  // Победа проверяется после удара: и за забитые шары, и за штрафное очко (раньше штраф до 8 не завершал партию)
+  const winner = gameState.score1 >= 8 ? 1 : (gameState.score2 >= 8 ? 2 : 0);
+  if (winner) {
+    if (isNet()) netShowWinner();
+    else {
+      setStatus('Победа: Игрок ' + winner);
+      showModal('ПОБЕДА!', `Игрок ${winner} первым набрал 8 очков!` + (foulMsg ? '\nПоследнее очко — штраф за промах соперника.' : ''),
+                initGame, { cls: 'win', ok: 'Играть снова', menu: true, stats: true });
+    }
+  } else {
+    setStatus(isNet() ? '' : `Ход: Игрок ${gameState.currentPlayer}`);
+    if (foulMsg) showModal('ФОЛ: ПРОМАХ!', foulMsg, null, { cls: 'lose' });
+  }
+  if (isNet() && pendingShot) {
+    const shot = pendingShot; pendingShot = null;
+    net.move(snapshot(shot), gameState.currentPlayer - 1, null, netFinished)
+      .then(() => netStatus())
+      .catch(e => {
+        if (/устарело/.test(e.message)) setStatus('Синхронизация…');
+        else { setStatus('Нет связи'); toast('Нет связи: ' + e.message, 'bad'); }
+      });
+  } else netStatus();
+}
 
-        // === ИНИЦИАЛИЗАЦИЯ И РЕЗСАЙЗ ===
-        let cOff = (CORNER_OP + 2*JAW_R) / Math.SQRT2 - JAW_R; 
-        let mOff = (MIDDLE_OP + 2*JAW_R) / 2; 
+function castRay(start, dir, radius, ignoreBall) {
+  let pos = start.copy(); let dist = 0; let result = { hitBall: null, hitPocket: null, hitCushion: false, hitJaw: false, endPos: pos, dir: dir.copy() };
+  let maxDist = TABLE_W * 1.5; let step = 5;
+  while (dist < maxDist) {
+    pos = pos.add(dir.mult(step)); dist += step;
+    let jawHit = false;
+    for (let jaw of jaws) { if (pos.sub(jaw.pos).mag() < radius + jaw.r) { jawHit = true; break; } }
+    if (jawHit) {
+      result.hitCushion = true; result.hitJaw = true;
+      let backDir = dir.mult(-1); for (let i = 0; i < 5; i++) pos = pos.add(backDir.mult(1));
+      result.endPos = pos; return result;
+    }
+    if (pos.x < radius || pos.x > TABLE_W - radius || pos.y < radius || pos.y > TABLE_H - radius) {
+      let inGap = false;
+      if (pos.y < radius && (pos.x < cOff || Math.abs(pos.x - TABLE_W / 2) < mOff || pos.x > TABLE_W - cOff)) inGap = true;
+      if (pos.y > TABLE_H - radius && (pos.x < cOff || Math.abs(pos.x - TABLE_W / 2) < mOff || pos.x > TABLE_W - cOff)) inGap = true;
+      if (pos.x < radius && (pos.y < cOff || pos.y > TABLE_H - cOff)) inGap = true;
+      if (pos.x > TABLE_W - radius && (pos.y < cOff || pos.y > TABLE_H - cOff)) inGap = true;
+      if (!inGap) { result.hitCushion = true; result.endPos = pos; return result; }
+    }
+    for (let p of pockets) { if (pos.sub(p.pos).mag() < p.r) { result.hitPocket = p; result.endPos = pos; return result; } }
+    for (let b of balls) {
+      if (!b.active || b === ignoreBall) continue;
+      if (pos.sub(b.pos).mag() < radius * 2) {
+        result.hitBall = b; let backDir = dir.mult(-1);
+        while (pos.sub(b.pos).mag() < radius * 2) pos = pos.add(backDir.mult(1));
+        result.endPos = pos; return result;
+      }
+    }
+  }
+  result.endPos = pos; return result;
+}
 
-        function resize() {
-            let container = document.getElementById('game-container');
-            let availW = container.clientWidth; let availH = container.clientHeight;
-            
-            // Вписываем 2:1
-            let ratio = (TABLE_W + RAIL_W*2) / (TABLE_H + RAIL_W*2);
-            let canvasW, canvasH;
-            if (availW / availH > ratio) { canvasH = availH; canvasW = availH * ratio; } 
-            else { canvasW = availW; canvasH = availW / ratio; }
+// === РЕНДЕР СТОЛА ===
+function drawTable() {
+  ctx.save(); ctx.translate(RAIL_W, RAIL_W);
+  const tTheme = themes[currentThemeIndex];
 
-            canvas.style.width = canvasW + 'px'; canvas.style.height = canvasH + 'px';
-            canvas.width = TABLE_W + RAIL_W*2; canvas.height = TABLE_H + RAIL_W*2; // Внутреннее разрешение холста фиксировано
-            
-            scale = canvas.clientWidth / (TABLE_W + RAIL_W*2); // Для перевода кликов мыши
-            
-            ctx.setTransform(1, 0, 0, 1, 0, 0); // Рисуем 1:1 в виртуальных ММ
+  // Борта — тёмное стекло набора с неоновым кантом
+  const railGrad = ctx.createLinearGradient(0, -RAIL_W, 0, TABLE_H + RAIL_W);
+  railGrad.addColorStop(0, '#1a1446'); railGrad.addColorStop(0.5, '#0e1838'); railGrad.addColorStop(1, '#1a1446');
+  ctx.fillStyle = railGrad;
+  ctx.fillRect(-RAIL_W, -RAIL_W, TABLE_W + RAIL_W * 2, TABLE_H + RAIL_W * 2);
+  ctx.strokeStyle = 'rgba(0,229,255,.25)'; ctx.lineWidth = 8;
+  ctx.strokeRect(-RAIL_W + 24, -RAIL_W + 24, TABLE_W + RAIL_W * 2 - 48, TABLE_H + RAIL_W * 2 - 48);
+  // Прицельные марки на бортах
+  ctx.fillStyle = 'rgba(255,77,210,.8)';
+  const mark = (x, y) => { ctx.beginPath(); ctx.arc(x, y, 11, 0, Math.PI * 2); ctx.fill(); };
+  for (let i = 1; i < 8; i++) { if (i === 4) continue; const x = TABLE_W * i / 8; mark(x, -RAIL_W * 0.42); mark(x, TABLE_H + RAIL_W * 0.42); }
+  for (let i = 1; i < 4; i++) { const y = TABLE_H * i / 4; mark(-RAIL_W * 0.42, y); mark(TABLE_W + RAIL_W * 0.42, y); }
 
-            jaws = [
-                new Jaw(cOff, -JAW_R), new Jaw(-JAW_R, cOff),
-                new Jaw(TABLE_W/2 - mOff, -JAW_R), new Jaw(TABLE_W/2 + mOff, -JAW_R),
-                new Jaw(TABLE_W - cOff, -JAW_R), new Jaw(TABLE_W + JAW_R, cOff),
-                new Jaw(cOff, TABLE_H + JAW_R), new Jaw(-JAW_R, TABLE_H - cOff),
-                new Jaw(TABLE_W/2 - mOff, TABLE_H + JAW_R), new Jaw(TABLE_W/2 + mOff, TABLE_H + JAW_R),
-                new Jaw(TABLE_W - cOff, TABLE_H + JAW_R), new Jaw(TABLE_W + JAW_R, TABLE_H - cOff)
-            ];
+  // Сукно (Динамическое)
+  const clothGrad = ctx.createRadialGradient(TABLE_W / 2, TABLE_H / 2, TABLE_H * 0.15, TABLE_W / 2, TABLE_H / 2, TABLE_W * 0.6);
+  clothGrad.addColorStop(0, tTheme.clothHi); clothGrad.addColorStop(1, tTheme.cloth);
+  ctx.fillStyle = clothGrad; ctx.fillRect(0, 0, TABLE_W, TABLE_H);
 
-            pockets = [
-                new Pocket(-20, -20, false), new Pocket(TABLE_W/2, -30, true), new Pocket(TABLE_W+20, -20, false),
-                new Pocket(-20, TABLE_H+20, false), new Pocket(TABLE_W/2, TABLE_H+30, true), new Pocket(TABLE_W+20, TABLE_H+20, false)
-            ];
-        }
+  // Резина бортов у луз (Динамическая)
+  ctx.fillStyle = tTheme.cushion;
+  ctx.beginPath(); ctx.moveTo(0, 0); ctx.lineTo(cOff, 0); ctx.lineTo(0, cOff); ctx.fill(); // TL
+  ctx.fillRect(TABLE_W / 2 - mOff, -RAIL_W, MIDDLE_OP, RAIL_W); // TM
+  ctx.beginPath(); ctx.moveTo(TABLE_W, 0); ctx.lineTo(TABLE_W - cOff, 0); ctx.lineTo(TABLE_W, cOff); ctx.fill(); // TR
+  ctx.beginPath(); ctx.moveTo(0, TABLE_H); ctx.lineTo(cOff, TABLE_H); ctx.lineTo(0, TABLE_H - cOff); ctx.fill(); // BL
+  ctx.fillRect(TABLE_W / 2 - mOff, TABLE_H, MIDDLE_OP, RAIL_W); // BM
+  ctx.beginPath(); ctx.moveTo(TABLE_W, TABLE_H); ctx.lineTo(TABLE_W - cOff, TABLE_H); ctx.lineTo(TABLE_W, TABLE_H - cOff); ctx.fill(); // BR
 
-        function initGame() {
-            resize(); balls = [];
-            gameState.score1 = 0; gameState.score2 = 0;
-            gameState.pocketed1 = []; gameState.pocketed2 = [];
-            gameState.currentPlayer = 1; gameState.ballInHand = false; gameState.aimAngle = 0;
-            gameState.ballsMoving = false; gameState.hitOccurred = false; gameState.turnValid = false; gameState.foul = false; gameState.pocketedThisTurn = 0;
-            gameState.aimPower = 0; gameState.isPlacingCue = false; gameState.isAimingOnCanvas = false;
+  // Неоновая кромка бортов между лузами
+  ctx.save();
+  ctx.strokeStyle = tTheme.edge; ctx.shadowColor = tTheme.edge; ctx.shadowBlur = 10;
+  ctx.lineWidth = 7; ctx.lineCap = 'round'; ctx.globalAlpha = 0.85;
+  ctx.beginPath();
+  ctx.moveTo(cOff, -4); ctx.lineTo(TABLE_W / 2 - mOff, -4); ctx.moveTo(TABLE_W / 2 + mOff, -4); ctx.lineTo(TABLE_W - cOff, -4);
+  ctx.moveTo(cOff, TABLE_H + 4); ctx.lineTo(TABLE_W / 2 - mOff, TABLE_H + 4); ctx.moveTo(TABLE_W / 2 + mOff, TABLE_H + 4); ctx.lineTo(TABLE_W - cOff, TABLE_H + 4);
+  ctx.moveTo(-4, cOff); ctx.lineTo(-4, TABLE_H - cOff); ctx.moveTo(TABLE_W + 4, cOff); ctx.lineTo(TABLE_W + 4, TABLE_H - cOff);
+  ctx.stroke();
+  ctx.restore();
 
-            let startBall = new Ball(HOUSE_X * 0.8, TABLE_H / 2, '#facc15', 0);
-            balls.push(startBall);
+  // Лузы
+  pockets.forEach(p => {
+    ctx.fillStyle = '#03040c';
+    ctx.beginPath(); ctx.arc(p.pos.x, p.pos.y, p.r, 0, Math.PI * 2); ctx.fill();
+    ctx.strokeStyle = 'rgba(255,255,255,.08)'; ctx.lineWidth = 2;
+    ctx.beginPath(); ctx.arc(p.pos.x, p.pos.y, p.r * 0.8, 0, Math.PI * 2); ctx.stroke();
+  });
 
-            const startX = TABLE_W * 0.72; const startY = TABLE_H / 2;
-            let idCounter = 1;
+  // Латунные скобы — с внешней стороны стола (раньше у нижних луз дуга лежала на сукне: rotate после arc() не действует)
+  pockets.forEach(p => {
+    const brass = ctx.createRadialGradient(p.pos.x, p.pos.y, 10, p.pos.x, p.pos.y, p.r + 30);
+    brass.addColorStop(0, '#ffe27a'); brass.addColorStop(1, '#c98400');
+    ctx.strokeStyle = brass; ctx.lineWidth = 15; ctx.lineCap = 'round';
+    ctx.beginPath();
+    if (p.pos.y < TABLE_H / 2) ctx.arc(p.pos.x, p.pos.y, p.r + 20, Math.PI, 0);
+    else ctx.arc(p.pos.x, p.pos.y, p.r + 20, 0, Math.PI);
+    ctx.stroke();
+  });
 
-            for (let row = 0; row < 5; row++) {
-                for (let col = 0; col <= row; col++) {
-                    const bx = startX + row * (BALL_R * Math.sqrt(3) + 0.1);
-                    const by = startY - (row * BALL_R) + (col * (BALL_R * 2 + 0.1));
-                    balls.push(new Ball(bx, by, '#fffff0', idCounter++));
-                }
-            }
-            
-            gameState.selectedBall = startBall;
-            updateHUD(); setStatus("Выберите шар для удара."); netStatus();
-        }
+  // Губки (Динамические)
+  ctx.fillStyle = tTheme.jaw;
+  jaws.forEach(j => { ctx.beginPath(); ctx.arc(j.pos.x, j.pos.y, j.r * 1.5, 0, Math.PI * 2); ctx.fill(); });
 
-        // === ФИЗИКА ===
-        function resolveCollisions() {
-            for (let i = 0; i < balls.length; i++) {
-                if (!balls[i].active) continue;
-                for (let j = i + 1; j < balls.length; j++) {
-                    if (!balls[j].active) continue;
-                    let a = balls[i]; let b = balls[j];
-                    let delta = b.pos.sub(a.pos); let dist = delta.mag(); let minDist = a.radius + b.radius;
+  // Линия дома, центральная и задняя отметки
+  ctx.beginPath(); ctx.moveTo(HOUSE_X, 0); ctx.lineTo(HOUSE_X, TABLE_H); ctx.strokeStyle = 'rgba(255,255,255,0.12)'; ctx.lineWidth = 3; ctx.stroke();
+  ctx.fillStyle = 'rgba(255,255,255,0.22)';
+  [TABLE_W / 2, TABLE_W * 0.75].forEach(x => { ctx.beginPath(); ctx.arc(x, TABLE_H / 2, 6, 0, Math.PI * 2); ctx.fill(); });
+  ctx.restore();
+}
 
-                    if (dist < minDist) {
-                        let overlap = minDist - dist; let normal = delta.norm();
-                        a.pos = a.pos.sub(normal.mult(overlap / 2)); b.pos = b.pos.add(normal.mult(overlap / 2));
-                        let relVel = a.vel.sub(b.vel); let speed = relVel.dot(normal);
-                        if (speed > 0) {
-                            if (a === gameState.selectedBall || b === gameState.selectedBall) gameState.hitOccurred = true; 
-                            playSound('hit', speed);
-                            let impulse = (1.96) * speed / (1/a.mass + 1/b.mass);
-                            a.vel = a.vel.sub(normal.mult(impulse / a.mass)); b.vel = b.vel.add(normal.mult(impulse / b.mass));
-                            let tangent = new Vec2(-normal.y, normal.x); let relTangentVel = relVel.dot(tangent);
-                            let throwImpulse = relTangentVel * 0.03; 
-                            a.vel = a.vel.sub(tangent.mult(throwImpulse)); b.vel = b.vel.add(tangent.mult(throwImpulse));
-                        }
-                    }
-                }
-            }
+function drawAim() {
+  if (gameState.ballsMoving || !gameState.selectedBall || !canControl()) return;
+  let isFull = fullTrajectory;
+  let tb = gameState.selectedBall;
+  let dir = new Vec2(Math.cos(gameState.aimAngle), Math.sin(gameState.aimAngle));
+  let cueRay = castRay(tb.pos, dir, BALL_R, tb);
 
-            for (let b of balls) {
-                if (!b.active) continue;
-                for (let jaw of jaws) {
-                    let delta = b.pos.sub(jaw.pos); let dist = delta.mag(); let minDist = b.radius + jaw.r;
-                    if (dist < minDist) {
-                        b.pos = b.pos.add(delta.norm().mult(minDist - dist)); 
-                        let speed = b.vel.dot(delta.norm());
-                        if (speed < 0) { b.vel = b.vel.sub(delta.norm().mult(speed * 1.6)); playSound('cushion', Math.abs(speed)); }
-                    }
-                }
-            }
-        }
+  let isGreen = false; let targetRay = null; let cueBounceRay = null;
+  if (cueRay.hitPocket) isGreen = true;
+  if (cueRay.hitBall) {
+    let hitNorm = cueRay.hitBall.pos.sub(cueRay.endPos).norm();
+    targetRay = castRay(cueRay.hitBall.pos, hitNorm, BALL_R, cueRay.hitBall);
+    if (targetRay.hitPocket) isGreen = true;
+    let cueTangent = new Vec2(-hitNorm.y, hitNorm.x);
+    let cuePathDir = (dir.dot(cueTangent) > 0) ? cueTangent : cueTangent.mult(-1);
+    if (gameState.spin.y !== 0) cuePathDir = cuePathDir.add(dir.mult(-gameState.spin.y * 0.5)).norm();
+    cueBounceRay = castRay(cueRay.endPos, cuePathDir, BALL_R, cueRay.hitBall);
+    if (cueBounceRay.hitPocket) isGreen = true;
+  }
 
-        function updatePhysics(dt) {
-            let moving = false;
-            for (let b of balls) {
-                if (!b.active) continue;
-                let slip = b.spin.sub(b.vel); let slipMag = slip.mag();
+  ctx.save(); ctx.translate(RAIL_W, RAIL_W);
+  const RED = 'rgba(255, 93, 125, 0.85)';
+  let mainColor = isGreen ? 'rgba(81, 245, 139, 0.95)' : 'rgba(238, 242, 255, 0.75)';
+  let secColor = isGreen ? 'rgba(81, 245, 139, 0.6)' : 'rgba(238, 242, 255, 0.4)';
+  let targetColor = isGreen ? 'rgba(81, 245, 139, 0.95)' : RED;
+  if (cueRay.hitJaw && !isGreen) mainColor = RED;
 
-                if (b.vel.mag() > MIN_VELOCITY || slipMag > MIN_VELOCITY || Math.abs(b.sideSpin) > MIN_VELOCITY) {
-                    moving = true;
-                    if (slipMag > 10) { let fric = slip.mult(5.0 * dt); b.vel = b.vel.add(fric); b.spin = b.spin.sub(fric.mult(2.5)); }
-                    b.pos = b.pos.add(b.vel.mult(dt)); 
-                    let speed = b.vel.mag();
-                    if (speed > 0) { let drop = FRICTION * dt; let mult = Math.max(0, speed - drop) / speed; b.vel = b.vel.mult(mult); b.spin = b.spin.mult(mult); }
-                    b.sideSpin *= (1 - 0.5 * dt);
+  ctx.beginPath(); ctx.moveTo(tb.pos.x, tb.pos.y); ctx.lineTo(cueRay.endPos.x, cueRay.endPos.y);
+  ctx.strokeStyle = mainColor; ctx.lineWidth = 4; ctx.setLineDash([15, 15]); ctx.stroke(); ctx.setLineDash([]);
+  ctx.beginPath(); ctx.arc(cueRay.endPos.x, cueRay.endPos.y, BALL_R, 0, Math.PI * 2); ctx.strokeStyle = mainColor; ctx.lineWidth = 2; ctx.stroke();
 
-                    let e_cushion = 0.8; let r = b.radius;
-                    if (b.pos.y - r < 0) {
-                        if (!((b.pos.x < cOff) || (Math.abs(b.pos.x - TABLE_W/2) < mOff) || (b.pos.x > TABLE_W - cOff))) { 
-                            b.pos.y = r; b.vel.y *= -e_cushion; b.spin.y *= -e_cushion; b.vel.x -= b.sideSpin * 0.2; b.sideSpin *= 0.5; playSound('cushion', Math.abs(b.vel.y)); 
-                        }
-                    }
-                    if (b.pos.y + r > TABLE_H) {
-                        if (!((b.pos.x < cOff) || (Math.abs(b.pos.x - TABLE_W/2) < mOff) || (b.pos.x > TABLE_W - cOff))) { 
-                            b.pos.y = TABLE_H - r; b.vel.y *= -e_cushion; b.spin.y *= -e_cushion; b.vel.x += b.sideSpin * 0.2; b.sideSpin *= 0.5; playSound('cushion', Math.abs(b.vel.y)); 
-                        }
-                    }
-                    if (b.pos.x - r < 0) {
-                        if (!((b.pos.y < cOff) || (b.pos.y > TABLE_H - cOff))) { 
-                            b.pos.x = r; b.vel.x *= -e_cushion; b.spin.x *= -e_cushion; b.vel.y += b.sideSpin * 0.2; b.sideSpin *= 0.5; playSound('cushion', Math.abs(b.vel.x)); 
-                        }
-                    }
-                    if (b.pos.x + r > TABLE_W) {
-                        if (!((b.pos.y < cOff) || (b.pos.y > TABLE_H - cOff))) { 
-                            b.pos.x = TABLE_W - r; b.vel.x *= -e_cushion; b.spin.x *= -e_cushion; b.vel.y -= b.sideSpin * 0.2; b.sideSpin *= 0.5; playSound('cushion', Math.abs(b.vel.x)); 
-                        }
-                    }
-                } else { b.vel = new Vec2(0, 0); b.spin = new Vec2(0, 0); b.sideSpin = 0; }
-            }
+  if (cueRay.hitBall) {
+    let showFull = isFull || isGreen;
+    let tEnd = targetRay.endPos;
+    if (targetRay.hitJaw && !isGreen) targetColor = RED;
+    if (!showFull) { if (tEnd.sub(cueRay.hitBall.pos).mag() > 300) tEnd = cueRay.hitBall.pos.add(targetRay.dir.mult(300)); }
+    ctx.beginPath(); ctx.moveTo(cueRay.hitBall.pos.x, cueRay.hitBall.pos.y); ctx.lineTo(tEnd.x, tEnd.y); ctx.strokeStyle = targetColor; ctx.lineWidth = 6; ctx.stroke();
 
-            resolveCollisions();
+    let cEnd = cueBounceRay.endPos;
+    if (!showFull) { if (cEnd.sub(cueRay.endPos).mag() > 200) cEnd = cueRay.endPos.add(cueBounceRay.dir.mult(200)); }
+    ctx.beginPath(); ctx.moveTo(cueRay.endPos.x, cueRay.endPos.y); ctx.lineTo(cEnd.x, cEnd.y); ctx.strokeStyle = secColor; ctx.lineWidth = 4; ctx.setLineDash([10, 10]); ctx.stroke(); ctx.setLineDash([]);
+  }
 
-            for (let b of balls) {
-                if (!b.active) continue;
-                for (let p of pockets) {
-                    if (b.pos.sub(p.pos).mag() < p.r) {
-                        playSound('pocket', 5000); b.active = false; b.vel = new Vec2(0,0); b.spin = new Vec2(0,0); handlePocketedBall(b); break;
-                    }
-                }
-            }
+  // Кий: наклейка, светлое древко, тёмный турняк, неоновая подсветка
+  const ux = Math.cos(gameState.aimAngle), uy = Math.sin(gameState.aimAngle);
+  const cueDist = BALL_R * 2.5 + (gameState.aimPower / MAX_POWER) * 400;
+  const tipX = tb.pos.x - ux * cueDist, tipY = tb.pos.y - uy * cueDist;
+  const endX = tipX - ux * 1500, endY = tipY - uy * 1500;
+  const cueGrad = ctx.createLinearGradient(tipX, tipY, endX, endY);
+  cueGrad.addColorStop(0, '#5b8cff'); cueGrad.addColorStop(0.012, '#5b8cff');
+  cueGrad.addColorStop(0.013, '#f4ead8'); cueGrad.addColorStop(0.035, '#f4ead8');
+  cueGrad.addColorStop(0.036, '#ffcf9a'); cueGrad.addColorStop(0.62, '#ff9f43'); cueGrad.addColorStop(1, '#6b2a0c');
+  ctx.save();
+  ctx.strokeStyle = cueGrad; ctx.lineWidth = 18; ctx.lineCap = 'round';
+  ctx.shadowColor = 'rgba(255, 159, 67, 0.6)'; ctx.shadowBlur = 10;
+  ctx.beginPath(); ctx.moveTo(tipX, tipY); ctx.lineTo(endX, endY); ctx.stroke();
+  ctx.restore();
+  ctx.restore();
+}
 
-            if (gameState.ballsMoving && !moving) { gameState.ballsMoving = false; onTurnEnd(); } 
-            else if (moving) { gameState.ballsMoving = true; setStatus("Шары в движении..."); }
-        }
+// === ЦИКЛ: физика фиксированными подшагами по времени (на 120/144 Гц стол больше не «ускоряется») ===
+let lastTs = 0, physAcc = 0;
+const gameScreen = $('screen-game');
+function physicsPaused() {
+  return $('menu-pause').classList.contains('open') || $('menu-rules').classList.contains('open') || $('menu-settings').classList.contains('open');
+}
+function loop(ts) {
+  requestAnimationFrame(loop);
+  let dt = lastTs ? (ts - lastTs) / 1000 : 1 / 60;
+  lastTs = ts;
+  if (!(dt > 0) || dt > 0.25) dt = 1 / 60;          // вкладка была скрыта
+  if (!gameScreen.classList.contains('active')) return;
+  if (!physicsPaused()) {
+    physAcc = Math.min(physAcc + dt, 0.1);
+    // округление до ближайшего числа подшагов: на 60 Гц стабильно 10 подшагов на кадр, как раньше
+    while (physAcc > PHYS_DT * 0.5) { updatePhysics(PHYS_DT); physAcc -= PHYS_DT; }
+  }
+  baseTransform();
+  drawTable();
+  ctx.save(); ctx.translate(RAIL_W, RAIL_W); balls.forEach(b => b.draw()); ctx.restore();
+  drawAim();
+}
 
-        function handlePocketedBall(ball) {
-            if (replaying) { if (ball === gameState.selectedBall) gameState.selectedBall = null; return; }   // итог придёт снимком
-            gameState.turnValid = true; gameState.pocketedThisTurn++;
-            if (ball === gameState.selectedBall) gameState.selectedBall = null; 
-            let symbol = ball.number > 0 ? ball.number : "Б"; 
-            if (gameState.currentPlayer === 1) { gameState.score1++; gameState.pocketed1.push(symbol); } 
-            else { gameState.score2++; gameState.pocketed2.push(symbol); }
-            updateHUD();
-            if (gameState.score1 >= 8 || gameState.score2 >= 8) {
-                let winner = gameState.score1 >= 8 ? 1 : 2;
-                if (isNet()) netShowWinner();
-                else showModal("ПОБЕДА!", `Игрок ${winner} первым забил 8 шаров!`, initGame);
-            }
-        }
+// === UI ===
+function showScreen(name) {
+  $('screen-menu').classList.toggle('active', name === 'menu');
+  $('screen-game').classList.toggle('active', name === 'game');
+  if (name === 'game') layout();
+}
+function updateTitle() {
+  $('game-title').textContent = isNet() ? 'ПО СЕТИ · ' + net.room.id : 'ВДВОЁМ';
+}
+function updateHUD() {
+  const p1 = $('player1-panel'); const p2 = $('player2-panel');
+  $('name1').textContent = netName(1) + (isNet() && mySeat === 0 ? ' (вы)' : '');
+  $('name2').textContent = netName(2) + (isNet() && mySeat === 1 ? ' (вы)' : '');
+  p1.classList.toggle('on', gameState.currentPlayer === 1);
+  p2.classList.toggle('on', gameState.currentPlayer === 2);
+  $('score1').textContent = gameState.score1;
+  $('score2').textContent = gameState.score2;
 
-        function onTurnEnd() {
-            if (replaying) {   // проигрывание чужого удара закончилось — ставим шары по снимку
-                replaying = false; const s = replayState; replayState = null;
-                applySnapshot(s); afterApply(); nextReplay();
-                return;
-            }
-            if (!gameState.hitOccurred && gameState.pocketedThisTurn === 0) {
-                gameState.foul = true;
-                if (gameState.currentPlayer === 1) { gameState.score2++; gameState.pocketed2.push("Ш"); } 
-                else { gameState.score1++; gameState.pocketed1.push("Ш"); }
-                showModal("ФОЛ: Промах!", "Ваш шар никого не коснулся. Соперник получает штрафное очко.");
-            }
-            if (!gameState.turnValid || gameState.foul) gameState.currentPlayer = gameState.currentPlayer === 1 ? 2 : 1;
-            gameState.turnValid = false; gameState.foul = false; gameState.hitOccurred = false; gameState.pocketedThisTurn = 0;
-            
-            let activeBalls = balls.filter(b => b.active);
-            if (!gameState.selectedBall || !gameState.selectedBall.active) gameState.selectedBall = activeBalls.length > 0 ? activeBalls[0] : null;
-            updateHUD(); setStatus(`Ход Игрока ${gameState.currentPlayer}.`); resetSpin();
-            if (isNet() && pendingShot) {
-                const shot = pendingShot; pendingShot = null;
-                net.move(snapshot(shot), gameState.currentPlayer - 1, null, netFinished)
-                    .then(() => netStatus())
-                    .catch(e => setStatus(/устарело/.test(e.message) ? 'Синхронизация…' : 'Нет связи: ' + e.message));
-            } else netStatus();
-        }
+  const renderBalls = (pocketed) => {
+    let html = '';
+    for (let i = 0; i < 8; i++) {
+      if (i < pocketed.length) {
+        const v = pocketed[i];
+        const cls = v === 'Ш' ? 'pen' : (v === 'Б' ? 'cue' : '');
+        html += `<div class="bl-ball ${cls}">${v}</div>`;
+      } else html += `<div class="bl-ball empty"></div>`;
+    }
+    if (pocketed.length > 8) html += `<span class="bl-more">+${pocketed.length - 8}</span>`;
+    return html;
+  };
+  $('pocketed1').innerHTML = renderBalls(gameState.pocketed1);
+  $('pocketed2').innerHTML = renderBalls(gameState.pocketed2);
+}
+function popScore(p) {
+  const el = $('score' + p + '-box'); if (!el) return;
+  el.classList.remove('pop'); void el.offsetWidth; el.classList.add('pop');
+}
+let statusText = '';
+function setStatus(text) {
+  if (!text || text === statusText) return;      // раньше писалось в DOM 600 раз/с, пока катятся шары
+  statusText = text; $('game-status').textContent = text;
+}
 
-        function castRay(start, dir, radius, ignoreBall) {
-            let pos = start.copy(); let dist = 0; let result = { hitBall: null, hitPocket: null, hitCushion: false, hitJaw: false, endPos: pos, dir: dir.copy() };
-            let maxDist = TABLE_W * 1.5; let step = 5;
-            while(dist < maxDist) {
-                pos = pos.add(dir.mult(step)); dist += step;
-                let jawHit = false;
-                for (let jaw of jaws) { if (pos.sub(jaw.pos).mag() < radius + jaw.r) { jawHit = true; break; } }
-                if (jawHit) {
-                    result.hitCushion = true; result.hitJaw = true; 
-                    let backDir = dir.mult(-1); for(let i=0; i<5; i++) pos = pos.add(backDir.mult(1));
-                    result.endPos = pos; return result;
-                }
-                if (pos.x < radius || pos.x > TABLE_W - radius || pos.y < radius || pos.y > TABLE_H - radius) {
-                    let inGap = false;
-                    if(pos.y < radius && (pos.x < cOff || Math.abs(pos.x - TABLE_W/2) < mOff || pos.x > TABLE_W - cOff)) inGap = true;
-                    if(pos.y > TABLE_H-radius && (pos.x < cOff || Math.abs(pos.x - TABLE_W/2) < mOff || pos.x > TABLE_W - cOff)) inGap = true;
-                    if(pos.x < radius && (pos.y < cOff || pos.y > TABLE_H - cOff)) inGap = true;
-                    if(pos.x > TABLE_W-radius && (pos.y < cOff || pos.y > TABLE_H - cOff)) inGap = true;
-                    if (!inGap) { result.hitCushion = true; result.endPos = pos; return result; }
-                }
-                for (let p of pockets) { if (pos.sub(p.pos).mag() < p.r) { result.hitPocket = p; result.endPos = pos; return result; } }
-                for (let b of balls) {
-                    if (!b.active || b === ignoreBall) continue;
-                    if (pos.sub(b.pos).mag() < radius * 2) {
-                        result.hitBall = b; let backDir = dir.mult(-1);
-                        while(pos.sub(b.pos).mag() < radius * 2) pos = pos.add(backDir.mult(1));
-                        result.endPos = pos; return result;
-                    }
-                }
-            }
-            result.endPos = pos; return result;
-        }
+let modalCallback = null;
+function showModal(title, desc, callback = null, opts = {}) {
+  $('modal-title').textContent = title;
+  $('modal-title').className = opts.cls || '';
+  $('modal-desc').textContent = desc;
+  $('modal-ok').textContent = opts.ok || 'Продолжить';
+  $('modal-menu').style.display = opts.menu ? '' : 'none';
+  if (opts.stats) {
+    $('ms-name1').textContent = netName(1); $('ms-name2').textContent = netName(2);
+    $('ms-score1').textContent = gameState.score1; $('ms-score2').textContent = gameState.score2;
+    $('modal-stats').style.display = '';
+  } else $('modal-stats').style.display = 'none';
+  $('modal-message').classList.add('open');
+  modalCallback = callback;
+}
+function closeModal() {
+  resumeAudio();
+  $('modal-message').classList.remove('open');
+  const cb = modalCallback; modalCallback = null;
+  if (cb) cb();
+}
+function closeModalSilent() {
+  modalCallback = null;
+  $('modal-message').classList.remove('open');
+}
+$('modal-ok').onclick = closeModal;
+$('modal-menu').onclick = () => { closeModalSilent(); toMenu(); };
 
-        // === РЕНДЕР СТОЛА ===
-        function drawTable() {
-            ctx.save(); ctx.translate(RAIL_W, RAIL_W);
-            
-            let tTheme = themes[currentThemeIndex];
+function closeOverlays() { ['menu-pause', 'menu-rules', 'menu-settings'].forEach(id => $(id).classList.remove('open')); }
+function anyOverlay() { return document.querySelector('.ku-overlay.open') !== null || !!document.querySelector('.kn-ov'); }
+function toMenu() {
+  closeModalSilent(); closeOverlays();
+  if (isNet()) leaveNet();
+  showScreen('menu');
+  initGame();
+}
 
-            // Деревянный каркас (Борта)
-            let woodGrad = ctx.createLinearGradient(0, -RAIL_W, 0, TABLE_H+RAIL_W);
-            woodGrad.addColorStop(0, '#2e1810'); woodGrad.addColorStop(0.5, '#4a2b1f'); woodGrad.addColorStop(1, '#2e1810');
-            ctx.fillStyle = woodGrad;
-            ctx.fillRect(-RAIL_W, -RAIL_W, TABLE_W + RAIL_W*2, TABLE_H + RAIL_W*2); 
+// Пауза / правила / настройки
+let returnTo = null;
+function openPause() {
+  if (anyOverlay()) return;
+  $('btn-restart').style.display = isNet() ? 'none' : '';   // по сети новая партия — через «Играть снова»
+  $('menu-pause').classList.add('open');
+}
+$('btn-pause').onclick = e => { e.currentTarget.blur(); openPause(); };
+$('btn-resume').onclick = () => $('menu-pause').classList.remove('open');
+$('btn-restart').onclick = () => { $('menu-pause').classList.remove('open'); if (!isNet()) initGame(); };
+$('btn-quit').onclick = toMenu;
+function openSub(id, from) {
+  returnTo = from || null;
+  if (from) $(from).classList.remove('open');
+  $(id).classList.add('open');
+}
+function closeSub(id) {
+  $(id).classList.remove('open');
+  if (returnTo) $(returnTo).classList.add('open');
+  returnTo = null;
+}
+$('btn-rules').onclick = () => openSub('menu-rules');
+$('btn-rules2').onclick = () => openSub('menu-rules', 'menu-pause');
+$('btn-rules-close').onclick = $('btn-rules-x').onclick = () => closeSub('menu-rules');
+$('btn-settings').onclick = () => { renderSettings(); openSub('menu-settings'); };
+$('btn-settings2').onclick = e => { e.currentTarget.blur(); if (anyOverlay()) return; renderSettings(); openSub('menu-settings'); };
+$('btn-settings3').onclick = () => { renderSettings(); openSub('menu-settings', 'menu-pause'); };
+$('btn-settings-close').onclick = $('btn-settings-x').onclick = () => closeSub('menu-settings');
 
-            // Сукно (Динамическое)
-            ctx.fillStyle = tTheme.cloth; ctx.fillRect(0, 0, TABLE_W, TABLE_H);
+function renderSettings() {
+  const box = $('swatches'); box.innerHTML = '';
+  themes.forEach((t, i) => {
+    const b = document.createElement('button');
+    b.className = 'bl-swatch' + (i === currentThemeIndex ? ' active' : '');
+    b.style.setProperty('--cl', t.cloth); b.style.setProperty('--hi', t.clothHi);
+    b.title = t.name; b.setAttribute('aria-label', 'Сукно: ' + t.name);
+    b.onclick = () => { currentThemeIndex = i; savePrefs(); renderSettings(); };
+    box.appendChild(b);
+  });
+  $('theme-label').textContent = 'Сукно: ' + themes[currentThemeIndex].name;
+  $('opt-numbers').checked = showNumbers;
+  $('opt-traj').checked = fullTrajectory;
+}
+$('opt-numbers').onchange = e => { showNumbers = e.target.checked; savePrefs(); };
+$('opt-traj').onchange = e => { fullTrajectory = e.target.checked; savePrefs(); };
 
-            // Резина бортов (Динамическая)
-            ctx.fillStyle = tTheme.cushion;
-            ctx.beginPath(); ctx.moveTo(0,0); ctx.lineTo(cOff, 0); ctx.lineTo(0, cOff); ctx.fill(); // TL
-            ctx.fillRect(TABLE_W/2 - mOff, -RAIL_W, MIDDLE_OP, RAIL_W); // TM
-            ctx.beginPath(); ctx.moveTo(TABLE_W,0); ctx.lineTo(TABLE_W - cOff, 0); ctx.lineTo(TABLE_W, cOff); ctx.fill(); // TR
-            ctx.beginPath(); ctx.moveTo(0,TABLE_H); ctx.lineTo(cOff, TABLE_H); ctx.lineTo(0, TABLE_H - cOff); ctx.fill(); // BL
-            ctx.fillRect(TABLE_W/2 - mOff, TABLE_H, MIDDLE_OP, RAIL_W); // BM
-            ctx.beginPath(); ctx.moveTo(TABLE_W,TABLE_H); ctx.lineTo(TABLE_W - cOff, TABLE_H); ctx.lineTo(TABLE_W, TABLE_H - cOff); ctx.fill(); // BR
+$('btn-local').onclick = () => { resumeAudio(); if (isNet()) leaveNet(); showScreen('game'); initGame(); };
+$('btn-net').onclick = openNetLobby;
 
-            // Сетки (кожаные ремешки)
-            ctx.fillStyle = '#050a06';
-            pockets.forEach(p => { 
-                ctx.beginPath(); ctx.arc(p.pos.x, p.pos.y, p.r, 0, Math.PI * 2); ctx.fill(); 
-                // Сетка
-                ctx.strokeStyle = '#4a2b1f'; ctx.lineWidth = 2;
-                ctx.beginPath(); ctx.arc(p.pos.x, p.pos.y, p.r * 0.8, 0, Math.PI * 2); ctx.stroke();
-            });
+// === УПРАВЛЕНИЕ (pointer-события: мышь, тач и перо — без двойных срабатываний mouse+touch) ===
+function capture(el, e) { try { el.setPointerCapture(e.pointerId); } catch (err) {} }
 
-            // Латунные скобы (Brass Pockets)
-            let brassGrad = ctx.createRadialGradient(0,0,10,0,0,50);
-            brassGrad.addColorStop(0, '#facc15'); brassGrad.addColorStop(1, '#a16207');
-            pockets.forEach(p => {
-                ctx.save(); ctx.translate(p.pos.x, p.pos.y);
-                ctx.beginPath(); ctx.arc(0, 0, p.r + 20, Math.PI, 0); // Полукруг
-                ctx.strokeStyle = brassGrad; ctx.lineWidth = 15; ctx.lineCap = 'round';
-                if(p.pos.y > 0) ctx.rotate(Math.PI);
-                if(p.pos.x > 0 && p.pos.x < TABLE_W && p.pos.y < 0) ctx.rotate(Math.PI); // Top middle fix
-                ctx.stroke(); ctx.restore();
-            });
+// Винт
+const spinCtrl = $('spin-control'); const spinDot = $('spin-dot'); let spinPointer = null;
+function updateSpin(e) {
+  const rect = spinCtrl.getBoundingClientRect();
+  let x = e.clientX - rect.left - rect.width / 2; let y = e.clientY - rect.top - rect.height / 2; let r = rect.width / 2; let dist = Math.sqrt(x * x + y * y);
+  if (dist > r) { x = (x / dist) * r; y = (y / dist) * r; }
+  spinDot.style.transform = `translate(calc(-50% + ${x}px), calc(-50% + ${y}px))`; gameState.spin = new Vec2(x / r, y / r);
+}
+function resetSpin() { spinDot.style.transform = `translate(-50%, -50%)`; gameState.spin = new Vec2(0, 0); }
+spinCtrl.addEventListener('pointerdown', e => { if (!canControl() || gameState.ballsMoving) return; e.preventDefault(); spinPointer = e.pointerId; capture(spinCtrl, e); updateSpin(e); });
+spinCtrl.addEventListener('pointermove', e => { if (e.pointerId === spinPointer) updateSpin(e); });
+const endSpin = e => { if (e.pointerId === spinPointer) spinPointer = null; };
+spinCtrl.addEventListener('pointerup', endSpin); spinCtrl.addEventListener('pointercancel', endSpin);
+$('btn-spin-reset').onclick = e => { e.currentTarget.blur(); resetSpin(); };
 
-            // Губки (Динамические)
-            ctx.fillStyle = tTheme.jaw;
-            jaws.forEach(j => { ctx.beginPath(); ctx.arc(j.pos.x, j.pos.y, j.r*1.5, 0, Math.PI * 2); ctx.fill(); }); 
+// Сила: тянуть вниз, отпустить — удар
+const powerSlider = $('power-slider'); const powerFill = $('power-fill'); const powerHandle = $('power-handle'); let powerPointer = null;
+function setPowerUI(percent) { powerFill.style.height = (percent * 100) + '%'; powerHandle.style.top = (percent * 100) + '%'; }
+function updatePowerFromSlider(e) {
+  const rect = powerSlider.getBoundingClientRect();
+  const percent = Math.max(0, Math.min(1, (e.clientY - rect.top) / rect.height));
+  gameState.aimPower = percent * MAX_POWER;
+  setPowerUI(percent);
+}
+function executeShot() {
+  if (gameState.aimPower > 100 && !gameState.ballsMoving && gameState.selectedBall && canControl()) {
+    gameState.hitOccurred = false; gameState.foul = false; gameState.pocketedThisTurn = 0; gameState.foulPotted = [];
+    let dir = new Vec2(Math.cos(gameState.aimAngle), Math.sin(gameState.aimAngle));
+    // старт удара — с полной точностью: разбой хаотичен, и округление до 0.01 мм (ballsSnapshot) давало
+    // у соперника совсем другой разлёт шаров, после чего они «телепортировались» по итоговому снимку
+    if (isNet()) pendingShot = { idx: balls.indexOf(gameState.selectedBall), start: balls.map(b => ({ x: b.pos.x, y: b.pos.y, a: b.active ? 1 : 0 })) };
+    gameState.selectedBall.vel = dir.mult(gameState.aimPower);
+    gameState.selectedBall.spin = dir.mult(gameState.aimPower * -gameState.spin.y * 2.5);
+    gameState.selectedBall.sideSpin = gameState.spin.x * gameState.aimPower * 0.8;
+    if (pendingShot) { const sb = gameState.selectedBall; pendingShot.vel = { x: sb.vel.x, y: sb.vel.y }; pendingShot.spin = { x: sb.spin.x, y: sb.spin.y }; pendingShot.side = sb.sideSpin; }
+    playSound('cue', gameState.aimPower);
+  }
+  gameState.aimPower = 0; setPowerUI(0);
+}
+powerSlider.addEventListener('pointerdown', e => {
+  resumeAudio();
+  if (gameState.ballsMoving || !gameState.selectedBall || !canControl()) return;
+  e.preventDefault(); powerPointer = e.pointerId; capture(powerSlider, e); updatePowerFromSlider(e);
+});
+powerSlider.addEventListener('pointermove', e => { if (e.pointerId === powerPointer) updatePowerFromSlider(e); });
+powerSlider.addEventListener('pointerup', e => { if (e.pointerId === powerPointer) { powerPointer = null; executeShot(); } });
+powerSlider.addEventListener('pointercancel', e => { if (e.pointerId === powerPointer) { powerPointer = null; gameState.aimPower = 0; setPowerUI(0); } });
 
-            // Линия дома
-            ctx.beginPath(); ctx.arc(TABLE_W/2, TABLE_H/2, 5, 0, Math.PI*2); ctx.fillStyle = 'rgba(255,255,255,0.2)'; ctx.fill();
-            ctx.beginPath(); ctx.moveTo(HOUSE_X, 0); ctx.lineTo(HOUSE_X, TABLE_H); ctx.strokeStyle = 'rgba(255,255,255,0.1)'; ctx.lineWidth = 3; ctx.stroke();
-            ctx.restore();
-        }
+// МИКРО-ПРИЦЕЛ (Ruler Wheel)
+const microAimArea = $('micro-aim-area'); const microAimRuler = $('micro-aim-ruler');
+let microPointer = null; let lastMicroAimX = 0; let rulerOffset = 0;
+function nudgeAim(delta, px) {
+  gameState.aimAngle += delta;
+  rulerOffset += px;
+  if (rulerOffset > 40) rulerOffset -= 40; if (rulerOffset < -40) rulerOffset += 40; // Бесконечный цикл паттерна
+  microAimRuler.style.transform = `translateX(${rulerOffset}px)`;
+}
+microAimArea.addEventListener('pointerdown', e => {
+  if (gameState.ballsMoving || !gameState.selectedBall || !canControl()) return;
+  e.preventDefault(); microPointer = e.pointerId; capture(microAimArea, e); lastMicroAimX = e.clientX;
+});
+microAimArea.addEventListener('pointermove', e => {
+  if (e.pointerId !== microPointer) return;
+  const deltaX = e.clientX - lastMicroAimX;
+  // Сверхточная наводка: 1 пиксель свайпа = 0.002 радиана (доли градуса!)
+  nudgeAim(deltaX * 0.002, deltaX);
+  lastMicroAimX = e.clientX;
+});
+const endMicro = e => { if (e.pointerId === microPointer) microPointer = null; };
+microAimArea.addEventListener('pointerup', endMicro); microAimArea.addEventListener('pointercancel', endMicro);
 
-        function drawAim() {
-            if (gameState.ballsMoving || !gameState.selectedBall || !canControl()) return;
-            let isFull = document.getElementById('full-trajectory-cb').checked;
-            let tb = gameState.selectedBall;
-            let dir = new Vec2(Math.cos(gameState.aimAngle), Math.sin(gameState.aimAngle));
-            let cueRay = castRay(tb.pos, dir, BALL_R, tb);
-            
-            let isGreen = false; let targetRay = null; let cueBounceRay = null;
-            if (cueRay.hitPocket) isGreen = true;
-            if (cueRay.hitBall) {
-                let hitNorm = cueRay.hitBall.pos.sub(cueRay.endPos).norm();
-                targetRay = castRay(cueRay.hitBall.pos, hitNorm, BALL_R, cueRay.hitBall);
-                if (targetRay.hitPocket) isGreen = true; 
-                let cueTangent = new Vec2(-hitNorm.y, hitNorm.x);
-                let cuePathDir = (dir.dot(cueTangent) > 0) ? cueTangent : cueTangent.mult(-1);
-                if (gameState.spin.y !== 0) cuePathDir = cuePathDir.add(dir.mult(-gameState.spin.y * 0.5)).norm();
-                cueBounceRay = castRay(cueRay.endPos, cuePathDir, BALL_R, cueRay.hitBall);
-                if (cueBounceRay.hitPocket) isGreen = true; 
-            }
+// Стол (Выбор шара и Грубый прицел)
+function getMousePosInMM(e) {
+  const rect = canvas.getBoundingClientRect();
+  const px = e.clientX - rect.left, py = e.clientY - rect.top;
+  const X = vertical ? FULL_W - py / scale : px / scale;     // обратное преобразование к baseTransform()
+  const Y = vertical ? px / scale : py / scale;
+  return new Vec2(X - RAIL_W, Y - RAIL_W);
+}
+let canvasPointer = null;
+function handleCanvasStart(e) {
+  resumeAudio();
+  if (e.pointerType === 'mouse' && e.button !== 0) return;
+  if (gameState.ballsMoving || !canControl()) return;
+  e.preventDefault(); canvasPointer = e.pointerId; capture(canvas, e);
+  let touchPos = getMousePosInMM(e);
+  // на тач-экране шар мелкий — допуск не меньше ~14 CSS px, выбирается ближайший шар
+  const tol = e.pointerType === 'mouse' ? BALL_R * 2 : Math.max(BALL_R * 2, 14 / scale);
+  let clickedBall = null, bestD = Infinity;
+  for (let b of balls) { if (!b.active) continue; const d = touchPos.sub(b.pos).mag(); if (d < tol && d < bestD) { bestD = d; clickedBall = b; } }
 
-            ctx.save(); ctx.translate(RAIL_W, RAIL_W);
-            let mainColor = isGreen ? 'rgba(34, 197, 94, 0.9)' : 'rgba(255, 255, 255, 0.7)';
-            let secColor = isGreen ? 'rgba(34, 197, 94, 0.6)' : 'rgba(255, 255, 255, 0.4)';
-            let targetColor = isGreen ? 'rgba(34, 197, 94, 0.9)' : 'rgba(239, 68, 68, 0.8)';
-            if (cueRay.hitJaw && !isGreen) mainColor = 'rgba(239, 68, 68, 0.8)';
+  if (clickedBall) {
+    gameState.selectedBall = clickedBall; setStatus('Цельтесь');
+    gameState.isAimingOnCanvas = 'pending'; gameState.aimTol = tol;   // потянули от шара — прицел за пальцем
+  } else if (gameState.selectedBall) {
+    if (gameState.ballInHand) { gameState.isPlacingCue = true; return; }
+    else { let delta = touchPos.sub(gameState.selectedBall.pos); gameState.aimAngle = Math.atan2(delta.y, delta.x); gameState.isAimingOnCanvas = true; }
+  }
+}
+function handleCanvasMove(e) {
+  if (e.pointerId !== canvasPointer || !gameState.selectedBall) return;
+  let currentPos = getMousePosInMM(e);
+  if (gameState.isPlacingCue) {
+    currentPos.x = Math.max(BALL_R, Math.min(currentPos.x, HOUSE_X)); currentPos.y = Math.max(BALL_R, Math.min(currentPos.y, TABLE_H - BALL_R));
+    let valid = true;
+    for (let b of balls) { if (b !== gameState.selectedBall && b.active && currentPos.sub(b.pos).mag() < BALL_R * 2) { valid = false; break; } }
+    if (valid) gameState.selectedBall.pos = currentPos; return;
+  }
+  if (!gameState.isAimingOnCanvas || gameState.ballsMoving || !canControl()) return;
+  let delta = currentPos.sub(gameState.selectedBall.pos);
+  if (gameState.isAimingOnCanvas === 'pending') { if (delta.mag() < gameState.aimTol) return; gameState.isAimingOnCanvas = true; }
+  gameState.aimAngle = Math.atan2(delta.y, delta.x);
+}
+function handleCanvasEnd(e) {
+  if (e.pointerId !== canvasPointer) return;
+  canvasPointer = null;
+  if (gameState.isPlacingCue) { gameState.isPlacingCue = false; gameState.ballInHand = false; setStatus('Цельтесь'); }
+  gameState.isAimingOnCanvas = false;
+}
+canvas.addEventListener('pointerdown', handleCanvasStart);
+canvas.addEventListener('pointermove', handleCanvasMove);
+canvas.addEventListener('pointerup', handleCanvasEnd);
+canvas.addEventListener('pointercancel', handleCanvasEnd);
+canvas.addEventListener('contextmenu', e => e.preventDefault());
 
-            ctx.beginPath(); ctx.moveTo(tb.pos.x, tb.pos.y); ctx.lineTo(cueRay.endPos.x, cueRay.endPos.y);
-            ctx.strokeStyle = mainColor; ctx.lineWidth = 4; ctx.setLineDash([15, 15]); ctx.stroke(); ctx.setLineDash([]);
-            ctx.beginPath(); ctx.arc(cueRay.endPos.x, cueRay.endPos.y, BALL_R, 0, Math.PI*2); ctx.strokeStyle = mainColor; ctx.lineWidth = 2; ctx.stroke();
+// Клавиатура: ← → — точный прицел (Shift — крупнее), P / Esc — пауза
+document.addEventListener('keydown', e => {
+  if (e.ctrlKey || e.metaKey || e.altKey || !gameScreen.classList.contains('active')) return;
+  if (e.code === 'KeyP' || e.code === 'Escape') {
+    if ($('menu-pause').classList.contains('open')) { e.preventDefault(); $('menu-pause').classList.remove('open'); }
+    else if (!anyOverlay()) { e.preventDefault(); openPause(); }
+    return;
+  }
+  if ((e.code === 'ArrowLeft' || e.code === 'ArrowRight') && !anyOverlay()) {
+    if (gameState.ballsMoving || !gameState.selectedBall || !canControl()) return;
+    e.preventDefault();
+    const s = (e.code === 'ArrowLeft' ? -1 : 1) * (e.shiftKey ? 5 : 1);
+    nudgeAim(s * 0.0035, s * 2);
+  }
+});
 
-            if (cueRay.hitBall) {
-                let showFull = isFull || isGreen;
-                let tEnd = targetRay.endPos;
-                if (targetRay.hitJaw && !isGreen) targetColor = 'rgba(239, 68, 68, 0.8)';
-                if (!showFull) { if (tEnd.sub(cueRay.hitBall.pos).mag() > 300) tEnd = cueRay.hitBall.pos.add(targetRay.dir.mult(300)); }
-                ctx.beginPath(); ctx.moveTo(cueRay.hitBall.pos.x, cueRay.hitBall.pos.y); ctx.lineTo(tEnd.x, tEnd.y); ctx.strokeStyle = targetColor; ctx.lineWidth = 6; ctx.stroke();
+window.addEventListener('resize', resize);
 
-                let cEnd = cueBounceRay.endPos;
-                if (!showFull) { if (cEnd.sub(cueRay.endPos).mag() > 200) cEnd = cueRay.endPos.add(cueBounceRay.dir.mult(200)); }
-                ctx.beginPath(); ctx.moveTo(cueRay.endPos.x, cueRay.endPos.y); ctx.lineTo(cEnd.x, cEnd.y); ctx.strokeStyle = secColor; ctx.lineWidth = 4; ctx.setLineDash([10, 10]); ctx.stroke(); ctx.setLineDash([]);
-            }
-
-            let cueDist = BALL_R * 2.5 + (gameState.aimPower / MAX_POWER) * 400;
-            ctx.beginPath(); ctx.moveTo(tb.pos.x - Math.cos(gameState.aimAngle) * cueDist, tb.pos.y - Math.sin(gameState.aimAngle) * cueDist);
-            ctx.lineTo(tb.pos.x - Math.cos(gameState.aimAngle) * (cueDist + 2000), tb.pos.y - Math.sin(gameState.aimAngle) * (cueDist + 2000));
-            ctx.strokeStyle = '#c2410c'; ctx.lineWidth = 18; ctx.lineCap = 'round'; ctx.stroke();
-            ctx.restore();
-        }
-
-        function loop() {
-            drawTable();
-            for (let step = 0; step < PHYSICS_STEPS; step++) updatePhysics((1.0 / 60.0) / PHYSICS_STEPS);
-            ctx.save(); ctx.translate(RAIL_W, RAIL_W); balls.forEach(b => b.draw()); ctx.restore();
-            drawAim(); requestAnimationFrame(loop);
-        }
-
-        // === UI УПРАВЛЕНИЕ ===
-        function updateHUD() {
-            const p1 = document.getElementById('player1-panel'); const p2 = document.getElementById('player2-panel');
-            const n1 = document.getElementById('name1'); const n2 = document.getElementById('name2');
-            n1.textContent = netName(1) + (isNet() && mySeat === 0 ? ' (вы)' : ''); n2.textContent = netName(2) + (isNet() && mySeat === 1 ? ' (вы)' : '');
-
-            if (gameState.currentPlayer === 1) {
-                p1.classList.remove('opacity-50'); p2.classList.add('opacity-50');
-                n1.classList.add('text-emerald-400'); n1.classList.remove('text-white');
-                n2.classList.remove('text-emerald-400'); n2.classList.add('text-white');
-            } else {
-                p2.classList.remove('opacity-50'); p1.classList.add('opacity-50');
-                n2.classList.add('text-emerald-400'); n2.classList.remove('text-white');
-                n1.classList.remove('text-emerald-400'); n1.classList.add('text-white');
-            }
-
-            const renderBalls = (pocketed) => {
-                let html = '';
-                for(let i=0; i<8; i++) {
-                    if(i < pocketed.length) {
-                        let isFoul = pocketed[i] === "Ш"; let style = isFoul ? "background: #ef4444;" : "background: #fffff0;";
-                        html += `<div class="ball-icon" style="${style}">${pocketed[i]}</div>`;
-                    } else html += `<div class="ball-empty"></div>`;
-                }
-                return html;
-            }
-            document.getElementById('pocketed1').innerHTML = renderBalls(gameState.pocketed1);
-            document.getElementById('pocketed2').innerHTML = renderBalls(gameState.pocketed2);
-        }
-        function setStatus(text) { document.getElementById('game-status').innerText = text; }
-        
-        let modalCallback = null;
-        function showModal(title, desc, callback = null) {
-            document.getElementById('modal-title').innerText = title; document.getElementById('modal-desc').innerText = desc;
-            document.getElementById('modal-message').classList.remove('opacity-0', 'pointer-events-none');
-            document.getElementById('modal-content').classList.remove('scale-95'); modalCallback = callback;
-        }
-        function closeModal() {
-            if(audioCtx.state === 'suspended') audioCtx.resume();
-            document.getElementById('modal-message').classList.add('opacity-0', 'pointer-events-none');
-            document.getElementById('modal-content').classList.add('scale-95'); if (modalCallback) modalCallback();
-        }
-
-        // Винт
-        const spinCtrl = document.getElementById('spin-control'); const spinDot = document.getElementById('spin-dot'); let isSpinDragging = false;
-        function updateSpin(e) {
-            const rect = spinCtrl.getBoundingClientRect(); let cx = e.touches ? e.touches[0].clientX : e.clientX; let cy = e.touches ? e.touches[0].clientY : e.clientY;
-            let x = cx - rect.left - rect.width / 2; let y = cy - rect.top - rect.height / 2; let r = rect.width / 2; let dist = Math.sqrt(x*x + y*y);
-            if (dist > r) { x = (x / dist) * r; y = (y / dist) * r; }
-            spinDot.style.transform = `translate(calc(-50% + ${x}px), calc(-50% + ${y}px))`; gameState.spin = new Vec2(x / r, y / r);
-        }
-        function resetSpin() { spinDot.style.transform = `translate(-50%, -50%)`; gameState.spin = new Vec2(0, 0); }
-        spinCtrl.addEventListener('mousedown', (e) => { if (!canControl()) return; isSpinDragging = true; updateSpin(e); }); window.addEventListener('mousemove', (e) => { if (isSpinDragging) updateSpin(e); }); window.addEventListener('mouseup', () => { isSpinDragging = false; });
-        spinCtrl.addEventListener('touchstart', (e) => { if (!canControl()) return; isSpinDragging = true; updateSpin(e); e.preventDefault(); }, {passive: false}); window.addEventListener('touchmove', (e) => { if (isSpinDragging) updateSpin(e); }, {passive: false}); window.addEventListener('touchend', () => { isSpinDragging = false; });
-
-        // Сила
-        const powerSlider = document.getElementById('power-slider'); const powerFill = document.getElementById('power-fill'); const powerHandle = document.getElementById('power-handle'); let isPowerDragging = false;
-        function updatePowerFromSlider(e) {
-            const rect = powerSlider.getBoundingClientRect(); let cy = e.touches ? e.touches[0].clientY : e.clientY;
-            let percent = Math.max(0, Math.min(1, (cy - rect.top) / rect.height));
-            gameState.aimPower = percent * MAX_POWER;
-            let fillHeight = percent * 100; powerFill.style.height = `${fillHeight}%`; powerHandle.style.bottom = `${100 - fillHeight}%`;
-        }
-        function executeShot() {
-            if (gameState.aimPower > 100 && !gameState.ballsMoving && gameState.selectedBall) {
-                gameState.hitOccurred = false; gameState.foul = false; gameState.pocketedThisTurn = 0;
-                let dir = new Vec2(Math.cos(gameState.aimAngle), Math.sin(gameState.aimAngle));
-                if (isNet()) pendingShot = { idx: balls.indexOf(gameState.selectedBall), start: ballsSnapshot() };
-                gameState.selectedBall.vel = dir.mult(gameState.aimPower);
-                gameState.selectedBall.spin = dir.mult(gameState.aimPower * -gameState.spin.y * 2.5);
-                gameState.selectedBall.sideSpin = gameState.spin.x * gameState.aimPower * 0.8;
-                if (pendingShot) { const sb = gameState.selectedBall; pendingShot.vel = { x: sb.vel.x, y: sb.vel.y }; pendingShot.spin = { x: sb.spin.x, y: sb.spin.y }; pendingShot.side = sb.sideSpin; }
-                playSound('cue', gameState.aimPower);
-            }
-            gameState.aimPower = 0; powerFill.style.height = `0%`; powerHandle.style.bottom = `100%`;
-        }
-        powerSlider.addEventListener('mousedown', (e) => { if(gameState.ballsMoving || !gameState.selectedBall || !canControl()) return; isPowerDragging = true; updatePowerFromSlider(e); }); window.addEventListener('mousemove', (e) => { if (isPowerDragging) updatePowerFromSlider(e); }); window.addEventListener('mouseup', () => { if (isPowerDragging) { isPowerDragging = false; executeShot(); }});
-        powerSlider.addEventListener('touchstart', (e) => { if(gameState.ballsMoving || !gameState.selectedBall || !canControl()) return; isPowerDragging = true; updatePowerFromSlider(e); e.preventDefault(); }, {passive: false}); window.addEventListener('touchmove', (e) => { if (isPowerDragging) updatePowerFromSlider(e); }, {passive: false}); window.addEventListener('touchend', () => { if (isPowerDragging) { isPowerDragging = false; executeShot(); }});
-
-        // МИКРО-ПРИЦЕЛ (Ruler Wheel)
-        const microAimArea = document.getElementById('micro-aim-area'); const microAimRuler = document.getElementById('micro-aim-ruler');
-        let microAimDragging = false; let lastMicroAimX = 0; let rulerOffset = 0;
-        
-        function handleMicroAimStart(e) {
-            if(gameState.ballsMoving || !gameState.selectedBall || !canControl()) return;
-            microAimDragging = true; lastMicroAimX = e.touches ? e.touches[0].clientX : e.clientX;
-        }
-        function handleMicroAimMove(e) {
-            if (!microAimDragging) return;
-            let cx = e.touches ? e.touches[0].clientX : e.clientX;
-            let deltaX = cx - lastMicroAimX;
-            
-            // Сверхточная наводка: 1 пиксель свайпа = 0.002 радиана (доли градуса!)
-            gameState.aimAngle += deltaX * 0.002;
-            
-            rulerOffset += deltaX;
-            if (rulerOffset > 40) rulerOffset -= 40; if (rulerOffset < -40) rulerOffset += 40; // Бесконечный цикл паттерна
-            microAimRuler.style.transform = `translateX(${rulerOffset}px)`;
-            
-            lastMicroAimX = cx;
-        }
-        function handleMicroAimEnd() { microAimDragging = false; }
-        
-        microAimArea.addEventListener('mousedown', handleMicroAimStart); window.addEventListener('mousemove', handleMicroAimMove); window.addEventListener('mouseup', handleMicroAimEnd);
-        microAimArea.addEventListener('touchstart', handleMicroAimStart, {passive: false}); window.addEventListener('touchmove', handleMicroAimMove, {passive: false}); window.addEventListener('touchend', handleMicroAimEnd);
-
-        // Стол (Выбор шара и Грубый прицел)
-        function getMousePosInMM(e) {
-            const rect = canvas.getBoundingClientRect();
-            let cx = e.touches ? e.touches[0].clientX : e.clientX; let cy = e.touches ? e.touches[0].clientY : e.clientY;
-            return new Vec2((cx - rect.left) / scale - RAIL_W, (cy - rect.top) / scale - RAIL_W);
-        }
-        function handleCanvasStart(e) {
-            if(audioCtx.state === 'suspended') audioCtx.resume();
-            if (gameState.ballsMoving || !canControl()) return;
-            let touchPos = getMousePosInMM(e);
-            let clickedBall = null;
-            for (let b of balls) { if (b.active && touchPos.sub(b.pos).mag() < b.radius * 2) { clickedBall = b; break; } }
-
-            if (clickedBall) {
-                gameState.selectedBall = clickedBall; setStatus("Шар выбран. Цельтесь.");
-            } else if (gameState.selectedBall) {
-                if (gameState.ballInHand) { gameState.isPlacingCue = true; return; } 
-                else { let delta = touchPos.sub(gameState.selectedBall.pos); gameState.aimAngle = Math.atan2(delta.y, delta.x); gameState.isAimingOnCanvas = true; }
-            }
-        }
-        function handleCanvasMove(e) {
-            if (!gameState.selectedBall) return;
-            let currentPos = getMousePosInMM(e);
-            if (gameState.isPlacingCue) {
-                currentPos.x = Math.max(BALL_R, Math.min(currentPos.x, HOUSE_X)); currentPos.y = Math.max(BALL_R, Math.min(currentPos.y, TABLE_H - BALL_R));
-                let valid = true;
-                for (let b of balls) { if (b !== gameState.selectedBall && b.active && currentPos.sub(b.pos).mag() < BALL_R * 2) { valid = false; break; } }
-                if (valid) gameState.selectedBall.pos = currentPos; return;
-            }
-            if (gameState.isAimingOnCanvas) { let delta = currentPos.sub(gameState.selectedBall.pos); gameState.aimAngle = Math.atan2(delta.y, delta.x); }
-        }
-        function handleCanvasEnd(e) { if (gameState.isPlacingCue) { gameState.isPlacingCue = false; gameState.ballInHand = false; setStatus("Цельтесь."); } if (gameState.isAimingOnCanvas) gameState.isAimingOnCanvas = false; }
-
-        window.addEventListener('resize', resize);
-        canvas.addEventListener('mousedown', handleCanvasStart); window.addEventListener('mousemove', handleCanvasMove); window.addEventListener('mouseup', handleCanvasEnd);
-        canvas.addEventListener('touchstart', handleCanvasStart, {passive: false}); window.addEventListener('touchmove', handleCanvasMove, {passive: false}); window.addEventListener('touchend', handleCanvasEnd);
-
-        initGame(); loop();
-    </script>
+buildTable();
+initGame();
+requestAnimationFrame(loop);
+</script>
 </body>
 </html>

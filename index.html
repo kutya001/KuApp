@@ -472,7 +472,7 @@
 <!-- ═══ IMMERSIVE CONTAINER ═══ -->
 <div id="immersive-container">
     <button id="btn-float-back" title="Закрыть приложение">←</button>
-    <iframe id="app-iframe" sandbox="allow-scripts allow-same-origin" allowfullscreen></iframe>
+    <iframe id="app-iframe" sandbox="allow-scripts allow-same-origin allow-modals allow-downloads" allowfullscreen></iframe>
 </div>
 
 <div id="toast"></div>
@@ -1685,7 +1685,7 @@ function renderSettDevGuide(c) {
 ## Архитектура
 
 Каждое приложение — это отдельный HTML-файл в папке \`apps/\`.
-Приложение загружается внутри \`<iframe>\` с sandbox="allow-scripts allow-same-origin".
+Приложение загружается внутри \`<iframe>\` с sandbox="allow-scripts allow-same-origin allow-modals allow-downloads" (работают confirm/alert и скачивание файлов).
 Платформа предоставляет API через \`window.parent.PlatformAPI\`.
 Все обращения к базе данных (Google Sheets) проходят через бэкенд на Google Apps Script.
 

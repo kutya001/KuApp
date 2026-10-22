@@ -2,269 +2,211 @@
 <html lang="ru">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width,initial-scale=1,user-scalable=no">
-<title>Неоновый Динозавр PRO</title>
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
+<title>Dino Pro</title>
+<link rel="stylesheet" href="ku-arcade.css">
+<script src="ku-arcade.js"></script>
 <style>
-  @import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;700;800;900&display=swap');
+  html,body{height:100%;overflow:hidden}
+  #screen-game,#screen-game *{touch-action:none}
 
-  *{box-sizing:border-box;margin:0;padding:0; user-select:none; touch-action:none;}
-  :root{
-    --bg:#050508;--sur:rgba(8,8,16,0.92);--text:#f0f0f8;--text2:#8888aa;
-    --g:#00e5a0;--r:#ff4466;--b:#5b8cff;--y:#ffd700;--p:#e040fb;
-  }
-  body{
-    background:var(--bg);color:var(--text);
-    font-family:'JetBrains Mono',monospace;
-    display:flex;flex-direction:column;align-items:center;justify-content:center;
-    height:100dvh;overflow:hidden;
-  }
+  /* ── Игровая колонка: прогресс · поле · подсказка ── */
+  #stage{flex:1;min-height:0;width:100%;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:10px}
+  #pbar{flex:none;width:240px}
+  #board-box{line-height:0;flex:none}
+  #board-box>canvas{cursor:pointer}
+  #game-hint{margin-top:0;flex:none}
 
-  #game-wrapper {
-    position:relative; width:100%; max-width:650px; height:100%; max-height:350px;
-    display:flex;flex-direction:column;
-    box-shadow:0 0 60px rgba(0,229,160,0.06);
-  }
+  /* смена темы — надпись по центру поля (левый верх поля не используем) */
+  #theme-indicator{position:absolute;top:16px;left:50%;transform:translateX(-50%);font-family:var(--font-display);font-size:13px;
+    letter-spacing:1.5px;line-height:1.2;white-space:nowrap;pointer-events:none;opacity:0;transition:opacity .5s;text-shadow:0 0 12px currentColor}
+  #theme-indicator.visible{opacity:1}
+  .float-text{position:absolute;font-family:var(--font-display);font-size:15px;line-height:1;pointer-events:none;z-index:5;
+    text-shadow:0 0 10px currentColor;animation:dnFloat .8s ease-out forwards}
+  @keyframes dnFloat{0%{opacity:1;transform:translateY(0) scale(1)}100%{opacity:0;transform:translateY(-40px) scale(1.3)}}
 
-  /* Scanlines */
-  #game-wrapper::after {
-    content:" ";display:block;position:absolute;inset:0;
-    background:linear-gradient(rgba(18,16,16,0) 50%,rgba(0,0,0,0.15) 50%);
-    z-index:5;background-size:100% 3px;pointer-events:none;mix-blend-mode:overlay;opacity:0.25;
-  }
-
-  /* Progress bar */
-  .progress-bar {
-    position:absolute;top:0;left:0;right:0;height:3px;
-    background:rgba(255,255,255,0.04);z-index:11;pointer-events:none;
-  }
-  .progress-fill {
-    height:100%;width:0%;
-    background:linear-gradient(90deg,var(--g),var(--b));
-    box-shadow:0 0 10px var(--g);transition:width 0.3s ease;
-  }
-
-  /* HUD */
-  #top-bar {
-    position:absolute;top:0;left:0;right:0;
-    display:flex;justify-content:space-between;align-items:flex-start;
-    padding:10px 16px;z-index:10;pointer-events:none;
-    background:linear-gradient(to bottom,rgba(5,5,8,0.6) 0%,transparent 100%);
-  }
-  .score-box { display:flex;flex-direction:column;align-items:center; }
-  .score-val {
-    font-size:1.6rem;font-weight:900;line-height:1;color:var(--text);
-    text-shadow:0 0 10px currentColor;
-    transition:transform 0.15s cubic-bezier(0.34,1.56,0.64,1);
-  }
-  .score-val.pop { transform:scale(1.3); }
-  .score-lbl {
-    font-size:0.45rem;letter-spacing:0.15em;color:var(--text2);
-    margin-top:2px;text-transform:uppercase;
-  }
-
-  #theme-indicator {
-    position:absolute;top:40px;left:50%;transform:translateX(-50%);
-    font-size:0.6rem;color:var(--text2);pointer-events:none;z-index:12;
-    opacity:0;transition:opacity 0.5s;text-align:center;
-    text-shadow:0 0 8px currentColor;white-space:nowrap;
-  }
-  #theme-indicator.visible { opacity:1; }
-
-  #btn-pause {
-    position:absolute;bottom:10px;right:16px;
-    background:rgba(255,255,255,0.08);border:1px solid rgba(255,255,255,0.15);
-    color:#fff;width:38px;height:38px;border-radius:50%;font-size:1rem;
-    display:none;align-items:center;justify-content:center;cursor:pointer;
-    backdrop-filter:blur(4px);z-index:20;pointer-events:auto;transition:background 0.2s;
-  }
-  #btn-pause:hover { background:rgba(255,255,255,0.15); }
-
-  canvas { display:block;width:100%;height:100%;background:var(--bg); }
-
-  /* Overlays */
-  .overlay {
-    position:absolute;inset:0;background:var(--sur);backdrop-filter:blur(8px);
-    display:flex;flex-direction:column;align-items:center;justify-content:center;
-    z-index:50;opacity:0;pointer-events:none;transition:opacity 0.35s ease;
-  }
-  .overlay.active { opacity:1;pointer-events:auto; }
-
-  .menu-title {
-    font-size:2.2rem;font-weight:900;margin-bottom:8px;text-align:center;
-    background:linear-gradient(135deg,var(--g),var(--b),var(--p));
-    background-size:200% 200%;
-    -webkit-background-clip:text;-webkit-text-fill-color:transparent;
-    filter:drop-shadow(0 0 15px rgba(0,229,160,0.4));
-    animation:gradientShift 3s ease infinite;
-  }
-  @keyframes gradientShift { 0%,100%{background-position:0% 50%;} 50%{background-position:100% 50%;} }
-
-  .menu-subtitle {
-    font-size:0.7rem;color:var(--text2);margin-bottom:24px;
-    text-align:center;max-width:85%;line-height:1.6;
-  }
-
-  .btn {
-    background:transparent;color:#fff;border:2px solid var(--g);
-    padding:12px 32px;border-radius:12px;font-size:0.9rem;font-weight:700;
-    font-family:inherit;cursor:pointer;margin-bottom:10px;width:80%;max-width:250px;
-    transition:all 0.25s;text-transform:uppercase;letter-spacing:0.12em;
-    position:relative;overflow:hidden;
-  }
-  .btn::before {
-    content:'';position:absolute;top:0;left:-100%;width:100%;height:100%;
-    background:linear-gradient(90deg,transparent,rgba(255,255,255,0.15),transparent);
-    transition:left 0.6s;
-  }
-  .btn:hover::before { left:100%; }
-  .btn:active { transform:scale(0.96); }
-  .btn-primary { background:var(--g);color:#000;box-shadow:0 0 25px rgba(0,229,160,0.35); }
-  .btn-primary:hover { box-shadow:0 0 35px rgba(0,229,160,0.55); }
-  .btn-green { border-color:var(--g);color:var(--g); }
-  .btn-green:hover { background:rgba(0,229,160,0.1); }
-  .btn-danger { border-color:var(--r);color:var(--r); }
-  .btn-danger:hover { background:rgba(255,68,102,0.1); }
-
-  /* Medals */
-  .medals-row { display:flex;gap:10px;margin:8px 0 14px; }
-  .medal {
-    width:46px;height:46px;border-radius:50%;display:flex;align-items:center;justify-content:center;
-    font-size:1.2rem;border:3px solid #333;background:rgba(0,0,0,0.3);
-    transition:all 0.4s cubic-bezier(0.34,1.56,0.64,1);opacity:0.3;transform:scale(0.8);
-  }
-  .medal.earned { opacity:1;transform:scale(1); }
-  .medal.bronze { border-color:#cd7f32; }
-  .medal.bronze.earned { background:rgba(205,127,50,0.2);box-shadow:0 0 12px rgba(205,127,50,0.4); }
-  .medal.silver { border-color:#c0c0c0; }
-  .medal.silver.earned { background:rgba(192,192,192,0.2);box-shadow:0 0 12px rgba(192,192,192,0.4); }
-  .medal.gold { border-color:var(--y); }
-  .medal.gold.earned { background:rgba(255,215,0,0.2);box-shadow:0 0 12px rgba(255,215,0,0.4); }
-  .medal.platinum { border-color:#e5e4e2; }
-  .medal.platinum.earned { background:rgba(229,228,226,0.2);box-shadow:0 0 12px rgba(229,228,226,0.4); }
-
-  .new-best {
-    font-size:0.75rem;color:var(--y);font-weight:700;
-    animation:pulseGlow 0.8s ease infinite alternate;
-  }
-  @keyframes pulseGlow { 0%{opacity:0.6;text-shadow:0 0 5px rgba(255,215,0,0.3);} 100%{opacity:1;text-shadow:0 0 15px rgba(255,215,0,0.7);} }
-
-  /* Floating text */
-  .float-text {
-    position:absolute;font-weight:900;pointer-events:none;z-index:25;
-    animation:floatUp 0.8s ease-out forwards;
-    text-shadow:0 2px 6px rgba(0,0,0,0.6);
-  }
-  @keyframes floatUp {
-    0%{opacity:1;transform:translateY(0) scale(1);}
-    100%{opacity:0;transform:translateY(-40px) scale(1.3);}
-  }
-
-  .hint-text {
-    font-size:0.6rem;color:var(--text2);margin-top:14px;text-align:center;
-    border-top:1px solid rgba(255,255,255,0.08);padding-top:14px;line-height:1.6;
-  }
+  /* медали в окне конца забега */
+  .dn-medals{display:flex;gap:10px;justify-content:center;margin:2px 0}
+  .dn-medal{--mc:205,127,50;width:46px;height:46px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:20px;
+    border:2px solid rgba(var(--mc),.6);background:rgba(255,255,255,.04);opacity:.3;transform:scale(.82);
+    transition:opacity .4s,transform .4s cubic-bezier(.34,1.56,.64,1),box-shadow .4s}
+  .dn-medal.earned{opacity:1;transform:none;background:rgba(var(--mc),.18);box-shadow:0 0 14px rgba(var(--mc),.45),inset 0 1px 0 rgba(255,255,255,.25)}
+  .dn-medal.silver{--mc:201,210,230} .dn-medal.gold{--mc:255,214,10} .dn-medal.platinum{--mc:0,229,255}
 </style>
 </head>
-<body>
+<body class="ku">
+<main class="ku-app">
 
-<div id="game-wrapper">
-  <div class="progress-bar"><div class="progress-fill" id="progress-fill"></div></div>
+  <!-- ═══ МЕНЮ ═══ -->
+  <section id="screen-menu" class="ku-screen menu active">
+    <h1 class="ku-logo">DINO PRO</h1>
+    <p class="ku-tagline">Неоновый раннер • 4 темы × 4 эпохи • Рекорды</p>
+    <div class="ku-pills"><span>🦕 Прыжки</span><span>⬇ Пригнуться</span><span>🦖 Птеродактили с 500</span><span>🏅 Медали</span></div>
+    <div class="ku-menu-btns">
+      <button class="ku-btn big primary" id="btn-start">🦕 Бежать<span class="best" id="menu-best">Рекорд: 0</span></button>
+    </div>
+    <div class="ku-menu-row"><button class="ku-btn ghost" id="btn-rules">📖 Правила</button></div>
+    <div class="ku-menu-stats" id="menu-stats"></div>
+    <div class="ku-menu-hint">Клавиши: Пробел / ↑ — прыжок · ↓ — пригнуться · P / Esc — пауза<br>
+      На телефоне: тап — прыжок · свайп вниз или тап у земли — пригнуться</div>
+  </section>
 
-  <div id="top-bar" style="display:none;">
-    <div class="score-box">
-      <div class="score-val" id="score-val">0</div>
-      <div class="score-lbl">СЧЁТ</div>
+  <!-- ═══ ИГРА ═══ -->
+  <section id="screen-game" class="ku-screen fit">
+    <header class="ku-top">
+      <div class="ku-top-left"></div>
+      <div class="ku-top-title"><div class="t">DINO PRO</div><div class="s" id="theme-name">НОЧЬ · ЭПОХА I</div></div>
+      <div class="ku-top-actions">
+        <button class="ku-btn icon" id="btn-pause" aria-label="Пауза"><svg viewBox="0 0 24 24"><line x1="9" y1="5" x2="9" y2="19"/><line x1="15" y1="5" x2="15" y2="19"/></svg></button>
+      </div>
+    </header>
+    <div class="ku-hud">
+      <div class="ku-stat"><span>Очки</span><b id="score-val">0</b></div>
+      <div class="ku-stat gold"><span>Рекорд</span><b id="best-val">0</b></div>
+      <div class="ku-stat c2"><span>Скорость</span><b id="speed-val">×1.0</b></div>
     </div>
-    <div class="score-box">
-      <div class="score-val" id="best-val" style="font-size:1rem;color:var(--y);">0</div>
-      <div class="score-lbl">РЕКОРД</div>
+    <div id="stage">
+      <div class="ku-pbar" id="pbar" title="До следующей сотни"><i id="progress-fill"></i></div>
+      <div id="board-box" class="ku-board"><canvas id="c"></canvas><div id="theme-indicator"></div></div>
+      <p class="ku-hint" id="game-hint">Тап — прыжок · свайп вниз или тап у земли — пригнуться</p>
     </div>
+  </section>
+</main>
+
+<!-- ═══ ПАУЗА ═══ -->
+<div class="ku-overlay" id="menu-pause">
+  <div class="ku-card">
+    <h2>⏸ ПАУЗА</h2>
+    <button class="ku-btn primary" id="btn-resume">Продолжить</button>
+    <button class="ku-btn" id="btn-pause-restart">Заново</button>
+    <button class="ku-btn" id="btn-rules2">📖 Правила</button>
+    <button class="ku-btn ghost" id="btn-quit">В меню</button>
   </div>
+</div>
 
-  <div id="theme-indicator"></div>
-  <button id="btn-pause">⏸</button>
-  <canvas id="c"></canvas>
-
-  <!-- Main Menu -->
-  <div class="overlay active" id="menu-main">
-    <div class="menu-title">DINO PRO</div>
-    <div class="menu-subtitle">Пробел / Тап / Клик — прыжок.<br>Стрелка вниз / Свайп вниз — пригнуться.</div>
-    <button class="btn btn-primary" id="btn-start">🦕 Бежать</button>
-    <div class="hint-text">
-      4 темы × 4 эпохи = 16 визуальных стилей<br>
-      Птеродактили появляются после 500 очков
+<!-- ═══ КОНЕЦ ЗАБЕГА ═══ -->
+<div class="ku-overlay" id="menu-game-over">
+  <div class="ku-card">
+    <h2 class="lose">ИГРА ОКОНЧЕНА</h2>
+    <div class="ku-new-best" id="new-best" hidden>🏆 НОВЫЙ РЕКОРД!</div>
+    <div class="ku-big-score" id="final-score">0</div>
+    <div class="dn-medals">
+      <div class="dn-medal bronze" id="medal-bronze" title="100+ очков">🥉</div>
+      <div class="dn-medal silver" id="medal-silver" title="300+ очков">🥈</div>
+      <div class="dn-medal gold" id="medal-gold" title="700+ очков">🥇</div>
+      <div class="dn-medal platinum" id="medal-platinum" title="1500+ очков">💎</div>
     </div>
-  </div>
-
-  <!-- Pause -->
-  <div class="overlay" id="menu-pause">
-    <div class="menu-title" style="background:var(--text);-webkit-text-fill-color:var(--text);font-size:1.5rem;">ПАУЗА</div>
-    <button class="btn btn-green" id="btn-resume">▶ Продолжить</button>
-    <button class="btn btn-danger" id="btn-quit">🏠 В меню</button>
-  </div>
-
-  <!-- Game Over -->
-  <div class="overlay" id="menu-game-over">
-    <div class="menu-title" style="background:var(--r);-webkit-text-fill-color:var(--r);font-size:1.4rem;">ВЫ ПОГИБЛИ</div>
-    <p id="final-score" style="color:var(--text2);margin-bottom:4px;font-size:1rem;">Счёт: 0</p>
-    <div class="new-best" id="new-best" style="display:none;">🏆 НОВЫЙ РЕКОРД!</div>
-    <div class="medals-row" id="medals-row">
-      <div class="medal bronze" id="medal-bronze" title="100+ очков">🥉</div>
-      <div class="medal silver" id="medal-silver" title="300+ очков">🥈</div>
-      <div class="medal gold" id="medal-gold" title="700+ очков">🥇</div>
-      <div class="medal platinum" id="medal-platinum" title="1500+ очков">💎</div>
+    <div class="ku-over-stats">
+      <div>Рекорд<b id="over-best">0</b></div>
+      <div>Скорость<b id="over-speed">×1.0</b></div>
+      <div>Тема<b id="over-theme">Ночь · I</b></div>
     </div>
-    <button class="btn btn-primary" id="btn-restart" style="border-color:var(--b);background:var(--b);box-shadow:0 0 20px rgba(91,140,255,0.4);">🔄 Повторить</button>
-    <button class="btn btn-danger" id="btn-go-menu">🏠 В меню</button>
+    <button class="ku-btn primary" id="btn-restart">Играть снова</button>
+    <button class="ku-btn ghost" id="btn-go-menu">В меню</button>
+  </div>
+</div>
+
+<!-- ═══ ПРАВИЛА ═══ -->
+<div class="ku-overlay" id="menu-rules">
+  <div class="ku-modal">
+    <header><h2>📖 Правила</h2><button class="ku-btn icon" id="btn-rules-x" aria-label="Закрыть">✕</button></header>
+    <div class="ku-body">
+      <h3>Цель</h3>
+      <ul class="ku-rules">
+        <li><b>Беги как можно дальше.</b> Очки растут вместе со скоростью, скорость растёт со временем.</li>
+        <li><b>Кактусы</b> — одиночные, высокие и двойные: перепрыгивай.</li>
+        <li><b>Птеродактили</b> появляются после 500 очков: низкого — перепрыгни, высокого — пригнись или перепрыгни.</li>
+      </ul>
+      <h3>Темы и эпохи</h3>
+      <ul class="ku-rules">
+        <li>Каждые ~30 секунд меняется тема (<b>Ночь, Рассвет, Кибер, Пламя</b>), после полного круга тем начинается новая <b>эпоха</b> — неон ярче.</li>
+        <li>Медали за забег: <b>🥉 100</b>, <b>🥈 300</b>, <b>🥇 700</b>, <b>💎 1500</b> очков.</li>
+      </ul>
+      <h3>Управление</h3>
+      <ul class="ku-rules">
+        <li><b>Пробел / ↑ / тап</b> — прыжок.</li>
+        <li><b>↓ / свайп вниз / тап у земли</b> — пригнуться; в воздухе — быстрое приземление.</li>
+        <li><b>P / Esc / ⏸</b> — пауза.</li>
+      </ul>
+    </div>
+    <footer><button class="ku-btn primary" id="btn-rules-close">Понятно</button></footer>
   </div>
 </div>
 
 <script>
+'use strict';
+const $ = id => document.getElementById(id);
+const fmt = n => Math.floor(n).toLocaleString('ru-RU');
+
+/* roundRect для старых WebView (Safari < 16, Chrome < 99) */
+if (typeof CanvasRenderingContext2D !== 'undefined' && !CanvasRenderingContext2D.prototype.roundRect) {
+  CanvasRenderingContext2D.prototype.roundRect = function (x, y, w, h, r) {
+    r = Math.max(0, Math.min(+r || 0, Math.abs(w) / 2, Math.abs(h) / 2));
+    this.moveTo(x + r, y); this.arcTo(x + w, y, x + w, y + h, r); this.arcTo(x + w, y + h, x, y + h, r);
+    this.arcTo(x, y + h, x, y, r); this.arcTo(x, y, x + w, y, r); this.closePath();
+    return this;
+  };
+}
+
+/* localStorage может быть недоступен (приватный режим, песочница iframe) */
+const store = {
+  get(k, d) { try { const v = localStorage.getItem(k); return v === null ? d : v; } catch (e) { return d; } },
+  set(k, v) { try { localStorage.setItem(k, v); } catch (e) {} }
+};
+
 /**
  * AUDIO SYSTEM
  */
 const AudioSys = {
   ctx: null,
   init() {
-    if(!this.ctx) this.ctx = new (window.AudioContext || window.webkitAudioContext)();
-    if(this.ctx.state === 'suspended') this.ctx.resume();
+    try {
+      if (!this.ctx) this.ctx = new (window.AudioContext || window.webkitAudioContext)();
+      if (this.ctx.state === 'suspended') this.ctx.resume();
+    } catch (e) {}
   },
-  tone(freq, type, dur, vol=0.5, slide=null) {
-    if(!this.ctx) return;
-    const o = this.ctx.createOscillator(), g = this.ctx.createGain();
-    o.type = type; o.connect(g); g.connect(this.ctx.destination);
-    const now = this.ctx.currentTime;
-    o.frequency.setValueAtTime(freq, now);
-    if(slide) o.frequency.exponentialRampToValueAtTime(slide, now + dur);
-    g.gain.setValueAtTime(vol, now);
-    g.gain.exponentialRampToValueAtTime(0.01, now + dur);
-    o.start(now); o.stop(now + dur);
+  tone(freq, type, dur, vol = 0.5, slide = null) {
+    if (!this.ctx) return;
+    try {
+      const o = this.ctx.createOscillator(), g = this.ctx.createGain();
+      o.type = type; o.connect(g); g.connect(this.ctx.destination);
+      const now = this.ctx.currentTime;
+      o.frequency.setValueAtTime(freq, now);
+      if (slide) o.frequency.exponentialRampToValueAtTime(slide, now + dur);
+      g.gain.setValueAtTime(vol, now);
+      g.gain.exponentialRampToValueAtTime(0.01, now + dur);
+      o.start(now); o.stop(now + dur);
+    } catch (e) {}
   },
   sfx: {
     jump: () => AudioSys.tone(400, 'sine', 0.08, 0.25, 550),
-    point: () => { AudioSys.tone(800, 'square', 0.08, 0.2); setTimeout(()=>AudioSys.tone(1200, 'square', 0.12, 0.15), 80); },
+    point: () => { AudioSys.tone(800, 'square', 0.08, 0.2); setTimeout(() => AudioSys.tone(1200, 'square', 0.12, 0.15), 80); },
     die: () => { AudioSys.tone(150, 'sawtooth', 0.4, 0.4, 40); },
     duck: () => AudioSys.tone(200, 'triangle', 0.05, 0.1),
-    themeChange: () => { AudioSys.tone(500, 'sine', 0.12, 0.3, 1000); setTimeout(()=>AudioSys.tone(750, 'sine', 0.15, 0.25), 100); },
+    themeChange: () => { AudioSys.tone(500, 'sine', 0.12, 0.3, 1000); setTimeout(() => AudioSys.tone(750, 'sine', 0.15, 0.25), 100); },
   }
 };
-const vibrate = ms => navigator.vibrate && navigator.vibrate(ms);
+const vibrate = ms => { try { navigator.vibrate && navigator.vibrate(ms); } catch (e) {} };
 
 /**
- * THEMES — 4 базовые палитры × 4 эпохи интенсивности
+ * THEMES — 4 базовые палитры (цвета палитры ku-arcade) × 4 эпохи интенсивности неона
+ * tint/star — RGB-тройки для полупрозрачных заливок
  */
 const BaseThemes = [
-  { name:'Ночь',     bg:'#050508', ground:'#5b8cff', groundLine:'#5b8cff', dino:'#00e5a0', dinoDark:'#008060', obs:'#ff4466', obsDark:'#cc2244', cloud:'rgba(91,140,255,0.08)', star:'rgba(255,255,255,0.5)', particle:'#00e5a0' },
-  { name:'Рассвет',  bg:'#0a0510', ground:'#e040fb', groundLine:'#e040fb', dino:'#ff8c42', dinoDark:'#cc5500', obs:'#76ff03', obsDark:'#55cc00', cloud:'rgba(224,64,251,0.08)', star:'rgba(224,64,251,0.4)', particle:'#e040fb' },
-  { name:'Кибер',    bg:'#080410', ground:'#b388ff', groundLine:'#b388ff', dino:'#00e5ff', dinoDark:'#0088aa', obs:'#ff4081', obsDark:'#cc2255', cloud:'rgba(179,136,255,0.08)', star:'rgba(179,136,255,0.4)', particle:'#b388ff' },
-  { name:'Пламя',    bg:'#0e0504', ground:'#ff5722', groundLine:'#ff5722', dino:'#ffd740', dinoDark:'#cc9900', obs:'#00e5a0', obsDark:'#008060', cloud:'rgba(255,87,34,0.08)', star:'rgba(255,87,34,0.4)', particle:'#ff5722' },
+  { name: 'Ночь',    ground: '#5b8cff', dino: '#51f58b', dinoDark: '#1d9c55', obs: '#ff5d7d', particle: '#51f58b', tint: '91,140,255',  star: '238,242,255' },
+  { name: 'Рассвет', ground: '#ff4dd2', dino: '#ff9f43', dinoDark: '#b4611b', obs: '#51f58b', particle: '#ff4dd2', tint: '255,77,210',  star: '255,170,235' },
+  { name: 'Кибер',   ground: '#c77dff', dino: '#00e5ff', dinoDark: '#008aa6', obs: '#ff4dd2', particle: '#c77dff', tint: '199,125,255', star: '214,180,255' },
+  { name: 'Пламя',   ground: '#ff9f43', dino: '#ffd60a', dinoDark: '#a98a00', obs: '#51f58b', particle: '#ff9f43', tint: '255,159,67',  star: '255,205,150' },
 ];
+const ERA = ['I', 'II', 'III', 'IV'];
+const MEDALS = [{ id: 'bronze', t: 100, icon: '🥉', name: 'Бронза' }, { id: 'silver', t: 300, icon: '🥈', name: 'Серебро' },
+                { id: 'gold', t: 700, icon: '🥇', name: 'Золото' }, { id: 'platinum', t: 1500, icon: '💎', name: 'Платина' }];
 
 /**
  * PARTICLE
  */
 class Particle {
-  constructor(x, y, color, speed=4) {
+  constructor(x, y, color, speed = 4) {
     this.x = x; this.y = y; this.color = color;
     const a = Math.random() * Math.PI * 2, s = Math.random() * speed + 1;
     this.vx = Math.cos(a) * s; this.vy = Math.sin(a) * s;
@@ -275,149 +217,231 @@ class Particle {
   draw(ctx) {
     ctx.globalAlpha = Math.max(0, this.life);
     ctx.fillStyle = this.color;
-    ctx.fillRect(this.x - this.size/2, this.y - this.size/2, this.size * this.life, this.size * this.life);
+    ctx.fillRect(this.x - this.size / 2, this.y - this.size / 2, this.size * this.life, this.size * this.life);
     ctx.globalAlpha = 1;
   }
 }
 
 /**
  * GAME ENGINE
+ * Физика считается фиксированными тиками по 1/60 с (как раньше на 60 Гц) — на 120/144 Гц
+ * игра больше не ускоряется. Все константы (гравитация, прыжок, скорость, очки) — прежние.
  */
+const TICK = 1000 / 60;
+
 const Game = {
-  canvas: document.getElementById('c'),
-  ctx: null,
+  canvas: $('c'),
+  ctx: null, dpr: 1,
   W: 0, H: 0, GND: 0,
 
   state: 'MENU', // MENU, PLAYING, PAUSED, DEAD
-  score: 0, displayScore: 0, best: +(localStorage.getItem('dino_best') || 0),
+  score: 0, displayScore: 0, best: 0, bestAtStart: 0,
   spd: 5, baseSpd: 5,
   dino: null, obstacles: [], particles: [], stars: [], groundDetails: [],
   frameCount: 0, shakeTimer: 0, tick: 0, milestone: 0,
-  themeIdx: 0, eraIdx: 0, // era = intensity (0-3)
+  themeIdx: 0, eraIdx: 0, themeSteps: 0,
+  dieTimer: 0, themeTimer: 0, acc: 0, lastTs: 0,
+  keyDuck: false, touches: new Map(),   // pointerId → { y0, duck }
+  _isDucking: false, _hud: {},
 
   get theme() { return BaseThemes[this.themeIdx % BaseThemes.length]; },
 
-  resize() {
-    const wrapper = document.getElementById('game-wrapper');
-    this.W = wrapper.clientWidth;
-    this.H = wrapper.clientHeight;
-    this.canvas.width = this.W;
-    this.canvas.height = this.H;
+  /* ── Размер поля: ширина до 650 px (как раньше), высота до 380 px ── */
+  layout() {
+    const stage = $('stage');
+    if (!stage.clientHeight) return false;                 // экран игры скрыт
+    const FRAME = 16;                                       // рамка .ku-board: padding 7 + border 1
+    const extra = $('pbar').offsetHeight + $('game-hint').offsetHeight + 20;
+    const W = Math.floor(Math.max(240, Math.min(stage.clientWidth - FRAME, 650)));
+    const H = Math.floor(Math.max(200, Math.min(stage.clientHeight - extra - FRAME, 380)));
+    const dpr = Math.min(window.devicePixelRatio || 1, 2);
+    if (W === this.W && H === this.H && dpr === this.dpr && this.ctx) return true;
+    const oldGND = this.GND, oldW = this.W;
+    this.W = W; this.H = H; this.GND = H - 40; this.dpr = dpr;
+    this.canvas.style.width = W + 'px'; this.canvas.style.height = H + 'px';
+    this.canvas.width = Math.round(W * dpr); this.canvas.height = Math.round(H * dpr);
     this.ctx = this.canvas.getContext('2d');
-    this.GND = this.H - 40;
+    $('pbar').style.width = (W + FRAME) + 'px';
+    // поворот/ресайз посреди забега: переносим всё на новую линию земли
+    const dy = oldGND ? this.GND - oldGND : 0;
+    if (dy) {
+      if (this.dino) this.dino.y += dy;
+      this.obstacles.forEach(o => { o.y += dy; });
+      this.particles.forEach(p => { p.y += dy; });
+    }
+    if (this.dino) this.dino.x = this.W * 0.12;
+    if (!this.stars.length || W !== oldW) this.makeBackdrop();
+    if (this.state === 'PAUSED' || this.state === 'DEAD') this.draw();   // холст очистился при смене размера
+    return true;
+  },
+
+  makeBackdrop() {
+    this.stars = [];
+    for (let i = 0; i < 40; i++) {
+      this.stars.push({
+        x: Math.random() * this.W, y: Math.random() * (this.H - 60),
+        size: Math.random() * 1.5 + 0.5, twinkle: Math.random() * Math.PI * 2, speed: Math.random() * 0.2 + 0.05
+      });
+    }
+    this.groundDetails = [];
+    for (let i = 0; i < 30; i++) {
+      this.groundDetails.push({ x: Math.random() * this.W, w: Math.random() * 8 + 2, h: Math.random() * 3 + 1 });
+    }
   },
 
   init() {
-    window.addEventListener('resize', () => this.resize());
-    this.resize();
+    this.best = Math.max(0, parseInt(store.get('dino_best', '0'), 10) || 0);
+    window.addEventListener('resize', () => { if (this.state !== 'MENU') this.layout(); });
 
-    // Stars
-    this.stars = [];
-    for(let i = 0; i < 40; i++) {
-      this.stars.push({
-        x: Math.random() * this.W,
-        y: Math.random() * (this.H - 60),
-        size: Math.random() * 1.5 + 0.5,
-        twinkle: Math.random() * Math.PI * 2,
-        speed: Math.random() * 0.2 + 0.05
-      });
-    }
-
-    // Ground details (small bumps)
-    this.groundDetails = [];
-    for(let i = 0; i < 30; i++) {
-      this.groundDetails.push({
-        x: Math.random() * this.W,
-        w: Math.random() * 8 + 2,
-        h: Math.random() * 3 + 1
-      });
-    }
-
-    // Input
-    this._isDucking = false;
-
-    this.canvas.addEventListener('mousedown', e => { e.preventDefault(); this.jump(); });
-    this.canvas.addEventListener('touchstart', e => {
+    // ── Ввод: pointer-события (одно событие на касание, без «двойных» mouse/touch) ──
+    const cv = this.canvas;
+    cv.addEventListener('pointerdown', e => {
+      if (e.pointerType === 'mouse' && e.button !== 0) return;
       e.preventDefault();
-      const ty = e.touches[0].clientY;
-      const rect = this.canvas.getBoundingClientRect();
-      const relY = (ty - rect.top) / rect.height;
-      if(relY > 0.7) { this.duck(true); }
-      else { this.jump(); }
-    }, {passive:false});
-    this.canvas.addEventListener('touchmove', e => {
-      e.preventDefault();
-      const ty = e.touches[0].clientY;
-      const rect = this.canvas.getBoundingClientRect();
-      const relY = (ty - rect.top) / rect.height;
-      if(relY > 0.7) this.duck(true);
-      else this.duck(false);
-    }, {passive:false});
-    this.canvas.addEventListener('touchend', () => this.duck(false));
+      AudioSys.init();
+      if (this.state !== 'PLAYING') return;
+      if (e.pointerType === 'mouse') { this.jump(); return; }
+      try { cv.setPointerCapture(e.pointerId); } catch (err) {}
+      const rect = cv.getBoundingClientRect();
+      const relY = (e.clientY - rect.top) / rect.height;
+      const t = { y0: e.clientY, duck: relY > 0.7 };      // тап у земли — пригнуться
+      this.touches.set(e.pointerId, t);
+      if (t.duck) this.syncDuck(); else this.jump();
+    });
+    cv.addEventListener('pointermove', e => {
+      const t = this.touches.get(e.pointerId);
+      if (!t || this.state !== 'PLAYING') return;
+      const rect = cv.getBoundingClientRect();
+      const swipeDown = e.clientY - t.y0 > 26;             // свайп вниз
+      const inLow = (e.clientY - rect.top) / rect.height > 0.7;
+      const duck = swipeDown || inLow;
+      if (duck !== t.duck) { t.duck = duck; this.syncDuck(); }
+    });
+    const release = e => { if (this.touches.delete(e.pointerId)) this.syncDuck(); };
+    cv.addEventListener('pointerup', release);
+    cv.addEventListener('pointercancel', release);
+    cv.addEventListener('contextmenu', e => e.preventDefault());
 
     document.addEventListener('keydown', e => {
-      if(e.code === 'Space' || e.code === 'ArrowUp') { e.preventDefault(); this.jump(); }
-      if(e.code === 'ArrowDown') { e.preventDefault(); this.duck(true); }
-      if(e.code === 'Escape' || e.code === 'KeyP') {
-        if(this.state === 'PLAYING') { this.state = 'PAUSED'; this.showMenu('pause'); }
-        else if(this.state === 'PAUSED') { this.state = 'PLAYING'; this.hideMenus(); }
+      if (e.ctrlKey || e.metaKey || e.altKey) return;
+      const code = e.code;
+      if (code === 'Space' || code === 'ArrowUp' || code === 'KeyW') {
+        if (this.state === 'PLAYING') {
+          e.preventDefault(); AudioSys.init(); this.jump();
+          if (document.activeElement && document.activeElement.tagName === 'BUTTON') document.activeElement.blur();
+        }
+      } else if (code === 'ArrowDown' || code === 'KeyS') {
+        if (this.state === 'PLAYING') { e.preventDefault(); if (!this.keyDuck) { this.keyDuck = true; this.syncDuck(); } }
+      } else if (code === 'Escape' || code === 'KeyP') {
+        if (this.state === 'PLAYING') { e.preventDefault(); this.pause(); }
+        else if (this.state === 'PAUSED' && !$('menu-rules').classList.contains('open')) { e.preventDefault(); this.resume(); }
       }
     });
     document.addEventListener('keyup', e => {
-      if(e.code === 'ArrowDown') this.duck(false);
+      if ((e.code === 'ArrowDown' || e.code === 'KeyS') && this.keyDuck) { this.keyDuck = false; this.syncDuck(); }
     });
+    // уход со вкладки / сворачивание — пауза
+    document.addEventListener('visibilitychange', () => { if (document.hidden) this.pause(); });
+    window.addEventListener('pagehide', () => { this.pause(); this.saveBest(); });
 
-    // Buttons
-    document.getElementById('btn-start').onclick = () => { AudioSys.init(); this.startGame(); };
-    document.getElementById('btn-restart').onclick = () => this.startGame();
-    document.getElementById('btn-resume').onclick = () => { this.state = 'PLAYING'; this.hideMenus(); };
-    document.getElementById('btn-quit').onclick = () => { this.state = 'MENU'; this.showMenu('main'); };
-    document.getElementById('btn-go-menu').onclick = () => { this.state = 'MENU'; this.showMenu('main'); };
-    document.getElementById('btn-pause').onclick = () => { this.state = 'PAUSED'; this.showMenu('pause'); };
+    // ── Кнопки ──
+    $('btn-start').onclick = () => { AudioSys.init(); this.startGame(); };
+    $('btn-restart').onclick = () => { AudioSys.init(); this.startGame(); };
+    $('btn-pause-restart').onclick = () => { AudioSys.init(); this.startGame(); };
+    $('btn-resume').onclick = () => this.resume();
+    $('btn-quit').onclick = () => this.toMenu();
+    $('btn-go-menu').onclick = () => this.toMenu();
+    $('btn-pause').onclick = e => { e.currentTarget.blur(); this.pause(); };
+    let rulesFromPause = false;
+    $('btn-rules').onclick = () => { rulesFromPause = false; $('menu-rules').classList.add('open'); };
+    $('btn-rules2').onclick = () => { rulesFromPause = true; $('menu-pause').classList.remove('open'); $('menu-rules').classList.add('open'); };
+    $('btn-rules-close').onclick = $('btn-rules-x').onclick = () => {
+      $('menu-rules').classList.remove('open');
+      if (rulesFromPause && this.state === 'PAUSED') $('menu-pause').classList.add('open');
+    };
 
-    // HUD
-    document.getElementById('best-val').textContent = Math.floor(this.best / 10);
-
-    this.startRenderLoop();
+    try {
+      if (window.matchMedia && matchMedia('(hover:hover) and (pointer:fine)').matches)
+        $('game-hint').textContent = 'Пробел / ↑ / клик — прыжок · ↓ — пригнуться · P — пауза';
+    } catch (e) {}
+    this.refreshMenu();
+    requestAnimationFrame(ts => this.loop(ts));
   },
 
-  showMenu(id) {
-    document.querySelectorAll('.overlay').forEach(m => m.classList.remove('active'));
-    document.getElementById('menu-' + id)?.classList.add('active');
-    if(id === 'main') {
-      document.getElementById('top-bar').style.display = 'none';
-      document.getElementById('btn-pause').style.display = 'none';
-    }
+  /* ── Экраны / оверлеи ── */
+  showScreen(name) {
+    $('screen-menu').classList.toggle('active', name === 'menu');
+    $('screen-game').classList.toggle('active', name === 'game');
   },
-  hideMenus() {
-    document.querySelectorAll('.overlay').forEach(m => m.classList.remove('active'));
-    document.getElementById('top-bar').style.display = 'flex';
-    document.getElementById('btn-pause').style.display = 'flex';
+  closeOverlays() { ['menu-pause', 'menu-game-over', 'menu-rules'].forEach(id => $(id).classList.remove('open')); },
+  refreshMenu() {
+    $('menu-best').textContent = 'Рекорд: ' + fmt(this.best);
+    const m = MEDALS.filter(x => this.best >= x.t).pop();
+    $('menu-stats').textContent = m ? 'Лучшая медаль: ' + m.icon + ' ' + m.name + ' • Рекорд: ' + fmt(this.best)
+                                    : 'Медали: 🥉 100 • 🥈 300 • 🥇 700 • 💎 1500 очков';
+  },
+
+  saveBest() { store.set('dino_best', String(Math.floor(this.best))); },
+
+  pause() {
+    if (this.state !== 'PLAYING') return;              // в DEAD/MENU паузы нет
+    this.state = 'PAUSED';
+    this.touches.clear(); this.keyDuck = false; this._isDucking = false;
+    $('menu-pause').classList.add('open');
+  },
+  resume() {
+    if (this.state !== 'PAUSED') return;
+    this.closeOverlays();
+    this.state = 'PLAYING';
+  },
+  toMenu() {
+    clearTimeout(this.dieTimer);
+    this.saveBest();
+    this.state = 'MENU';
+    this.touches.clear(); this.keyDuck = false; this._isDucking = false;
+    this.closeOverlays();
+    this.showScreen('menu');
+    this.refreshMenu();
   },
 
   jump() {
-    if(this.state !== 'PLAYING') return;
-    if(this.dino && this.dino.y >= this.GND) {
+    if (this.state !== 'PLAYING') return;
+    if (this.dino && this.dino.y >= this.GND) {
       this.dino.vy = -13;
       AudioSys.sfx.jump();
     }
   },
 
+  syncDuck() {
+    let duck = this.keyDuck;
+    this.touches.forEach(t => { if (t.duck) duck = true; });
+    this.duck(duck);
+  },
   duck(active) {
-    if(this.state !== 'PLAYING') return;
+    if (this.state !== 'PLAYING') return;
+    if (active && !this._isDucking && this.dino) {
+      AudioSys.sfx.duck();
+      // в воздухе ↓ / свайп вниз — быстрое приземление (иначе свайп, начатый тапом-прыжком, не даёт пригнуться)
+      if (this.dino.y < this.GND) this.dino.vy = Math.max(this.dino.vy, 9);
+    }
     this._isDucking = active;
-    if(active && this.dino) AudioSys.sfx.duck();
   },
 
   startGame() {
-    this.hideMenus();
-    this.score = 0; this.displayScore = 0;
+    clearTimeout(this.dieTimer); clearTimeout(this.themeTimer);
+    this.saveBest();                                   // «Заново» из паузы посреди рекордного забега
+    this.closeOverlays();
+    this.showScreen('game');
+    this.layout();
+    document.querySelectorAll('#board-box .float-text').forEach(el => el.remove());
+    $('theme-indicator').classList.remove('visible');
+    this.score = 0; this.displayScore = 0; this.bestAtStart = this.best;
     this.spd = this.baseSpd;
     this.tick = 0; this.milestone = 0;
-    this.themeIdx = 0; this.eraIdx = 0;
+    this.themeIdx = 0; this.eraIdx = 0; this.themeSteps = 0;
     this.obstacles = []; this.particles = [];
     this.shakeTimer = 0; this.frameCount = 0;
-    this._isDucking = false;
+    this.touches.clear(); this.keyDuck = false; this._isDucking = false;
 
     this.dino = {
       x: this.W * 0.12,
@@ -429,15 +453,17 @@ const Game = {
       legFrame: 0, legTick: 0
     };
 
-    this.updateHUD();
+    this._hud = {};
+    this.updateHUD(true);
+    this.updateThemeLabel();
+    this.acc = 0;
     this.state = 'PLAYING';
   },
 
   spawnObstacle() {
-    const t = this.theme;
     const type = Math.random();
 
-    if(type < 0.5) {
+    if (type < 0.5) {
       // Cactus (short or tall)
       const tall = Math.random() < 0.35;
       this.obstacles.push({
@@ -447,7 +473,7 @@ const Game = {
         w: 18, h: tall ? 34 : 20,
         hasArms: Math.random() < 0.6
       });
-    } else if(type < 0.75) {
+    } else if (type < 0.75) {
       // Double cactus
       this.obstacles.push({
         type: 'cactus',
@@ -456,9 +482,11 @@ const Game = {
         w: 32, h: 24,
         hasArms: true
       });
-    } else if(this.score > 500) {
-      // Pterodactyl (flying obstacle)
-      const flyHeight = Math.random() < 0.5 ? this.GND - 55 : this.GND - 30;
+    } else if (this.score > 500) {
+      // Pterodactyl: «высокий» летит на уровне головы — под ним проходит только пригнувшийся динозавр
+      // (раньше он висел на GND-55 и пролетал над стоящим — приседание было бесполезным);
+      // низкий — только перепрыгнуть.
+      const flyHeight = Math.random() < 0.5 ? this.GND - 46 : this.GND - 30;
       this.obstacles.push({
         type: 'ptero',
         x: this.W + 10,
@@ -478,29 +506,39 @@ const Game = {
     }
   },
 
-  updateHUD() {
+  updateHUD(force) {
+    const h = this._hud;
     const ds = Math.floor(this.displayScore);
-    const sv = document.getElementById('score-val');
-    sv.textContent = ds;
-    sv.classList.add('pop');
-    setTimeout(() => sv.classList.remove('pop'), 150);
-
-    // Progress to next 100
-    const progress = (ds % 100) / 100 * 100;
-    document.getElementById('progress-fill').style.width = progress + '%';
+    if (force || h.score !== ds) { h.score = ds; $('score-val').textContent = fmt(ds); }
+    const bs = Math.floor(this.best);
+    if (force || h.best !== bs) { h.best = bs; $('best-val').textContent = fmt(bs); }
+    const sp = '×' + (this.spd / this.baseSpd).toFixed(1);
+    if (force || h.spd !== sp) { h.spd = sp; $('speed-val').textContent = sp; }
+    const pr = ds % 100;
+    if (force || h.pr !== pr) { h.pr = pr; $('progress-fill').style.width = pr + '%'; }
+  },
+  pop(id) {
+    const el = $(id);
+    el.classList.remove('pop'); void el.offsetWidth; el.classList.add('pop');
+  },
+  updateThemeLabel() {
+    $('theme-name').textContent = (this.theme.name + ' · эпоха ' + ERA[this.eraIdx]).toUpperCase();
   },
 
   spawnFloatText(x, y, text, color) {
     const el = document.createElement('div');
     el.className = 'float-text';
     el.textContent = text;
-    el.style.left = x + 'px'; el.style.top = y + 'px'; el.style.color = color;
-    document.getElementById('game-wrapper').appendChild(el);
+    // координаты поля → координаты внутри .ku-board (канвас сдвинут на рамку)
+    el.style.left = (this.canvas.offsetLeft + x) + 'px';
+    el.style.top = (this.canvas.offsetTop + y) + 'px';
+    el.style.color = color;
+    $('board-box').appendChild(el);
     setTimeout(() => el.remove(), 800);
   },
 
   spawnParts(x, y, color, count, speed) {
-    for(let i = 0; i < count; i++) this.particles.push(new Particle(x, y, color, speed));
+    for (let i = 0; i < count; i++) this.particles.push(new Particle(x, y, color, speed));
   },
 
   update() {
@@ -511,42 +549,47 @@ const Game = {
     this.frameCount++;
 
     // Speed increase over time
-    if(this.tick % 500 === 0) {
+    if (this.tick % 500 === 0) {
       this.spd += 0.4;
     }
 
-    // Theme change every 200 score ticks
-    if(this.tick > 0 && this.tick % 2000 === 0) {
-      this.themeIdx = (this.themeIdx + 1) % BaseThemes.length;
+    // Theme change every 2000 ticks; full circle of themes → next era (brighter neon)
+    if (this.tick > 0 && this.tick % 2000 === 0) {
+      this.themeSteps++;
+      this.themeIdx = this.themeSteps % BaseThemes.length;
+      this.eraIdx = Math.min(ERA.length - 1, Math.floor(this.themeSteps / BaseThemes.length));
       AudioSys.sfx.themeChange();
-      const ti = document.getElementById('theme-indicator');
-      ti.textContent = `🌟 ${BaseThemes[this.themeIdx].name}`;
-      ti.style.color = BaseThemes[this.themeIdx].ground;
+      const nt = BaseThemes[this.themeIdx];
+      const ti = $('theme-indicator');
+      ti.textContent = `🌟 ${nt.name} · эпоха ${ERA[this.eraIdx]}`;
+      ti.style.color = nt.ground;
       ti.classList.add('visible');
-      setTimeout(() => ti.classList.remove('visible'), 1500);
+      clearTimeout(this.themeTimer);
+      this.themeTimer = setTimeout(() => ti.classList.remove('visible'), 1500);
+      this.updateThemeLabel();
     }
 
     // Dino physics
     d.isDucking = this._isDucking;
     d.vy += 0.65;
     d.y += d.vy;
-    if(d.y >= this.GND) { d.y = this.GND; d.vy = 0; }
+    if (d.y >= this.GND) { d.y = this.GND; d.vy = 0; }
 
     // Running animation
     d.legTick++;
-    if(d.legTick % 6 === 0) d.legFrame = 1 - d.legFrame;
+    if (d.legTick % 6 === 0) d.legFrame = 1 - d.legFrame;
 
     // Obstacles
     const minGap = Math.max(180, 320 - this.spd * 10);
-    if(this.obstacles.length === 0 || this.obstacles[this.obstacles.length - 1].x < this.W - minGap - Math.random() * 150) {
+    if (this.obstacles.length === 0 || this.obstacles[this.obstacles.length - 1].x < this.W - minGap - Math.random() * 150) {
       this.spawnObstacle();
     }
 
     this.obstacles.forEach(o => {
       o.x -= this.spd;
-      if(o.type === 'ptero') {
+      if (o.type === 'ptero') {
         o.wingTick++;
-        if(o.wingTick % 12 === 0) o.wingFrame = 1 - o.wingFrame;
+        if (o.wingTick % 12 === 0) o.wingFrame = 1 - o.wingFrame;
       }
     });
     this.obstacles = this.obstacles.filter(o => o.x > -60);
@@ -555,35 +598,32 @@ const Game = {
     this.score += this.spd * 0.15;
     this.displayScore = this.score;
 
-    // Best
-    if(this.score > this.best) {
-      this.best = this.score;
-      localStorage.setItem('dino_best', Math.floor(this.best));
-      document.getElementById('best-val').textContent = Math.floor(this.best / 10);
-    }
+    // Best (сохраняется в localStorage в конце забега, а не 60 раз в секунду)
+    if (this.score > this.best) this.best = this.score;
 
     // Milestone sound every 100 points
     const ms = Math.floor(this.score / 100);
-    if(ms > this.milestone) {
+    if (ms > this.milestone) {
       this.milestone = ms;
       AudioSys.sfx.point();
       this.spawnParts(d.x, d.y - d.h, t.particle, 15, 4);
       this.spawnFloatText(d.x, d.y - d.h - 10, '✦ 100', t.particle);
+      this.pop('score-val');
     }
 
-    if(this.tick % 8 === 0) this.updateHUD();
+    if (this.tick % 6 === 0) this.updateHUD();
 
     // Stars parallax
     this.stars.forEach(s => {
       s.twinkle += 0.015;
       s.x -= s.speed * (this.spd / this.baseSpd);
-      if(s.x < -5) { s.x = this.W + 5; s.y = Math.random() * (this.H - 60); }
+      if (s.x < -5) { s.x = this.W + 5; s.y = Math.random() * (this.H - 60); }
     });
 
     // Ground details
     this.groundDetails.forEach(g => {
       g.x -= this.spd;
-      if(g.x < -10) { g.x = this.W + Math.random() * 50; g.w = Math.random() * 8 + 2; g.h = Math.random() * 3 + 1; }
+      if (g.x < -10) { g.x = this.W + Math.random() * 50; g.w = Math.random() * 8 + 2; g.h = Math.random() * 3 + 1; }
     });
 
     // Collision
@@ -592,170 +632,198 @@ const Game = {
     const dTop = d.isDucking ? d.y - d.duckH + 2 : d.y - d.h + 4;
     const dBottom = d.y - 2;
 
-    for(const o of this.obstacles) {
+    for (const o of this.obstacles) {
       const oLeft = o.x + 3;
       const oRight = o.x + o.w - 3;
       const oTop = o.y + 3;
       const oBottom = o.y + o.h - 2;
 
-      if(dRight > oLeft && dLeft < oRight && dBottom > oTop && dTop < oBottom) {
+      if (dRight > oLeft && dLeft < oRight && dBottom > oTop && dTop < oBottom) {
         this.die(); return;
       }
     }
 
     // Particles
+    this.updateFx();
+  },
+
+  /* частицы и тряска живут и после гибели (раньше замирали, а экран трясся бесконечно) */
+  updateFx() {
     this.particles.forEach(p => p.update());
     this.particles = this.particles.filter(p => p.life > 0);
-
-    if(this.shakeTimer > 0) this.shakeTimer--;
+    if (this.shakeTimer > 0) this.shakeTimer--;
   },
 
   die() {
     this.state = 'DEAD';
+    this.touches.clear(); this.keyDuck = false; this._isDucking = false;
     AudioSys.sfx.die();
     vibrate([50, 50, 50]);
     this.shakeTimer = 15;
+    this.updateHUD(true);
+    this.saveBest();
 
-    this.spawnParts(this.dino.x + this.dino.w/2, this.dino.y - this.dino.h/2, '#ff4466', 25, 5);
-    this.spawnParts(this.dino.x + this.dino.w/2, this.dino.y - this.dino.h/2, '#ffd700', 15, 4);
+    this.spawnParts(this.dino.x + this.dino.w / 2, this.dino.y - this.dino.h / 2, '#ff5d7d', 25, 5);
+    this.spawnParts(this.dino.x + this.dino.w / 2, this.dino.y - this.dino.h / 2, '#ffd60a', 15, 4);
 
-    setTimeout(() => {
+    clearTimeout(this.dieTimer);
+    this.dieTimer = setTimeout(() => {
+      if (this.state !== 'DEAD') return;
       const ds = Math.floor(this.displayScore);
-      document.getElementById('final-score').textContent = `Счёт: ${ds}`;
-
-      const isNewBest = Math.floor(this.score) >= Math.floor(this.best) && ds > 0;
-      document.getElementById('new-best').style.display = isNewBest ? 'block' : 'none';
-
-      const medals = [
-        {id:'bronze', t:100}, {id:'silver', t:300}, {id:'gold', t:700}, {id:'platinum', t:1500}
-      ];
-      medals.forEach(m => {
-        document.getElementById('medal-'+m.id).classList.toggle('earned', ds >= m.t);
-      });
-
-      this.showMenu('game-over');
+      $('final-score').textContent = fmt(ds);
+      $('new-best').hidden = !(this.score > this.bestAtStart && ds > 0);
+      MEDALS.forEach(m => $('medal-' + m.id).classList.toggle('earned', ds >= m.t));
+      $('over-best').textContent = fmt(this.best);
+      $('over-speed').textContent = '×' + (this.spd / this.baseSpd).toFixed(1);
+      $('over-theme').textContent = this.theme.name + ' · ' + ERA[this.eraIdx];
+      $('menu-game-over').classList.add('open');
     }, 600);
   },
 
-  startRenderLoop() {
-    const loop = () => {
-      requestAnimationFrame(loop);
-      if(this.state === 'PLAYING') this.update();
-      this.draw();
-    };
-    requestAnimationFrame(loop);
+  loop(ts) {
+    requestAnimationFrame(t2 => this.loop(t2));
+    let dt = this.lastTs ? ts - this.lastTs : TICK;
+    this.lastTs = ts;
+    if (dt > 250) dt = TICK;                   // вкладка была скрыта
+    this.acc = Math.min(this.acc + dt, TICK * 6);
+    // небольшой допуск к дрожанию rAF, чтобы на 60 Гц не было кадров с 0 и 2 тиками
+    while (this.acc >= TICK - 1.5) {
+      this.acc -= TICK;
+      if (this.state === 'PLAYING') this.update();
+      else if (this.state === 'DEAD') this.updateFx();
+    }
+    // в паузе и после затухания взрыва кадр не меняется — не перерисовываем
+    if (this.state === 'PLAYING' || (this.state === 'DEAD' && (this.particles.length || this.shakeTimer > 0))) this.draw();
   },
 
   draw() {
     const ctx = this.ctx;
+    if (!ctx) return;
     const t = this.theme;
+    const W = this.W, H = this.H, GND = this.GND;
+    const glow = 1 + this.eraIdx * 0.35;       // эпоха = интенсивность неона
 
-    // Background
-    ctx.fillStyle = t.bg;
-    ctx.fillRect(0, 0, this.W, this.H);
+    ctx.setTransform(this.dpr, 0, 0, this.dpr, 0, 0);
+    ctx.clearRect(0, 0, W, H);
+
+    // Background: тёмное «стекло» набора + оттенок темы
+    const sky = ctx.createLinearGradient(0, 0, 0, H);
+    sky.addColorStop(0, 'rgba(4,6,22,.62)');
+    sky.addColorStop(1, `rgba(${t.tint},${(0.07 + this.eraIdx * 0.03).toFixed(2)})`);
+    ctx.fillStyle = sky;
+    ctx.fillRect(0, 0, W, H);
 
     // Shake
     ctx.save();
-    if(this.shakeTimer > 0) {
+    if (this.shakeTimer > 0) {
       const intensity = this.shakeTimer * 0.8;
-      ctx.translate((Math.random()-0.5) * intensity, (Math.random()-0.5) * intensity);
+      ctx.translate((Math.random() - 0.5) * intensity, (Math.random() - 0.5) * intensity);
     }
 
-    // Stars
-    this.stars.forEach(s => {
+    // Stars (в поздних эпохах их больше)
+    const nStars = Math.round(this.stars.length * (0.55 + 0.15 * this.eraIdx));
+    for (let i = 0; i < nStars; i++) {
+      const s = this.stars[i];
       const alpha = 0.3 + Math.sin(s.twinkle) * 0.3;
-      ctx.fillStyle = t.star.replace(/[\d.]+\)$/, alpha.toFixed(2) + ')');
-      ctx.beginPath(); ctx.arc(s.x, s.y, s.size, 0, Math.PI*2); ctx.fill();
-    });
+      ctx.fillStyle = `rgba(${t.star},${Math.max(0, alpha).toFixed(2)})`;
+      ctx.beginPath(); ctx.arc(s.x, s.y, s.size, 0, Math.PI * 2); ctx.fill();
+    }
 
-    // Ground line
-    ctx.shadowBlur = 10; ctx.shadowColor = t.groundLine;
+    // Ground glow + line
+    const gg = ctx.createLinearGradient(0, GND, 0, H);
+    gg.addColorStop(0, `rgba(${t.tint},.10)`); gg.addColorStop(1, `rgba(${t.tint},0)`);
+    ctx.fillStyle = gg; ctx.fillRect(0, GND, W, H - GND);
+    ctx.shadowBlur = 10 * glow; ctx.shadowColor = t.ground;
     ctx.fillStyle = t.ground;
-    ctx.fillRect(0, this.GND, this.W, 2);
+    ctx.fillRect(0, GND, W, 2);
     ctx.shadowBlur = 0;
 
     // Ground details
     ctx.fillStyle = t.ground;
     ctx.globalAlpha = 0.3;
     this.groundDetails.forEach(g => {
-      ctx.fillRect(g.x, this.GND + 5, g.w, g.h);
+      ctx.fillRect(g.x, GND + 5, g.w, g.h);
     });
     ctx.globalAlpha = 1;
 
     // Ground texture pattern (moving dashes)
     ctx.fillStyle = t.ground;
-    ctx.globalAlpha = 0.1;
+    ctx.globalAlpha = 0.1 + this.eraIdx * 0.03;
     const dashOffset = (this.frameCount * -this.spd) % 24;
-    for(let x = dashOffset; x < this.W; x += 24) {
-      ctx.fillRect(x, this.GND + 12, 12, 1);
-      ctx.fillRect(x + 6, this.GND + 20, 8, 1);
+    for (let x = dashOffset; x < W; x += 24) {
+      ctx.fillRect(x, GND + 12, 12, 1);
+      ctx.fillRect(x + 6, GND + 20, 8, 1);
     }
     ctx.globalAlpha = 1;
 
     // Obstacles
     this.obstacles.forEach(o => {
-      if(o.type === 'cactus') {
-        this.drawCactus(o);
-      } else if(o.type === 'ptero') {
-        this.drawPtero(o);
-      }
+      if (o.type === 'cactus') this.drawCactus(o, glow);
+      else if (o.type === 'ptero') this.drawPtero(o, glow);
     });
 
     // Particles
     this.particles.forEach(p => p.draw(ctx));
 
     // Dino
-    if(this.dino) this.drawDino();
+    if (this.dino) this.drawDino(glow);
 
     ctx.restore();
   },
 
-  drawDino() {
+  drawDino(glow) {
     const ctx = this.ctx;
     const t = this.theme;
     const d = this.dino;
-
-    ctx.save();
-    ctx.translate(d.x, d.y);
-
     const ducking = d.isDucking;
     const bodyH = ducking ? d.duckH : d.h;
     const bodyW = ducking ? d.w + 8 : d.w;
 
-    // Shadow on ground
-    ctx.fillStyle = 'rgba(0,0,0,0.2)';
+    // Тень на земле (остаётся на земле и уменьшается в прыжке)
+    const lift = Math.max(0, this.GND - d.y);
+    const k = Math.max(0.35, 1 - lift / 160);
+    ctx.fillStyle = `rgba(0,0,0,${(0.28 * k).toFixed(2)})`;
     ctx.beginPath();
-    ctx.ellipse(bodyW/2, 2, bodyW * 0.4, 3, 0, 0, Math.PI*2);
+    ctx.ellipse(d.x + bodyW / 2, this.GND + 2, bodyW * 0.4 * k, 3, 0, 0, Math.PI * 2);
     ctx.fill();
 
-    if(ducking) {
-      // Ducking dino — flat body
+    ctx.save();
+    ctx.translate(d.x, d.y);
+    const legOn = this.state === 'PLAYING';
+
+    if (ducking) {
+      // Ducking dino — flat body, ноги под телом до земли
+      ctx.fillStyle = t.dinoDark;
+      const legOff = legOn && d.legFrame ? 4 : -4;
+      ctx.fillRect(bodyW / 2 - 4 + legOff, -6, 4, 6);
+      ctx.fillRect(bodyW / 2 + 2 - legOff, -6, 4, 6);
+
       ctx.fillStyle = t.dino;
-      ctx.shadowBlur = 10; ctx.shadowColor = t.dino;
+      ctx.shadowBlur = 10 * glow; ctx.shadowColor = t.dino;
       ctx.beginPath();
-      ctx.roundRect(0, -bodyH, bodyW, bodyH, 6);
+      ctx.roundRect(0, -bodyH, bodyW, bodyH - 4, 6);
       ctx.fill();
       ctx.shadowBlur = 0;
 
       // Eye
       ctx.fillStyle = '#fff';
-      ctx.beginPath(); ctx.arc(bodyW - 6, -bodyH + 6, 4, 0, Math.PI*2); ctx.fill();
+      ctx.beginPath(); ctx.arc(bodyW - 6, -bodyH + 6, 4, 0, Math.PI * 2); ctx.fill();
       ctx.fillStyle = '#000';
-      ctx.beginPath(); ctx.arc(bodyW - 5, -bodyH + 6, 2, 0, Math.PI*2); ctx.fill();
-
-      // Legs (running)
-      ctx.fillStyle = t.dinoDark;
-      const legOff = d.legFrame ? 4 : -4;
-      ctx.fillRect(bodyW/2 - 4 + legOff, 0, 4, 4);
-      ctx.fillRect(bodyW/2 + 2 - legOff, 0, 4, 4);
+      ctx.beginPath(); ctx.arc(bodyW - 5, -bodyH + 6, 2, 0, Math.PI * 2); ctx.fill();
     } else {
+      // Legs (раньше рисовались на 24–38 px НИЖЕ линии земли — отдельно от динозавра)
+      ctx.fillStyle = t.dinoDark;
+      const legOff = legOn ? (d.legFrame ? 5 : -5) : 0;
+      ctx.fillRect(bodyW / 2 - 5 + legOff, -10, 4, 10);
+      ctx.fillRect(bodyW / 2 + 1 - legOff, -10, 4, 10);
+
       // Standing dino
       ctx.fillStyle = t.dino;
-      ctx.shadowBlur = 12; ctx.shadowColor = t.dino;
+      ctx.shadowBlur = 12 * glow; ctx.shadowColor = t.dino;
 
       // Body
       ctx.beginPath();
-      ctx.roundRect(4, -bodyH + 8, bodyW - 8, bodyH - 12, 5);
+      ctx.roundRect(4, -bodyH + 8, bodyW - 8, bodyH - 16, 5);
       ctx.fill();
 
       // Head
@@ -766,9 +834,9 @@ const Game = {
 
       // Eye
       ctx.fillStyle = '#fff';
-      ctx.beginPath(); ctx.arc(bodyW - 4, -bodyH + 7, 4, 0, Math.PI*2); ctx.fill();
+      ctx.beginPath(); ctx.arc(bodyW - 4, -bodyH + 7, 4, 0, Math.PI * 2); ctx.fill();
       ctx.fillStyle = '#000';
-      ctx.beginPath(); ctx.arc(bodyW - 3, -bodyH + 7, 2, 0, Math.PI*2); ctx.fill();
+      ctx.beginPath(); ctx.arc(bodyW - 3, -bodyH + 7, 2, 0, Math.PI * 2); ctx.fill();
 
       // Mouth
       ctx.fillStyle = t.dinoDark;
@@ -785,27 +853,16 @@ const Game = {
       ctx.lineTo(-8, -bodyH + 18);
       ctx.lineTo(4, -bodyH + 22);
       ctx.closePath(); ctx.fill();
-
-      // Legs
-      ctx.fillStyle = t.dinoDark;
-      if(this.state === 'PLAYING') {
-        const legOff = d.legFrame ? 5 : -5;
-        ctx.fillRect(bodyW/2 - 5 + legOff, bodyH - 14, 4, 14);
-        ctx.fillRect(bodyW/2 + 1 - legOff, bodyH - 14, 4, 14);
-      } else {
-        ctx.fillRect(bodyW/2 - 5, bodyH - 14, 4, 14);
-        ctx.fillRect(bodyW/2 + 1, bodyH - 14, 4, 14);
-      }
     }
 
     ctx.restore();
   },
 
-  drawCactus(o) {
+  drawCactus(o, glow) {
     const ctx = this.ctx;
     const t = this.theme;
 
-    ctx.shadowBlur = 10; ctx.shadowColor = t.obs;
+    ctx.shadowBlur = 10 * glow; ctx.shadowColor = t.obs;
     ctx.fillStyle = t.obs;
 
     // Main trunk
@@ -814,7 +871,7 @@ const Game = {
     ctx.fill();
 
     // Arms
-    if(o.hasArms && o.h > 18) {
+    if (o.hasArms && o.h > 18) {
       ctx.fillRect(o.x - 7, o.y + 6, 8, 5);
       ctx.fillRect(o.x - 7, o.y + 2, 4, 9);
       ctx.fillRect(o.x + o.w, o.y + 10, 8, 5);
@@ -828,23 +885,23 @@ const Game = {
     ctx.fillRect(o.x + 3, o.y + 3, o.w - 6, o.h - 6);
   },
 
-  drawPtero(o) {
+  drawPtero(o, glow) {
     const ctx = this.ctx;
     const t = this.theme;
 
     ctx.save();
-    ctx.translate(o.x + o.w/2, o.y + o.h/2);
+    ctx.translate(o.x + o.w / 2, o.y + o.h / 2);
 
-    ctx.shadowBlur = 12; ctx.shadowColor = t.obs;
+    ctx.shadowBlur = 12 * glow; ctx.shadowColor = t.obs;
     ctx.fillStyle = t.obs;
 
     // Body
     ctx.beginPath();
-    ctx.roundRect(-o.w/2, -3, o.w, 6, 3);
+    ctx.roundRect(-o.w / 2, -3, o.w, 6, 3);
     ctx.fill();
 
-    // Head/beak
-    ctx.fillRect(o.w/2 - 4, -2, 10, 4);
+    // Head/beak — смотрит по ходу полёта (влево, навстречу динозавру)
+    ctx.fillRect(-o.w / 2 - 6, -2, 10, 4);
 
     // Wings
     const wingY = o.wingFrame ? -12 : 4;
@@ -859,13 +916,13 @@ const Game = {
 
     // Eye
     ctx.fillStyle = '#fff';
-    ctx.beginPath(); ctx.arc(o.w/2 - 6, 0, 2, 0, Math.PI*2); ctx.fill();
+    ctx.beginPath(); ctx.arc(-o.w / 2 + 6, 0, 2, 0, Math.PI * 2); ctx.fill();
 
     ctx.restore();
   }
 };
 
-window.onload = () => Game.init();
+Game.init();
 </script>
 </body>
 </html>

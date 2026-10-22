@@ -2,392 +2,174 @@
 <html lang="ru">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
 <title>Сапёр PRO — Неоновая Аркада</title>
-<link rel="stylesheet" href="https://cdn.jsdelivr.net/fontsource/fonts/russo-one@latest/cyrillic-400-normal.css">
-<link rel="stylesheet" href="https://cdn.jsdelivr.net/fontsource/fonts/rubik@latest/cyrillic-400-normal.css">
-<link rel="stylesheet" href="https://cdn.jsdelivr.net/fontsource/fonts/rubik@latest/cyrillic-700-normal.css">
+<link rel="stylesheet" href="ku-arcade.css">
+<script src="ku-arcade.js"></script>
 <style>
-  :root {
-    --bg1: #070b24; --bg2: #151038; --bg3: #0a2540;
-    --panel: rgba(255, 255, 255, 0.06);
-    --panel-border: rgba(255, 255, 255, 0.13);
-    --accent: #00e5ff; --accent2: #ff4dd2;
-    --text: #eef2ff; --muted: #8f9ac2;
-    --n1: #00e5ff; --n2: #00e5a0; --n3: #ff4d4d; --n4: #b05bff;
-    --n5: #ff8c42; --n6: #00c8ff; --n7: #f0f0f8; --n8: #8888aa;
-  }
-  * { box-sizing: border-box; margin: 0; padding: 0; user-select: none; -webkit-user-select: none; }
-  html, body {
-    width: 100%; height: 100%; height: 100dvh;
-    overflow: hidden; font-family: 'Rubik', sans-serif;
-    background: linear-gradient(160deg, var(--bg1) 0%, var(--bg2) 55%, var(--bg3) 100%);
-    background-attachment: fixed; color: var(--text); touch-action: none; overscroll-behavior: none;
-  }
-  #bgFx { position: fixed; inset: 0; width: 100%; height: 100%; z-index: 0; pointer-events: none; }
-  #app { position: relative; z-index: 1; width: 100%; height: 100%; }
+  html,body{height:100%;overflow:hidden}
 
-  /* ---------- SCREENS ---------- */
-  .screen { display: none; width: 100%; min-height: 100vh; min-height: 100dvh; padding: 14px; flex-direction: column; align-items: center; }
-  .screen.active { display: flex; animation: fadeIn 0.35s ease; }
-  @keyframes fadeIn { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: none; } }
+  /* ── Игровой экран ── */
+  #screen-game{padding-left:8px;padding-right:8px;touch-action:none}
+  #screen-game .ku-hud{align-items:stretch;margin-bottom:8px}
+  .mode-btn{min-width:124px;padding:6px 12px;border-radius:12px;font-size:13px;letter-spacing:.6px;gap:6px}
+  .mode-btn .mi{font-size:16px;line-height:1}
+  .mode-btn.flag{border-color:var(--accent2);color:var(--accent2);
+    background:rgba(255,77,210,.14);background:color-mix(in srgb,var(--accent2) 14%,transparent);
+    box-shadow:0 0 16px rgba(255,77,210,.35);box-shadow:0 0 16px color-mix(in srgb,var(--accent2) 35%,transparent)}
+  #boardArea{flex:1 1 auto;min-height:0;min-width:0;width:100%;display:flex;align-items:center;justify-content:center}
+  #boardWrap{line-height:0}
+  #playCv{-webkit-touch-callout:none;cursor:pointer}
+  #btnSmiley{font-size:20px}
+  #gameHint{margin-top:8px;flex:none}
+  @media (max-height:700px){ #gameHint{display:none} }
 
-  /* ---------- MENU SCREEN ---------- */
-  #screen-menu { justify-content: flex-start; overflow-y: auto; padding-bottom: 24px; }
-  .logo { font-family: 'Russo One', sans-serif; font-size: clamp(40px, 9vw, 76px); letter-spacing: 8px; margin-top: 3vh; text-align: center; }
-  .logo span { display: inline-block; animation: letterFloat 3.2s ease-in-out infinite; animation-delay: calc(var(--i) * 0.16s); }
-  .logo span:nth-child(1) { color: var(--accent); text-shadow: 0 0 24px var(--accent); }
-  .logo span:nth-child(2) { color: #00e5a0; text-shadow: 0 0 24px #00e5a0; }
-  .logo span:nth-child(3) { color: #ff4d4d; text-shadow: 0 0 24px #ff4d4d; }
-  .logo span:nth-child(4) { color: #b05bff; text-shadow: 0 0 24px #b05bff; }
-  .logo span:nth-child(5) { color: var(--accent2); text-shadow: 0 0 24px var(--accent2); }
-  @keyframes letterFloat { 50% { transform: translateY(-8px); } }
-
-  .tagline { color: var(--muted); margin-top: 8px; font-size: 12px; letter-spacing: 2px; text-align: center; text-transform: uppercase; }
-  .pills { display: flex; gap: 8px; margin-top: 14px; flex-wrap: wrap; justify-content: center; max-width: 520px; }
-  .pills span { font-size: 11px; letter-spacing: 1px; padding: 5px 12px; border-radius: 20px; border: 1px solid var(--panel-border); background: var(--panel); color: var(--muted); backdrop-filter: blur(6px); }
-
-  .menu-btns { display: flex; flex-direction: column; gap: 12px; margin-top: 24px; align-items: center; width: 100%; }
-  .menu-duo { display: flex; gap: 12px; width: min(360px, 90vw); }
-  .menu-row { display: flex; gap: 10px; margin-top: 18px; flex-wrap: wrap; justify-content: center; }
-  .menu-stats { margin-top: 20px; color: var(--muted); font-size: 13px; text-align: center; }
-  .menu-hint { margin-top: 8px; color: var(--muted); font-size: 11px; opacity: 0.75; text-align: center; max-width: 560px; line-height: 1.5; }
-
-  /* ---------- BUTTONS ---------- */
-  .btn {
-    font-family: 'Rubik', sans-serif; font-size: 15px; font-weight: 600; color: var(--text);
-    background: linear-gradient(160deg, rgba(255,255,255,0.10), rgba(255,255,255,0.03));
-    border: 1px solid var(--panel-border); border-radius: 14px; padding: 12px 22px; cursor: pointer; transition: 0.2s;
-    backdrop-filter: blur(8px); display: inline-flex; align-items: center; justify-content: center; gap: 8px;
-    box-shadow: 0 4px 18px rgba(0,0,0,0.3), inset 0 1px 0 rgba(255,255,255,0.08);
-  }
-  .btn:hover { transform: translateY(-2px); border-color: var(--accent); box-shadow: 0 8px 26px rgba(0,0,0,0.4), 0 0 16px color-mix(in srgb, var(--accent) 40%, transparent); }
-  .btn:active { transform: scale(0.96); }
-  .btn.primary { background: linear-gradient(135deg, var(--accent), color-mix(in srgb, var(--accent) 55%, var(--accent2))); color: #041018; border: none; }
-  .btn.accent2 { background: linear-gradient(135deg, var(--accent2), color-mix(in srgb, var(--accent2) 50%, var(--accent))); color: #1a0412; border: none; }
-  .btn.easy { background: linear-gradient(135deg, #00e5a0, #00c2a8); color: #03210f; border: none; }
-  .btn.medium { background: linear-gradient(135deg, #ffd60a, #ff9f43); color: #241500; border: none; }
-  .btn.hard { background: linear-gradient(135deg, #ff4d4d, #d90429); color: #ffffff; border: none; }
-  .btn.big { width: min(360px, 90vw); padding: 14px; font-size: 18px; flex-direction: column; gap: 4px; }
-  .btn.duo { flex: 1; padding: 12px 6px; font-size: 15px; flex-direction: column; gap: 3px; }
-  .btn.big .best, .btn.duo .best { font-size: 11.5px; font-weight: 500; opacity: 0.85; }
-  .btn.icon { width: 42px; height: 42px; padding: 0; font-size: 18px; border-radius: 12px; }
-  .btn.ghost { background: transparent; }
-  .btn.danger { border-color: rgba(255,93,125,0.4); color: #ff8fa3; }
-  .btn.warn { border-color: rgba(255,214,10,0.35); color: #ffe38a; }
-
-  /* ---------- GAME SCREEN ---------- */
-  #screen-game { height: 100dvh; max-height: 100dvh; padding: 6px 8px; overflow: hidden; justify-content: space-between; }
-  .game-top { display: flex; align-items: center; justify-content: space-between; width: 100%; max-width: 600px; height: 40px; margin-bottom: 2px; }
-  .mode-title-wrap { display: flex; flex-direction: column; align-items: center; }
-  .mode-title { font-family: 'Russo One', sans-serif; font-size: 14px; letter-spacing: 1px; color: var(--text); }
-  
-  /* Smiley button */
-  .smiley-btn {
-    width: 40px; height: 40px; border-radius: 50%; font-size: 20px;
-    background: linear-gradient(160deg, rgba(255,255,255,0.12), rgba(255,255,255,0.04));
-    border: 1px solid var(--panel-border); cursor: pointer; display: flex; align-items: center; justify-content: center;
-    transition: 0.2s; box-shadow: 0 4px 14px rgba(0,0,0,0.4);
-  }
-  .smiley-btn:active { transform: scale(0.9); }
-
-  /* HUD BAR */
-  .hud-bar {
-    display: flex; gap: 8px; align-items: center; justify-content: space-around;
-    width: 100%; max-width: 600px; padding: 6px 12px; border-radius: 14px;
-    background: rgba(16, 20, 48, 0.85); border: 1px solid var(--panel-border); margin-bottom: 4px;
-  }
-  .hud-stat { display: flex; flex-direction: column; align-items: center; }
-  .hud-stat span { font-size: 9px; text-transform: uppercase; color: var(--muted); letter-spacing: 1px; }
-  .hud-stat b { font-family: 'Russo One', sans-serif; font-size: 16px; color: var(--accent); }
-
-  /* Mode Switcher (Dig / Flag) */
-  .mode-toggle-btn {
-    display: flex; align-items: center; gap: 6px; padding: 6px 12px; border-radius: 12px;
-    background: rgba(255,255,255,0.06); border: 1px solid var(--panel-border); cursor: pointer;
-    font-size: 12px; font-weight: 600; color: var(--text); transition: 0.2s;
-  }
-  .mode-toggle-btn.flag-active { background: rgba(255, 77, 210, 0.2); border-color: var(--accent2); color: var(--accent2); }
-
-  /* BOARD WRAP */
-  .board-wrap {
-    flex: 1; width: 100%; max-width: 600px; min-height: 0; display: flex;
-    align-items: center; justify-content: center; padding: 4px; border-radius: 16px;
-    background: rgba(16, 20, 48, 0.6); border: 1px solid var(--panel-border);
-    box-shadow: 0 14px 50px rgba(0,0,0,0.5), inset 0 1px 0 rgba(255,255,255,0.08); position: relative;
-  }
-  #playCv { display: block; border-radius: 10px; touch-action: none; }
-
-  /* Bottom Controls Hint */
-  .gesture-hint-bar {
-    font-size: 10px; color: var(--muted); text-align: center; padding: 4px 10px; border-radius: 10px;
-    background: rgba(16,20,48,0.85); border: 1px solid var(--panel-border); letter-spacing: 0.3px; margin-top: 3px; white-space: nowrap;
-  }
-
-  /* ---------- MODALS & OVERLAYS ---------- */
-  .modal-backdrop {
-    position: fixed; inset: 0; z-index: 100; background: rgba(0,0,0,0.75); backdrop-filter: blur(8px);
-    display: none; align-items: center; justify-content: center; padding: 14px;
-  }
-  .modal-backdrop.open { display: flex; animation: modalIn 0.25s ease; }
-  @keyframes modalIn { from { opacity: 0; transform: scale(0.95); } to { opacity: 1; transform: none; } }
-
-  .modal-card {
-    width: min(480px, 94vw); max-height: 85vh; border-radius: 22px;
-    background: linear-gradient(160deg, var(--bg2), var(--bg1)); border: 1px solid var(--panel-border);
-    box-shadow: 0 20px 60px rgba(0,0,0,0.7); display: flex; flex-direction: column; overflow: hidden;
-  }
-  .modal-header { display: flex; align-items: center; justify-content: space-between; padding: 16px 20px; border-bottom: 1px solid var(--panel-border); }
-  .modal-header h2 { font-family: 'Russo One', sans-serif; font-size: 18px; letter-spacing: 1px; color: var(--text); }
-  .modal-close { background: none; border: none; font-size: 22px; color: var(--muted); cursor: pointer; transition: 0.2s; }
-  .modal-close:hover { color: var(--text); }
-  .modal-body { padding: 16px 20px; overflow-y: auto; display: flex; flex-direction: column; gap: 14px; }
-
-  /* OVERLAYS */
-  .overlay {
-    position: absolute; inset: 0; z-index: 50; background: rgba(5,7,20,0.85); backdrop-filter: blur(8px);
-    display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 16px; padding: 20px;
-  }
-  .overlay[hidden] { display: none !important; }
-  .overlay-card {
-    width: min(360px, 90vw); padding: 24px; border-radius: 22px; background: linear-gradient(160deg, var(--bg2), var(--bg1));
-    border: 1px solid var(--panel-border); text-align: center; box-shadow: 0 16px 50px rgba(0,0,0,0.6);
-    animation: popIn 0.3s ease; display: flex; flex-direction: column; align-items: center; gap: 12px;
-  }
-  @keyframes popIn { from { transform: scale(0.85); opacity: 0; } to { transform: scale(1); opacity: 1; } }
-  .overlay-card h2 { font-family: 'Russo One', sans-serif; font-size: 24px; letter-spacing: 1px; }
-
-  /* STATS GRID & ACH LIST */
-  .stats-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(130px, 1fr)); gap: 10px; }
-  .st-card { background: var(--panel); border: 1px solid var(--panel-border); border-radius: 14px; padding: 12px; text-align: center; }
-  .st-card .si { font-size: 22px; margin-bottom: 2px; }
-  .st-card .sv { font-family: 'Russo One', sans-serif; font-size: 18px; color: var(--accent); }
-  .st-card .sl { font-size: 10px; color: var(--muted); text-transform: uppercase; letter-spacing: 1px; margin-top: 2px; }
-
-  .ach-item { display: flex; align-items: center; gap: 12px; padding: 12px; border-radius: 14px; background: var(--panel); border: 1px solid var(--panel-border); }
-  .ach-item.unlocked { border-color: rgba(255, 214, 10, 0.4); background: rgba(255, 214, 10, 0.06); }
-  .ach-icon { font-size: 28px; width: 44px; height: 44px; display: flex; align-items: center; justify-content: center; background: rgba(255,255,255,0.05); border-radius: 12px; }
-  .ach-info h4 { font-family: 'Russo One', sans-serif; font-size: 14px; margin-bottom: 2px; }
-  .ach-info p { font-size: 11px; color: var(--muted); }
-
-  /* SETTINGS STYLES */
-  .set-group { display: flex; flex-direction: column; gap: 8px; }
-  .set-group label { font-size: 11px; text-transform: uppercase; color: var(--muted); letter-spacing: 1px; }
-  .set-row { display: flex; align-items: center; justify-content: space-between; padding: 10px 14px; background: var(--panel); border: 1px solid var(--panel-border); border-radius: 12px; }
-  .theme-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(100px, 1fr)); gap: 8px; }
-  .theme-card { padding: 8px; border-radius: 12px; border: 1px solid var(--panel-border); cursor: pointer; text-align: center; background: var(--panel); transition: 0.2s; }
-  .theme-card.active { border-color: var(--accent); box-shadow: 0 0 12px color-mix(in srgb, var(--accent) 40%, transparent); }
-  .theme-swatches { display: flex; gap: 4px; justify-content: center; margin-top: 6px; }
-  .theme-swatches span { width: 10px; height: 10px; border-radius: 50%; }
-
-  /* TOAST */
-  #toast {
-    position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%) translateY(100px);
-    background: linear-gradient(135deg, var(--bg2), var(--bg1)); border: 1px solid var(--panel-border);
-    color: var(--text); padding: 10px 20px; border-radius: 20px; font-size: 13px; font-weight: 600;
-    box-shadow: 0 10px 30px rgba(0,0,0,0.5); z-index: 200; pointer-events: none; transition: transform 0.35s cubic-bezier(0.175, 0.885, 0.32, 1.275);
-  }
-  #toast.show { transform: translateX(-50%) translateY(0); }
-  #toast.ach { border-color: #ffd60a; color: #ffd60a; background: rgba(255, 214, 10, 0.15); }
+  /* ── Модальные окна: статистика, достижения, история, настройки ── */
+  .stats-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(118px,1fr));gap:10px}
+  .st-card{background:var(--glass-panel);border:1px solid var(--panel-border);border-radius:14px;padding:12px 8px;text-align:center}
+  .st-card .si{font-size:20px;line-height:1.2}
+  .st-card .sv{font-family:var(--font-display);font-size:18px;color:var(--accent);margin-top:2px}
+  .st-card .sl{font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:1px;margin-top:2px}
+  .list{display:flex;flex-direction:column;gap:8px}
+  .ach-item{display:flex;align-items:center;gap:12px;padding:10px 12px;border-radius:14px;background:var(--panel);border:1px solid var(--panel-border)}
+  .ach-item.unlocked{border-color:rgba(255,214,10,.45);background:rgba(255,214,10,.07)}
+  .ach-item.unlocked h4{color:var(--gold)}
+  .ach-icon{font-size:24px;width:42px;height:42px;flex:none;display:flex;align-items:center;justify-content:center;background:rgba(255,255,255,.05);border-radius:12px}
+  .ach-info{min-width:0}
+  .ach-info h4{margin:0 0 2px;font-family:var(--font-display);font-weight:400;font-size:13px;letter-spacing:.5px}
+  .ach-info p{margin:0;font-size:11.5px;color:var(--muted);line-height:1.4}
+  .empty{text-align:center;color:var(--muted);padding:20px}
+  .theme-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(96px,1fr));gap:8px}
+  .theme-card{font:600 12px var(--font-body);color:var(--text);padding:10px 6px;border-radius:12px;border:1px solid var(--panel-border);
+    background:var(--panel);cursor:pointer;text-align:center;transition:border-color .2s,box-shadow .2s}
+  .theme-card.active{border-color:var(--accent);box-shadow:0 0 12px rgba(0,229,255,.4);box-shadow:0 0 12px color-mix(in srgb,var(--accent) 40%,transparent)}
+  .theme-swatches{display:flex;gap:4px;justify-content:center;margin-top:6px}
+  .theme-swatches span{width:10px;height:10px;border-radius:50%;border:1px solid rgba(255,255,255,.2)}
+  .set-btns{display:flex;gap:8px;flex-wrap:wrap}
+  #exportText{width:100%;height:min(46vh,260px);resize:none;background:rgba(0,0,0,.3);color:var(--text);border:1px solid var(--panel-border);
+    border-radius:12px;padding:10px;font:12px/1.45 ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;user-select:text;-webkit-user-select:text}
 </style>
 </head>
-<body>
+<body class="ku">
+<main class="ku-app">
 
-<canvas id="bgFx"></canvas>
+  <!-- ═══ МЕНЮ ═══ -->
+  <section id="screen-menu" class="ku-screen menu active">
+    <h1 class="ku-logo">САПЁР</h1>
+    <p class="ku-tagline">Неоновая аркада • Минное поле • Рекорды</p>
+    <div class="ku-pills"><span>💣 Безопасный 1-й клик</span><span>⚡ Аккорды</span><span>🏆 Достижения</span><span>⏱️ Спринт</span></div>
 
-<main id="app">
-
-  <!-- ================= MENU SCREEN ================= -->
-  <section id="screen-menu" class="screen active">
-    <div class="logo">
-      <span style="--i:0">С</span><span style="--i:1">А</span><span style="--i:2">П</span><span style="--i:3">Ё</span><span style="--i:4">Р</span>
-    </div>
-    <div class="tagline">НЕОНОВАЯ АРКАДА • МИННОЕ ПОЛЕ</div>
-    
-    <div class="pills">
-      <span>💣 Безопасный 1-й клик</span>
-      <span>⚡ Аккорды</span>
-      <span>🏆 Достижения</span>
-      <span>⏱️ Спринт</span>
-    </div>
-
-    <div class="menu-btns">
-      <button class="btn big easy" id="btnPlayEasy">
-        🌱 Новичок (9×9)
-        <span class="best" id="menuBestEasy">Рекорд: —</span>
-      </button>
-
-      <div class="menu-duo">
-        <button class="btn duo medium" id="btnPlayMedium">
-          🌿 Любитель
-          <span class="best" id="menuBestMedium">16×16 (40 мин)</span>
-        </button>
-        <button class="btn duo hard" id="btnPlayHard">
-          🔥 Профи
-          <span class="best" id="menuBestHard">16×30 (99 мин)</span>
-        </button>
+    <div class="ku-menu-btns">
+      <button class="ku-btn big primary" id="btnPlayEasy">🌱 Новичок · 9×9<span class="best" id="menuBestEasy">Рекорд: —</span></button>
+      <div class="ku-menu-duo">
+        <button class="ku-btn duo gold" id="btnPlayMedium">🌿 Любитель<span class="best" id="menuBestMedium">16×16 · 40 мин</span></button>
+        <button class="ku-btn duo red" id="btnPlayHard">🔥 Профи<span class="best" id="menuBestHard">16×30 · 99 мин</span></button>
       </div>
-
-      <button class="btn big accent2" id="btnPlaySprint">
-        ⚡ Забег на время
-        <span class="best" id="menuBestSprint">3 поля подряд</span>
-      </button>
+      <button class="ku-btn big accent2" id="btnPlaySprint">⚡ Забег на время<span class="best" id="menuBestSprint">3 поля подряд</span></button>
     </div>
 
-    <div class="menu-row">
-      <button class="btn ghost" id="btnHistory">📜 История</button>
-      <button class="btn ghost" id="btnAch">🏅 Достижения</button>
-      <button class="btn ghost" id="btnStats">📊 Статистика</button>
-      <button class="btn ghost" id="btnSettings">⚙️ Настройки</button>
+    <div class="ku-menu-row">
+      <button class="ku-btn ghost" id="btnHistory">📜 История</button>
+      <button class="ku-btn ghost" id="btnAch">🏅 Достижения</button>
+      <button class="ku-btn ghost" id="btnStats">📊 Статистика</button>
+      <button class="ku-btn ghost" id="btnSettings">⚙️ Настройки</button>
     </div>
 
-    <div class="menu-stats" id="menuStatsSummary">Сыграно игр: 0 • Обезврежено мин: 0</div>
-    <div class="menu-hint">Клик / Тап — открыть ячейку · Долгое нажатие (или 🚩) — поставить флаг · Клик по числу — открыть соседние ячейки (аккорд)</div>
+    <div class="ku-menu-stats" id="menuStatsSummary">Сыграно игр: 0 • Обезврежено мин: 0</div>
+    <div class="ku-menu-hint">Клик / тап — открыть ячейку · долгое нажатие или ПКМ — флаг · клик по числу — открыть соседние ячейки (аккорд)<br>Клавиши: P — пауза · R — заново · F — режим флага</div>
   </section>
 
-  <!-- ================= GAME SCREEN ================= -->
-  <section id="screen-game" class="screen">
-    <header class="game-top">
-      <button class="btn icon" id="btnGameMenu">←</button>
-      <div class="mode-title-wrap">
-        <div class="mode-title" id="gameTitle">САПЁР PRO</div>
+  <!-- ═══ ИГРА ═══ -->
+  <section id="screen-game" class="ku-screen fit">
+    <header class="ku-top">
+      <div class="ku-top-left"></div>
+      <div class="ku-top-title"><div class="t" id="gameTitle">НОВИЧОК</div><div class="s" id="gameSub">РЕКОРД: —</div></div>
+      <div class="ku-top-actions">
+        <button class="ku-btn icon" id="btnSmiley" aria-label="Начать заново" title="Заново (R)">😄</button>
+        <button class="ku-btn icon" id="btnGamePause" aria-label="Пауза" title="Пауза (P)"><svg viewBox="0 0 24 24"><line x1="9" y1="5" x2="9" y2="19"/><line x1="15" y1="5" x2="15" y2="19"/></svg></button>
       </div>
-      <button class="smiley-btn" id="btnSmiley" title="Перезапуск">😄</button>
-      <button class="btn icon" id="btnGamePause">⏸</button>
     </header>
 
-    <div class="hud-bar">
-      <div class="hud-stat">
-        <span>МИНЫ</span>
-        <b id="hudMines">010</b>
-      </div>
-
-      <button class="mode-toggle-btn" id="btnModeToggle">
-        <span id="modeIcon">🔨</span>
-        <span id="modeText">ОТКРЫТЬ</span>
-      </button>
-
-      <div class="hud-stat">
-        <span>ВРЕМЯ</span>
-        <b id="hudTimer">0:00</b>
-      </div>
+    <div class="ku-hud">
+      <div class="ku-stat c2"><span>💣 Мины</span><b id="hudMines">010</b></div>
+      <button class="ku-btn mode-btn" id="btnModeToggle" aria-pressed="false"><span class="mi" id="modeIcon">🔨</span><span id="modeText">ОТКРЫТЬ</span></button>
+      <div class="ku-stat"><span>⏱ Время</span><b id="hudTimer">0:00</b></div>
     </div>
 
-    <div class="board-wrap" id="boardWrap">
-      <canvas id="playCv"></canvas>
-
-      <!-- PAUSE OVERLAY -->
-      <div class="overlay" id="pauseOverlay" hidden>
-        <div class="overlay-card">
-          <h2>ПАУЗА</h2>
-          <p style="color:var(--muted); font-size:13px;">Игра приостановлена</p>
-          <button class="btn primary big" id="btnPauseResume">Продолжить</button>
-          <button class="btn ghost" id="btnPauseRestart">Перезапуск</button>
-          <button class="btn ghost danger" id="btnPauseQuit">Выйти в меню</button>
-        </div>
-      </div>
-
-      <!-- GAME OVER OVERLAY -->
-      <div class="overlay" id="overOverlay" hidden>
-        <div class="overlay-card">
-          <h2 id="overTitle">БУМ! 💥</h2>
-          <p id="overSubtitle" style="color:var(--muted); font-size:13px;">Вы подорвались на мине</p>
-          <div class="st-card" style="width:100%;">
-            <div class="sl">ВРЕМЯ ИГРЫ</div>
-            <div class="sv" id="overTime">0:00</div>
-          </div>
-          <button class="btn primary big" id="btnOverRetry">Играть снова</button>
-          <button class="btn ghost" id="btnOverMenu">В главное меню</button>
-        </div>
-      </div>
-    </div>
-
-    <div class="gesture-hint-bar">
-      👆 Тап = Открыть · 🚩 Удержание / Переключатель = Флаг · ⚡ Клик по цифре = Аккорд
-    </div>
+    <div id="boardArea"><div class="ku-board" id="boardWrap"><canvas id="playCv" aria-label="Минное поле"></canvas></div></div>
+    <div class="ku-hint" id="gameHint">Тап — открыть · удержание — флаг · тап по числу — аккорд</div>
   </section>
-
 </main>
 
-<!-- ================= MODALS ================= -->
-<div class="modal-backdrop" id="modalHistory">
-  <div class="modal-card">
-    <div class="modal-header">
-      <h2>📜 ИСТОРИЯ ИГР</h2>
-      <button class="modal-close">✕</button>
-    </div>
-    <div class="modal-body" id="historyList"></div>
-  </div>
-</div>
+<!-- ═══ ПАУЗА ═══ -->
+<div class="ku-overlay" id="pauseOverlay"><div class="ku-card">
+  <h2>⏸ ПАУЗА</h2>
+  <p id="pauseInfo">Игра приостановлена</p>
+  <button class="ku-btn primary" id="btnPauseResume">Продолжить</button>
+  <button class="ku-btn" id="btnPauseRestart">Заново</button>
+  <button class="ku-btn ghost" id="btnPauseQuit">В меню</button>
+</div></div>
 
-<div class="modal-backdrop" id="modalAch">
-  <div class="modal-card">
-    <div class="modal-header">
-      <h2>🏅 ДОСТИЖЕНИЯ</h2>
-      <button class="modal-close">✕</button>
-    </div>
-    <div class="modal-body" id="achList"></div>
-  </div>
-</div>
+<!-- ═══ КОНЕЦ ИГРЫ ═══ -->
+<div class="ku-overlay" id="overOverlay"><div class="ku-card">
+  <h2 id="overTitle" class="lose">ИГРА ОКОНЧЕНА</h2>
+  <div class="ku-new-best" id="overNewBest" hidden>🏆 НОВЫЙ РЕКОРД!</div>
+  <div class="ku-big-score" id="overTime">0:00.0</div>
+  <p id="overSubtitle">Вы подорвались на мине</p>
+  <div class="ku-over-stats" id="overStats"></div>
+  <button class="ku-btn primary" id="btnOverRetry">Играть снова</button>
+  <button class="ku-btn ghost" id="btnOverMenu">В меню</button>
+</div></div>
 
-<div class="modal-backdrop" id="modalStats">
-  <div class="modal-card">
-    <div class="modal-header">
-      <h2>📊 СТАТИСТИКА</h2>
-      <button class="modal-close">✕</button>
-    </div>
-    <div class="modal-body">
-      <div class="stats-grid" id="statsGrid"></div>
-    </div>
-  </div>
-</div>
+<!-- ═══ ИСТОРИЯ ═══ -->
+<div class="ku-overlay" id="modalHistory"><div class="ku-modal">
+  <header><h2>📜 История игр</h2><button class="ku-btn icon" data-close aria-label="Закрыть">✕</button></header>
+  <div class="ku-body"><div class="list" id="historyList"></div></div>
+</div></div>
 
-<div class="modal-backdrop" id="modalSettings">
-  <div class="modal-card">
-    <div class="modal-header">
-      <h2>⚙️ НАСТРОЙКИ</h2>
-      <button class="modal-close">✕</button>
-    </div>
-    <div class="modal-body">
-      <div class="set-group">
-        <label>Темы оформления</label>
-        <div class="theme-grid" id="themeGrid"></div>
-      </div>
+<!-- ═══ ДОСТИЖЕНИЯ ═══ -->
+<div class="ku-overlay" id="modalAch"><div class="ku-modal">
+  <header><h2>🏅 Достижения <span class="ku-muted" id="achCount"></span></h2><button class="ku-btn icon" data-close aria-label="Закрыть">✕</button></header>
+  <div class="ku-body"><div class="list" id="achList"></div></div>
+</div></div>
 
-      <div class="set-group">
-        <label>Звук и Вибрация</label>
-        <div class="set-row">
-          <span>Эффекты (SFX)</span>
-          <input type="checkbox" id="setSfx" checked>
-        </div>
-        <div class="set-row">
-          <span>Музыка</span>
-          <input type="checkbox" id="setMusic" checked>
-        </div>
-        <div class="set-row">
-          <span>Вибрация</span>
-          <input type="checkbox" id="setVib" checked>
-        </div>
-      </div>
+<!-- ═══ СТАТИСТИКА ═══ -->
+<div class="ku-overlay" id="modalStats"><div class="ku-modal">
+  <header><h2>📊 Статистика</h2><button class="ku-btn icon" data-close aria-label="Закрыть">✕</button></header>
+  <div class="ku-body"><div class="stats-grid" id="statsGrid"></div></div>
+</div></div>
 
-      <div class="set-group">
-        <label>Управление</label>
-        <div class="set-row">
-          <span>Безопасный 1-й клик</span>
-          <input type="checkbox" id="setSafeFirst" checked>
-        </div>
-      </div>
-
-      <div class="set-group">
-        <label>Данные</label>
-        <button class="btn ghost" id="btnExport">📥 Экспорт данных (JSON)</button>
-        <button class="btn ghost danger" id="btnResetAll">💣 Сбросить весь прогресс</button>
-      </div>
+<!-- ═══ НАСТРОЙКИ ═══ -->
+<div class="ku-overlay" id="modalSettings"><div class="ku-modal">
+  <header><h2>⚙️ Настройки</h2><button class="ku-btn icon" data-close aria-label="Закрыть">✕</button></header>
+  <div class="ku-body">
+    <h3>Тема оформления</h3>
+    <div class="theme-grid" id="themeGrid"></div>
+    <h3>Звук и вибрация</h3>
+    <label class="ku-switch-row">Звуковые эффекты<input type="checkbox" id="setSfx"><span class="ku-switch"></span></label>
+    <label class="ku-switch-row">Вибрация<input type="checkbox" id="setVib"><span class="ku-switch"></span></label>
+    <h3>Игра</h3>
+    <label class="ku-switch-row">Безопасный 1-й клик (вокруг первой ячейки нет мин)<input type="checkbox" id="setSafeFirst"><span class="ku-switch"></span></label>
+    <h3>Данные</h3>
+    <div class="set-btns">
+      <button class="ku-btn sm ghost" id="btnExport">📥 Экспорт (JSON)</button>
+      <button class="ku-btn sm danger" id="btnResetAll">💣 Сбросить прогресс</button>
     </div>
   </div>
-</div>
+  <footer><button class="ku-btn primary" data-close>Готово</button></footer>
+</div></div>
 
-<div id="toast"></div>
+<!-- ═══ ЭКСПОРТ ═══ -->
+<div class="ku-overlay" id="modalExport"><div class="ku-modal">
+  <header><h2>📥 Экспорт данных</h2><button class="ku-btn icon" data-close aria-label="Закрыть">✕</button></header>
+  <div class="ku-body">
+    <p class="ku-muted" style="margin:0 0 8px">Рекорды, статистика, история и достижения Сапёра в формате JSON.</p>
+    <textarea id="exportText" readonly spellcheck="false"></textarea>
+  </div>
+  <footer><button class="ku-btn ghost" id="btnExportFile">💾 Скачать файл</button><button class="ku-btn primary" id="btnExportCopy">📋 Скопировать</button></footer>
+</div></div>
+
+<div class="ku-toast" id="toast"></div>
 
 <script>
 'use strict';
@@ -409,16 +191,15 @@ function fmtTimeMs(ms) {
   return m + ':' + String(s).padStart(2, '0') + '.' + d;
 }
 
-function setupCanvas(cv, w, h, scale) {
-  scale = scale || 1;
+function setupCanvas(cv, w, h) {
   const dpr = window.devicePixelRatio || 1;
-  cv.width = Math.max(1, Math.round(w * scale * dpr));
-  cv.height = Math.max(1, Math.round(h * scale * dpr));
-  cv.style.width = (w * scale) + 'px';
-  cv.style.height = (h * scale) + 'px';
+  cv.width = Math.max(1, Math.round(w * dpr));
+  cv.height = Math.max(1, Math.round(h * dpr));
+  cv.style.width = w + 'px';
+  cv.style.height = h + 'px';
   cv._w = w; cv._h = h;
   const ctx = cv.getContext('2d');
-  ctx.setTransform(scale * dpr, 0, 0, scale * dpr, 0, 0);
+  ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
   return ctx;
 }
 
@@ -433,32 +214,15 @@ function roundRect(ctx, x, y, w, h, r) {
   ctx.closePath();
 }
 
-function alphaC(hex, a) {
-  if (hex.startsWith('rgba') || hex.startsWith('hsla')) return hex;
-  if (hex.startsWith('#')) {
-    let c = hex.slice(1);
-    if (c.length === 3) c = c.split('').map(x => x + x).join('');
-    const num = parseInt(c, 16);
-    return `rgba(${(num >> 16) & 255}, ${(num >> 8) & 255}, ${num & 255}, ${a})`;
-  }
-  return hex;
-}
-
-function shade(color, percent) {
-  let num = parseInt(color.replace('#', ''), 16),
-      amt = Math.round(2.55 * percent * 100),
-      R = (num >> 16) + amt,
-      B = ((num >> 8) & 0x00FF) + amt,
-      G = (num & 0x0000FF) + amt;
-  return '#' + (0x1000000 + (R < 255 ? R < 1 ? 0 : R : 255) * 0x10000 + (B < 255 ? B < 1 ? 0 : B : 255) * 0x100 + (G < 255 ? G < 1 ? 0 : G : 255)).toString(16).slice(1);
-}
-
-function toast(msg, cls, dur) {
-  const t = $('#toast');
-  t.textContent = msg;
-  t.className = cls ? ('show ' + cls) : 'show';
-  clearTimeout(t._tm);
-  t._tm = setTimeout(() => t.classList.remove('show'), dur || 2400);
+// Тост — общий из набора (KuArcade.toast). Достижения показываем по очереди, чтобы не перекрывали друг друга.
+function toast(msg, kind, dur) { if (window.KuArcade) KuArcade.toast(msg, kind, dur); }
+const achQueue = []; let achTimer = 0;
+function queueAchToast(msg) { achQueue.push(msg); if (!achTimer) nextAchToast(); }
+function nextAchToast() {
+  const m = achQueue.shift();
+  if (!m) { achTimer = 0; return; }
+  toast(m, 'gold', 2600);
+  achTimer = setTimeout(nextAchToast, 2800);
 }
 
 function vib(p) {
@@ -473,15 +237,19 @@ const store = {
   set(k, v) { try { localStorage.setItem(k, JSON.stringify(v)); } catch (e) {} },
   del(k) { try { localStorage.removeItem(k); } catch (e) {} }
 };
+const asObj = v => (v && typeof v === 'object' && !Array.isArray(v)) ? v : {};
 
-let settings = store.get('m_settings', {
-  theme: 'neon', sound: true, music: true, sfxVol: 0.8, musicVol: 0.5,
-  vibration: true, safeFirst: true
-});
-let best = store.get('m_best', { easy: 0, medium: 0, hard: 0, sprint: 0 });
+const DEF_SETTINGS = { theme: 'neon', sound: true, music: true, sfxVol: 0.8, musicVol: 0.5, vibration: true, safeFirst: true };
+const DEF_BEST = { easy: 0, medium: 0, hard: 0, sprint: 0 };          // hardM — Профи 12×22 на узком экране
+const DEF_STATS = { games: 0, wins: 0, minesDefused: 0, playTime: 0, totalScore: 0 };
+const PROGRESS_KEYS = ['m_best', 'm_history', 'm_ach', 'm_stats'];     // «Сбросить прогресс» трогает только их
+
+let settings = Object.assign({}, DEF_SETTINGS, asObj(store.get('m_settings', null)));
+let best = Object.assign({}, DEF_BEST, asObj(store.get('m_best', null)));
 let historyData = store.get('m_history', []);
-let unlocked = store.get('m_ach', {});
-let stats = store.get('m_stats', { games: 0, wins: 0, minesDefused: 0, playTime: 0, totalScore: 0 });
+if (!Array.isArray(historyData)) historyData = [];
+let unlocked = asObj(store.get('m_ach', null));
+let stats = Object.assign({}, DEF_STATS, asObj(store.get('m_stats', null)));
 
 function saveSettings() { store.set('m_settings', settings); }
 function saveBest() { store.set('m_best', best); }
@@ -511,15 +279,15 @@ function applyTheme(key) {
   r.setProperty('--accent', THEME.accent); r.setProperty('--accent2', THEME.accent2);
   r.setProperty('--text', THEME.text); r.setProperty('--muted', THEME.muted);
   saveSettings();
+  G.dirty = true;
 }
 
-/* ==================== 4. ЗВУК И МУЗЫКА ==================== */
-let audioCtx = null, sfxGain = null, musicGain = null;
+/* ==================== 4. ЗВУК ==================== */
+let audioCtx = null, sfxGain = null;
 function ac() {
   if (!audioCtx) {
     audioCtx = new (window.AudioContext || window.webkitAudioContext)();
     sfxGain = audioCtx.createGain(); sfxGain.connect(audioCtx.destination);
-    musicGain = audioCtx.createGain(); musicGain.connect(audioCtx.destination);
     applyVolumes();
   }
   if (audioCtx.state === 'suspended') audioCtx.resume();
@@ -528,7 +296,6 @@ function ac() {
 function applyVolumes() {
   if (!audioCtx) return;
   sfxGain.gain.value = settings.sound ? settings.sfxVol : 0;
-  musicGain.gain.value = settings.music ? settings.musicVol * 0.4 : 0;
 }
 function tone(f, d, type, v, delay) {
   if (!settings.sound) return;
@@ -551,17 +318,26 @@ const sfx = {
   ach: () => [659, 784, 1046].forEach((f, i) => tone(f, 0.12, 'sine', 0.05, i * 0.09))
 };
 
-/* ==================== 5. МЕНЕДЖЕР ЭКРАНОВ ==================== */
+/* ==================== 5. ЭКРАНЫ И ОКНА ==================== */
 let currentScreen = 'menu';
 function showScreen(id) {
   currentScreen = id;
-  $$('.screen').forEach(s => s.classList.toggle('active', s.id === 'screen-' + id));
+  $$('.ku-screen').forEach(s => s.classList.toggle('active', s.id === 'screen-' + id));
+  if (id !== 'game') {
+    clearGameTimers(); cancelPress();
+    closeOverlay('pauseOverlay'); closeOverlay('overOverlay');
+  }
 }
-function closeAllModals() {
-  $$('.modal-backdrop').forEach(m => m.classList.remove('open'));
+function openOverlay(id) { $('#' + id).classList.add('open'); }
+function closeOverlay(id) { $('#' + id).classList.remove('open'); }
+function topModal() {
+  const open = [...$$('.ku-overlay.open')].filter(o => o.querySelector('.ku-modal'));
+  return open[open.length - 1] || null;
 }
-$$('.modal-backdrop').forEach(mb => mb.addEventListener('click', e => { if (e.target === mb) closeAllModals(); }));
-$$('.modal-close').forEach(b => b.addEventListener('click', () => { sfx.click(); closeAllModals(); }));
+$$('[data-close]').forEach(b => b.addEventListener('click', () => { sfx.click(); closeOverlay(b.closest('.ku-overlay').id); }));
+$$('.ku-overlay').forEach(o => o.addEventListener('click', e => {
+  if (e.target === o && o.querySelector('.ku-modal')) closeOverlay(o.id);       // клик мимо окна
+}));
 
 /* ==================== 6. ДОСТИЖЕНИЯ ==================== */
 const ACHIEVEMENTS = [
@@ -585,7 +361,7 @@ function award(id) {
   const a = ACHIEVEMENTS.find(x => x.id === id);
   if (a) {
     sfx.ach(); vib([50, 50, 100]);
-    toast(`🏅 Достижение: ${a.title}`, 'ach', 3200);
+    queueAchToast(`🏅 Достижение: ${a.title}`);
   }
 }
 
@@ -596,46 +372,74 @@ const MODES = {
   hard: { name: 'Профи', cols: 16, rows: 30, mines: 99 },
   sprint: { name: 'Забег на время', cols: 9, rows: 9, mines: 10, sprintTarget: 3 }
 };
+const HARD_MOBILE = { cols: 12, rows: 22, mines: 55 };   // Профи на узком экране (телефон)
+const LONG_PRESS_MS = 320, REVEAL_MS = 160;
+
+function isCompact() { return window.innerWidth < 821; }
+function bestKeyFor(mode) { return mode === 'hard' && isCompact() ? 'hardM' : mode; }
+function sizeLabel(mode) {
+  if (mode === 'hard') {
+    if (isCompact()) return `${HARD_MOBILE.cols}×${HARD_MOBILE.rows} · ${HARD_MOBILE.mines} мин`;
+    return (window.innerWidth >= window.innerHeight ? '30×16' : '16×30') + ' · 99 мин';
+  }
+  const m = MODES[mode];
+  return `${m.cols}×${m.rows} · ${m.mines} мин`;
+}
 
 let G = {
-  mode: 'easy', cols: 9, rows: 9, mines: 10,
+  mode: 'easy', cols: 9, rows: 9, mines: 10, bestKey: 'easy',
   board: [], revealedCount: 0, flagsCount: 0,
-  state: 'idle', // idle, play, paused, over, victory
-  firstClick: true, startTs: 0, elapsed: 0,
-  sprintCount: 0, inputMode: 'dig', // 'dig' or 'flag'
-  particles: [], floaters: [], flashT: 0
+  state: 'idle',            // idle (мин ещё нет) · play · paused · clear (забег: поле пройдено) · over · victory
+  pausedFrom: 'idle', firstClick: true, startTs: 0, elapsed: 0,
+  sprintCount: 0, accTime: 0, accDefused: 0, chords: 0,   // накопленное за забег время и мины, аккорды за игру
+  inputMode: 'dig',         // 'dig' или 'flag'
+  particles: [], flashT: 0, boom: null, hover: -1, pressCell: null,
+  overTimer: 0, sprintTimer: 0, dirty: true, animUntil: 0
 };
 
 const playCv = $('#playCv');
 let pctx = null;
 
-function initBoard(modeKey) {
-  G.mode = modeKey || 'easy';
+function clearGameTimers() {
+  clearTimeout(G.overTimer); clearTimeout(G.sprintTimer);
+  G.overTimer = 0; G.sprintTimer = 0;
+}
+function inBounds(r, c) { return r >= 0 && r < G.rows && c >= 0 && c < G.cols; }
+function canPlay() { return G.state === 'idle' || G.state === 'play'; }
+
+// Новая партия выбранного режима (в забеге — с первого поля)
+function startGame(mode) {
+  G.mode = mode;
+  G.sprintCount = 0; G.accTime = 0; G.accDefused = 0; G.chords = 0;
+  showScreen('game');
+  newBoard();
+}
+
+// Чистое поле текущего режима (в забеге прогресс полей сохраняется)
+function newBoard() {
+  clearGameTimers();
+  cancelPress();
   const cfg = MODES[G.mode];
-  
-  // Mobile column/row adjustment for Hard mode to fit viewport nicely
-  const isMobile = window.innerWidth < 821;
-  if (G.mode === 'hard' && isMobile) {
-    G.cols = 12; G.rows = 22; G.mines = 55;
+  G.bestKey = bestKeyFor(G.mode);
+  if (G.bestKey === 'hardM') {
+    G.cols = HARD_MOBILE.cols; G.rows = HARD_MOBILE.rows; G.mines = HARD_MOBILE.mines;
   } else {
     G.cols = cfg.cols; G.rows = cfg.rows; G.mines = cfg.mines;
+    // Профи на широком экране кладём «лёжа» (30×16) — клетки заметно крупнее
+    const area = $('#boardArea');
+    if (G.mode === 'hard' && area.clientWidth > area.clientHeight) { G.cols = cfg.rows; G.rows = cfg.cols; }
   }
 
   G.board = Array.from({ length: G.rows }, () =>
-    Array.from({ length: G.cols }, () => ({
-      mine: false, revealed: false, flagged: false, neighborMines: 0, animT: 0
-    }))
+    Array.from({ length: G.cols }, () => ({ mine: false, revealed: false, flagged: false, neighborMines: 0, revealT: 0 }))
   );
-  
   G.revealedCount = 0; G.flagsCount = 0; G.firstClick = true;
-  G.state = 'idle'; G.elapsed = 0; G.particles = []; G.floaters = []; G.flashT = 0;
-  
-  $('#hudMines').textContent = String(G.mines).padStart(3, '0');
-  $('#hudTimer').textContent = '0:00';
-  $('#btnSmiley').textContent = '😄';
-  $('#gameTitle').textContent = cfg.name.toUpperCase();
-  $('#pauseOverlay').hidden = true; $('#overOverlay').hidden = true;
-  
+  G.state = 'idle'; G.startTs = 0; G.elapsed = 0;
+  G.particles = []; G.flashT = 0; G.boom = null; G.hover = -1; G.pressCell = null;
+
+  closeOverlay('pauseOverlay'); closeOverlay('overOverlay');
+  setSmiley('😄');
+  updateHud();
   applyBoardScale();
 }
 
@@ -644,13 +448,13 @@ function placeMines(safeR, safeC) {
   while (placed < G.mines) {
     const r = Math.floor(Math.random() * G.rows);
     const c = Math.floor(Math.random() * G.cols);
-    if (Math.abs(r - safeR) <= 1 && Math.abs(c - safeC) <= 1) continue; // Safe first click zone!
+    // «Безопасный 1-й клик»: вокруг первой ячейки (3×3) мин нет
+    if (settings.safeFirst && Math.abs(r - safeR) <= 1 && Math.abs(c - safeC) <= 1) continue;
     if (!G.board[r][c].mine) {
       G.board[r][c].mine = true;
       placed++;
     }
   }
-  // Calculate neighbors
   for (let r = 0; r < G.rows; r++) {
     for (let c = 0; c < G.cols; c++) {
       if (G.board[r][c].mine) continue;
@@ -658,7 +462,7 @@ function placeMines(safeR, safeC) {
       for (let dr = -1; dr <= 1; dr++) {
         for (let dc = -1; dc <= 1; dc++) {
           const nr = r + dr, nc = c + dc;
-          if (nr >= 0 && nr < G.rows && nc >= 0 && nc < G.cols && G.board[nr][nc].mine) count++;
+          if (inBounds(nr, nc) && G.board[nr][nc].mine) count++;
         }
       }
       G.board[r][c].neighborMines = count;
@@ -666,371 +470,514 @@ function placeMines(safeR, safeC) {
   }
 }
 
-function revealCell(r, c) {
-  if (r < 0 || r >= G.rows || c < 0 || c >= G.cols) return;
+// Ход «открыть ячейку»
+function openCell(r, c) {
+  if (!canPlay() || !inBounds(r, c)) return;
   const cell = G.board[r][c];
   if (cell.revealed || cell.flagged) return;
-
   if (G.firstClick) {
     G.firstClick = false;
     placeMines(r, c);
     G.state = 'play';
     G.startTs = performance.now();
   }
+  afterReveal(flood(r, c));
+}
 
-  cell.revealed = true;
-  cell.animT = 1;
-  G.revealedCount++;
-
-  if (cell.mine) {
-    gameOver(false);
-    return;
-  }
-
-  sfx.reveal(); vib(10);
-
-  // Flood fill if 0 neighbors
-  if (cell.neighborMines === 0) {
-    for (let dr = -1; dr <= 1; dr++) {
-      for (let dc = -1; dc <= 1; dc++) {
-        if (dr !== 0 || dc !== 0) revealCell(r + dr, c + dc);
-      }
+// Открывает ячейку, у пустых — всю область вокруг (без рекурсии).
+// Возвращает true, если открыта мина. Победа проверяется один раз — после хода целиком.
+function flood(r0, c0) {
+  const stack = [[r0, c0]], now = performance.now();
+  while (stack.length) {
+    const [r, c] = stack.pop();
+    if (!inBounds(r, c)) continue;
+    const cell = G.board[r][c];
+    if (cell.revealed || cell.flagged) continue;
+    cell.revealed = true; cell.revealT = now;
+    if (cell.mine) { G.boom = { r, c }; return true; }
+    G.revealedCount++;
+    if (cell.neighborMines === 0) {
+      for (let dr = -1; dr <= 1; dr++)
+        for (let dc = -1; dc <= 1; dc++)
+          if (dr || dc) stack.push([r + dr, c + dc]);
     }
   }
+  return false;
+}
 
+function afterReveal(hitMine) {
+  G.dirty = true;
+  G.animUntil = performance.now() + REVEAL_MS + 40;
+  if (hitMine) { gameOver(false); return; }
+  sfx.reveal(); vib(10);
   checkVictory();
 }
 
 function toggleFlag(r, c) {
-  if (r < 0 || r >= G.rows || c < 0 || c >= G.cols) return;
+  if (!canPlay() || !inBounds(r, c)) return;
   const cell = G.board[r][c];
   if (cell.revealed) return;
 
   cell.flagged = !cell.flagged;
   G.flagsCount += cell.flagged ? 1 : -1;
-  $('#hudMines').textContent = String(Math.max(0, G.mines - G.flagsCount)).padStart(3, '0');
+  updateMinesHud();
+  G.dirty = true;
 
   if (cell.flagged) {
     sfx.flag(); vib(15);
-    stats.minesDefused++;
     if (G.flagsCount >= 50) award('flag_master');
   } else {
     sfx.unflag();
   }
 }
 
+// Аккорд: у открытого числа стоит столько же флагов — открываем остальных соседей.
+// На мине останавливаемся сразу: ни раскрытия, ни «победы» поверх проигрыша.
 function chordCell(r, c) {
+  if (!canPlay() || !inBounds(r, c)) return;
   const cell = G.board[r][c];
-  if (!cell.revealed || cell.neighborMines === 0) return;
+  if (!cell.revealed || cell.mine || cell.neighborMines === 0) return;
 
   let flagCount = 0;
+  const toOpen = [];
   for (let dr = -1; dr <= 1; dr++) {
     for (let dc = -1; dc <= 1; dc++) {
       const nr = r + dr, nc = c + dc;
-      if (nr >= 0 && nr < G.rows && nc >= 0 && nc < G.cols && G.board[nr][nc].flagged) flagCount++;
+      if (!(dr || dc) || !inBounds(nr, nc)) continue;
+      const n = G.board[nr][nc];
+      if (n.flagged) flagCount++;
+      else if (!n.revealed) toOpen.push([nr, nc]);
     }
   }
+  if (flagCount !== cell.neighborMines || !toOpen.length) return;
 
-  if (flagCount === cell.neighborMines) {
-    sfx.chord();
-    for (let dr = -1; dr <= 1; dr++) {
-      for (let dc = -1; dc <= 1; dc++) {
-        const nr = r + dr, nc = c + dc;
-        if (nr >= 0 && nr < G.rows && nc >= 0 && nc < G.cols && !G.board[nr][nc].flagged && !G.board[nr][nc].revealed) {
-          revealCell(nr, nc);
-        }
-      }
-    }
+  sfx.chord();
+  let hit = false;
+  for (const [nr, nc] of toOpen) {
+    if (flood(nr, nc)) { hit = true; break; }
   }
+  if (!hit && ++G.chords >= 10) award('chord_pro');
+  afterReveal(hit);
 }
 
 function checkVictory() {
-  const totalCells = G.rows * G.cols;
-  if (G.revealedCount === totalCells - G.mines) {
-    if (G.mode === 'sprint') {
-      G.sprintCount++;
-      if (G.sprintCount < MODES.sprint.sprintTarget) {
-        toast(`Поле ${G.sprintCount}/3 пройдено!`, '', 1800);
-        initBoard('sprint');
-        return;
-      }
+  if (G.state !== 'play' || G.revealedCount !== G.rows * G.cols - G.mines) return;
+  G.elapsed = performance.now() - G.startTs;
+  G.accTime += G.elapsed; G.elapsed = 0;
+  G.accDefused += G.mines;
+  for (const row of G.board) for (const cell of row) if (cell.mine) cell.flagged = true;   // оставшиеся мины — под флаги
+  G.flagsCount = G.mines;
+  updateMinesHud();
+
+  if (G.mode === 'sprint') {
+    G.sprintCount++;
+    const target = MODES.sprint.sprintTarget;
+    if (G.sprintCount < target) {
+      // следующее поле — после короткой паузы и уже вне обработки текущего хода
+      G.state = 'clear';
+      sfx.chord(); vib([30, 30, 30]);
+      toast(`Поле ${G.sprintCount}/${target} пройдено!`, 'good', 1600);
+      G.sprintTimer = setTimeout(() => {
+        G.sprintTimer = 0;
+        if (currentScreen === 'game' && G.state === 'clear') newBoard();
+      }, 900);
+      return;
     }
-    gameOver(true);
   }
+  gameOver(true);
 }
 
 function gameOver(win) {
+  if (G.state === 'over' || G.state === 'victory') return;
+  // при победе checkVictory уже перенёс время поля в accTime (elapsed = 0) — второй раз не считаем
+  if (G.state === 'play' && !win) G.elapsed = performance.now() - G.startTs;
   G.state = win ? 'victory' : 'over';
-  $('#btnSmiley').textContent = win ? '😎' : '😵';
+  cancelPress();
+  const total = G.accTime + G.elapsed;
+  setSmiley(win ? '😎' : '😵');
 
+  let defused = G.accDefused, isNewBest = false;
   if (!win) {
     sfx.explode(); vib([80, 60, 80]); G.flashT = 1;
-    // Reveal all mines
-    for (let r = 0; r < G.rows; r++) {
-      for (let c = 0; c < G.cols; c++) {
-        if (G.board[r][c].mine) G.board[r][c].revealed = true;
-      }
-    }
-    $('#overTitle').textContent = 'БУМ! 💥';
-    $('#overSubtitle').textContent = 'Вы подорвались на мине';
+    for (const row of G.board) for (const cell of row) if (cell.mine && cell.flagged) defused++;   // верные флаги
   } else {
     sfx.win(); vib([40, 40, 40, 100]);
-    // Create victory confetti particles
+    const COLORS = ['#00e5ff', '#51f58b', '#ffd60a', '#ff4dd2', '#c77dff'];
     for (let i = 0; i < 40; i++) {
       G.particles.push({
         x: playCv._w / 2, y: playCv._h / 2,
         vx: (Math.random() - 0.5) * 8, vy: (Math.random() - 0.5) * 8,
-        life: 1, color: ['#00e5ff', '#00e5a0', '#ffd60a', '#ff4dd2'][Math.floor(Math.random() * 4)],
-        s: 4 + Math.random() * 6
+        life: 1, color: COLORS[Math.floor(Math.random() * COLORS.length)], s: 3 + Math.random() * 5
       });
     }
-    $('#overTitle').textContent = 'ПОБЕДА! 🎉';
-    $('#overSubtitle').textContent = 'Минное поле успешно очищено!';
 
-    // Award achievements & record bests
     award('first_win');
-    if (G.mode === 'easy') { award('master_easy'); if (G.elapsed < 30000) award('fast_click'); }
+    if (G.mode === 'easy') { award('master_easy'); if (total < 30000) award('fast_click'); }
     if (G.mode === 'medium') award('master_medium');
     if (G.mode === 'hard') award('master_hard');
     if (G.mode === 'sprint') award('sprint_master');
 
-    const score = Math.max(10, Math.round(100000 / (G.elapsed / 1000 + 1)));
-    if (!best[G.mode] || G.elapsed < best[G.mode]) {
-      best[G.mode] = G.elapsed; saveBest(); updateMenuBests();
+    const score = Math.max(10, Math.round(100000 / (total / 1000 + 1)));
+    if (!best[G.bestKey] || total < best[G.bestKey]) {
+      best[G.bestKey] = total; saveBest(); isNewBest = true;
     }
-    stats.wins++;
+    stats.wins++; stats.totalScore += score;
 
     // Platform API submission
-    if (window.parent && window.parent.PlatformAPI && window.parent.PlatformAPI.gameplay) {
-      window.parent.PlatformAPI.gameplay.submitScore('minesweeper', score, Math.round(score / 10));
-    }
+    try {
+      if (window.parent && window.parent.PlatformAPI && window.parent.PlatformAPI.gameplay) {
+        Promise.resolve(window.parent.PlatformAPI.gameplay.submitScore('minesweeper', score, Math.round(score / 10))).catch(() => {});
+      }
+    } catch (e) {}
   }
 
-  stats.games++; stats.playTime += Math.round(G.elapsed / 1000); saveStats();
+  stats.minesDefused += defused;
+  stats.games++; stats.playTime += Math.round(total / 1000); saveStats();
   if (stats.games >= 10) award('games10');
   if (stats.games >= 50) award('games50');
   if (stats.minesDefused >= 100) award('mines100');
 
-  addHistory({ mode: G.mode, win, dur: G.elapsed, date: Date.now() });
-  updateMenuStats();
+  addHistory({ mode: G.mode, size: G.cols + '×' + G.rows, win, dur: Math.round(total) });
+  updateMenuBests(); updateMenuStats(); updateHud();
+  fillOver(win, total, isNewBest, defused);
+  G.dirty = true;
 
-  $('#overTime').textContent = fmtTimeMs(G.elapsed);
-  setTimeout(() => { $('#overOverlay').hidden = false; }, 600);
+  G.overTimer = setTimeout(() => {
+    G.overTimer = 0;
+    if (currentScreen === 'game' && (G.state === 'over' || G.state === 'victory')) openOverlay('overOverlay');
+  }, win ? 900 : 1100);
 }
 
-/* ==================== 8. ОТРИСОВКА (CANVAS 2D) ==================== */
-function applyBoardScale() {
-  const wrap = $('#boardWrap');
-  const maxW = wrap.clientWidth - 12;
-  const maxH = wrap.clientHeight - 12;
-  const cellSize = Math.floor(Math.min(maxW / G.cols, maxH / G.rows));
-  const finalCell = clamp(cellSize, 16, 48);
-  pctx = setupCanvas(playCv, G.cols * finalCell, G.rows * finalCell, 1);
-  playCv._cellSize = finalCell;
-}
-
-function renderBoard() {
-  if (!pctx) return;
-  const W = playCv._w, H = playCv._h;
-  const cs = playCv._cellSize || 28;
-  pctx.clearRect(0, 0, W, H);
-
-  // Screen Flash effect
-  if (G.flashT > 0) {
-    pctx.fillStyle = `rgba(255, 77, 77, ${G.flashT * 0.35})`;
-    pctx.fillRect(0, 0, W, H);
-    G.flashT -= 0.03;
+function fillOver(win, total, isNewBest, defused) {
+  const h = $('#overTitle');
+  h.textContent = win ? 'ПОБЕДА!' : 'ИГРА ОКОНЧЕНА';
+  h.className = win ? 'win' : 'lose';
+  $('#overSubtitle').textContent = win
+    ? (G.mode === 'sprint' ? '⚡ Все поля забега пройдены!' : '🎉 Минное поле очищено!')
+    : '💥 Вы подорвались на мине';
+  $('#overNewBest').hidden = !isNewBest;
+  $('#overTime').textContent = fmtTimeMs(total);
+  const rows = [['Режим', `${MODES[G.mode].name} · ${G.cols}×${G.rows}`]];
+  if (G.mode === 'sprint') rows.push(['Пройдено полей', `${G.sprintCount} из ${MODES.sprint.sprintTarget}`]);
+  if (win) {
+    rows.push(['Рекорд', fmtTimeMs(best[G.bestKey])]);
+  } else {
+    rows.push(['Открыто', Math.min(100, Math.floor(G.revealedCount / (G.rows * G.cols - G.mines) * 100)) + '%']);
+    rows.push(['Мин под флагами', String(defused)]);
   }
+  $('#overStats').innerHTML = rows.map(([k, v]) => `<div>${k}<b>${v}</b></div>`).join('');
+}
 
-  const isMobile = window.innerWidth < 821;
+/* ==================== 8. ШАПКА И ПОКАЗАТЕЛИ ==================== */
+function setSmiley(s) { $('#btnSmiley').textContent = s; }
+function updateMinesHud() { $('#hudMines').textContent = String(Math.max(0, G.mines - G.flagsCount)).padStart(3, '0'); }
+let lastTimerTxt = '';
+function updateHud() {
+  updateMinesHud();
+  lastTimerTxt = fmtTime(G.accTime + G.elapsed);
+  $('#hudTimer').textContent = lastTimerTxt;
+  const target = MODES.sprint.sprintTarget;
+  $('#gameTitle').textContent = G.mode === 'sprint'
+    ? `ЗАБЕГ · ПОЛЕ ${Math.min(G.sprintCount + 1, target)}/${target}`
+    : `${MODES[G.mode].name.toUpperCase()} · ${G.cols}×${G.rows}`;
+  $('#gameSub').textContent = 'РЕКОРД: ' + (best[G.bestKey] ? fmtTimeMs(best[G.bestKey]) : '—');
+}
 
-  for (let r = 0; r < G.rows; r++) {
-    for (let c = 0; c < G.cols; c++) {
-      const cell = G.board[r][c];
-      const x = c * cs, y = r * cs;
+/* ==================== 9. ОТРИСОВКА (CANVAS 2D) ==================== */
+const FRAME = 16;   // рамка .ku-board: padding 7 + border 1 с каждой стороны
+const NUM_COLORS = ['', '#00e5ff', '#51f58b', '#ff5d7d', '#c77dff', '#ff9f43', '#5b8cff', '#ffd60a', '#eef2ff'];
 
-      if (!cell.revealed) {
-        // Unrevealed cell
-        const g = pctx.createLinearGradient(x, y, x, y + cs);
-        g.addColorStop(0, 'rgba(255,255,255,0.12)'); g.addColorStop(1, 'rgba(255,255,255,0.03)');
-        pctx.fillStyle = g;
-        roundRect(pctx, x + 1, y + 1, cs - 2, cs - 2, 4); pctx.fill();
+function applyBoardScale() {
+  const area = $('#boardArea');
+  if (!area.clientHeight || !G.board.length) return;   // экран игры скрыт
+  const maxW = area.clientWidth - FRAME, maxH = area.clientHeight - FRAME;
+  const cs = clamp(Math.floor(Math.min(maxW / G.cols, maxH / G.rows)), 12, 48);
+  pctx = setupCanvas(playCv, G.cols * cs, G.rows * cs);
+  playCv._cellSize = cs;
+  G.dirty = true;
+}
 
-        pctx.strokeStyle = 'rgba(255,255,255,0.15)'; pctx.lineWidth = 1;
-        roundRect(pctx, x + 1.5, y + 1.5, cs - 3, cs - 3, 4); pctx.stroke();
+// Закрытая ячейка — стеклянная плитка; hot — под курсором
+function drawClosed(ctx, x, y, s, r, hot) {
+  const g = ctx.createLinearGradient(0, y, 0, y + s);
+  g.addColorStop(0, hot ? 'rgba(255,255,255,.22)' : 'rgba(255,255,255,.13)');
+  g.addColorStop(1, hot ? 'rgba(255,255,255,.08)' : 'rgba(255,255,255,.045)');
+  ctx.fillStyle = g; roundRect(ctx, x, y, s, s, r); ctx.fill();
+  ctx.fillStyle = 'rgba(255,255,255,.07)'; roundRect(ctx, x + s * .1, y + s * .08, s * .8, s * .3, r * .7); ctx.fill();
+  ctx.strokeStyle = hot ? THEME.accent : 'rgba(255,255,255,.12)'; ctx.lineWidth = 1;
+  roundRect(ctx, x + .5, y + .5, s - 1, s - 1, r); ctx.stroke();
+}
+// Открытая ячейка — пустая клетка Тетриса; boom — мина, на которой подорвались
+function drawOpen(ctx, x, y, s, r, boom) {
+  ctx.fillStyle = boom ? 'rgba(255,93,125,.38)' : 'rgba(255,255,255,.035)';
+  roundRect(ctx, x, y, s, s, r); ctx.fill();
+  ctx.strokeStyle = boom ? '#ff5d7d' : 'rgba(255,255,255,.06)'; ctx.lineWidth = 1;
+  roundRect(ctx, x + .5, y + .5, s - 1, s - 1, r); ctx.stroke();
+}
+function drawNumber(ctx, x, y, s, n) {
+  const color = NUM_COLORS[n] || '#eef2ff';
+  ctx.save();
+  ctx.fillStyle = color; ctx.shadowColor = color; ctx.shadowBlur = Math.min(10, s * .3);
+  ctx.font = `${Math.round(s * .62)}px 'Russo One', 'Rubik', sans-serif`;
+  ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+  ctx.fillText(n, x + s / 2, y + s / 2 + s * .04);
+  ctx.restore();
+}
+function drawMine(ctx, x, y, s) {
+  const cx = x + s / 2, cy = y + s / 2, R = s * .2;
+  ctx.save();
+  ctx.strokeStyle = '#ff5d7d'; ctx.lineWidth = Math.max(1.5, s * .07); ctx.lineCap = 'round';
+  ctx.shadowColor = '#ff5d7d'; ctx.shadowBlur = Math.min(12, s * .35);
+  for (let i = 0; i < 8; i++) {
+    const a = i * Math.PI / 4;
+    ctx.beginPath();
+    ctx.moveTo(cx + Math.cos(a) * R * .6, cy + Math.sin(a) * R * .6);
+    ctx.lineTo(cx + Math.cos(a) * R * 1.55, cy + Math.sin(a) * R * 1.55);
+    ctx.stroke();
+  }
+  const g = ctx.createRadialGradient(cx - R * .35, cy - R * .35, R * .1, cx, cy, R);
+  g.addColorStop(0, '#ffc2cf'); g.addColorStop(.45, '#ff5d7d'); g.addColorStop(1, '#a0183a');
+  ctx.fillStyle = g; ctx.beginPath(); ctx.arc(cx, cy, R, 0, Math.PI * 2); ctx.fill();
+  ctx.shadowBlur = 0; ctx.fillStyle = 'rgba(255,255,255,.85)';
+  ctx.beginPath(); ctx.arc(cx - R * .35, cy - R * .35, R * .22, 0, Math.PI * 2); ctx.fill();
+  ctx.restore();
+}
+// Флаг — цвет режима «флаг» (accent2 темы); wrong — ошибочный флаг после взрыва
+function drawFlag(ctx, x, y, s, wrong) {
+  const color = THEME.accent2, lw = Math.max(1.5, s * .07);
+  const px = x + s * .36, top = y + s * .2, bot = y + s * .8;
+  ctx.save();
+  if (wrong) ctx.globalAlpha = .45;
+  ctx.strokeStyle = '#eef2ff'; ctx.lineWidth = lw; ctx.lineCap = 'round';
+  ctx.beginPath(); ctx.moveTo(px, top); ctx.lineTo(px, bot); ctx.stroke();
+  ctx.beginPath(); ctx.moveTo(x + s * .24, bot); ctx.lineTo(x + s * .62, bot); ctx.stroke();
+  ctx.fillStyle = color; ctx.shadowColor = color; ctx.shadowBlur = Math.min(12, s * .35);
+  ctx.beginPath(); ctx.moveTo(px + lw / 2, top); ctx.lineTo(x + s * .8, y + s * .36); ctx.lineTo(px + lw / 2, y + s * .52); ctx.closePath(); ctx.fill();
+  ctx.restore();
+  if (wrong) {
+    const m = s * .22;
+    ctx.save();
+    ctx.strokeStyle = '#ffd60a'; ctx.lineWidth = Math.max(2, s * .09); ctx.lineCap = 'round';
+    ctx.shadowColor = '#ffd60a'; ctx.shadowBlur = 6;
+    ctx.beginPath();
+    ctx.moveTo(x + m, y + m); ctx.lineTo(x + s - m, y + s - m);
+    ctx.moveTo(x + s - m, y + m); ctx.lineTo(x + m, y + s - m);
+    ctx.stroke();
+    ctx.restore();
+  }
+}
 
-        if (cell.flagged) {
-          pctx.fillStyle = '#ff4dd2';
-          pctx.font = `${Math.round(cs * 0.55)}px sans-serif`;
-          pctx.textAlign = 'center'; pctx.textBaseline = 'middle';
-          pctx.fillText('🚩', x + cs / 2, y + cs / 2);
+function renderBoard(now, dt) {
+  if (!pctx || !G.board.length) return;
+  const ctx = pctx, W = playCv._w, H = playCv._h, cs = playCv._cellSize || 28;
+  const k = dt / 16.67;
+  ctx.clearRect(0, 0, W, H);
+  ctx.fillStyle = 'rgba(4,6,22,.55)'; roundRect(ctx, 0, 0, W, H, 8); ctx.fill();
+
+  const gap = Math.max(1, Math.round(cs * .06)), s = cs - gap * 2, r = Math.max(2, s * .18);
+  const lost = G.state === 'over';
+  for (let row = 0; row < G.rows; row++) {
+    for (let col = 0; col < G.cols; col++) {
+      const cell = G.board[row][col], x = col * cs + gap, y = row * cs + gap;
+      if (cell.revealed || (lost && cell.mine && !cell.flagged)) {
+        drawOpen(ctx, x, y, s, r, !!(G.boom && G.boom.r === row && G.boom.c === col));
+        if (cell.mine) drawMine(ctx, x, y, s);
+        else if (cell.neighborMines) drawNumber(ctx, x, y, s, cell.neighborMines);
+        const t = now - cell.revealT;
+        if (cell.revealed && t < REVEAL_MS) {           // ячейка «тает» при открытии
+          ctx.globalAlpha = 1 - t / REVEAL_MS;
+          drawClosed(ctx, x, y, s, r, false);
+          ctx.globalAlpha = 1;
         }
       } else {
-        // Revealed cell
-        pctx.fillStyle = 'rgba(10, 14, 35, 0.7)';
-        roundRect(pctx, x + 1, y + 1, cs - 2, cs - 2, 3); pctx.fill();
-
-        pctx.strokeStyle = 'rgba(255,255,255,0.04)'; pctx.lineWidth = 1;
-        roundRect(pctx, x + 1, y + 1, cs - 2, cs - 2, 3); pctx.stroke();
-
-        if (cell.mine) {
-          pctx.fillStyle = '#ff4d4d';
-          pctx.font = `${Math.round(cs * 0.55)}px sans-serif`;
-          pctx.textAlign = 'center'; pctx.textBaseline = 'middle';
-          pctx.fillText('💣', x + cs / 2, y + cs / 2);
-        } else if (cell.neighborMines > 0) {
-          const NUM_COLORS = ['', '#00e5ff', '#00e5a0', '#ff4d4d', '#b05bff', '#ff8c42', '#00c8ff', '#ffd60a', '#ffffff'];
-          pctx.fillStyle = NUM_COLORS[cell.neighborMines] || '#ffffff';
-          pctx.font = `bold ${Math.round(cs * 0.62)}px 'Russo One', sans-serif`;
-          pctx.textAlign = 'center'; pctx.textBaseline = 'middle';
-          pctx.fillText(cell.neighborMines, x + cs / 2, y + cs / 2 + 1);
-        }
+        const pressed = !cell.flagged && G.pressCell && G.pressCell.r === row && G.pressCell.c === col;
+        if (pressed) drawOpen(ctx, x, y, s, r, false);
+        else drawClosed(ctx, x, y, s, r, canPlay() && G.hover === row * G.cols + col);
+        if (cell.flagged) drawFlag(ctx, x, y, s, lost && !cell.mine);
       }
     }
   }
 
-  // Render FX Particles
+  // Вспышка при взрыве
+  if (G.flashT > 0) {
+    ctx.fillStyle = `rgba(255, 93, 125, ${G.flashT * 0.35})`;
+    ctx.fillRect(0, 0, W, H);
+    G.flashT = Math.max(0, G.flashT - 0.03 * k);
+  }
+
+  // Конфетти победы
   for (let i = G.particles.length - 1; i >= 0; i--) {
     const p = G.particles[i];
-    p.x += p.vx; p.y += p.vy; p.life -= 0.02;
+    p.x += p.vx * k; p.y += p.vy * k; p.life -= 0.02 * k;
     if (p.life <= 0) { G.particles.splice(i, 1); continue; }
-    pctx.fillStyle = p.color;
-    pctx.globalAlpha = p.life;
-    pctx.beginPath(); pctx.arc(p.x, p.y, p.s, 0, Math.PI * 2); pctx.fill();
+    ctx.fillStyle = p.color;
+    ctx.globalAlpha = p.life;
+    ctx.beginPath(); ctx.arc(p.x, p.y, p.s, 0, Math.PI * 2); ctx.fill();
   }
-  pctx.globalAlpha = 1;
+  ctx.globalAlpha = 1;
 }
 
-/* ==================== 9. АНИМИРОВАННЫЙ ФОН (#bgFx) ==================== */
-const bgCv = $('#bgFx'); let bgCtx;
-function sizeBg() { bgCtx = setupCanvas(bgCv, window.innerWidth, window.innerHeight); }
-function drawOrb(x, y, r, color, a) {
-  const g = bgCtx.createRadialGradient(x, y, 0, x, y, r);
-  g.addColorStop(0, alphaC(color, a)); g.addColorStop(1, alphaC(color, 0));
-  bgCtx.fillStyle = g; bgCtx.fillRect(x - r, y - r, r * 2, r * 2);
-}
-function bgDraw(ts) {
-  if (currentScreen === 'game' && window.innerWidth < 821) return; // GPU optimization for mobile gameplay
-  const W = bgCv._w, H = bgCv._h;
-  bgCtx.clearRect(0, 0, W, H);
-  const t = ts * 0.00012;
-  const R = Math.max(W, H);
-  drawOrb(W * (0.2 + 0.1 * Math.sin(t * 1.2)), H * (0.3 + 0.1 * Math.cos(t)), R * 0.4, THEME.accent, 0.08);
-  drawOrb(W * (0.8 + 0.1 * Math.cos(t * 0.8)), H * (0.7 + 0.1 * Math.sin(t * 1.1)), R * 0.45, THEME.accent2, 0.06);
-}
+/* ==================== 10. ВВОД ==================== */
+// Одно активное касание: тап — действие режима, удержание — противоположное (флаг ↔ открыть), ПКМ — флаг.
+let press = null;   // { id, r, c, x, y, timer, long }
 
-/* ==================== 10. ИНТЕРАКТИВ И ВВОД ==================== */
-let touchTimer = null, touchStartPos = null;
-
-function getCellFromCoords(e) {
+function cellAt(e) {
   const rect = playCv.getBoundingClientRect();
-  const scale = playCv._w / rect.width;
-  const x = (e.clientX - rect.left) * scale;
-  const y = (e.clientY - rect.top) * scale;
   const cs = playCv._cellSize || 28;
-  const c = Math.floor(x / cs);
-  const r = Math.floor(y / cs);
-  return { r, c };
+  const x = (e.clientX - rect.left) * (playCv._w / rect.width);
+  const y = (e.clientY - rect.top) * (playCv._h / rect.height);
+  return { r: Math.floor(y / cs), c: Math.floor(x / cs) };
+}
+function cancelPress() {
+  if (press && press.timer) clearTimeout(press.timer);
+  press = null;
+  if (G.pressCell) { G.pressCell = null; G.dirty = true; }
+}
+function tapAction(r, c) {
+  const cell = G.board[r][c];
+  if (cell.revealed) chordCell(r, c);
+  else if (G.inputMode === 'flag') toggleFlag(r, c);
+  else openCell(r, c);
+}
+function longPressAction(r, c) {
+  if (!canPlay() || G.board[r][c].revealed) return;
+  if (G.inputMode === 'flag') openCell(r, c);
+  else toggleFlag(r, c);
 }
 
 playCv.addEventListener('pointerdown', e => {
-  if (G.state === 'over' || G.state === 'victory') return;
-  const { r, c } = getCellFromCoords(e);
-  touchStartPos = { x: e.clientX, y: e.clientY };
-
-  if (e.button === 2) {
-    e.preventDefault();
-    toggleFlag(r, c);
-    return;
-  }
-
-  // Long press detection for mobile flag placement
-  touchTimer = setTimeout(() => {
-    toggleFlag(r, c);
-    touchTimer = null;
-  }, 320);
+  if (!canPlay()) return;
+  if (e.pointerType === 'mouse' && e.button !== 0 && e.button !== 2) return;
+  const { r, c } = cellAt(e);
+  if (!inBounds(r, c)) return;
+  e.preventDefault();
+  try { window.focus(); } catch (_) {}               // preventDefault не даёт iframe взять фокус — клавиши P/R/F
+  if (e.button === 2) { if (!press) toggleFlag(r, c); return; }
+  if (press) return;                                  // второй палец не мешает первому
+  try { playCv.setPointerCapture(e.pointerId); } catch (_) {}
+  press = { id: e.pointerId, r, c, x: e.clientX, y: e.clientY, timer: 0, long: false };
+  press.timer = setTimeout(() => {
+    if (!press) return;
+    const p = press;
+    p.timer = 0; p.long = true;
+    if (G.pressCell) { G.pressCell = null; G.dirty = true; }
+    longPressAction(p.r, p.c);
+  }, LONG_PRESS_MS);
+  if (!G.board[r][c].revealed) { G.pressCell = { r, c }; G.dirty = true; }
 });
 
 playCv.addEventListener('pointermove', e => {
-  if (touchStartPos) {
-    const dist = Math.hypot(e.clientX - touchStartPos.x, e.clientY - touchStartPos.y);
-    if (dist > 10 && touchTimer) {
-      clearTimeout(touchTimer); touchTimer = null;
-    }
+  if (press && e.pointerId === press.id) {
+    if (!press.long && Math.hypot(e.clientX - press.x, e.clientY - press.y) > 10) cancelPress();
+    return;
+  }
+  if (e.pointerType === 'mouse') {
+    const { r, c } = cellAt(e);
+    const h = inBounds(r, c) ? r * G.cols + c : -1;
+    if (h !== G.hover) { G.hover = h; G.dirty = true; }
   }
 });
 
 playCv.addEventListener('pointerup', e => {
-  if (G.state === 'over' || G.state === 'victory') return;
-  if (touchTimer) {
-    clearTimeout(touchTimer); touchTimer = null;
-    const { r, c } = getCellFromCoords(e);
-    const cell = G.board[r]?.[c];
-    if (!cell) return;
+  if (!press || e.pointerId !== press.id) return;
+  const p = press;
+  press = null;
+  if (G.pressCell) { G.pressCell = null; G.dirty = true; }
+  if (!p.timer) return;                               // удержание уже сработало
+  clearTimeout(p.timer);
+  if (canPlay()) tapAction(p.r, p.c);
+});
+playCv.addEventListener('pointercancel', cancelPress);
+playCv.addEventListener('lostpointercapture', e => { if (press && e.pointerId === press.id) cancelPress(); });
+playCv.addEventListener('pointerleave', () => { if (G.hover !== -1) { G.hover = -1; G.dirty = true; } });
+$('#screen-game').addEventListener('contextmenu', e => e.preventDefault());
 
-    if (cell.revealed) {
-      chordCell(r, c);
-    } else {
-      if (G.inputMode === 'flag') toggleFlag(r, c);
-      else revealCell(r, c);
-    }
-  }
-  touchStartPos = null;
+function setInputMode(m) {
+  G.inputMode = m;
+  const flag = m === 'flag', btn = $('#btnModeToggle');
+  btn.classList.toggle('flag', flag);
+  btn.setAttribute('aria-pressed', String(flag));
+  $('#modeIcon').textContent = flag ? '🚩' : '🔨';
+  $('#modeText').textContent = flag ? 'ФЛАГ' : 'ОТКРЫТЬ';
+}
+$('#btnModeToggle').addEventListener('click', () => { setInputMode(G.inputMode === 'dig' ? 'flag' : 'dig'); sfx.click(); });
+
+// Смайлик — заново (в забеге — с первого поля)
+$('#btnSmiley').addEventListener('click', () => { sfx.click(); startGame(G.mode); });
+
+/* Пауза останавливает таймер; на паузе поле не принимает ходы */
+function pauseGame() {
+  if (currentScreen !== 'game' || !canPlay()) return;
+  if (G.state === 'play') G.elapsed = performance.now() - G.startTs;
+  G.pausedFrom = G.state;
+  G.state = 'paused';
+  cancelPress();
+  $('#pauseInfo').textContent = `${MODES[G.mode].name} · ${G.cols}×${G.rows} · ${fmtTime(G.accTime + G.elapsed)}`;
+  openOverlay('pauseOverlay');
+}
+function resumeGame() {
+  if (G.state !== 'paused') return;
+  G.state = G.pausedFrom;
+  if (G.state === 'play') G.startTs = performance.now() - G.elapsed;
+  closeOverlay('pauseOverlay');
+  G.dirty = true;
+}
+document.addEventListener('visibilitychange', () => {
+  if (document.hidden && currentScreen === 'game' && G.state === 'play') pauseGame();
 });
 
-playCv.addEventListener('contextmenu', e => e.preventDefault());
-
-// Mode Toggle button (Dig vs Flag)
-$('#btnModeToggle').addEventListener('click', () => {
-  G.inputMode = G.inputMode === 'dig' ? 'flag' : 'dig';
-  const btn = $('#btnModeToggle');
-  if (G.inputMode === 'flag') {
-    btn.classList.add('flag-active');
-    $('#modeIcon').textContent = '🚩';
-    $('#modeText').textContent = 'ФЛАГ';
-  } else {
-    btn.classList.remove('flag-active');
-    $('#modeIcon').textContent = '🔨';
-    $('#modeText').textContent = 'ОТКРЫТЬ';
+document.addEventListener('keydown', e => {
+  if (e.ctrlKey || e.metaKey || e.altKey) return;
+  const modal = topModal();
+  if (modal) {
+    if (e.key === 'Escape') { e.preventDefault(); closeOverlay(modal.id); }
+    return;
   }
-  sfx.click();
+  if (currentScreen !== 'game') return;
+  if (e.code === 'KeyP' || e.key === 'Escape') { e.preventDefault(); G.state === 'paused' ? resumeGame() : pauseGame(); }
+  else if (e.code === 'KeyR' || e.key === 'F2') { e.preventDefault(); startGame(G.mode); }
+  else if (e.code === 'KeyF' && canPlay()) { e.preventDefault(); setInputMode(G.inputMode === 'dig' ? 'flag' : 'dig'); }
 });
 
-// Smiley button retry
-$('#btnSmiley').addEventListener('click', () => { sfx.click(); initBoard(G.mode); });
-
-/* ==================== 11. ИНИЦИАЛИЗАЦИЯ И МОДАЛКИ ==================== */
+/* ==================== 11. МЕНЮ И МОДАЛКИ ==================== */
+function bestOr(key, fallback) { return best[key] ? fmtTimeMs(best[key]) : fallback; }
 function updateMenuBests() {
-  $('#menuBestEasy').textContent = best.easy ? `Рекорд: ${fmtTimeMs(best.easy)}` : 'Рекорд: —';
-  $('#menuBestMedium').textContent = best.medium ? `Рекорд: ${fmtTimeMs(best.medium)}` : '16×16 (40 мин)';
-  $('#menuBestHard').textContent = best.hard ? `Рекорд: ${fmtTimeMs(best.hard)}` : '16×30 (99 мин)';
-  $('#menuBestSprint').textContent = best.sprint ? `Рекорд: ${fmtTimeMs(best.sprint)}` : '3 поля подряд';
+  $('#menuBestEasy').textContent = 'Рекорд: ' + bestOr('easy', '—');
+  $('#menuBestMedium').textContent = best.medium ? 'Рекорд: ' + fmtTimeMs(best.medium) : sizeLabel('medium');
+  const hk = bestKeyFor('hard');
+  $('#menuBestHard').textContent = best[hk] ? 'Рекорд: ' + fmtTimeMs(best[hk]) : sizeLabel('hard');
+  $('#menuBestSprint').textContent = best.sprint ? 'Рекорд: ' + fmtTimeMs(best.sprint) : '3 поля подряд';
 }
 
 function updateMenuStats() {
-  $('#menuStatsSummary').textContent = `Сыграно игр: ${fmt(stats.games)} • Обезврежено мин: ${fmt(stats.minesDefused)}`;
+  const got = ACHIEVEMENTS.filter(a => unlocked[a.id]).length;
+  $('#menuStatsSummary').textContent =
+    `Сыграно игр: ${fmt(stats.games)} • Обезврежено мин: ${fmt(stats.minesDefused)} • Достижений: ${got}/${ACHIEVEMENTS.length}`;
 }
 
 function renderHistory() {
   const container = $('#historyList');
   if (!historyData.length) {
-    container.innerHTML = '<div style="text-align:center;color:var(--muted);padding:20px;">История игр пуста</div>';
+    container.innerHTML = '<div class="empty">История игр пуста</div>';
     return;
   }
-  container.innerHTML = historyData.slice(0, 50).map(h => `
+  container.innerHTML = historyData.slice(0, 50).map(h => {
+    const size = /^\d+×\d+$/.test(h.size || '') ? ' · ' + h.size : '';
+    return `
     <div class="ach-item">
       <div class="ach-icon">${h.win ? '🏆' : '💥'}</div>
       <div class="ach-info">
-        <h4>${MODES[h.mode]?.name || h.mode} — ${h.win ? 'ПОБЕДА' : 'ПОРАЖЕНИЕ'}</h4>
+        <h4>${(MODES[h.mode] && MODES[h.mode].name) || '—'}${size} — ${h.win ? 'ПОБЕДА' : 'ПОРАЖЕНИЕ'}</h4>
         <p>Время: ${fmtTimeMs(h.dur)} • ${new Date(h.date).toLocaleString('ru-RU')}</p>
       </div>
-    </div>
-  `).join('');
+    </div>`;
+  }).join('');
 }
 
 function renderAchievements() {
-  const container = $('#achList');
-  container.innerHTML = ACHIEVEMENTS.map(a => {
+  const got = ACHIEVEMENTS.filter(a => unlocked[a.id]).length;
+  $('#achCount').textContent = `${got}/${ACHIEVEMENTS.length}`;
+  $('#achList').innerHTML = ACHIEVEMENTS.map(a => {
     const isUn = unlocked[a.id];
     return `
       <div class="ach-item ${isUn ? 'unlocked' : ''}">
@@ -1039,31 +986,30 @@ function renderAchievements() {
           <h4>${a.title}</h4>
           <p>${a.desc}${isUn ? ' • Получено: ' + new Date(isUn).toLocaleDateString('ru-RU') : ''}</p>
         </div>
-      </div>
-    `;
+      </div>`;
   }).join('');
 }
 
 function renderStats() {
-  const container = $('#statsGrid');
   const winRate = stats.games > 0 ? Math.round((stats.wins / stats.games) * 100) : 0;
+  const hk = bestKeyFor('hard');
   const items = [
     ['🎮', fmt(stats.games), 'Сыграно игр'],
     ['🏆', fmt(stats.wins), 'Побед'],
     ['📈', winRate + '%', 'Процент побед'],
     ['💣', fmt(stats.minesDefused), 'Мин обезврежено'],
     ['⏳', fmtTime(stats.playTime * 1000), 'Время в игре'],
-    ['🌱', best.easy ? fmtTimeMs(best.easy) : '—', 'Новичок'],
-    ['🌿', best.medium ? fmtTimeMs(best.medium) : '—', 'Любитель'],
-    ['🔥', best.hard ? fmtTimeMs(best.hard) : '—', 'Профи']
+    ['🌱', bestOr('easy', '—'), 'Новичок'],
+    ['🌿', bestOr('medium', '—'), 'Любитель'],
+    ['🔥', bestOr(hk, '—'), hk === 'hardM' ? 'Профи 12×22' : 'Профи'],
+    ['⚡', bestOr('sprint', '—'), 'Забег']
   ];
-  container.innerHTML = items.map(i => `
+  $('#statsGrid').innerHTML = items.map(i => `
     <div class="st-card">
       <div class="si">${i[0]}</div>
       <div class="sv">${i[1]}</div>
       <div class="sl">${i[2]}</div>
-    </div>
-  `).join('');
+    </div>`).join('');
 }
 
 function renderThemeGrid() {
@@ -1071,91 +1017,140 @@ function renderThemeGrid() {
   container.innerHTML = Object.keys(THEMES).map(k => {
     const t = THEMES[k];
     return `
-      <div class="theme-card ${settings.theme === k ? 'active' : ''}" data-theme="${k}">
-        <div style="font-size:12px;font-weight:600;">${t.name}</div>
+      <button type="button" class="theme-card ${settings.theme === k ? 'active' : ''}" data-theme="${k}">
+        ${t.name}
         <div class="theme-swatches">
           <span style="background:${t.accent}"></span>
           <span style="background:${t.accent2}"></span>
           <span style="background:${t.bg[0]}"></span>
         </div>
-      </div>
-    `;
+      </button>`;
   }).join('');
-  $$('.theme-card').forEach(c => c.addEventListener('click', () => {
-    const k = c.dataset.theme;
-    applyTheme(k);
+  container.querySelectorAll('.theme-card').forEach(c => c.addEventListener('click', () => {
+    sfx.click();
+    applyTheme(c.dataset.theme);
     renderThemeGrid();
   }));
 }
 
-// Menu Nav buttons
-$('#btnPlayEasy').addEventListener('click', () => { sfx.click(); showScreen('game'); initBoard('easy'); });
-$('#btnPlayMedium').addEventListener('click', () => { sfx.click(); showScreen('game'); initBoard('medium'); });
-$('#btnPlayHard').addEventListener('click', () => { sfx.click(); showScreen('game'); initBoard('hard'); });
-$('#btnPlaySprint').addEventListener('click', () => { sfx.click(); showScreen('game'); G.sprintCount = 0; initBoard('sprint'); });
+function syncSettingsUI() {
+  $('#setSfx').checked = !!settings.sound;
+  $('#setVib').checked = !!settings.vibration;
+  $('#setSafeFirst').checked = !!settings.safeFirst;
+}
 
-$('#btnHistory').addEventListener('click', () => { sfx.click(); renderHistory(); $('#modalHistory').classList.add('open'); });
-$('#btnAch').addEventListener('click', () => { sfx.click(); renderAchievements(); $('#modalAch').classList.add('open'); });
-$('#btnStats').addEventListener('click', () => { sfx.click(); renderStats(); $('#modalStats').classList.add('open'); });
-$('#btnSettings').addEventListener('click', () => { sfx.click(); renderThemeGrid(); $('#modalSettings').classList.add('open'); });
+// Кнопки меню
+$('#btnPlayEasy').addEventListener('click', () => { sfx.click(); startGame('easy'); });
+$('#btnPlayMedium').addEventListener('click', () => { sfx.click(); startGame('medium'); });
+$('#btnPlayHard').addEventListener('click', () => { sfx.click(); startGame('hard'); });
+$('#btnPlaySprint').addEventListener('click', () => { sfx.click(); startGame('sprint'); });
 
-$('#btnGameMenu').addEventListener('click', () => { sfx.click(); showScreen('menu'); });
-$('#btnGamePause').addEventListener('click', () => {
-  if (G.state === 'play') {
-    G.state = 'paused'; $('#pauseOverlay').hidden = false;
-  }
-});
-$('#btnPauseResume').addEventListener('click', () => { G.state = 'play'; $('#pauseOverlay').hidden = true; });
-$('#btnPauseRestart').addEventListener('click', () => { initBoard(G.mode); });
-$('#btnPauseQuit').addEventListener('click', () => { showScreen('menu'); });
+$('#btnHistory').addEventListener('click', () => { sfx.click(); renderHistory(); openOverlay('modalHistory'); });
+$('#btnAch').addEventListener('click', () => { sfx.click(); renderAchievements(); openOverlay('modalAch'); });
+$('#btnStats').addEventListener('click', () => { sfx.click(); renderStats(); openOverlay('modalStats'); });
+$('#btnSettings').addEventListener('click', () => { sfx.click(); syncSettingsUI(); renderThemeGrid(); openOverlay('modalSettings'); });
 
-$('#btnOverRetry').addEventListener('click', () => { initBoard(G.mode); });
-$('#btnOverMenu').addEventListener('click', () => { showScreen('menu'); });
+// Пауза и конец игры
+$('#btnGamePause').addEventListener('click', () => { sfx.click(); G.state === 'paused' ? resumeGame() : pauseGame(); });
+$('#btnPauseResume').addEventListener('click', () => { sfx.click(); resumeGame(); });
+$('#btnPauseRestart').addEventListener('click', () => { sfx.click(); startGame(G.mode); });
+$('#btnPauseQuit').addEventListener('click', () => { sfx.click(); showScreen('menu'); });
+$('#btnOverRetry').addEventListener('click', () => { sfx.click(); startGame(G.mode); });
+$('#btnOverMenu').addEventListener('click', () => { sfx.click(); showScreen('menu'); });
 
-// Settings bindings
-$('#setSfx').checked = settings.sound;
-$('#setSfx').addEventListener('change', e => { settings.sound = e.target.checked; saveSettings(); applyVolumes(); });
-$('#setMusic').checked = settings.music;
-$('#setMusic').addEventListener('change', e => { settings.music = e.target.checked; saveSettings(); applyVolumes(); });
-$('#setVib').checked = settings.vibration;
-$('#setVib').addEventListener('change', e => { settings.vibration = e.target.checked; saveSettings(); });
-$('#setSafeFirst').checked = settings.safeFirst;
+// Настройки
+$('#setSfx').addEventListener('change', e => { settings.sound = e.target.checked; saveSettings(); applyVolumes(); sfx.click(); });
+$('#setVib').addEventListener('change', e => { settings.vibration = e.target.checked; saveSettings(); vib(20); });
 $('#setSafeFirst').addEventListener('change', e => { settings.safeFirst = e.target.checked; saveSettings(); });
 
-$('#btnResetAll').addEventListener('click', () => {
-  if (confirm('Сбросить весь прогресс, рекорды и достижения?')) {
-    localStorage.clear(); location.reload();
-  }
+// Экспорт: файл (если разрешено скачивание) или копирование текста
+function exportJSON() {
+  return JSON.stringify({
+    game: 'minesweeper', exported: new Date().toISOString(),
+    settings, best, stats, achievements: unlocked, history: historyData
+  }, null, 2);
+}
+$('#btnExport').addEventListener('click', () => { sfx.click(); $('#exportText').value = exportJSON(); openOverlay('modalExport'); });
+$('#btnExportCopy').addEventListener('click', async () => {
+  const ta = $('#exportText');
+  let ok = false;
+  try { await navigator.clipboard.writeText(ta.value); ok = true; } catch (e) {}
+  if (!ok) { try { ta.focus(); ta.select(); ok = document.execCommand('copy'); } catch (e) {} }
+  toast(ok ? '📋 Скопировано' : 'Выделите текст и скопируйте вручную', ok ? 'good' : 'bad');
+});
+$('#btnExportFile').addEventListener('click', () => {
+  try {
+    const url = URL.createObjectURL(new Blob([$('#exportText').value], { type: 'application/json' }));
+    const a = document.createElement('a');
+    a.href = url; a.download = 'minesweeper-' + new Date().toISOString().slice(0, 10) + '.json';
+    document.body.appendChild(a); a.click(); a.remove();
+    setTimeout(() => URL.revokeObjectURL(url), 2000);
+  } catch (e) { toast('Не удалось сохранить файл — скопируйте текст', 'bad'); }
+});
+
+// Сброс — только ключи Сапёра (сессия платформы и сейвы других игр не трогаются)
+$('#btnResetAll').addEventListener('click', async () => {
+  sfx.click();
+  const msg = 'Рекорды, статистика, история и достижения Сапёра будут удалены. Настройки и данные других игр не пострадают.';
+  const ok = window.KuArcade && KuArcade.confirm
+    ? await KuArcade.confirm(msg, { title: 'СБРОСИТЬ ПРОГРЕСС?', ok: '💣 Сбросить', cancel: 'Отмена', danger: true })
+    : window.confirm(msg);
+  if (!ok) return;
+  PROGRESS_KEYS.forEach(k => store.del(k));
+  best = Object.assign({}, DEF_BEST);
+  historyData = [];
+  unlocked = {};
+  stats = Object.assign({}, DEF_STATS);
+  updateMenuBests(); updateMenuStats();
+  toast('Прогресс Сапёра сброшен', 'good');
 });
 
 /* ==================== 12. ГЛАВНЫЙ ЦИКЛ ==================== */
+// Поле перерисовывается только при изменениях и во время анимаций
 let lastT = performance.now();
 function gameLoop(ts) {
-  const dt = Math.min(50, ts - lastT);
-  lastT = ts;
-
-  if (G.state === 'play') {
-    G.elapsed = performance.now() - G.startTs;
-    $('#hudTimer').textContent = fmtTime(G.elapsed);
-  }
-
-  bgDraw(ts);
-  renderBoard();
   requestAnimationFrame(gameLoop);
+  const dt = Math.min(50, Math.max(0, ts - lastT));
+  lastT = ts;
+  if (currentScreen !== 'game') return;
+
+  if (G.state === 'play') G.elapsed = performance.now() - G.startTs;
+  const tt = fmtTime(G.accTime + G.elapsed);
+  if (tt !== lastTimerTxt) { lastTimerTxt = tt; $('#hudTimer').textContent = tt; }
+
+  const now = performance.now();
+  if (G.dirty || G.particles.length || G.flashT > 0 || now < G.animUntil) {
+    G.dirty = false;
+    renderBoard(now, dt);
+  }
 }
 
+let resizeT = 0;
 window.addEventListener('resize', () => {
-  sizeBg();
-  if (currentScreen === 'game') applyBoardScale();
+  clearTimeout(resizeT);
+  resizeT = setTimeout(() => {
+    if (currentScreen === 'game') applyBoardScale();
+    updateMenuBests();
+  }, 60);
 });
+if (document.fonts && document.fonts.load) {
+  document.fonts.load("16px 'Russo One'").then(() => { G.dirty = true; }).catch(() => {});
+}
 
-// Initialization
+// Подсказка под полем — для мыши или для пальца
+if (window.matchMedia && matchMedia('(hover: hover) and (pointer: fine)').matches) {
+  $('#gameHint').textContent = 'Клик — открыть · ПКМ или удержание — флаг · клик по числу — аккорд · P — пауза';
+} else {
+  $('#gameHint').textContent = 'Тап — открыть · удержание — флаг (в режиме 🚩 — наоборот) · тап по числу — аккорд';
+}
+
+// Инициализация
 applyTheme(settings.theme);
-sizeBg();
+syncSettingsUI();
+setInputMode('dig');
 updateMenuBests();
 updateMenuStats();
 requestAnimationFrame(gameLoop);
-
 </script>
 </body>
 </html>

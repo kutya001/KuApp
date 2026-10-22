@@ -2,103 +2,180 @@
 <html lang="ru">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width,initial-scale=1,user-scalable=no">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
 <title>Реверси</title>
+<link rel="stylesheet" href="ku-arcade.css">
+<script src="ku-arcade.js"></script>
 <style>
-*{box-sizing:border-box;margin:0;padding:0}
-body{background:#0a0a0f;color:#f0f0f8;font-family:'JetBrains Mono',monospace;display:flex;flex-direction:column;align-items:center;height:100dvh;overflow:hidden;user-select:none;padding-top:8px}
-#top{display:flex;justify-content:space-between;align-items:center;width:min(92vw,340px);margin-bottom:8px}
-.sc{text-align:center;background:#1a1a24;border-radius:8px;padding:6px 16px;min-width:80px}
-.sc-val{font-size:1.4rem;font-weight:700}
-.sc-lbl{font-size:.6rem;color:#8888aa;margin-top:1px}
-#turn{font-size:.75rem;color:#8888aa;text-align:center}
-#board{display:grid;grid-template-columns:repeat(8,1fr);gap:3px;background:#0f1f0f;border:2px solid #1a3a1a;border-radius:10px;padding:6px;width:min(92vw,340px)}
-.cell{aspect-ratio:1;border-radius:6px;background:#0d1f0d;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:background .15s;position:relative}
-.cell:hover{background:#152a15}
-.cell.hint{background:#1a3a1a}
-.cell.hint::after{content:'';position:absolute;width:30%;height:30%;border-radius:50%;background:rgba(0,229,160,.35)}
-.disc{width:72%;height:72%;border-radius:50%;transition:transform .25s}
-.disc.b{background:radial-gradient(circle at 35% 35%,#555,#111)}
-.disc.w{background:radial-gradient(circle at 35% 35%,#eee,#aaa)}
-.disc.flip{animation:flip .25s}
-@keyframes flip{0%{transform:scaleX(1)}50%{transform:scaleX(0)}100%{transform:scaleX(1)}}
-#btns{margin-top:8px;display:flex;gap:10px}
-button{background:transparent;border:1px solid rgba(255,255,255,.15);color:#8888aa;padding:8px 22px;border-radius:8px;font-family:inherit;font-size:.78rem;cursor:pointer}
-button:hover{background:#1a1a24}
-#msg{position:fixed;inset:0;background:rgba(10,10,15,.88);display:none;flex-direction:column;align-items:center;justify-content:center;gap:12px}
-#msg h2{font-size:1.2rem}#msg p{font-size:.78rem;color:#8888aa}
-#mBtn{background:#00e5a0;color:#000;border:none;padding:11px 32px;border-radius:10px;font-size:.9rem;font-weight:700;cursor:pointer;font-family:inherit}
-#btnNet.on{border-color:#00e5a0;color:#00e5a0}
-#turn.me{color:#00e5a0}#turn.off{color:#ff4466}
+  html,body{height:100%;overflow:hidden}
+  :root{
+    --disc-b:radial-gradient(circle at 34% 30%,#6c76a8 0%,#272d58 34%,#0c0f29 72%,#05071a 100%);
+    --disc-w:radial-gradient(circle at 34% 30%,#ffffff 0%,#f2f4ff 32%,#c6cdee 74%,#98a1cc 100%);
+  }
+  #screen-game{touch-action:manipulation}
+  #wrap{flex:1;min-height:0;width:100%;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:10px}
+  #hint{margin:0;min-height:18px}
+  #wrap .ku-hud{margin:0}
+
+  /* Счёт фишек: у кого ход — подсвечен */
+  .pl{min-width:116px;transition:border-color .25s,box-shadow .25s}
+  .pl span{display:flex;align-items:center;gap:6px;max-width:150px}
+  .pl span em{font-style:normal;overflow:hidden;text-overflow:ellipsis}
+  .pl.on{border-color:color-mix(in srgb,var(--accent) 75%,transparent);box-shadow:0 0 18px color-mix(in srgb,var(--accent) 30%,transparent)}
+  .pl.on span{color:var(--text)}
+
+  /* Фишки: тёмная и светлая, с бликом */
+  .dot{display:inline-block;width:12px;height:12px;border-radius:50%;flex:none;vertical-align:middle}
+  .dot.b{background:var(--disc-b);box-shadow:0 0 0 1px rgba(143,154,194,.45),0 0 8px rgba(0,229,255,.2)}
+  .dot.w{background:var(--disc-w);box-shadow:0 0 8px rgba(238,242,255,.45)}
+
+  /* Поле: тёмное стекло, неоновая сетка — это щели между клетками */
+  #grid{display:grid;grid-template-columns:repeat(8,1fr);grid-template-rows:repeat(8,1fr);gap:2px;padding:2px;border-radius:11px;width:300px;height:300px;
+    background:linear-gradient(160deg,color-mix(in srgb,var(--accent) 34%,transparent),color-mix(in srgb,var(--accent2) 28%,transparent))}
+  .cell{position:relative;display:flex;align-items:center;justify-content:center;border-radius:5px;
+    background:rgba(8,11,34,.94);box-shadow:inset 0 1px 0 rgba(255,255,255,.04);transition:background .15s}
+  .cell:nth-child(1){border-top-left-radius:9px}.cell:nth-child(8){border-top-right-radius:9px}
+  .cell:nth-child(57){border-bottom-left-radius:9px}.cell:nth-child(64){border-bottom-right-radius:9px}
+  .cell.hint{cursor:pointer}
+  .cell.hint::after{content:'';width:24%;aspect-ratio:1;border-radius:50%;background:var(--accent);box-shadow:0 0 10px var(--accent);opacity:.8;animation:kuFade .3s ease}
+  @media (hover:hover){.cell.hint:hover{background:color-mix(in srgb,var(--accent) 14%,rgb(8,11,34))}.cell.hint:hover::after{opacity:1}}
+  .cell.hint:active{background:color-mix(in srgb,var(--accent) 22%,rgb(8,11,34))}
+  .disc{position:relative;width:78%;height:78%;border-radius:50%}
+  .disc.b{background:var(--disc-b);box-shadow:0 3px 7px rgba(0,0,0,.6),0 0 0 1px rgba(143,154,194,.4),0 0 12px rgba(0,229,255,.16)}
+  .disc.w{background:var(--disc-w);box-shadow:0 3px 7px rgba(0,0,0,.45),0 0 14px rgba(238,242,255,.35)}
+  .disc::before{content:'';position:absolute;left:18%;top:11%;width:40%;height:25%;border-radius:50%;transform:rotate(-22deg);
+    background:radial-gradient(ellipse at center,rgba(255,255,255,.85),rgba(255,255,255,0) 70%)}
+  .disc.b::before{opacity:.35}
+  /* последний ход — розовая точка */
+  .cell.last .disc::after{content:'';position:absolute;left:40%;top:40%;width:20%;height:20%;border-radius:50%;
+    background:var(--accent2);box-shadow:0 0 8px var(--accent2)}
+  .disc.put{animation:rvPut .3s cubic-bezier(.34,1.56,.64,1) backwards}
+  .disc.b.flip{animation:rvToB .42s ease backwards}
+  .disc.w.flip{animation:rvToW .42s ease backwards}
+  @keyframes rvPut{from{transform:scale(.3);opacity:0}}
+  @keyframes rvToB{0%{transform:scaleX(1);background:var(--disc-w)}50%{transform:scaleX(.05);background:var(--disc-w)}50.1%{background:var(--disc-b)}100%{transform:scaleX(1);background:var(--disc-b)}}
+  @keyframes rvToW{0%{transform:scaleX(1);background:var(--disc-b)}50%{transform:scaleX(.05);background:var(--disc-b)}50.1%{background:var(--disc-w)}100%{transform:scaleX(1);background:var(--disc-w)}}
+
+  #end-score{display:flex;align-items:center;justify-content:center;gap:12px}
+  #end-score .dot{width:24px;height:24px}
+
+  /* телефон в ландшафте: счёт — колонкой слева (ниже кнопки «←» платформы), поле — выше */
+  @media (orientation:landscape) and (max-height:500px){
+    #screen-game .ku-hud{position:absolute;left:max(14px,env(safe-area-inset-left,0px));top:72px;flex-direction:column;margin:0}
+    #hint{display:none}
+  }
 </style>
 </head>
-<body>
-<div id="top">
-  <div class="sc"><div class="sc-val" id="bsc">2</div><div class="sc-lbl" id="blbl">⚫ Вы</div></div>
-  <div id="turn">Ваш ход</div>
-  <div class="sc"><div class="sc-val" id="wsc">2</div><div class="sc-lbl" id="wlbl">⚪ ИИ</div></div>
+<body class="ku">
+<main class="ku-app">
+
+  <!-- ═══ МЕНЮ ═══ -->
+  <section id="screen-menu" class="ku-screen menu active">
+    <h1 class="ku-logo">РЕВЕРСИ</h1>
+    <p class="ku-tagline">Стратегия • Поле 8×8 • Классика</p>
+    <div class="ku-pills"><span>⚫⚪ Переворачивай фишки</span><span>🤖 Против ИИ</span><span>🌐 По сети</span></div>
+    <div class="ku-menu-btns">
+      <button class="ku-btn big primary" id="btn-ai">🤖 Против ИИ<span class="best" id="best-ai">Вы — чёрные, ходите первым</span></button>
+      <button class="ku-btn big accent2" id="btn-net">🌐 По сети<span class="best">с другом по коду комнаты</span></button>
+    </div>
+    <div class="ku-menu-row"><button class="ku-btn ghost" id="btn-rules">📖 Правила</button></div>
+    <div class="ku-menu-stats" id="menu-stats">Сыграйте первую партию против ИИ</div>
+    <div class="ku-menu-hint">Тап по клетке с точкой — ход · P / Esc — меню партии</div>
+  </section>
+
+  <!-- ═══ ИГРА ═══ -->
+  <section id="screen-game" class="ku-screen fit">
+    <header class="ku-top">
+      <div class="ku-top-left"></div>
+      <div class="ku-top-title"><div class="t" id="game-title">ПРОТИВ ИИ</div><div class="s" id="game-sub">ВАШ ХОД</div></div>
+      <div class="ku-top-actions">
+        <button class="ku-btn icon" id="btn-pause" aria-label="Пауза"><svg viewBox="0 0 24 24"><line x1="9" y1="5" x2="9" y2="19"/><line x1="15" y1="5" x2="15" y2="19"/></svg></button>
+      </div>
+    </header>
+    <div id="wrap">
+      <div class="ku-hud" id="hud">
+        <div class="ku-stat pl" id="pl-b"><span><i class="dot b"></i><em id="name-b">Вы</em></span><b id="bsc">2</b></div>
+        <div class="ku-stat pl" id="pl-w"><span><i class="dot w"></i><em id="name-w">ИИ</em></span><b id="wsc">2</b></div>
+      </div>
+      <div class="ku-board"><div id="grid" role="grid" aria-label="Поле 8×8"></div></div>
+      <p class="ku-hint" id="hint">Точки — доступные ходы</p>
+    </div>
+  </section>
+</main>
+
+<!-- ═══ ПРАВИЛА ═══ -->
+<div class="ku-overlay" id="menu-rules">
+  <div class="ku-modal">
+    <header><h2>📖 Правила</h2><button class="ku-btn icon" id="btn-rules-x" aria-label="Закрыть">✕</button></header>
+    <div class="ku-body">
+      <h3>Цель</h3>
+      <ul class="ku-rules">
+        <li>К концу партии иметь на поле <b>больше фишек своего цвета</b>, чем у соперника.</li>
+      </ul>
+      <h3>Ход</h3>
+      <ul class="ku-rules">
+        <li>Фишку ставят так, чтобы между ней и другой вашей фишкой по прямой — горизонтали, вертикали или диагонали — подряд оказались фишки соперника. Все они <b>переворачиваются</b> в ваш цвет.</li>
+        <li>Ход без переворота невозможен. Доступные ходы отмечены точками, последний ход — розовой точкой на фишке.</li>
+        <li><b>Пас:</b> если ходов нет, ход переходит сопернику.</li>
+        <li>Партия заканчивается, когда ходов нет ни у кого (обычно — когда заполнено поле).</li>
+      </ul>
+      <h3>Советы</h3>
+      <ul class="ku-rules">
+        <li><b>Углы</b> перевернуть нельзя — занимайте их и не отдавайте клетки рядом с ними.</li>
+        <li>Не гонитесь за числом фишек в начале: важнее оставить сопернику меньше ходов.</li>
+      </ul>
+      <h3>Режимы</h3>
+      <ul class="ku-rules">
+        <li><b>Против ИИ:</b> вы играете чёрными и ходите первым.</li>
+        <li><b>По сети:</b> создатель комнаты играет чёрными. Нужен вход по коду игрока на платформе.</li>
+      </ul>
+    </div>
+    <footer><button class="ku-btn primary" id="btn-rules-close">Понятно</button></footer>
+  </div>
 </div>
-<div id="board"></div>
-<div id="btns"><button id="btnNew">Новая игра</button><button id="btnNet">По сети</button></div>
-<div id="msg"><h2 id="mt"></h2><p id="mp"></p><button id="mBtn">Ещё раз</button></div>
+
+<!-- ═══ ПАУЗА ═══ -->
+<div class="ku-overlay" id="menu-pause">
+  <div class="ku-card">
+    <h2>⏸ ПАУЗА</h2>
+    <button class="ku-btn primary" id="btn-resume">Продолжить</button>
+    <button class="ku-btn" id="btn-restart">Новая партия</button>
+    <button class="ku-btn" id="btn-pause-rules">📖 Правила</button>
+    <button class="ku-btn ghost" id="btn-quit">В меню</button>
+  </div>
+</div>
+
+<!-- ═══ КОНЕЦ ПАРТИИ ═══ -->
+<div class="ku-overlay" id="menu-end">
+  <div class="ku-card">
+    <h2 id="end-title">ПОБЕДА!</h2>
+    <p id="end-sub"></p>
+    <div class="ku-big-score" id="end-score"></div>
+    <p id="end-stats"></p>
+    <button class="ku-btn primary" id="btn-again">Играть снова</button>
+    <button class="ku-btn ghost" id="btn-end-menu">В меню</button>
+  </div>
+</div>
+
+<div class="ku-toast" id="toast"></div>
 
 <script src="kunet.js"></script>
 <script>
+'use strict';
+const $ = id => document.getElementById(id);
 const DIR=[[-1,-1],[-1,0],[-1,1],[0,-1],[0,1],[1,-1],[1,0],[1,1]];
-let board,turn,locked;
+const CORNERS=[0,7,56,63];
+let board=initialBoard(),turn=1,locked=true,gameOver=true;
+let mode='ai';                        // 'ai' — против ИИ, 'net' — по сети
+let lastMove=-1,prevBoard=null,aiTimer=null,endTimer=null,rulesReturn=null;
 
 /* ── Сетевая партия (KuNet): seat 0 = ⚫ (1), seat 1 = ⚪ (2) ── */
-let net=null, mySide=1, netRound=0, aiTimer=null;
-const isNet=()=>net&&net.room;
+let net=null,mySide=1,netRound=0,noticeVer=-1,errAt=0;
+const isNet=()=>mode==='net'&&!!net&&!!net.room;
 function initialBoard(){const b=Array(64).fill(0);b[27]=2;b[28]=1;b[35]=1;b[36]=2;return b;}
 function netName(side){return isNet()?(net.room.players[side-1]||'?'):(side===1?'Вы':'ИИ');}
-function setLabels(){
-  document.getElementById('blbl').textContent='⚫ '+(isNet()?netName(1):'Вы');
-  document.getElementById('wlbl').textContent='⚪ '+(isNet()?netName(2):'ИИ');
-  document.getElementById('btnNet').classList.toggle('on',!!isNet());
-  document.getElementById('btnNet').textContent=isNet()?'Выйти из сети':'По сети';
-}
-function netApply(room){
-  if(!isNet()||!room||!room.state) return;
-  if(room.round!==netRound){netRound=room.round;document.getElementById('msg').style.display='none';}
-  board=(room.state.board||initialBoard()).slice();
-  turn=room.state.turn===2?2:1;
-  locked=false;
-  render();
-  if(room.status==='finished'||(!valid(1).length&&!valid(2).length)) endGame();
-}
-function startNet(sess){
-  net=sess;netRound=sess.room.round;mySide=sess.seat+1;
-  clearTimeout(aiTimer);
-  setLabels();
-  sess.onUpdate=room=>netApply(room);
-  sess.onClosed=()=>{locked=true;const t=document.getElementById('turn');t.textContent='Соперник вышел';t.className='off';render();};
-  sess.onError=()=>{if(!locked){document.getElementById('turn').textContent='Нет связи…';}};
-  netApply(sess.room);
-  sess.startPolling();
-}
-function leaveNet(){
-  if(net){net.onUpdate=net.onClosed=net.onError=null;net.leave();}
-  net=null;mySide=1;setLabels();
-}
-window.addEventListener('pagehide',()=>{if(net)net.leaveBeacon();});
 
-function newGame(){
-  clearTimeout(aiTimer);
-  if(isNet()){
-    if(net.room.status==='closed'){leaveNet();}
-    else{
-      document.getElementById('turn').textContent='Новая партия…';
-      net.reset({board:initialBoard(),turn:1},0).then(r=>netApply(r)).catch(()=>{});
-      return;
-    }
-  }
-  board=initialBoard();
-  turn=1;locked=false;
-  document.getElementById('msg').style.display='none';
-  render();
-}
-
+/* ── Правила ── */
 function rc(i){return[Math.floor(i/8),i%8];}
 function idx(r,c){return r*8+c;}
 
@@ -124,99 +201,310 @@ function place(i,player){
   return true;
 }
 
-function score(){
-  const b=board.filter(v=>v===1).length,w=board.filter(v=>v===2).length;
-  document.getElementById('bsc').textContent=b;
-  document.getElementById('wsc').textContent=w;
-  return{b,w};
+function counts(){let b=0,w=0;for(const v of board){if(v===1)b++;else if(v===2)w++;}return{b,w};}
+
+/* ── Статистика против ИИ ── */
+function loadStats(){
+  try{const s=JSON.parse(localStorage.getItem('reversi_stats')||'{}')||{};return{w:s.w|0,l:s.l|0,d:s.d|0};}
+  catch(e){return{w:0,l:0,d:0};}
+}
+function saveStats(s){try{localStorage.setItem('reversi_stats',JSON.stringify(s));}catch(e){}}
+
+/* ── Экраны и окна ── */
+const open=id=>$(id).classList.add('open');
+const close=id=>$(id).classList.remove('open');
+const isOpen=id=>$(id).classList.contains('open');
+function closeAll(){document.querySelectorAll('.ku-overlay.open').forEach(o=>o.classList.remove('open'));}
+function closeRules(){close('menu-rules');if(rulesReturn)open(rulesReturn);rulesReturn=null;}
+function showScreen(name){
+  $('screen-menu').classList.toggle('active',name==='menu');
+  $('screen-game').classList.toggle('active',name==='game');
+  if(name==='menu') refreshMenu(); else layout();
+}
+function refreshMenu(){
+  const s=loadStats(),n=s.w+s.l+s.d;
+  $('best-ai').textContent=n?`Побед: ${s.w} · поражений: ${s.l}`+(s.d?` · ничьих: ${s.d}`:''):'Вы — чёрные, ходите первым';
+  $('menu-stats').textContent=n?`Партий против ИИ: ${n} • Побед: ${s.w} • Поражений: ${s.l} • Ничьих: ${s.d}`:'Сыграйте первую партию против ИИ';
+}
+
+/* ── Поле ── */
+const cells=[];
+(function buildGrid(){
+  const g=$('grid');
+  for(let i=0;i<64;i++){const d=document.createElement('div');d.className='cell';d.dataset.i=i;g.appendChild(d);cells.push(d);}
+  g.addEventListener('click',e=>{
+    const c=e.target.closest('.cell');
+    if(c&&c.classList.contains('hint')) playerMove(+c.dataset.i);
+  });
+})();
+
+function layout(){
+  const wrap=$('wrap');
+  if(!wrap.clientHeight) return;                       // экран игры скрыт
+  let used=0;                                          // счёт и подсказка в той же колонке (gap 10)
+  for(const el of [$('hud'),$('hint')]) if(el.offsetHeight&&getComputedStyle(el).position!=='absolute') used+=el.offsetHeight+10;
+  const size=Math.floor(Math.max(200,Math.min(560,wrap.clientWidth-16,wrap.clientHeight-16-used)));   // рамка .ku-board = 16
+  $('grid').style.width=$('grid').style.height=size+'px';
+}
+window.addEventListener('resize',layout);
+
+// Можно ли сейчас ходить с этого устройства
+function canAct(){
+  if(gameOver||locked) return false;
+  if(isNet()) return turn===mySide&&net.room.status==='playing'&&!net.busy;
+  return mode==='ai'&&turn===1;
 }
 
 function render(){
-  const g=document.getElementById('board');g.innerHTML='';
-  const hints=valid(turn);
-  const mine=isNet()?(turn===mySide&&!locked&&net.room.status==='playing'):turn===1;
+  const hints=canAct()?valid(turn):[];
+  const [lr,lc]=lastMove>=0?rc(lastMove):[0,0];
   for(let i=0;i<64;i++){
-    const d=document.createElement('div');
-    d.className='cell'+(hints.includes(i)&&mine?' hint':'');
-    if(board[i]){
-      const disc=document.createElement('div');
-      disc.className='disc '+(board[i]===1?'b':'w');
+    const d=cells[i],v=board[i],pv=prevBoard?prevBoard[i]:v;
+    d.classList.toggle('hint',hints.includes(i));
+    d.classList.toggle('last',i===lastMove);
+    let disc=d.firstChild;
+    if(!v){if(disc)disc.remove();continue;}
+    const cls='disc '+(v===1?'b':'w');
+    if(!disc){
+      disc=document.createElement('div');disc.className=cls;
+      if(prevBoard) disc.classList.add('put');
       d.appendChild(disc);
+    } else if(!prevBoard){
+      disc.className=cls;disc.style.animationDelay='';
+    } else if(pv!==v){                                  // перевёрнута — волной от последнего хода
+      disc.className=cls;void disc.offsetWidth;disc.classList.add('flip');
+      const [r,c]=rc(i);
+      disc.style.animationDelay=lastMove>=0?(Math.max(Math.abs(r-lr),Math.abs(c-lc))-1)*70+'ms':'';
     }
-    if(mine&&hints.includes(i)) d.addEventListener('click',()=>playerMove(i));
-    g.appendChild(d);
   }
-  score();
-  const t=document.getElementById('turn');
+  prevBoard=board.slice();
+  updateHUD();
+}
+
+function setNum(id,v){
+  const el=$(id),t=String(v);
+  if(el.textContent!==t){el.textContent=t;el.classList.remove('pop');void el.offsetWidth;el.classList.add('pop');}
+}
+function statusText(){
   if(isNet()){
-    if(net.room.status==='closed'){t.textContent='Соперник вышел';t.className='off';}
-    else{t.textContent=turn===mySide?'Ваш ход ('+(mySide===1?'⚫':'⚪')+')':'Ход: '+netName(turn);t.className=turn===mySide?'me':'';}
-  } else {t.className='';t.textContent=turn===1?'Ваш ход':'ИИ думает…';}
+    if(net.room.status==='closed') return 'СОПЕРНИК ВЫШЕЛ';
+    if(gameOver) return 'ПАРТИЯ ОКОНЧЕНА';
+    if(turn===mySide) return locked?'ОТПРАВКА ХОДА…':'ВАШ ХОД';
+    return 'ХОД: '+netName(turn).toUpperCase();
+  }
+  if(gameOver) return 'ПАРТИЯ ОКОНЧЕНА';
+  return turn===1?'ВАШ ХОД':'ИИ ДУМАЕТ…';
+}
+function updateHUD(){
+  const{b,w}=counts();
+  setNum('bsc',b);setNum('wsc',w);
+  $('name-b').textContent=isNet()?netName(1)+(mySide===1?' (вы)':''):'Вы';
+  $('name-w').textContent=isNet()?netName(2)+(mySide===2?' (вы)':''):'ИИ';
+  $('pl-b').classList.toggle('on',!gameOver&&turn===1);
+  $('pl-w').classList.toggle('on',!gameOver&&turn===2);
+  $('game-title').textContent=isNet()?'ПО СЕТИ · '+net.room.id:'ПРОТИВ ИИ';
+  $('game-sub').textContent=statusText();
+}
+
+/* ── Партия против ИИ ── */
+function newGame(){
+  clearTimeout(aiTimer);clearTimeout(endTimer);
+  closeAll();
+  if(isNet()){
+    if(net.room.status==='closed'){toMenu();return;}
+    $('game-sub').textContent='НОВАЯ ПАРТИЯ…';
+    net.reset({board:initialBoard(),turn:1},0).then(r=>netApply(r))
+      .catch(e=>{if(isNet())KuArcade.toast('Не удалось начать: '+e.message,'bad');});
+    return;
+  }
+  board=initialBoard();
+  turn=1;locked=false;gameOver=false;lastMove=-1;prevBoard=null;
+  render();
 }
 
 function playerMove(i){
-  if(isNet()){
-    if(locked||turn!==mySide||!net.isMyTurn()||net.busy) return;
-    if(!place(i,mySide)) return;
-    // очередь хода с учётом пропусков
-    turn=3-turn;
-    if(!valid(turn).length) turn=3-turn;
-    const finished=!valid(1).length&&!valid(2).length;
-    locked=true;render();
-    net.move({board:board.slice(),turn},turn-1,{i},finished)
-      .then(()=>{locked=false;render();if(finished)endGame();})
-      .catch(e=>{if(!isNet())return;document.getElementById('turn').textContent=/устарело/.test(e.message)?'Синхронизация…':'Нет связи: '+e.message;});
-    return;
-  }
-  if(locked||turn!==1) return;
+  if(isNet()){netMove(i);return;}
+  if(mode!=='ai'||locked||gameOver||turn!==1) return;
   if(!place(i,1)) return;
-  locked=true;render();
-  aiTimer=setTimeout(nextTurn,300);
+  lastMove=i;
+  advance();
 }
 
-function nextTurn(){
-  turn=3-turn;
-  if(!valid(turn).length){
-    turn=3-turn;
-    if(!valid(turn).length){endGame();return;}
-  }
+// Передать ход сопернику с учётом паса; если ходов нет ни у кого — конец партии
+function advance(){
+  const other=3-turn;
+  if(valid(other).length) turn=other;
+  else if(valid(turn).length) KuArcade.toast(other===2?'У ИИ нет ходов — пас, снова ваш ход':'У вас нет ходов — пас','gold');
+  else{finish();return;}
+  locked=turn===2;
   render();
-  if(turn===2) aiTimer=setTimeout(aiMove,400);
-  else locked=false;
+  if(turn===2){clearTimeout(aiTimer);aiTimer=setTimeout(aiMove,650);}
 }
 
 function aiMove(){
-  const moves=valid(2);if(!moves.length){nextTurn();return;}
-  // Жадный: максимум захватов + угловой приоритет
-  const corners=[0,7,56,63];
-  const cornerMove=moves.find(m=>corners.includes(m));
-  let best=cornerMove||moves.reduce((a,b)=>flips(b,2).length>flips(a,2).length?b:a);
-  place(best,2);render();
-  aiTimer=setTimeout(nextTurn,300);
+  if(mode!=='ai'||gameOver||turn!==2) return;
+  if(isOpen('menu-pause')||isOpen('menu-rules')){aiTimer=setTimeout(aiMove,400);return;}   // на паузе ИИ ждёт
+  const moves=valid(2);if(!moves.length){advance();return;}
+  // Жадный: максимум захватов + угловой приоритет.
+  // Угол a1 — индекс 0, поэтому проверяем на undefined, а не на «ложность».
+  const cornerMove=moves.find(m=>CORNERS.includes(m));
+  const best=cornerMove!==undefined?cornerMove:moves.reduce((a,b)=>flips(b,2).length>flips(a,2).length?b:a);
+  place(best,2);
+  lastMove=best;
+  advance();
 }
 
-function endGame(){
-  const{b,w}=score();
-  let res=b>w?'🎉 Победа! Чёрные':'⚪ Победа! Белые';
-  if(isNet()&&b!==w){const winSide=b>w?1:2;res=winSide===mySide?'🎉 Вы победили!':'😔 Победил '+netName(winSide);}
-  if(b===w) res='🤝 Ничья';
-  locked=true;
-  document.getElementById('mt').textContent=res;
-  document.getElementById('mp').textContent=`⚫ ${b} : ${w} ⚪`;
-  document.getElementById('msg').style.display='flex';
+function scoreLine(){
+  const{b,w}=counts();
+  $('end-score').innerHTML=`<i class="dot b"></i>${b} : ${w}<i class="dot w"></i>`;
+  return{b,w};
 }
 
-document.getElementById('btnNew').addEventListener('click',newGame);
-document.getElementById('mBtn').addEventListener('click',newGame);
-document.getElementById('btnNet').addEventListener('click',()=>{
-  if(isNet()){leaveNet();newGame();return;}
+function finish(){
+  gameOver=true;locked=true;
+  clearTimeout(aiTimer);
+  render();
+  const{b,w}=scoreLine();
+  let title='НИЧЬЯ',cls='',sub='Поровну фишек',stats='';
+  if(isNet()){
+    if(b!==w){const win=b>w?1:2;title=win===mySide?'ПОБЕДА!':'ПОРАЖЕНИЕ';cls=win===mySide?'win':'lose';sub=win===mySide?'Вы победили':'Победил '+netName(win);}
+  } else {
+    const st=loadStats();
+    if(b>w){title='ПОБЕДА!';cls='win';sub='Вы обыграли ИИ';st.w++;}
+    else if(w>b){title='ПОРАЖЕНИЕ';cls='lose';sub='ИИ оказался сильнее';st.l++;}
+    else st.d++;
+    saveStats(st);
+    stats=`Против ИИ — побед: ${st.w} · поражений: ${st.l}`+(st.d?` · ничьих: ${st.d}`:'');
+  }
+  $('end-title').textContent=title;$('end-title').className=cls;
+  $('end-sub').textContent=sub;
+  $('end-stats').textContent=stats;
+  $('btn-again').style.display='';
+  clearTimeout(endTimer);
+  endTimer=setTimeout(()=>{closeAll();open('menu-end');},900);   // сначала видна финальная позиция
+}
+
+/* ── Сеть ── */
+function netMove(i){
+  if(locked||gameOver||turn!==mySide||!net.isMyTurn()||net.busy) return;
+  if(!place(i,mySide)) return;
+  lastMove=i;
+  // очередь хода с учётом пропусков
+  turn=3-turn;
+  let passed=false;
+  if(!valid(turn).length){turn=3-turn;passed=true;}
+  const finished=!valid(1).length&&!valid(2).length;
+  if(passed&&!finished) KuArcade.toast('У соперника нет ходов — пас, снова ваш ход','gold');
+  locked=true;render();
+  net.move({board:board.slice(),turn},turn-1,{i},finished)
+    .then(()=>{if(!isNet())return;locked=false;render();if(finished&&!gameOver)finish();})
+    .catch(e=>{
+      if(!isNet()) return;
+      if(/устарело/.test(e.message)){KuArcade.toast('Синхронизация…');return;}   // состояние сервера уже применено
+      KuArcade.toast('Ход не отправлен: '+e.message,'bad');
+      netApply(net.room);   // откат к последнему подтверждённому состоянию — ход можно повторить
+    });
+}
+
+function netApply(room){
+  if(!isNet()||!room||!room.state) return;
+  if(room.round!==netRound){netRound=room.round;closeAll();clearTimeout(endTimer);prevBoard=null;gameOver=false;}
+  const sb=room.state.board;
+  board=(Array.isArray(sb)&&sb.length===64?sb:initialBoard()).slice();
+  turn=room.state.turn===2?2:1;
+  const lm=room.lastMove;
+  lastMove=lm&&lm.move&&typeof lm.move.i==='number'?lm.move.i:-1;
+  locked=false;
+  const over=room.status==='finished'||(!valid(1).length&&!valid(2).length);
+  // соперник сходил, а ход снова у него — значит, у нас нет ходов
+  if(!over&&room.status==='playing'&&lm&&lm.by!==mySide-1&&turn!==mySide&&room.ver!==noticeVer){
+    noticeVer=room.ver;KuArcade.toast('У вас нет ходов — пас','gold');
+  }
+  if(room.status==='closed') gameOver=true;
+  if(over&&!gameOver){finish();return;}
+  render();
+}
+
+function startNet(sess){
+  clearTimeout(aiTimer);clearTimeout(endTimer);
+  net=sess;mode='net';netRound=sess.room.round;mySide=sess.seat+1;noticeVer=-1;
+  closeAll();
+  gameOver=false;prevBoard=null;lastMove=-1;
+  sess.onUpdate=room=>netApply(room);
+  sess.onClosed=()=>onNetClosed();
+  sess.onError=()=>{if(Date.now()-errAt>8000){errAt=Date.now();KuArcade.toast('Нет связи с сервером…','bad');}};
+  $('hint').textContent='Комната '+sess.room.id+' · вы играете '+(mySide===1?'чёрными':'белыми');
+  showScreen('game');
+  netApply(sess.room);
+  sess.startPolling();
+  KuArcade.toast(mySide===1?'Вы играете чёрными — ваш ход первый':'Вы играете белыми — первым ходит соперник','good');
+}
+function onNetClosed(){
+  if(!isNet()) return;
+  clearTimeout(endTimer);
+  gameOver=true;locked=true;
+  closeAll();
+  render();
+  scoreLine();
+  $('end-title').textContent='СОПЕРНИК ВЫШЕЛ';$('end-title').className='';
+  $('end-sub').textContent='Партия прервана';
+  $('end-stats').textContent='';
+  $('btn-again').style.display='none';
+  open('menu-end');
+}
+function leaveNet(){
+  if(net){net.onUpdate=net.onClosed=net.onError=null;net.leave();}
+  net=null;mySide=1;
+  if(mode==='net') mode='ai';
+}
+window.addEventListener('pagehide',()=>{if(net)net.leaveBeacon();});
+
+/* ── Навигация ── */
+function startAI(){
+  leaveNet();
+  mode='ai';
+  $('hint').textContent='Точки — доступные ходы · углы не переворачиваются';
+  showScreen('game');
+  newGame();
+}
+function toMenu(){
+  clearTimeout(aiTimer);clearTimeout(endTimer);
+  leaveNet();
+  gameOver=true;locked=true;
+  closeAll();
+  showScreen('menu');
+}
+
+$('btn-ai').addEventListener('click',startAI);
+$('btn-net').addEventListener('click',()=>{
   KuNet.openLobby({
     game:'reversi',title:'РЕВЕРСИ · ПО СЕТИ',
     initialState:()=>({board:initialBoard(),turn:1}),
     onStart:startNet
   });
 });
-newGame();
+$('btn-rules').addEventListener('click',()=>{rulesReturn=null;open('menu-rules');});
+$('btn-pause-rules').addEventListener('click',()=>{rulesReturn='menu-pause';close('menu-pause');open('menu-rules');});
+$('btn-rules-x').addEventListener('click',closeRules);
+$('btn-rules-close').addEventListener('click',closeRules);
+$('btn-pause').addEventListener('click',()=>{
+  if(isOpen('menu-end')) return;
+  $('btn-restart').textContent=isNet()?'Новая партия для обоих':'Новая партия';
+  open('menu-pause');
+});
+$('btn-resume').addEventListener('click',()=>close('menu-pause'));
+$('btn-restart').addEventListener('click',newGame);
+$('btn-quit').addEventListener('click',toMenu);
+$('btn-again').addEventListener('click',newGame);
+$('btn-end-menu').addEventListener('click',toMenu);
+document.addEventListener('keydown',e=>{
+  if(e.code!=='Escape'&&e.code!=='KeyP') return;
+  if(isOpen('menu-rules')){closeRules();return;}
+  if(!$('screen-game').classList.contains('active')||isOpen('menu-end')) return;
+  if(isOpen('menu-pause')) close('menu-pause'); else $('btn-pause').click();
+});
+
+refreshMenu();
 </script>
 </body>
 </html>

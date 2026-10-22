@@ -2,132 +2,393 @@
 <html lang="ru">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width,initial-scale=1,user-scalable=no">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
 <title>Пятнашки</title>
+<link rel="stylesheet" href="ku-arcade.css">
+<script src="ku-arcade.js"></script>
 <style>
-*{box-sizing:border-box;margin:0;padding:0}
-body{background:#0a0a0f;color:#f0f0f8;font-family:'JetBrains Mono',monospace;display:flex;flex-direction:column;align-items:center;justify-content:center;height:100dvh;gap:14px;user-select:none}
-#meta{display:flex;gap:24px;font-size:.75rem;color:#8888aa}
-.mv{text-align:center}.mv-val{font-size:1.3rem;font-weight:700;color:#f0f0f8}
-#grid{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;width:min(88vw,320px)}
-.tile{aspect-ratio:1;border-radius:12px;display:flex;align-items:center;justify-content:center;font-size:clamp(1.2rem,6vw,1.8rem);font-weight:700;cursor:pointer;transition:transform .1s,background .15s}
-.tile.num{background:#1a1a24;border:1px solid #2c2c40}
-.tile.num:hover{background:#22222f}
-.tile.num:active{transform:scale(.94)}
-.tile.empty{background:transparent;cursor:default;border:2px dashed #22222f}
-.tile.done{background:rgba(0,229,160,.12);border-color:#00e5a0;color:#00e5a0}
-#btns{display:flex;gap:10px}
-button{background:transparent;border:1px solid rgba(255,255,255,.15);color:#8888aa;padding:9px 22px;border-radius:8px;font-family:inherit;font-size:.8rem;cursor:pointer}
-button:hover{background:#1a1a24;color:#f0f0f8}
-#win{position:fixed;inset:0;background:rgba(10,10,15,.88);display:none;flex-direction:column;align-items:center;justify-content:center;gap:12px}
-#win h2{font-size:1.3rem}
-#win p{font-size:.78rem;color:#8888aa}
-#win button{background:#00e5a0;color:#000;border:none;padding:12px 32px;border-radius:10px;font-size:.95rem;font-weight:700}
+  html,body{height:100%;overflow:hidden}
+  #screen-game,#screen-game *{touch-action:none}
+  #wrap{flex:1;min-height:0;width:100%;display:flex;flex-direction:column;align-items:center;justify-content:center}
+  #hint{margin-top:12px}
+
+  /* ── Поле 4×4: клетки-подложки + плитки, которые ездят через transform ── */
+  #grid{--S:300px;--gap:8px;position:relative;width:var(--S);height:var(--S)}
+  .cell,.tile{position:absolute;left:0;top:0;width:calc((100% - 3 * var(--gap)) / 4);height:calc((100% - 3 * var(--gap)) / 4);
+    border-radius:12px;transform:translate(calc(var(--x) * (100% + var(--gap))),calc(var(--y) * (100% + var(--gap))))}
+  .cell{background:rgba(255,255,255,.035);border:1px solid rgba(255,255,255,.06)}
+  /* плитка не на месте — стекло с неоновой цифрой цвета своего ряда */
+  .tile{--c:var(--cyan);display:flex;align-items:center;justify-content:center;cursor:pointer;
+    font-family:var(--font-display);font-size:calc(var(--S) * .1);line-height:1;color:var(--c);
+    background:linear-gradient(160deg,rgba(255,255,255,.10),rgba(255,255,255,.03));
+    border:1px solid rgba(255,255,255,.16);
+    box-shadow:0 4px 14px rgba(0,0,0,.35),inset 0 1px 0 rgba(255,255,255,.08);
+    text-shadow:0 0 10px var(--c);
+    transition:transform .13s cubic-bezier(.2,.8,.3,1),color .25s,border-color .25s,box-shadow .25s}
+  .tile.r1{--c:var(--yellow)} .tile.r2{--c:var(--purple)} .tile.r3{--c:var(--green)}
+  /* плитка на своём месте — яркий блок как в Тетрисе: свечение и блик сверху */
+  .tile.ok{color:#041018;text-shadow:none;border-color:transparent;
+    background:linear-gradient(180deg,rgba(255,255,255,.42),rgba(255,255,255,0) 50%,rgba(0,0,0,.2)),var(--c);
+    box-shadow:0 0 8px var(--c),inset 0 1px 0 rgba(255,255,255,.35),inset 0 0 0 1px rgba(255,255,255,.18)}
+  /* полупрозрачные оттенки цвета ряда — только где есть color-mix(). Запасное объявление перед
+     значением с var() не помогает: такое значение «валидно» при разборе и перекрывает запасное,
+     а в старом браузере потом превращается в unset. */
+  @supports (color:color-mix(in srgb,red 50%,blue)){
+    .tile{border-color:color-mix(in srgb,var(--c) 40%,transparent);text-shadow:0 0 14px color-mix(in srgb,var(--c) 70%,transparent)}
+    .tile.ok{box-shadow:0 0 12px color-mix(in srgb,var(--c) 45%,transparent),inset 0 1px 0 rgba(255,255,255,.35),inset 0 0 0 1px rgba(255,255,255,.18)}
+  }
+  #grid.shuffling .tile{transition:transform .35s cubic-bezier(.3,.7,.3,1),color .25s,border-color .25s,box-shadow .25s}
+  #grid.solved .tile{animation:tileWin .7s ease calc(var(--i) * 45ms) both}
+  @keyframes tileWin{40%{scale:1.08;filter:brightness(1.35)}}
+  @media (prefers-reduced-motion:reduce){ .tile,#grid.shuffling .tile{transition:none} #grid.solved .tile{animation:none} }
 </style>
 </head>
-<body>
-<div id="meta">
-  <div class="mv"><div class="mv-val" id="moves">0</div><div>ходов</div></div>
-  <div class="mv"><div class="mv-val" id="timer">00:00</div><div>время</div></div>
-  <div class="mv"><div class="mv-val" id="best">—</div><div>рекорд</div></div>
-</div>
-<div id="grid"></div>
-<div id="btns"><button id="btnNew">Новая игра</button></div>
-<div id="win"><h2>🎉 Решено!</h2><p id="win-info"></p><button id="winBtn">Ещё раз</button></div>
+<body class="ku">
+<main class="ku-app">
+
+  <!-- ═══ МЕНЮ ═══ -->
+  <section id="screen-menu" class="ku-screen menu active">
+    <h1 class="ku-logo">ПЯТНАШКИ</h1>
+    <p class="ku-tagline">Головоломка • 4×4 • Рекорды</p>
+    <div class="ku-pills"><span>🔢 15 плиток</span><span>⏱ На время</span><span>👆 Тап и свайп</span><span>✅ Всегда решаемо</span></div>
+    <div class="ku-menu-btns">
+      <button class="ku-btn big primary" id="btn-play">🎮 Играть<span class="best" id="menu-best">Рекорд: —</span></button>
+    </div>
+    <div class="ku-menu-row"><button class="ku-btn ghost" id="btn-rules">📖 Правила</button></div>
+    <div class="ku-menu-stats" id="menu-stats"></div>
+    <div class="ku-menu-hint">Стрелки — сдвиг плитки в пустую клетку · P / Esc — пауза<br>На телефоне: тап по плитке рядом с пустой клеткой или свайп</div>
+  </section>
+
+  <!-- ═══ ИГРА ═══ -->
+  <section id="screen-game" class="ku-screen fit">
+    <header class="ku-top">
+      <div class="ku-top-left"></div>
+      <div class="ku-top-title"><div class="t">ПЯТНАШКИ 4×4</div><div class="s">НА МЕСТЕ: <b id="in-place">0</b> / 15</div></div>
+      <div class="ku-top-actions">
+        <button class="ku-btn icon" id="btn-new" aria-label="Перемешать заново"><svg viewBox="0 0 24 24"><polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/></svg></button>
+        <button class="ku-btn icon" id="btn-pause" aria-label="Пауза"><svg viewBox="0 0 24 24"><line x1="9" y1="5" x2="9" y2="19"/><line x1="15" y1="5" x2="15" y2="19"/></svg></button>
+      </div>
+    </header>
+    <div class="ku-hud">
+      <div class="ku-stat"><span>Ходы</span><b id="moves">0</b></div>
+      <div class="ku-stat c2"><span>Время</span><b id="timer">0:00</b></div>
+      <div class="ku-stat gold"><span>Рекорд</span><b id="best">—</b></div>
+    </div>
+    <div id="wrap">
+      <div class="ku-board" id="board"><div id="grid"></div></div>
+      <p class="ku-hint" id="hint">Тап по плитке рядом с пустой клеткой · свайп · стрелки</p>
+    </div>
+  </section>
+</main>
+
+<!-- ═══ ПАУЗА ═══ -->
+<div class="ku-overlay" id="ov-pause"><div class="ku-card">
+  <h2>⏸ ПАУЗА</h2>
+  <button class="ku-btn primary" id="btn-resume">Продолжить</button>
+  <button class="ku-btn" id="btn-restart">Заново</button>
+  <button class="ku-btn" id="btn-rules2">📖 Правила</button>
+  <button class="ku-btn ghost" id="btn-quit">В меню</button>
+</div></div>
+
+<!-- ═══ ПОБЕДА ═══ -->
+<div class="ku-overlay" id="ov-win"><div class="ku-card">
+  <h2 class="win">РЕШЕНО!</h2>
+  <div class="ku-new-best" id="win-best" hidden>🏆 НОВЫЙ РЕКОРД!</div>
+  <div class="ku-big-score" id="win-moves">0</div>
+  <p id="win-sub">ходов</p>
+  <div class="ku-over-stats" id="win-stats"></div>
+  <button class="ku-btn primary" id="btn-again">Играть снова</button>
+  <button class="ku-btn ghost" id="btn-win-menu">В меню</button>
+</div></div>
+
+<!-- ═══ ПРАВИЛА ═══ -->
+<div class="ku-overlay" id="ov-rules"><div class="ku-modal">
+  <header><h2>📖 Правила</h2><button class="ku-btn icon" id="btn-rules-x" aria-label="Закрыть">✕</button></header>
+  <div class="ku-body">
+    <h3>Цель</h3>
+    <ul class="ku-rules">
+      <li>Расставь плитки по порядку <b>1–15</b> слева направо и сверху вниз. Пустая клетка — в правом нижнем углу.</li>
+      <li>Каждая раскладка гарантированно решаема.</li>
+    </ul>
+    <h3>Ход</h3>
+    <ul class="ku-rules">
+      <li>Сдвинь в пустую клетку соседнюю с ней плитку: тап по плитке, свайп в сторону сдвига или стрелки на клавиатуре.</li>
+      <li>Плитка, стоящая на своём месте, загорается цветом своего ряда.</li>
+    </ul>
+    <h3>Рекорды</h3>
+    <ul class="ku-rules">
+      <li>Таймер стартует с первого хода и стоит на паузе.</li>
+      <li>Рекорд — наименьшее число ходов. Лучшее время тоже запоминается.</li>
+    </ul>
+  </div>
+  <footer><button class="ku-btn primary" id="btn-rules-close">Понятно</button></footer>
+</div></div>
 
 <script>
-let tiles,empty,moves,sec,tid,best=localStorage.getItem('15best')||null;
-if(best) document.getElementById('best').textContent=best+'х';
+'use strict';
+const $ = id => document.getElementById(id);
+const N = 4, SIZE = N * N;
+const BEST_KEY = '15best';      // наименьшее число ходов (ключ прежний)
+const STATS_KEY = '15stats';    // { solved, bestTime } — решено головоломок и лучшее время, с
 
-function shuffle(){
-  // Fisher-Yates, проверяем чётность перестановки
-  let arr=[1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,0];
+function lsGet(k) { try { return localStorage.getItem(k); } catch (e) { return null; } }
+function lsSet(k, v) { try { localStorage.setItem(k, v); } catch (e) {} }
+function loadStats() {
+  try { const s = JSON.parse(lsGet(STATS_KEY) || '{}'); return s && typeof s === 'object' ? s : {}; }
+  catch (e) { return {}; }
+}
+function plural(n, forms) {
+  const a = Math.abs(n) % 100, b = a % 10;
+  return forms[a > 10 && a < 20 ? 2 : b === 1 ? 0 : b >= 2 && b <= 4 ? 1 : 2];
+}
+const fmt = s => Math.floor(s / 60) + ':' + String(s % 60).padStart(2, '0');
+
+let tiles = [], empty = SIZE - 1, moves = 0;
+let phase = 'menu';             // menu | play | paused | won
+let elapsed = 0, startedAt = 0, tickT = 0, winT = 0, shuffleT = 0, rulesFromPause = false;
+let asking = false;             // открыт диалог «перемешать заново?» — ввод в игру не идёт
+let best = parseInt(lsGet(BEST_KEY), 10) || 0;
+
+const grid = $('grid'), tileEls = [];
+
+/* ── Поле: 16 подложек и 15 плиток создаются один раз, ходы двигают плитки ── */
+function build() {
+  for (let i = 0; i < SIZE; i++) {
+    const c = document.createElement('div');
+    c.className = 'cell';
+    c.style.setProperty('--x', i % N); c.style.setProperty('--y', (i / N) | 0);
+    grid.appendChild(c);
+  }
+  for (let v = 1; v < SIZE; v++) {
+    const t = document.createElement('div');
+    t.className = 'tile r' + (((v - 1) / N) | 0);
+    t.textContent = v;
+    t.style.setProperty('--i', v - 1);
+    grid.appendChild(t);
+    tileEls[v] = t;
+  }
+}
+
+function solvable(a) {
+  let inv = 0;
+  for (let i = 0; i < SIZE; i++) for (let j = i + 1; j < SIZE; j++) if (a[i] && a[j] && a[i] > a[j]) inv++;
+  const row = N - 1 - Math.floor(a.indexOf(0) / N);   // ряд пустой клетки, считая снизу с 0
+  return (inv + row) % 2 === 0;
+}
+const isSolved = a => a.every((v, i) => v === (i < SIZE - 1 ? i + 1 : 0));
+
+function shuffle() {
+  // Fisher-Yates, проверяем чётность перестановки (и что раскладка не собрана сразу)
+  const arr = Array.from({ length: SIZE }, (_, i) => (i + 1) % SIZE);
   do {
-    for(let i=15;i>0;i--){const j=Math.floor(Math.random()*(i+1));[arr[i],arr[j]]=[arr[j],arr[i]];}
-  } while(!solvable(arr));
+    for (let i = SIZE - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [arr[i], arr[j]] = [arr[j], arr[i]]; }
+  } while (!solvable(arr) || isSolved(arr));
   return arr;
 }
 
-function solvable(a){
-  let inv=0;
-  for(let i=0;i<16;i++) for(let j=i+1;j<16;j++) if(a[i]&&a[j]&&a[i]>a[j]) inv++;
-  const row=3-Math.floor(a.indexOf(0)/4);
-  return (inv+row)%2===0;
-}
-
-function newGame(){
-  tiles=shuffle();
-  empty=tiles.indexOf(0);
-  moves=0; sec=0;
-  document.getElementById('moves').textContent=0;
-  document.getElementById('timer').textContent='00:00';
-  document.getElementById('win').style.display='none';
-  clearInterval(tid);
-  tid=setInterval(()=>{sec++;const m=String(Math.floor(sec/60)).padStart(2,'0'),s=String(sec%60).padStart(2,'0');document.getElementById('timer').textContent=`${m}:${s}`;},1000);
-  render();
-}
-
-function render(){
-  const g=document.getElementById('grid');g.innerHTML='';
-  tiles.forEach((v,i)=>{
-    const d=document.createElement('div');
-    const done=v===i+1||(v===0&&i===15);
-    d.className=`tile ${v===0?'empty':'num'}${done?' done':''}`;
-    d.textContent=v||'';
-    if(v!==0) d.addEventListener('click',()=>move(i));
-    g.appendChild(d);
+function render() {
+  let ok = 0;
+  tiles.forEach((v, i) => {
+    if (!v) return;
+    const t = tileEls[v], inPlace = v === i + 1;
+    t.style.setProperty('--x', i % N); t.style.setProperty('--y', (i / N) | 0);
+    t.classList.toggle('ok', inPlace);
+    if (inPlace) ok++;
   });
+  $('in-place').textContent = ok;
 }
 
-function move(i){
-  const r=Math.floor(i/4),c=i%4,er=Math.floor(empty/4),ec=empty%4;
-  if(Math.abs(r-er)+Math.abs(c-ec)!==1) return;
-  [tiles[i],tiles[empty]]=[tiles[empty],tiles[i]];
-  empty=i; moves++;
-  document.getElementById('moves').textContent=moves;
+/* ── Время: считается по часам, а не счётчиком setInterval; стартует с первого хода ── */
+const timeSec = () => Math.floor((elapsed + (startedAt ? performance.now() - startedAt : 0)) / 1000);
+function showTime() { $('timer').textContent = fmt(timeSec()); }
+function startClock() {
+  if (startedAt) return;
+  startedAt = performance.now();
+  clearInterval(tickT); tickT = setInterval(showTime, 250);
+}
+function stopClock() {
+  if (startedAt) { elapsed += performance.now() - startedAt; startedAt = 0; }
+  clearInterval(tickT); showTime();
+}
+
+function showBest() {
+  $('best').textContent = best || '—';
+  $('menu-best').textContent = best ? `Рекорд: ${best} ${plural(best, ['ход', 'хода', 'ходов'])}` : 'Рекорд: —';
+}
+function refreshMenu() {
+  showBest();
+  const st = loadStats();
+  $('menu-stats').textContent = st.solved
+    ? `Решено: ${st.solved} • Лучшее время: ${st.bestTime ? fmt(st.bestTime) : '—'}`
+    : 'Собери первую головоломку!';
+}
+
+function pop(el) { el.classList.remove('pop'); void el.offsetWidth; el.classList.add('pop'); }
+
+function move(i) {
+  if (phase !== 'play') return;                       // пауза, меню, уже решено — ходов нет
+  const r = (i / N) | 0, c = i % N, er = (empty / N) | 0, ec = empty % N;
+  if (Math.abs(r - er) + Math.abs(c - ec) !== 1) return;
+  [tiles[i], tiles[empty]] = [tiles[empty], tiles[i]];
+  empty = i; moves++;
+  if (moves === 1) startClock();
+  $('moves').textContent = moves;
   render();
-  if(tiles.every((v,i)=>v===(i<15?i+1:0))){
-    clearInterval(tid);
-    const b=best?Math.min(+best,moves):moves;
-    best=b; localStorage.setItem('15best',b);
-    document.getElementById('best').textContent=b+'х';
-    const m=String(Math.floor(sec/60)).padStart(2,'0'),s=String(sec%60).padStart(2,'0');
-    document.getElementById('win-info').textContent=`${moves} ходов · ${m}:${s}`;
-    document.getElementById('win').style.display='flex';
-  }
+  if (isSolved(tiles)) win();
 }
 
-document.getElementById('btnNew').addEventListener('click',newGame);
-document.getElementById('winBtn').addEventListener('click',newGame);
+// dx/dy — куда едет плитка: сдвигаем соседку пустой клетки с противоположной стороны
+function slide(dx, dy) {
+  const er = (empty / N) | 0, ec = empty % N;
+  let t = -1;
+  if (dx === 1 && ec > 0) t = empty - 1;
+  else if (dx === -1 && ec < N - 1) t = empty + 1;
+  else if (dy === 1 && er > 0) t = empty - N;
+  else if (dy === -1 && er < N - 1) t = empty + N;
+  if (t >= 0) move(t);
+}
 
-document.addEventListener('keydown',e=>{
-  const er=Math.floor(empty/4),ec=empty%4;
-  let target=-1;
-  if(e.key==='ArrowUp'&&er<3) target=(er+1)*4+ec;
-  if(e.key==='ArrowDown'&&er>0) target=(er-1)*4+ec;
-  if(e.key==='ArrowLeft'&&ec<3) target=er*4+ec+1;
-  if(e.key==='ArrowRight'&&ec>0) target=er*4+ec-1;
-  if(target>=0) move(target);
+function win() {
+  phase = 'won';
+  stopClock();
+  const sec = timeSec();
+  const newBest = !best || moves < best;
+  if (newBest) { best = moves; lsSet(BEST_KEY, String(best)); }
+  const st = loadStats();
+  st.solved = (st.solved | 0) + 1;
+  const newTime = !st.bestTime || sec < st.bestTime;
+  if (newTime) st.bestTime = sec;
+  lsSet(STATS_KEY, JSON.stringify(st));
+  showBest();
+
+  const nb = $('win-best');
+  nb.hidden = !(newBest || newTime);
+  nb.textContent = newBest ? '🏆 НОВЫЙ РЕКОРД!' : '⏱ ЛУЧШЕЕ ВРЕМЯ!';
+  $('win-moves').textContent = moves;
+  $('win-sub').textContent = plural(moves, ['ход', 'хода', 'ходов']);
+  const rows = [['Время', fmt(sec)], ['Рекорд ходов', best], ['Лучшее время', fmt(st.bestTime)], ['Решено всего', st.solved]];
+  const box = $('win-stats'); box.textContent = '';
+  rows.forEach(([l, v]) => { const d = document.createElement('div'), b = document.createElement('b'); d.textContent = l; b.textContent = v; d.appendChild(b); box.appendChild(d); });
+  pop($('moves'));
+  grid.classList.add('solved');
+  clearTimeout(winT);
+  winT = setTimeout(() => open('ov-win'), 900);
+}
+
+/* ── Экраны и оверлеи ── */
+const open = id => $(id).classList.add('open');
+const close = id => $(id).classList.remove('open');
+const isOpen = id => $(id).classList.contains('open');
+function showScreen(name) {
+  $('screen-menu').classList.toggle('active', name === 'menu');
+  $('screen-game').classList.toggle('active', name === 'game');
+}
+
+// Поле — квадрат во всё свободное место под шапкой и HUD (рамка .ku-board — 16 px)
+function layout() {
+  if (!$('screen-game').classList.contains('active')) return;
+  const wrap = $('wrap'), hint = $('hint');
+  const hintH = hint.offsetHeight + 12;
+  const S = Math.floor(Math.max(200, Math.min(wrap.clientWidth - 16, wrap.clientHeight - 16 - hintH, 440)));
+  grid.style.setProperty('--S', S + 'px');
+}
+window.addEventListener('resize', layout);
+
+function newGame() {
+  clearTimeout(winT); clearInterval(tickT);
+  ['ov-win', 'ov-pause', 'ov-rules'].forEach(close);
+  grid.classList.remove('solved');
+  tiles = shuffle(); empty = tiles.indexOf(0); moves = 0;
+  elapsed = 0; startedAt = 0;
+  $('moves').textContent = 0; showTime(); showBest();
+  phase = 'play';
+  showScreen('game'); layout();
+  grid.classList.add('shuffling');
+  render();
+  clearTimeout(shuffleT); shuffleT = setTimeout(() => grid.classList.remove('shuffling'), 400);
+}
+
+function pause() {
+  if (phase !== 'play') return;
+  phase = 'paused'; stopClock(); open('ov-pause');
+}
+function resume() {
+  if (phase !== 'paused') return;
+  close('ov-pause'); close('ov-rules');
+  phase = 'play';
+  if (moves > 0) startClock();
+}
+function toMenu() {
+  clearTimeout(winT); stopClock();
+  phase = 'menu';
+  ['ov-win', 'ov-pause', 'ov-rules'].forEach(close);
+  refreshMenu(); showScreen('menu');
+}
+function closeRules() {
+  close('ov-rules');
+  if (rulesFromPause && phase === 'paused') open('ov-pause');
+  rulesFromPause = false;
+}
+
+/* ── Ввод: тап по клетке (по координатам — двойной тап не вернёт плитку назад) и свайп ── */
+let down = null;
+const screenGame = $('screen-game');
+screenGame.addEventListener('pointerdown', e => {
+  if (e.button > 0 || e.target.closest('button')) return;
+  const rc = grid.getBoundingClientRect(), S = rc.width, gap = 8, cs = (S - 3 * gap) / 4;
+  const x = e.clientX - rc.left, y = e.clientY - rc.top;
+  const cell = (x >= 0 && y >= 0 && x < S && y < S) ? Math.min(N - 1, Math.floor(y / (cs + gap))) * N + Math.min(N - 1, Math.floor(x / (cs + gap))) : -1;
+  down = { x: e.clientX, y: e.clientY, cell, id: e.pointerId };
+  try { screenGame.setPointerCapture(e.pointerId); } catch (err) {}
 });
+screenGame.addEventListener('pointerup', e => {
+  if (!down || down.id !== e.pointerId) return;
+  const dx = e.clientX - down.x, dy = e.clientY - down.y, cell = down.cell;
+  down = null;
+  if (Math.max(Math.abs(dx), Math.abs(dy)) >= 24) {
+    if (Math.abs(dx) > Math.abs(dy)) slide(dx > 0 ? 1 : -1, 0); else slide(0, dy > 0 ? 1 : -1);
+  } else if (cell >= 0) move(cell);
+});
+screenGame.addEventListener('pointercancel', () => { down = null; });
 
-// Свайп
-let sx,sy;
-document.addEventListener('touchstart',e=>{sx=e.touches[0].clientX;sy=e.touches[0].clientY;},{passive:true});
-document.addEventListener('touchend',e=>{
-  const dx=e.changedTouches[0].clientX-sx,dy=e.changedTouches[0].clientY-sy;
-  const er=Math.floor(empty/4),ec=empty%4;
-  let target=-1;
-  if(Math.abs(dx)>Math.abs(dy)){
-    if(dx>30&&ec>0) target=er*4+ec-1;
-    else if(dx<-30&&ec<3) target=er*4+ec+1;
-  } else {
-    if(dy>30&&er>0) target=(er-1)*4+ec;
-    else if(dy<-30&&er<3) target=(er+1)*4+ec;
+document.addEventListener('keydown', e => {
+  if (asking) return;
+  if ((e.code === 'Escape' || e.code === 'KeyP') && !e.repeat) {
+    if (isOpen('ov-rules')) { closeRules(); return; }
+    if (phase === 'play') pause(); else if (phase === 'paused') resume();
+    return;
   }
-  if(target>=0) move(target);
-},{passive:true});
+  const dir = { ArrowUp: [0, -1], ArrowDown: [0, 1], ArrowLeft: [-1, 0], ArrowRight: [1, 0] }[e.key];
+  if (dir && phase === 'play') { e.preventDefault(); slide(dir[0], dir[1]); }
+});
+document.addEventListener('visibilitychange', () => { if (document.hidden) pause(); });
 
-newGame();
+$('btn-play').addEventListener('click', newGame);
+// ↻ в шапке стоит рядом с паузой: если партия уже идёт — спрашиваем, чтобы не потерять раскладку
+$('btn-new').addEventListener('click', async () => {
+  if (asking) return;
+  if (phase === 'play' && moves > 0) {
+    asking = true; stopClock();
+    const ok = await KuArcade.confirm('Текущая раскладка, ходы и время будут потеряны.',
+      { title: 'ПЕРЕМЕШАТЬ ЗАНОВО?', ok: 'Перемешать', cancel: 'Отмена', danger: true });
+    asking = false;
+    if (!ok) { if (phase === 'play') startClock(); return; }
+  }
+  newGame();
+});
+$('btn-restart').addEventListener('click', newGame);
+$('btn-again').addEventListener('click', newGame);
+$('btn-pause').addEventListener('click', pause);
+$('btn-resume').addEventListener('click', resume);
+$('btn-quit').addEventListener('click', toMenu);
+$('btn-win-menu').addEventListener('click', toMenu);
+$('btn-rules').addEventListener('click', () => { rulesFromPause = false; open('ov-rules'); });
+$('btn-rules2').addEventListener('click', () => { rulesFromPause = true; close('ov-pause'); open('ov-rules'); });
+$('btn-rules-close').addEventListener('click', closeRules);
+$('btn-rules-x').addEventListener('click', closeRules);
+
+build();
+refreshMenu();
 </script>
 </body>
 </html>

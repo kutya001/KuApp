@@ -1,897 +1,795 @@
 <!DOCTYPE html>
 <html lang="ru">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>2048 - Кутман</title>
-    <script src="https://cdn.tailwindcss.com"></script>
-    <style>
-        :root {
-            /* Размеры */
-            --grid-size: 4;
-            --cell-size: 80px;
-            --cell-gap: 12px;
-            --board-padding: 12px;
-            --transition-speed: 150ms;
-            
-            /* Цветовая тема (Классика по умолчанию) */
-            --bg-color: #faf8ef;
-            --text-main: #776e65;
-            --board-bg: #bbada0;
-            --cell-bg: rgba(238, 228, 218, 0.35);
-            --btn-bg: #8f7a66;
-            --btn-hover: #9f8b77;
-            --btn-text: #ffffff;
-            --score-bg: #bbada0;
-            --score-label: #eee4da;
-            --score-val: #ffffff;
-            --modal-bg: rgba(238, 228, 218, 0.75);
-            --modal-win-bg: rgba(237, 194, 46, 0.75);
-            --modal-text: #776e65;
-            --modal-win-text: #ffffff;
-            --border-radius: 6px;
-        }
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+<title>2048 • Неоновая аркада</title>
+<link rel="stylesheet" href="ku-arcade.css">
+<script src="ku-arcade.js"></script>
+<style>
+  html,body{height:100%;overflow:hidden}
 
-        /* Темная тема */
-        body[data-theme="dark"] {
-            --bg-color: #1a1a2e;
-            --text-main: #e6e6e6;
-            --board-bg: #16213e;
-            --cell-bg: rgba(255, 255, 255, 0.05);
-            --btn-bg: #0f3460;
-            --btn-hover: #1a4a80;
-            --btn-text: #e6e6e6;
-            --score-bg: #16213e;
-            --score-label: #a1a1a1;
-            --score-val: #ffffff;
-            --modal-bg: rgba(26, 26, 46, 0.85);
-            --modal-win-bg: rgba(15, 52, 96, 0.9);
-            --modal-text: #e6e6e6;
-        }
+  /* ── Игровой экран: шапка · HUD · поле (зона свайпов) · подсказка ── */
+  #zone{flex:1;min-height:0;width:100%;display:flex;flex-direction:column;align-items:center;touch-action:none}
+  #zone::before{content:'';flex:1 1 0}   /* свободное место: 1 часть над полем, 2 — под подсказкой */
+  #zone::after{content:'';flex:2 1 0}
+  #game-board{flex:none;line-height:1}
+  #grid{position:relative;display:grid;grid-template-columns:repeat(4,var(--cs,70px));grid-auto-rows:var(--cs,70px);
+    gap:var(--gap,8px);padding:var(--gap,8px);border-radius:11px;background:rgba(4,6,22,.55)}
+  .cell{border-radius:var(--rad,10px);background:rgba(255,255,255,.045);border:1px solid rgba(255,255,255,.07)}
+  #tiles{position:absolute;inset:7px;pointer-events:none}
+  #zone .ku-hint{margin-top:10px;flex:none}
 
-        /* Неоновая тема */
-        body[data-theme="neon"] {
-            --bg-color: #050505;
-            --text-main: #00ffcc;
-            --board-bg: #111111;
-            --cell-bg: #222222;
-            --btn-bg: #000000;
-            --btn-hover: #00ffcc;
-            --btn-text: #00ffcc;
-            --score-bg: #000000;
-            --score-label: #00ffcc;
-            --score-val: #00ffcc;
-            --modal-bg: rgba(0, 0, 0, 0.9);
-            --modal-win-bg: rgba(0, 50, 40, 0.95);
-            --modal-text: #00ffcc;
-            --border-radius: 0px;
-        }
+  /* ── Плитки: внешний слой едет (transform), внутренний — появление/слияние (scale) ── */
+  .tile{position:absolute;left:0;top:0;width:var(--cs);height:var(--cs);z-index:2;
+    transform:translate(calc(var(--gap) + var(--c,0) * (var(--cs) + var(--gap))),calc(var(--gap) + var(--r,0) * (var(--cs) + var(--gap))));
+    transition:transform .12s ease-in-out}
+  .noanim .tile{transition:none}
+  .tile.merged{z-index:3}
+  .tile-in{width:100%;height:100%;display:flex;align-items:center;justify-content:center;border-radius:var(--rad,10px);
+    font-family:var(--font-display);font-weight:400;font-size:calc(var(--cs) * .46);line-height:1;font-variant-numeric:tabular-nums;
+    color:var(--tx,var(--text));background:var(--tb,rgba(255,255,255,.08));border:1px solid var(--bd,transparent);
+    box-shadow:0 0 var(--gl,0px) color-mix(in srgb,var(--tc,var(--accent)) 45%,transparent),inset 0 1px 0 rgba(255,255,255,.25)}
+  .d3 .tile-in{font-size:calc(var(--cs) * .38)}
+  .d4 .tile-in{font-size:calc(var(--cs) * .3)}
+  .d5 .tile-in{font-size:calc(var(--cs) * .245)}
+  .d6 .tile-in{font-size:calc(var(--cs) * .2)}
+  .tile.new .tile-in{animation:tAppear .18s ease backwards}
+  .tile.merged .tile-in{animation:tPop .2s ease}
+  @keyframes tAppear{from{opacity:0;transform:scale(0)}}
+  @keyframes tPop{0%{transform:scale(.6)}55%{transform:scale(1.16)}100%{transform:none}}
+  @keyframes tSuper{50%{box-shadow:0 0 36px color-mix(in srgb,var(--gold) 75%,transparent),inset 0 1px 0 rgba(255,255,255,.35)}}
 
-        /* Тема Киберпанк */
-        body[data-theme="cyberpunk"] {
-            --bg-color: #fce205; /* Cyberpunk Yellow */
-            --text-main: #000000;
-            --board-bg: #121013;
-            --cell-bg: rgba(255, 255, 255, 0.1);
-            --btn-bg: #ff003c;
-            --btn-hover: #00f0ff;
-            --btn-text: #ffffff;
-            --score-bg: #121013;
-            --score-label: #00f0ff;
-            --score-val: #ff003c;
-            --modal-bg: rgba(252, 226, 5, 0.9);
-            --modal-win-bg: rgba(0, 240, 255, 0.9);
-            --modal-text: #000000;
-            --border-radius: 0px;
-        }
+  /* Палитра «Неон» (по умолчанию): низкие — приглушённое стекло, дальше — цвета набора со свечением, 2048+ — золото */
+  .v2{--tb:color-mix(in srgb,var(--cyan) 11%,rgba(255,255,255,.03));--bd:color-mix(in srgb,var(--cyan) 30%,transparent);--tx:#bff6ff}
+  .v4{--tb:color-mix(in srgb,var(--purple) 15%,rgba(255,255,255,.03));--bd:color-mix(in srgb,var(--purple) 40%,transparent);--tx:#ead9ff}
+  .v8{--tb:linear-gradient(160deg,#82a8ff,var(--blue));--tx:#060a24;--tc:var(--blue);--gl:6px}
+  .v16{--tb:linear-gradient(160deg,#dba3ff,var(--purple));--tx:#1a0630;--tc:var(--purple);--gl:8px}
+  .v32{--tb:linear-gradient(160deg,#8fffb6,var(--green));--tx:#03210f;--tc:var(--green);--gl:9px}
+  .v64{--tb:linear-gradient(160deg,#78f3ff,var(--cyan));--tx:#041018;--tc:var(--cyan);--gl:11px}
+  .v128{--tb:linear-gradient(160deg,#ff8ce4,var(--accent2));--tx:#1a0412;--tc:var(--accent2);--gl:13px}
+  .v256{--tb:linear-gradient(160deg,#ff96ab,var(--red));--tx:#25030c;--tc:var(--red);--gl:15px}
+  .v512{--tb:linear-gradient(160deg,#ffc383,var(--orange));--tx:#241200;--tc:var(--orange);--gl:17px}
+  .v1024{--tb:linear-gradient(135deg,var(--cyan),var(--purple) 55%,var(--accent2));--tx:#0b0626;--tc:var(--accent2);--gl:20px}
+  .v2048{--tb:linear-gradient(135deg,#fff1a8,var(--gold) 45%,var(--orange));--tx:#241500;--tc:var(--gold);--gl:24px}
+  .vsuper{--tb:linear-gradient(135deg,#fffbe0,var(--gold) 35%,var(--orange) 70%,var(--accent2));--tx:#241500;--tc:var(--gold);--gl:28px}
+  .vsuper:not(.merged) .tile-in{animation:tSuper 1.8s ease-in-out infinite}
 
-        /* Тема Пастель */
-        body[data-theme="pastel"] {
-            --bg-color: #fdf6f5;
-            --text-main: #6b5b95;
-            --board-bg: #b1bce6;
-            --cell-bg: rgba(255, 255, 255, 0.4);
-            --btn-bg: #ffb7b2;
-            --btn-hover: #ffdac1;
-            --btn-text: #6b5b95;
-            --score-bg: #b1bce6;
-            --score-label: #fdf6f5;
-            --score-val: #6b5b95;
-            --modal-bg: rgba(253, 246, 245, 0.85);
-            --modal-win-bg: rgba(177, 188, 230, 0.9);
-            --modal-text: #6b5b95;
-            --border-radius: 12px;
-        }
+  /* Палитра «Классика» — цвета оригинальной 2048 (меняет только плитки) */
+  body[data-tiles=classic] .tile{--bd:transparent;--gl:0px}
+  body[data-tiles=classic] .v2{--tb:#eee4da;--tx:#776e65}
+  body[data-tiles=classic] .v4{--tb:#ede0c8;--tx:#776e65}
+  body[data-tiles=classic] .v8{--tb:#f2b179;--tx:#f9f6f2}
+  body[data-tiles=classic] .v16{--tb:#f59563;--tx:#f9f6f2}
+  body[data-tiles=classic] .v32{--tb:#f67c5f;--tx:#f9f6f2}
+  body[data-tiles=classic] .v64{--tb:#f65e3b;--tx:#f9f6f2}
+  body[data-tiles=classic] .v128{--tb:#edcf72;--tx:#f9f6f2;--tc:#f3d774;--gl:12px}
+  body[data-tiles=classic] .v256{--tb:#edcc61;--tx:#f9f6f2;--tc:#f3d774;--gl:15px}
+  body[data-tiles=classic] .v512{--tb:#edc850;--tx:#f9f6f2;--tc:#f3d774;--gl:18px}
+  body[data-tiles=classic] .v1024{--tb:#edc53f;--tx:#f9f6f2;--tc:#f3d774;--gl:21px}
+  body[data-tiles=classic] .v2048{--tb:#edc22e;--tx:#f9f6f2;--tc:#f3d774;--gl:24px}
+  body[data-tiles=classic] .vsuper{--tb:#3c3a32;--tx:#f9f6f2}
+  body[data-tiles=classic] .vsuper .tile-in{animation:none}
 
-        @media (max-width: 480px) {
-            :root {
-                --cell-size: 65px;
-                --cell-gap: 10px;
-                --board-padding: 10px;
-            }
-        }
-
-        body {
-            background-color: var(--bg-color);
-            color: var(--text-main);
-            font-family: "Clear Sans", "Helvetica Neue", Arial, sans-serif;
-            touch-action: none;
-            transition: background-color 0.3s ease, color 0.3s ease;
-        }
-
-        .board-container {
-            width: calc(var(--cell-size) * var(--grid-size) + var(--cell-gap) * (var(--grid-size) - 1) + var(--board-padding) * 2);
-            height: calc(var(--cell-size) * var(--grid-size) + var(--cell-gap) * (var(--grid-size) - 1) + var(--board-padding) * 2);
-            background-color: var(--board-bg);
-            border-radius: var(--border-radius);
-            position: relative;
-            padding: var(--board-padding);
-            box-sizing: border-box;
-            transition: background-color 0.3s ease;
-        }
-
-        /* Специальные бордеры для неоновой темы */
-        body[data-theme="neon"] .board-container {
-            border: 2px solid #00ffcc;
-            box-shadow: 0 0 15px rgba(0, 255, 204, 0.3);
-        }
-        
-        body[data-theme="neon"] .game-btn {
-            border: 1px solid #00ffcc;
-        }
-        body[data-theme="neon"] .game-btn:hover {
-            color: #000;
-            box-shadow: 0 0 10px #00ffcc;
-        }
-        body[data-theme="neon"] .score-box {
-            border: 1px solid #00ffcc;
-        }
-
-        /* Специальные стили кнопок Киберпанка */
-        body[data-theme="cyberpunk"] .game-btn {
-            border-bottom: 3px solid #6b001a;
-            font-family: monospace;
-            text-transform: uppercase;
-        }
-        body[data-theme="cyberpunk"] .game-btn:hover:not(:disabled) {
-            border-bottom: 3px solid #008f99;
-            color: #000;
-        }
-        body[data-theme="cyberpunk"] .score-box {
-            border-bottom: 3px solid #121013;
-        }
-
-        .grid-cell {
-            width: var(--cell-size);
-            height: var(--cell-size);
-            background-color: var(--cell-bg);
-            border-radius: 3px;
-        }
-
-        .tile {
-            position: absolute;
-            width: var(--cell-size);
-            height: var(--cell-size);
-            border-radius: 3px;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            font-weight: bold;
-            z-index: 10;
-            transition: transform var(--transition-speed) ease-in-out;
-            font-size: 35px;
-        }
-
-        @media (max-width: 480px) {
-            .tile { font-size: 28px; }
-        }
-
-        .tile-new { animation: appear 200ms ease backwards; }
-        .tile-merged { animation: pop 200ms ease backwards; z-index: 20; }
-
-        @keyframes appear {
-            0% { opacity: 0; transform: translate(var(--pos-x, 0px), var(--pos-y, 0px)) scale(0); }
-            100% { opacity: 1; transform: translate(var(--pos-x, 0px), var(--pos-y, 0px)) scale(1); }
-        }
-
-        @keyframes pop {
-            0% { transform: translate(var(--pos-x, 0px), var(--pos-y, 0px)) scale(1); }
-            50% { transform: translate(var(--pos-x, 0px), var(--pos-y, 0px)) scale(1.2); }
-            100% { transform: translate(var(--pos-x, 0px), var(--pos-y, 0px)) scale(1); }
-        }
-
-        /* Цвета плиток (остаются общими для сохранения логики чисел) */
-        .tile-2 { background: #eee4da; color: #776e65; }
-        .tile-4 { background: #ede0c8; color: #776e65; }
-        .tile-8 { background: #f2b179; color: #f9f6f2; }
-        .tile-16 { background: #f59563; color: #f9f6f2; }
-        .tile-32 { background: #f67c5f; color: #f9f6f2; }
-        .tile-64 { background: #f65e3b; color: #f9f6f2; }
-        .tile-128 { background: #edcf72; color: #f9f6f2; font-size: 30px; box-shadow: 0 0 30px 10px rgba(243, 215, 116, 0.2381), inset 0 0 0 1px rgba(255, 255, 255, 0.14285); }
-        .tile-256 { background: #edcc61; color: #f9f6f2; font-size: 30px; box-shadow: 0 0 30px 10px rgba(243, 215, 116, 0.31746), inset 0 0 0 1px rgba(255, 255, 255, 0.19047); }
-        .tile-512 { background: #edc850; color: #f9f6f2; font-size: 30px; box-shadow: 0 0 30px 10px rgba(243, 215, 116, 0.39682), inset 0 0 0 1px rgba(255, 255, 255, 0.23809); }
-        .tile-1024 { background: #edc53f; color: #f9f6f2; font-size: 25px; box-shadow: 0 0 30px 10px rgba(243, 215, 116, 0.47619), inset 0 0 0 1px rgba(255, 255, 255, 0.28571); }
-        .tile-2048 { background: #edc22e; color: #f9f6f2; font-size: 25px; box-shadow: 0 0 30px 10px rgba(243, 215, 116, 0.55555), inset 0 0 0 1px rgba(255, 255, 255, 0.33333); }
-        .tile-super { background: #3c3a32; color: #f9f6f2; font-size: 20px; }
-
-        @media (max-width: 480px) {
-            .tile-128, .tile-256, .tile-512 { font-size: 24px; }
-            .tile-1024, .tile-2048, .tile-super { font-size: 20px; }
-        }
-
-        /* Утилиты на основе CSS-переменных */
-        .game-btn { background-color: var(--btn-bg); color: var(--btn-text); border-radius: var(--border-radius); transition: all 0.2s ease; }
-        .game-btn:hover:not(:disabled) { background-color: var(--btn-hover); }
-        .game-btn:disabled { opacity: 0.5; cursor: not-allowed; }
-        
-        .score-box { background-color: var(--score-bg); border-radius: var(--border-radius); }
-        .score-label { color: var(--score-label); }
-        .score-val { color: var(--score-val); }
-        
-        .modal-overlay { background-color: var(--modal-bg); border-radius: var(--border-radius); color: var(--modal-text); }
-        .modal-win-overlay { background-color: var(--modal-win-bg); border-radius: var(--border-radius); color: var(--modal-win-text); }
-
-        /* Кнопки опций (Темы и Режимы) */
-        .option-btn {
-            background-color: transparent;
-            color: var(--text-main);
-            border: 1px solid var(--text-main);
-            border-radius: var(--border-radius);
-            padding: 4px 10px;
-            font-size: 13px;
-            font-weight: bold;
-            cursor: pointer;
-            transition: all 0.2s ease;
-            opacity: 0.6;
-            outline: none;
-        }
-        .option-btn:hover {
-            opacity: 0.8;
-        }
-        .option-btn.active {
-            background-color: var(--text-main);
-            color: var(--bg-color);
-            opacity: 1;
-        }
-        body[data-theme="cyberpunk"] .option-btn.active {
-            border-color: #000000;
-        }
-    </style>
+  [hidden]{display:none!important}   /* .ku-btn задаёт display — иначе атрибут hidden не скрывает кнопку */
+  #reset-card h2{background:linear-gradient(90deg,#ff5d7d,#ff4dd2);-webkit-background-clip:text;background-clip:text}
+</style>
 </head>
-<body class="min-h-screen flex flex-col items-center justify-center p-4" data-theme="classic">
+<body class="ku" data-tiles="neon">
+<main class="ku-app">
 
-    <div class="w-full max-w-md mx-auto">
-        
-        <!-- Настройки: Темы и Режимы кнопками -->
-        <div class="flex flex-col gap-4 mb-6">
-            <!-- Выбор темы -->
-            <div class="flex flex-col gap-1 w-full">
-                <span class="text-xs uppercase font-bold opacity-70">Темы:</span>
-                <div class="flex gap-2 flex-wrap" id="theme-buttons">
-                    <button class="option-btn" data-theme-val="classic" onclick="Game.changeTheme('classic')">Классика</button>
-                    <button class="option-btn" data-theme-val="dark" onclick="Game.changeTheme('dark')">Темная</button>
-                    <button class="option-btn" data-theme-val="neon" onclick="Game.changeTheme('neon')">Неон</button>
-                    <button class="option-btn" data-theme-val="cyberpunk" onclick="Game.changeTheme('cyberpunk')">Киберпанк</button>
-                    <button class="option-btn" data-theme-val="pastel" onclick="Game.changeTheme('pastel')">Пастель</button>
-                </div>
-            </div>
+  <!-- ═══ МЕНЮ ═══ -->
+  <section id="screen-menu" class="ku-screen menu active">
+    <h1 class="ku-logo">2048</h1>
+    <p class="ku-tagline">Неоновая головоломка • 5 целей • Рекорды</p>
+    <div class="ku-pills"><span>🧩 Сливай плитки</span><span>↶ Отмена хода</span><span>💾 Автосохранение</span><span>👆 Свайпы</span></div>
 
-            <!-- Выбор Режима и Кэш -->
-            <div class="flex justify-between items-end gap-2 flex-wrap">
-                <div class="flex flex-col gap-1">
-                    <span class="text-xs uppercase font-bold opacity-70">Цель:</span>
-                    <div class="flex gap-2 flex-wrap" id="mode-buttons">
-                        <button class="option-btn" data-mode-val="512" onclick="Game.changeMode(512)">512</button>
-                        <button class="option-btn" data-mode-val="1024" onclick="Game.changeMode(1024)">1024</button>
-                        <button class="option-btn" data-mode-val="2048" onclick="Game.changeMode(2048)">2048</button>
-                        <button class="option-btn" data-mode-val="4096" onclick="Game.changeMode(4096)">4096</button>
-                        <button class="option-btn" data-mode-val="8192" onclick="Game.changeMode(8192)">8192</button>
-                    </div>
-                </div>
-                <button onclick="Game.clearCache()" class="bg-red-500 hover:bg-red-600 text-white font-bold py-1 px-3 rounded shadow transition-colors border-none text-xs self-end mt-2 md:mt-0">
-                    Очистить кеш
-                </button>
-            </div>
-        </div>
-
-        <!-- Header -->
-        <div class="flex justify-between items-center mb-6">
-            <h1 id="game-title" class="text-5xl font-bold">2048</h1>
-            <div class="flex space-x-2">
-                <div class="score-box px-4 py-1 flex flex-col items-center">
-                    <span class="score-label text-xs font-bold uppercase">Счет</span>
-                    <span id="score" class="score-val font-bold text-xl leading-none">0</span>
-                </div>
-                <div class="score-box px-4 py-1 flex flex-col items-center">
-                    <span class="score-label text-xs font-bold uppercase">Рекорд</span>
-                    <span id="best-score" class="score-val font-bold text-xl leading-none">0</span>
-                </div>
-            </div>
-        </div>
-
-        <div class="flex flex-col sm:flex-row justify-between items-center mb-6 gap-3">
-            <p class="text-sm md:text-base leading-tight text-center sm:text-left opacity-90">
-                Объединяйте плитки, чтобы получить <span class="font-bold" id="target-text">2048</span>!
-            </p>
-            <div class="flex gap-2 shrink-0">
-                <button onclick="Game.undo()" id="btn-undo" class="game-btn font-bold py-2 px-3 text-sm">
-                    Отменить
-                </button>
-                <button onclick="Game.restart()" class="game-btn font-bold py-2 px-3 text-sm">
-                    Новая игра
-                </button>
-            </div>
-        </div>
-
-        <!-- Game Board -->
-        <div class="relative mx-auto flex justify-center">
-            <div id="game-board" class="board-container shadow-xl">
-                <!-- Background Grid -->
-                <div class="grid grid-cols-4 grid-rows-4 gap-[var(--cell-gap)] w-full h-full">
-                    <div class="grid-cell"></div><div class="grid-cell"></div><div class="grid-cell"></div><div class="grid-cell"></div>
-                    <div class="grid-cell"></div><div class="grid-cell"></div><div class="grid-cell"></div><div class="grid-cell"></div>
-                    <div class="grid-cell"></div><div class="grid-cell"></div><div class="grid-cell"></div><div class="grid-cell"></div>
-                    <div class="grid-cell"></div><div class="grid-cell"></div><div class="grid-cell"></div><div class="grid-cell"></div>
-                </div>
-                
-                <!-- Tile Container -->
-                <div id="tile-container" class="absolute top-0 left-0 w-full h-full pointer-events-none"></div>
-
-                <!-- Game Over Overlay -->
-                <div id="game-over-modal" class="modal-overlay absolute inset-0 z-30 hidden flex-col items-center justify-center backdrop-blur-sm">
-                    <h2 class="text-4xl font-bold mb-4">Игра окончена!</h2>
-                    <button onclick="Game.restart()" class="game-btn font-bold py-3 px-6 text-lg shadow-lg">
-                        Попробовать снова
-                    </button>
-                </div>
-
-                <!-- Game Win Overlay -->
-                <div id="game-win-modal" class="modal-win-overlay absolute inset-0 z-30 hidden flex-col items-center justify-center backdrop-blur-sm">
-                    <h2 class="text-4xl font-bold mb-6 drop-shadow-md">Цель достигнута!</h2>
-                    <div class="flex gap-4">
-                        <button onclick="Game.continueGame()" class="game-btn font-bold py-2 px-4 shadow transition-all">
-                            Продолжить
-                        </button>
-                        <button onclick="Game.restart()" class="game-btn font-bold py-2 px-4 shadow transition-all">
-                            Сначала
-                        </button>
-                    </div>
-                </div>
-            </div>
-        </div>
+    <div class="ku-field">
+      <div class="ku-label">Цель новой игры</div>
+      <div class="ku-seg" id="seg-target">
+        <button data-v="512">512</button><button data-v="1024">1024</button><button data-v="2048">2048</button><button data-v="4096">4096</button><button data-v="8192">8192</button>
+      </div>
+    </div>
+    <div class="ku-field">
+      <div class="ku-label">Плитки</div>
+      <div class="ku-seg" id="seg-tiles">
+        <button data-v="neon">✨ Неон</button><button data-v="classic">🟫 Классика</button>
+      </div>
     </div>
 
+    <div class="ku-menu-btns" id="menu-btns">
+      <button class="ku-btn big primary" id="btn-continue" hidden>▶ Продолжить<span class="best" id="continue-sub">Счёт: 0</span></button>
+      <button class="ku-btn big accent2" id="btn-new">🎮 Новая игра<span class="best" id="new-sub">Цель: 2048</span></button>
+    </div>
+    <div class="ku-menu-row">
+      <button class="ku-btn ghost" id="btn-rules">📖 Правила</button>
+      <button class="ku-btn ghost danger" id="btn-reset" title="Сбросить прогресс 2048">🗑 Сбросить</button>
+    </div>
+    <div class="ku-menu-stats" id="menu-stats">Рекорд: 0</div>
+    <div class="ku-menu-hint">Клавиши: ← ↑ → ↓ или WASD · Z / U — отмена хода · P / Esc — пауза<br>На телефоне: свайпы по полю</div>
+  </section>
+
+  <!-- ═══ ИГРА ═══ -->
+  <section id="screen-game" class="ku-screen fit">
+    <header class="ku-top">
+      <div class="ku-top-left"></div>
+      <div class="ku-top-title"><div class="t">2048</div><div class="s">ХОД <b id="g-moves">0</b></div></div>
+      <div class="ku-top-actions">
+        <button class="ku-btn icon" id="btn-undo" aria-label="Отменить ход" title="Отменить ход" disabled><svg viewBox="0 0 24 24"><polyline points="9 14 4 9 9 4"/><path d="M20 20v-7a4 4 0 0 0-4-4H4"/></svg></button>
+        <button class="ku-btn icon" id="btn-pause" aria-label="Пауза" title="Пауза"><svg viewBox="0 0 24 24"><line x1="9" y1="5" x2="9" y2="19"/><line x1="15" y1="5" x2="15" y2="19"/></svg></button>
+      </div>
+    </header>
+    <div class="ku-hud">
+      <div class="ku-stat"><span>Счёт</span><b id="score">0</b></div>
+      <div class="ku-stat gold"><span>Рекорд</span><b id="best-score">0</b></div>
+      <div class="ku-stat c2"><span>Цель</span><b id="target-text">2048</b></div>
+    </div>
+    <div id="zone">
+      <div class="ku-board" id="game-board">
+        <div id="grid">
+          <div class="cell"></div><div class="cell"></div><div class="cell"></div><div class="cell"></div>
+          <div class="cell"></div><div class="cell"></div><div class="cell"></div><div class="cell"></div>
+          <div class="cell"></div><div class="cell"></div><div class="cell"></div><div class="cell"></div>
+          <div class="cell"></div><div class="cell"></div><div class="cell"></div><div class="cell"></div>
+        </div>
+        <div id="tiles"></div>
+      </div>
+      <p class="ku-hint" id="g-hint">Свайп по полю или стрелки · ↶ — отмена хода (до 10)</p>
+    </div>
+  </section>
+</main>
+
+<!-- ═══ ПАУЗА ═══ -->
+<div class="ku-overlay" id="ov-pause"><div class="ku-card">
+  <h2>⏸ ПАУЗА</h2>
+  <button class="ku-btn primary" id="btn-resume">Продолжить</button>
+  <button class="ku-btn" id="btn-p-new">Новая игра</button>
+  <button class="ku-btn" id="btn-p-rules">📖 Правила</button>
+  <button class="ku-btn ghost" id="btn-p-menu">В меню</button>
+</div></div>
+
+<!-- ═══ ЦЕЛЬ ДОСТИГНУТА ═══ -->
+<div class="ku-overlay" id="ov-win"><div class="ku-card">
+  <h2 class="win">ПОБЕДА!</h2>
+  <p id="win-sub">Плитка 2048 собрана</p>
+  <div class="ku-big-score" id="win-score">0</div>
+  <button class="ku-btn primary" id="btn-w-continue">▶ Играть дальше</button>
+  <button class="ku-btn" id="btn-w-new">Новая игра</button>
+  <button class="ku-btn ghost" id="btn-w-menu">В меню</button>
+</div></div>
+
+<!-- ═══ КОНЕЦ ИГРЫ ═══ -->
+<div class="ku-overlay" id="ov-over"><div class="ku-card">
+  <h2 class="lose">ИГРА ОКОНЧЕНА</h2>
+  <div class="ku-new-best" id="over-best" hidden>🏆 НОВЫЙ РЕКОРД!</div>
+  <div class="ku-big-score" id="over-score">0</div>
+  <div class="ku-over-stats">
+    <div>Лучшая плитка<b id="over-tile">0</b></div>
+    <div>Ходов<b id="over-moves">0</b></div>
+    <div>Рекорд<b id="over-record">0</b></div>
+  </div>
+  <button class="ku-btn primary" id="btn-o-again">Играть снова</button>
+  <button class="ku-btn" id="btn-o-undo">↶ Отменить ход</button>
+  <button class="ku-btn ghost" id="btn-o-menu">В меню</button>
+</div></div>
+
+<!-- ═══ СБРОС ПРОГРЕССА (бывшая «Очистить кеш») ═══ -->
+<div class="ku-overlay" id="ov-reset"><div class="ku-card" id="reset-card">
+  <h2>СБРОСИТЬ ПРОГРЕСС?</h2>
+  <p>Будут удалены текущая партия и рекорд 2048. Цель и палитра плиток сохранятся. Данные других игр не затрагиваются.</p>
+  <button class="ku-btn red" id="btn-reset-yes">🗑 Сбросить</button>
+  <button class="ku-btn ghost" id="btn-reset-no">Отмена</button>
+</div></div>
+
+<!-- ═══ ПРАВИЛА ═══ -->
+<div class="ku-overlay" id="ov-rules"><div class="ku-modal">
+  <header><h2>📖 Правила</h2><button class="ku-btn icon" id="btn-rules-x" aria-label="Закрыть">✕</button></header>
+  <div class="ku-body">
+    <h3>Цель</h3>
+    <ul class="ku-rules">
+      <li>Сдвигайте плитки: <b>одинаковые числа сливаются</b> в одно (2+2=4, 4+4=8…).</li>
+      <li>Соберите плитку-цель (по умолчанию <b>2048</b>; в меню можно выбрать 512–8192). После победы можно играть дальше.</li>
+    </ul>
+    <h3>Ход</h3>
+    <ul class="ku-rules">
+      <li>Все плитки едут до упора в сторону свайпа. Каждая плитка сливается <b>не больше одного раза</b> за ход.</li>
+      <li>После каждого хода, который что-то сдвинул, появляется новая плитка: 2 (90%) или 4 (10%).</li>
+      <li>Очки за слияние — значение новой плитки.</li>
+      <li>Игра окончена, когда нет пустых клеток и соседних одинаковых плиток.</li>
+    </ul>
+    <h3>Управление</h3>
+    <ul class="ku-rules">
+      <li><b>Свайп</b> по полю (или мышью), <b>стрелки</b> или <b>WASD</b>.</li>
+      <li><b>↶</b>, Z или U — отменить ход (до 10 последних, счёт тоже откатывается).</li>
+      <li><b>P / Esc</b> — пауза. Партия сохраняется автоматически.</li>
+    </ul>
+  </div>
+  <footer><button class="ku-btn primary" id="btn-rules-ok">Понятно</button></footer>
+</div></div>
+
+<div class="ku-toast" id="toast"></div>
+
 <script>
+'use strict';
+const $ = id => document.getElementById(id);
+// localStorage может быть недоступен (приватный режим, запрет сайта) — игра должна работать и без него
+const store = {
+  get(k) { try { return localStorage.getItem(k); } catch (e) { return null; } },
+  set(k, v) { try { localStorage.setItem(k, String(v)); } catch (e) {} },
+  del(k) { try { localStorage.removeItem(k); } catch (e) {} }
+};
+const fmt = n => Number(n || 0).toLocaleString('ru-RU');
+const TARGETS = [512, 1024, 2048, 4096, 8192];
+const normTarget = v => TARGETS.includes(v) ? v : 2048;
+const ANIM = 120;          // мс: сдвиг плиток (= transition у .tile)
+const OVER_DELAY = 450;    // мс: дать увидеть последнее поле перед «Игра окончена»
+
+function pop(el) { el.classList.remove('pop'); void el.offsetWidth; el.classList.add('pop'); }
+
 class Tile {
-    static idCounter = parseInt(localStorage.getItem('tileIdCounter2048')) || 0;
-    constructor(r, c, value, id = null) {
-        this.id = id !== null ? id : Tile.idCounter++;
-        this.r = r;
-        this.c = c;
-        this.value = value;
-        localStorage.setItem('tileIdCounter2048', Tile.idCounter);
-    }
+  static idCounter = parseInt(store.get('tileIdCounter2048'), 10) || 0;
+  constructor(r, c, value, id = null) {
+    this.id = id !== null ? id : Tile.idCounter++;
+    this.r = r;
+    this.c = c;
+    this.value = value;
+  }
 }
 
 class GameManager {
-    constructor(size) {
-        this.size = size;
-        this.board = [];
-        this.score = 0;
-        this.bestScore = parseInt(localStorage.getItem('bestScore2048')) || 0;
-        this.gameOver = false;
-        this.gameWon = false;
-        this.keepPlaying = false;
+  constructor(size) {
+    this.size = size;
+    this.board = this.emptyBoard();
+    this.score = 0;
+    this.moves = 0;
+    this.bestScore = parseInt(store.get('bestScore2048'), 10) || 0;
+    this.bestAtStart = this.bestScore;   // для «Новый рекорд!» в конце партии
+    this.bestToast = false;
+    this.gameOver = false;
+    this.gameWon = false;
+    this.keepPlaying = false;
+    this.isAnimating = false;
+    this.queued = null;                  // ход, нажатый во время анимации (выполнится следом)
+    this.gameToken = 0;
+    this.overTimer = 0;
+
+    // Настройки: цель новой игры и палитра плиток (ключи прежние)
+    this.targetValue = normTarget(parseInt(store.get('targetValue2048'), 10));
+    this.gameTarget = this.targetValue;  // цель текущей партии (хранится в сохранении)
+    this.theme = store.get('theme2048') === 'classic' ? 'classic' : 'neon';
+
+    this.history = [];                   // стек для отмены хода
+    this.maxHistory = 10;
+
+    this.tileContainer = $('tiles');
+    this.els = new Map();                // id плитки → DOM
+    this.scoreEl = $('score');
+    this.bestScoreEl = $('best-score');
+    this.btnUndo = $('btn-undo');
+
+    this.applyTheme();
+    if (!this.loadState()) this.restart();
+  }
+
+  emptyBoard() { return Array.from({ length: this.size }, () => Array(this.size).fill(null)); }
+  serialize() { return this.board.map(row => row.map(t => t ? { r: t.r, c: t.c, value: t.value, id: t.id } : null)); }
+  tileCount() { return this.board.reduce((n, row) => n + row.filter(Boolean).length, 0); }
+  maxTile() { return this.board.reduce((m, row) => row.reduce((mm, t) => t ? Math.max(mm, t.value) : mm, m), 0); }
+  // есть ли что продолжать из меню
+  inProgress() { return !this.gameOver && (this.moves > 0 || this.score > 0 || this.tileCount() > 2); }
+
+  applyTheme() { document.body.dataset.tiles = this.theme; }
+
+  changeTheme(t) {
+    this.theme = t === 'classic' ? 'classic' : 'neon';
+    store.set('theme2048', this.theme);
+    this.applyTheme();
+    UI.syncMenu();
+  }
+
+  // Цель для новой игры; текущая партия доигрывается со своей целью
+  changeMode(v) {
+    this.targetValue = normTarget(parseInt(v, 10));
+    store.set('targetValue2048', this.targetValue);
+    UI.syncMenu();
+  }
+
+  // Бывшая «Очистить кеш»: удаляет только ключи 2048 (не localStorage.clear()), тема и цель остаются
+  resetProgress() {
+    store.del('gameState2048');
+    store.del('bestScore2048');
+    store.del('tileIdCounter2048');
+    this.bestScore = 0;
+    Tile.idCounter = 0;
+    this.restart();
+  }
+
+  saveState() {
+    store.set('gameState2048', JSON.stringify({
+      board: this.serialize(),
+      score: this.score,
+      moves: this.moves,
+      gameOver: this.gameOver,
+      gameWon: this.gameWon,
+      keepPlaying: this.keepPlaying,
+      targetValue: this.gameTarget,
+      bestAtStart: this.bestAtStart
+    }));
+    store.set('tileIdCounter2048', Tile.idCounter);   // раньше писался в localStorage на каждую плитку
+    this.updateUndoButton();
+  }
+
+  pushHistory() {
+    if (this.history.length >= this.maxHistory) this.history.shift();
+    this.history.push({ board: this.serialize(), score: this.score, moves: this.moves, gameWon: this.gameWon, keepPlaying: this.keepPlaying });
+  }
+
+  undo() {
+    if (this.isAnimating || this.history.length === 0) return;
+    const prev = this.history.pop();
+    this.gameToken++;                 // отменяет отложенный показ «Игра окончена»
+    clearTimeout(this.overTimer);
+    this.queued = null;
+    this.score = prev.score;          // счёт откатывается вместе с полем
+    this.moves = prev.moves;
+    this.gameOver = false;
+    this.gameWon = prev.gameWon;
+    this.keepPlaying = prev.keepPlaying;
+    UI.close('ov-over');
+    UI.close('ov-win');
+    this.clearTiles();
+    this.board = prev.board.map((row, r) => row.map((d, c) => {
+      if (!d) return null;
+      const tile = new Tile(r, c, d.value, d.id);
+      this.renderTile(tile);
+      return tile;
+    }));
+    this.updateScore();
+    this.saveState();
+  }
+
+  updateUndoButton() {
+    this.btnUndo.disabled = this.history.length === 0;   // во время анимации undo() сам игнорирует нажатие
+  }
+
+  loadState() {
+    const raw = store.get('gameState2048');
+    if (!raw) return false;
+    try {
+      const st = JSON.parse(raw);
+      const okCell = d => d === null || (d && Number.isInteger(d.value) && d.value >= 2 && (d.value & (d.value - 1)) === 0);
+      if (!st || !Array.isArray(st.board) || st.board.length !== this.size ||
+          !st.board.every(row => Array.isArray(row) && row.length === this.size && row.every(okCell))) return false;
+
+      this.score = Math.max(0, parseInt(st.score, 10) || 0);
+      this.moves = Math.max(0, parseInt(st.moves, 10) || 0);
+      this.gameOver = !!st.gameOver;
+      this.gameWon = !!st.gameWon;
+      this.keepPlaying = !!st.keepPlaying;
+      this.gameTarget = TARGETS.includes(st.targetValue) ? st.targetValue : this.targetValue;
+      // в старых сохранениях bestAtStart нет: порог «нового рекорда» — текущий рекорд
+      // (min(рекорд, счёт) давал ложное «НОВЫЙ РЕКОРД!» при счёте ниже рекорда)
+      this.bestAtStart = Number.isFinite(st.bestAtStart) ? st.bestAtStart : this.bestScore;
+      this.bestToast = this.score > this.bestAtStart;
+      this.history = [];
+      this.clearTiles();
+      this.board = st.board.map((row, r) => row.map((d, c) => {
+        if (!d) return null;
+        const tile = new Tile(r, c, d.value);
+        this.renderTile(tile);
+        return tile;
+      }));
+      this.updateScore();
+      this.updateUndoButton();
+      return true;
+    } catch (e) {
+      console.warn('2048: не удалось прочитать сохранение', e);
+      return false;
+    }
+  }
+
+  restart() {
+    this.gameToken++;
+    clearTimeout(this.overTimer);
+    this.isAnimating = false;         // иначе рестарт во время анимации «замораживал» ввод навсегда
+    this.queued = null;
+    this.board = this.emptyBoard();
+    this.score = 0;
+    this.moves = 0;
+    this.gameOver = false;
+    this.gameWon = false;
+    this.keepPlaying = false;
+    this.gameTarget = this.targetValue;
+    this.bestAtStart = this.bestScore;
+    this.bestToast = false;
+    this.history = [];
+    this.clearTiles();
+    UI.close('ov-over');
+    UI.close('ov-win');
+    this.addRandomTile();
+    this.addRandomTile();
+    this.updateScore();
+    this.saveState();
+  }
+
+  continueGame() {
+    this.keepPlaying = true;
+    UI.close('ov-win');
+    // цель собрана последним ходом на полном поле без ходов — сразу «Игра окончена» (раньше — тупик)
+    if (!this.movesAvailable()) this.finish(false);
+    this.saveState();
+  }
+
+  finish(delayed) {
+    this.gameOver = true;
+    this.queued = null;
+    const token = this.gameToken;
+    clearTimeout(this.overTimer);
+    const show = () => { if (this.gameToken === token && this.gameOver && UI.screen === 'game') UI.showOver(); };
+    if (delayed) this.overTimer = setTimeout(show, OVER_DELAY); else show();
+  }
+
+  addRandomTile() {
+    const availableCells = [];
+    for (let r = 0; r < this.size; r++) {
+      for (let c = 0; c < this.size; c++) {
+        if (!this.board[r][c]) availableCells.push({ r, c });
+      }
+    }
+    if (availableCells.length > 0) {
+      const cell = availableCells[Math.floor(Math.random() * availableCells.length)];
+      const value = Math.random() < 0.9 ? 2 : 4;
+      const tile = new Tile(cell.r, cell.c, value);
+      this.board[cell.r][cell.c] = tile;
+      this.renderTile(tile, 'new');
+    }
+  }
+
+  clearTiles() {
+    this.tileContainer.textContent = '';
+    this.els.clear();
+  }
+
+  renderTile(tile, kind = '') {
+    let el = this.els.get(tile.id);
+    if (!el) {
+      el = document.createElement('div');
+      el.appendChild(document.createElement('div')).className = 'tile-in';
+      this.tileContainer.appendChild(el);
+      this.els.set(tile.id, el);
+    }
+    const v = tile.value;
+    el.className = `tile v${v > 2048 ? 'super' : v} d${Math.min(String(v).length, 6)}${kind ? ' ' + kind : ''}`;
+    el.style.setProperty('--r', tile.r);
+    el.style.setProperty('--c', tile.c);
+    el.firstChild.textContent = v;
+  }
+
+  removeTile(tile) {
+    const el = this.els.get(tile.id);
+    if (!el) return;
+    this.els.delete(tile.id);
+    setTimeout(() => el.remove(), ANIM);
+  }
+
+  // ходить можно только на экране игры без открытых окон
+  canPlay() {
+    return UI.screen === 'game' && !UI.anyOverlay() && !this.gameOver && !(this.gameWon && !this.keepPlaying);
+  }
+
+  move(direction) {
+    if (!this.canPlay()) return;
+    if (this.isAnimating) { this.queued = direction; return; }   // быстрый повторный ход не теряется
+
+    this.pushHistory();               // состояние до начала движения
+    this.isAnimating = true;
+    const token = this.gameToken;
+    let moved = false;
+
+    const vectors = {
+      0: { r: -1, c: 0 },
+      1: { r: 0, c: 1 },
+      2: { r: 1, c: 0 },
+      3: { r: 0, c: -1 }
+    };
+    const vector = vectors[direction];
+    const traversals = this.buildTraversals(vector);   // обход от стороны движения → слияние к этой стороне
+    const mergedTiles = [];                            // плитка, получившаяся слиянием, второй раз за ход не сливается
+
+    traversals.r.forEach((r) => {
+      traversals.c.forEach((c) => {
+        const tile = this.board[r][c];
+        if (!tile) return;
+        const positions = this.findFarthestPosition({ r, c }, vector);
+        const next = this.board[positions.next.r]?.[positions.next.c];
+
+        if (next && next.value === tile.value && !mergedTiles.includes(next.id)) {
+          const newValue = tile.value * 2;
+          const newTile = new Tile(positions.next.r, positions.next.c, newValue);
+
+          this.board[r][c] = null;
+          this.board[positions.next.r][positions.next.c] = newTile;
+
+          tile.r = positions.next.r;
+          tile.c = positions.next.c;
+          this.renderTile(tile);
+          this.removeTile(tile);
+          this.removeTile(next);
+
+          setTimeout(() => {
+            if (this.gameToken === token) this.renderTile(newTile, 'merged');
+          }, ANIM);
+
+          mergedTiles.push(newTile.id);
+          this.score += newValue;
+          moved = true;
+
+          if (newValue === this.gameTarget && !this.gameWon) this.gameWon = true;
+        } else if (positions.farthest.r !== r || positions.farthest.c !== c) {
+          this.board[r][c] = null;
+          this.board[positions.farthest.r][positions.farthest.c] = tile;
+          tile.r = positions.farthest.r;
+          tile.c = positions.farthest.c;
+          this.renderTile(tile);
+          moved = true;
+        }
+      });
+    });
+
+    if (moved) {
+      this.moves++;
+      this.updateScore();
+      setTimeout(() => {
+        if (this.gameToken !== token) return;
         this.isAnimating = false;
-        this.gameToken = 0;
-        
-        // Настройки и темы
-        this.targetValue = parseInt(localStorage.getItem('targetValue2048')) || 2048;
-        this.theme = localStorage.getItem('theme2048') || 'classic';
-        
-        this.history = []; // Стек для функции Отмены
-        this.maxHistory = 10;
-        
-        // DOM элементы
-        this.tileContainer = document.getElementById('tile-container');
-        this.scoreEl = document.getElementById('score');
-        this.bestScoreEl = document.getElementById('best-score');
-        this.gameOverModal = document.getElementById('game-over-modal');
-        this.gameWinModal = document.getElementById('game-win-modal');
-        this.btnUndo = document.getElementById('btn-undo');
-        this.titleEl = document.getElementById('game-title');
-        this.targetTextEl = document.getElementById('target-text');
+        this.addRandomTile();          // новая плитка — только после реального сдвига
 
-        // Инициализация UI
-        this.bestScoreEl.innerText = this.bestScore;
-        this.applyTheme();
-        this.updateTargetUI();
-        this.updateActiveButtons();
-        
-        this.setupInput();
-        this.loadState() || this.restart();
-    }
-
-    applyTheme() {
-        document.body.setAttribute('data-theme', this.theme);
-    }
-
-    updateActiveButtons() {
-        // Обновление кнопок темы
-        document.querySelectorAll('#theme-buttons .option-btn').forEach(btn => {
-            if (btn.getAttribute('data-theme-val') === this.theme) {
-                btn.classList.add('active');
-            } else {
-                btn.classList.remove('active');
-            }
-        });
-        
-        // Обновление кнопок режима
-        document.querySelectorAll('#mode-buttons .option-btn').forEach(btn => {
-            if (parseInt(btn.getAttribute('data-mode-val')) === this.targetValue) {
-                btn.classList.add('active');
-            } else {
-                btn.classList.remove('active');
-            }
-        });
-    }
-
-    changeTheme(newTheme) {
-        this.theme = newTheme;
-        localStorage.setItem('theme2048', newTheme);
-        this.applyTheme();
-        this.updateActiveButtons();
-    }
-
-    changeMode(newTarget) {
-        this.targetValue = parseInt(newTarget);
-        localStorage.setItem('targetValue2048', this.targetValue);
-        this.updateTargetUI();
-        this.updateActiveButtons();
-        this.restart(); // Смена режима всегда начинает новую игру
-    }
-
-    updateTargetUI() {
-        this.titleEl.innerText = this.targetValue;
-        this.targetTextEl.innerText = this.targetValue;
-    }
-
-    clearCache() {
-        if (confirm("Вы уверены, что хотите удалить весь прогресс и рекорды?")) {
-            localStorage.removeItem('gameState2048');
-            localStorage.removeItem('bestScore2048');
-            localStorage.removeItem('tileIdCounter2048');
-            // Мы не удаляем тему и выбранный режим, чтобы не сбивать настройки юзера
-            
-            this.bestScore = 0;
-            this.bestScoreEl.innerText = '0';
-            Tile.idCounter = 0;
-            this.restart();
+        if (this.gameWon && !this.keepPlaying) {
+          this.queued = null;
+          UI.showWin();
+        } else if (!this.movesAvailable()) {
+          this.finish(true);
         }
-    }
-
-    saveState() {
-        const state = {
-            board: this.board.map(row => row.map(tile => tile ? {r: tile.r, c: tile.c, value: tile.value, id: tile.id} : null)),
-            score: this.score,
-            gameOver: this.gameOver,
-            gameWon: this.gameWon,
-            keepPlaying: this.keepPlaying,
-            targetValue: this.targetValue // Сохраняем цель в сессии
-        };
-        localStorage.setItem('gameState2048', JSON.stringify(state));
-        this.updateUndoButton();
-    }
-
-    pushHistory() {
-        if (this.history.length >= this.maxHistory) {
-            this.history.shift();
-        }
-        this.history.push({
-            board: this.board.map(row => row.map(tile => tile ? {r: tile.r, c: tile.c, value: tile.value, id: tile.id} : null)),
-            score: this.score
-        });
-        this.updateUndoButton();
-    }
-
-    undo() {
-        if (this.history.length === 0 || this.isAnimating) return;
-        
-        const previousState = this.history.pop();
-        this.score = previousState.score;
-        this.gameOver = false;
-        this.gameWon = false;
-        
-        this.gameOverModal.classList.add('hidden');
-        this.gameOverModal.classList.remove('flex');
-        this.gameWinModal.classList.add('hidden');
-        this.gameWinModal.classList.remove('flex');
-
-        this.tileContainer.innerHTML = '';
-        
-        this.board = previousState.board.map(row => row.map(data => {
-            if (!data) return null;
-            const tile = new Tile(data.r, data.c, data.value, data.id);
-            this.renderTile(tile);
-            return tile;
-        }));
-
-        this.updateScore();
         this.saveState();
-    }
-
-    updateUndoButton() {
-        this.btnUndo.disabled = this.history.length === 0;
-    }
-
-    loadState() {
-        const savedState = localStorage.getItem('gameState2048');
-        if (!savedState) return false;
-
-        try {
-            const state = JSON.parse(savedState);
-            
-            // Если игрок загружает сейв, но сменил мод в другой вкладке - сбрасываем
-            if (state.targetValue && state.targetValue !== this.targetValue) {
-                return false; 
-            }
-
-            this.score = state.score;
-            this.gameOver = state.gameOver;
-            this.gameWon = state.gameWon;
-            this.keepPlaying = state.keepPlaying;
-            this.history = []; 
-
-            this.board = state.board.map(row => row.map(data => {
-                if (!data) return null;
-                const tile = new Tile(data.r, data.c, data.value, data.id);
-                this.renderTile(tile);
-                return tile;
-            }));
-            
-            this.updateScore();
-            this.updateUndoButton();
-            
-            if (this.gameOver) {
-                this.gameOverModal.classList.remove('hidden');
-                this.gameOverModal.classList.add('flex');
-            } else if (this.gameWon && !this.keepPlaying) {
-                this.gameWinModal.classList.remove('hidden');
-                this.gameWinModal.classList.add('flex');
-            }
-            return true;
-        } catch (e) {
-            console.error("Ошибка чтения сохранения", e);
-            return false;
+        if (this.queued !== null) {
+          const d = this.queued;
+          this.queued = null;
+          this.move(d);
         }
+      }, ANIM);
+    } else {
+      this.history.pop();
+      this.isAnimating = false;
+      this.updateUndoButton();
     }
+  }
 
-    restart() {
-        this.gameToken++;
-        this.board = Array(this.size).fill().map(() => Array(this.size).fill(null));
-        this.score = 0;
-        this.gameOver = false;
-        this.gameWon = false;
-        this.keepPlaying = false;
-        this.history = [];
-        
-        this.tileContainer.innerHTML = '';
-        this.gameOverModal.classList.add('hidden');
-        this.gameOverModal.classList.remove('flex');
-        this.gameWinModal.classList.add('hidden');
-        this.gameWinModal.classList.remove('flex');
-        
-        this.updateScore();
-        this.updateUndoButton();
-
-        this.addRandomTile();
-        this.addRandomTile();
-        this.saveState();
+  buildTraversals(vector) {
+    const traversals = { r: [], c: [] };
+    for (let pos = 0; pos < this.size; pos++) {
+      traversals.r.push(pos);
+      traversals.c.push(pos);
     }
+    if (vector.r === 1) traversals.r = traversals.r.reverse();
+    if (vector.c === 1) traversals.c = traversals.c.reverse();
+    return traversals;
+  }
 
-    continueGame() {
-        this.keepPlaying = true;
-        this.gameWinModal.classList.add('hidden');
-        this.gameWinModal.classList.remove('flex');
-        this.saveState();
-    }
+  findFarthestPosition(cell, vector) {
+    let previous;
+    do {
+      previous = cell;
+      cell = { r: previous.r + vector.r, c: previous.c + vector.c };
+    } while (this.withinBounds(cell) && this.board[cell.r][cell.c] === null);
+    return { farthest: previous, next: cell };
+  }
 
-    addRandomTile() {
-        const availableCells = [];
-        for (let r = 0; r < this.size; r++) {
-            for (let c = 0; c < this.size; c++) {
-                if (!this.board[r][c]) {
-                    availableCells.push({r, c});
-                }
-            }
+  withinBounds(position) {
+    return position.r >= 0 && position.r < this.size &&
+           position.c >= 0 && position.c < this.size;
+  }
+
+  movesAvailable() {
+    for (let r = 0; r < this.size; r++) {
+      for (let c = 0; c < this.size; c++) {
+        if (!this.board[r][c]) return true;
+        for (const v of [{ r: 1, c: 0 }, { r: 0, c: 1 }]) {
+          const nr = r + v.r, nc = c + v.c;
+          if (this.withinBounds({ r: nr, c: nc })) {
+            const neighbor = this.board[nr][nc];
+            if (neighbor && this.board[r][c].value === neighbor.value) return true;
+          }
         }
-
-        if (availableCells.length > 0) {
-            const randomCell = availableCells[Math.floor(Math.random() * availableCells.length)];
-            const value = Math.random() < 0.9 ? 2 : 4;
-            
-            const tile = new Tile(randomCell.r, randomCell.c, value);
-            this.board[randomCell.r][randomCell.c] = tile;
-            this.renderTile(tile, true);
-        }
+      }
     }
+    return false;
+  }
 
-    getTilePositionCss(r, c) {
-        const padding = parseInt(getComputedStyle(document.documentElement).getPropertyValue('--board-padding'));
-        const gap = parseInt(getComputedStyle(document.documentElement).getPropertyValue('--cell-gap'));
-        const cellSize = parseInt(getComputedStyle(document.documentElement).getPropertyValue('--cell-size'));
-        
-        const x = padding + c * (cellSize + gap);
-        const y = padding + r * (cellSize + gap);
-        return { x, y };
+  updateScore() {
+    const s = fmt(this.score);
+    if (this.scoreEl.textContent !== s) { this.scoreEl.textContent = s; pop(this.scoreEl); }
+    if (this.score > this.bestScore) {
+      this.bestScore = this.score;
+      store.set('bestScore2048', this.bestScore);
+      if (!this.bestToast && this.bestAtStart > 0) {
+        this.bestToast = true;
+        if (window.KuArcade) KuArcade.toast('🏆 Новый рекорд!', 'gold');
+      }
     }
-
-    renderTile(tile, isNew = false, isMerged = false) {
-        let el = document.getElementById(`tile-${tile.id}`);
-        
-        if (!el) {
-            el = document.createElement('div');
-            el.id = `tile-${tile.id}`;
-            this.tileContainer.appendChild(el);
-        }
-
-        el.className = `tile tile-${tile.value > 2048 ? 'super' : tile.value}`;
-        el.innerText = tile.value;
-        
-        const pos = this.getTilePositionCss(tile.r, tile.c);
-        el.style.setProperty('--pos-x', `${pos.x}px`);
-        el.style.setProperty('--pos-y', `${pos.y}px`);
-        el.style.transform = `translate(${pos.x}px, ${pos.y}px)`;
-
-        if (isNew) {
-            el.classList.add('tile-new');
-        }
-        if (isMerged) {
-            el.classList.add('tile-merged');
-            setTimeout(() => el.classList.remove('tile-merged'), 300);
-        }
-    }
-
-    removeTile(tile) {
-        const el = document.getElementById(`tile-${tile.id}`);
-        if (el) {
-            setTimeout(() => {
-                if (el.parentNode) {
-                    el.parentNode.removeChild(el);
-                }
-            }, 150); 
-        }
-    }
-
-    setupInput() {
-        document.addEventListener('keydown', (e) => {
-            if (this.gameOver || this.isAnimating || (this.gameWon && !this.keepPlaying)) return;
-            
-            const keyMap = {
-                'ArrowUp': 0, 'w': 0, 'W': 0,
-                'ArrowRight': 1, 'd': 1, 'D': 1,
-                'ArrowDown': 2, 's': 2, 'S': 2,
-                'ArrowLeft': 3, 'a': 3, 'A': 3
-            };
-
-            if (e.key in keyMap) {
-                e.preventDefault(); 
-                this.move(keyMap[e.key]);
-            }
-        });
-
-        let touchStartX = 0;
-        let touchStartY = 0;
-        const gameBoard = document.getElementById('game-board');
-        
-        gameBoard.addEventListener('touchstart', (e) => {
-            touchStartX = e.changedTouches[0].screenX;
-            touchStartY = e.changedTouches[0].screenY;
-            e.preventDefault();
-        }, { passive: false });
-
-        gameBoard.addEventListener('touchend', (e) => {
-            if (this.gameOver || this.isAnimating || (this.gameWon && !this.keepPlaying)) return;
-
-            const touchEndX = e.changedTouches[0].screenX;
-            const touchEndY = e.changedTouches[0].screenY;
-
-            const dx = touchEndX - touchStartX;
-            const dy = touchEndY - touchStartY;
-            const absDx = Math.abs(dx);
-            const absDy = Math.abs(dy);
-
-            if (Math.max(absDx, absDy) > 30) {
-                if (absDx > absDy) {
-                    this.move(dx > 0 ? 1 : 3);
-                } else {
-                    this.move(dy > 0 ? 2 : 0);
-                }
-            }
-        });
-    }
-
-    move(direction) {
-        this.pushHistory(); // Сохраняем состояние до начала движения
-        
-        this.isAnimating = true;
-        const token = this.gameToken;
-        let moved = false;
-        
-        const vectors = {
-            0: { r: -1, c: 0 },
-            1: { r: 0, c: 1 },
-            2: { r: 1, c: 0 },
-            3: { r: 0, c: -1 }
-        };
-        const vector = vectors[direction];
-        const traversals = this.buildTraversals(vector);
-        let mergedTiles = [];
-
-        traversals.r.forEach((r) => {
-            traversals.c.forEach((c) => {
-                const tile = this.board[r][c];
-                if (tile) {
-                    const positions = this.findFarthestPosition({r, c}, vector);
-                    const next = this.board[positions.next.r]?.[positions.next.c];
-
-                    if (next && next.value === tile.value && !mergedTiles.includes(next.id)) {
-                        const newValue = tile.value * 2;
-                        const newTile = new Tile(positions.next.r, positions.next.c, newValue);
-                        
-                        this.board[r][c] = null;
-                        this.board[positions.next.r][positions.next.c] = newTile;
-                        
-                        tile.r = positions.next.r;
-                        tile.c = positions.next.c;
-                        this.renderTile(tile); 
-                        this.removeTile(tile);
-                        this.removeTile(next);
-                        
-                        setTimeout(() => {
-                            if (this.gameToken === token) {
-                                this.renderTile(newTile, false, true);
-                            }
-                        }, 150);
-                        
-                        mergedTiles.push(newTile.id);
-                        this.score += newValue;
-                        moved = true;
-
-                        // Динамическая проверка победы
-                        if (newValue === this.targetValue && !this.gameWon) {
-                            this.gameWon = true;
-                        }
-                    } 
-                    else if (positions.farthest.r !== r || positions.farthest.c !== c) {
-                        this.board[r][c] = null;
-                        this.board[positions.farthest.r][positions.farthest.c] = tile;
-                        tile.r = positions.farthest.r;
-                        tile.c = positions.farthest.c;
-                        this.renderTile(tile);
-                        moved = true;
-                    }
-                }
-            });
-        });
-
-        if (moved) {
-            this.updateScore();
-            setTimeout(() => {
-                if (this.gameToken !== token) return;
-                this.addRandomTile();
-                
-                if (this.gameWon && !this.keepPlaying) {
-                    this.gameWinModal.classList.remove('hidden');
-                    this.gameWinModal.classList.add('flex');
-                } else if (!this.movesAvailable()) {
-                    this.gameOver = true;
-                    this.gameOverModal.classList.remove('hidden');
-                    this.gameOverModal.classList.add('flex');
-                }
-                
-                this.saveState(); 
-                this.isAnimating = false;
-            }, 150);
-        } else {
-            this.history.pop(); 
-            this.updateUndoButton();
-            this.isAnimating = false;
-        }
-    }
-
-    buildTraversals(vector) {
-        const traversals = { r: [], c: [] };
-        for (let pos = 0; pos < this.size; pos++) {
-            traversals.r.push(pos);
-            traversals.c.push(pos);
-        }
-        if (vector.r === 1) traversals.r = traversals.r.reverse();
-        if (vector.c === 1) traversals.c = traversals.c.reverse();
-        return traversals;
-    }
-
-    findFarthestPosition(cell, vector) {
-        let previous;
-        do {
-            previous = cell;
-            cell = { r: previous.r + vector.r, c: previous.c + vector.c };
-        } while (this.withinBounds(cell) && this.board[cell.r][cell.c] === null);
-
-        return { farthest: previous, next: cell };
-    }
-
-    withinBounds(position) {
-        return position.r >= 0 && position.r < this.size &&
-               position.c >= 0 && position.c < this.size;
-    }
-
-    movesAvailable() {
-        for (let r = 0; r < this.size; r++) {
-            for (let c = 0; c < this.size; c++) {
-                if (!this.board[r][c]) return true; 
-                
-                const vectors = [{r: 1, c: 0}, {r: 0, c: 1}];
-                for (let v of vectors) {
-                    const nextR = r + v.r;
-                    const nextC = c + v.c;
-                    if (this.withinBounds({r: nextR, c: nextC})) {
-                        const neighbor = this.board[nextR][nextC];
-                        if (neighbor && this.board[r][c].value === neighbor.value) {
-                            return true; 
-                        }
-                    }
-                }
-            }
-        }
-        return false;
-    }
-
-    updateScore() {
-        this.scoreEl.innerText = this.score;
-        if (this.score > this.bestScore) {
-            this.bestScore = this.score;
-            this.bestScoreEl.innerText = this.bestScore;
-            localStorage.setItem('bestScore2048', this.bestScore);
-        }
-    }
+    this.bestScoreEl.textContent = fmt(this.bestScore);
+    $('g-moves').textContent = this.moves;
+    $('target-text').textContent = this.gameTarget;
+  }
 }
 
-let Game;
-window.addEventListener('DOMContentLoaded', () => {
-    const resizeHandler = () => {
-        const root = document.documentElement;
-        if (window.innerWidth <= 480) {
-            root.style.setProperty('--cell-size', '65px');
-            root.style.setProperty('--cell-gap', '10px');
-            root.style.setProperty('--board-padding', '10px');
-        } else {
-            root.style.setProperty('--cell-size', '80px');
-            root.style.setProperty('--cell-gap', '12px');
-            root.style.setProperty('--board-padding', '12px');
-        }
-        if (Game && Game.board) {
-            for(let r=0; r<4; r++) {
-                for(let c=0; c<4; c++) {
-                    if (Game.board[r][c]) {
-                        const el = document.getElementById(`tile-${Game.board[r][c].id}`);
-                        if (el) {
-                            const pos = Game.getTilePositionCss(r, c);
-                            el.style.setProperty('--pos-x', `${pos.x}px`);
-                            el.style.setProperty('--pos-y', `${pos.y}px`);
-                            el.style.transform = `translate(${pos.x}px, ${pos.y}px)`;
-                        }
-                    }
-                }
-            }
-        }
-    };
+/* ═══ Экраны и окна ═══ */
+const UI = {
+  screen: 'menu',
+  rulesReturn: null,
+  show(name) {
+    this.screen = name;
+    $('screen-menu').classList.toggle('active', name === 'menu');
+    $('screen-game').classList.toggle('active', name === 'game');
+    if (name === 'game') layout(); else this.syncMenu();
+  },
+  open(id) { $(id).classList.add('open'); },
+  close(id) { $(id).classList.remove('open'); },
+  closeAll() { document.querySelectorAll('.ku-overlay.open').forEach(o => o.classList.remove('open')); },
+  anyOverlay() { return document.querySelector('.ku-overlay.open') !== null; },
+  syncMenu() {
+    if (!window.Game) return;
+    document.querySelectorAll('#seg-target button').forEach(b => b.classList.toggle('active', +b.dataset.v === Game.targetValue));
+    document.querySelectorAll('#seg-tiles button').forEach(b => b.classList.toggle('active', b.dataset.v === Game.theme));
+    const cont = Game.inProgress();
+    $('btn-continue').hidden = !cont;
+    $('continue-sub').textContent = `Счёт: ${fmt(Game.score)} · цель ${Game.gameTarget} · ход ${Game.moves}`;
+    $('btn-new').classList.toggle('primary', !cont);
+    $('btn-new').classList.toggle('accent2', cont);
+    $('new-sub').textContent = `Цель: ${Game.targetValue}`;
+    $('menu-stats').textContent = `Рекорд: ${fmt(Game.bestScore)}`;
+  },
+  showWin() {
+    $('win-sub').textContent = `Плитка ${Game.gameTarget} собрана за ${Game.moves} ${plural(Game.moves, 'ход', 'хода', 'ходов')}`;
+    $('win-score').textContent = fmt(Game.score);
+    this.closeAll();
+    this.open('ov-win');
+  },
+  showOver() {
+    $('over-best').hidden = !(Game.score > Game.bestAtStart && Game.score > 0);
+    $('over-score').textContent = fmt(Game.score);
+    $('over-tile').textContent = Game.maxTile();
+    $('over-moves').textContent = Game.moves;
+    $('over-record').textContent = fmt(Game.bestScore);
+    $('btn-o-undo').hidden = Game.history.length === 0;
+    this.closeAll();
+    this.open('ov-over');
+  }
+};
+function plural(n, one, few, many) {
+  const m10 = n % 10, m100 = n % 100;
+  return m10 === 1 && m100 !== 11 ? one : m10 >= 2 && m10 <= 4 && (m100 < 10 || m100 >= 20) ? few : many;
+}
 
-    window.addEventListener('resize', resizeHandler);
-    resizeHandler();
+// Размер поля: квадрат по свободному месту (ширина/высота экрана), клетки и отступы — через CSS-переменные
+function layout() {
+  const zone = $('zone');
+  if (!zone.clientHeight) return;                 // экран игры скрыт
+  const hint = $('g-hint');
+  const side = Math.floor(Math.min(zone.clientWidth, zone.clientHeight - hint.offsetHeight - 10, 500));
+  const inner = side - 16;                        // рамка .ku-board: padding 7 + border 1
+  const gap = Math.max(6, Math.round(inner * 0.026));
+  const cs = (inner - gap * 5) / 4;
+  const board = $('game-board');
+  board.classList.add('noanim');                  // при ресайзе плитки не «едут»
+  board.style.setProperty('--cs', cs + 'px');
+  board.style.setProperty('--gap', gap + 'px');
+  board.style.setProperty('--rad', Math.round(Math.min(12, Math.max(6, cs * 0.14))) + 'px');
+  requestAnimationFrame(() => requestAnimationFrame(() => board.classList.remove('noanim')));
+}
+window.addEventListener('resize', layout);
 
-    Game = new GameManager(4);
+let Game = null;
+Game = new GameManager(4);
+window.Game = Game;
+
+/* ═══ Кнопки ═══ */
+document.querySelectorAll('#seg-target button').forEach(b => b.addEventListener('click', () => Game.changeMode(b.dataset.v)));
+document.querySelectorAll('#seg-tiles button').forEach(b => b.addEventListener('click', () => Game.changeTheme(b.dataset.v)));
+
+function enterGame() {
+  UI.show('game');
+  if (Game.gameWon && !Game.keepPlaying && !Game.gameOver) UI.showWin();
+  else if (Game.gameOver) UI.showOver();
+}
+function toMenu() {
+  UI.closeAll();
+  UI.show('menu');
+}
+function openRules(from) {
+  UI.rulesReturn = from || null;
+  if (from) UI.close(from);
+  UI.open('ov-rules');
+}
+function closeRules() {
+  UI.close('ov-rules');
+  if (UI.rulesReturn) UI.open(UI.rulesReturn);
+  UI.rulesReturn = null;
+}
+
+$('btn-continue').onclick = enterGame;
+$('btn-new').onclick = () => { Game.restart(); UI.show('game'); };
+$('btn-rules').onclick = () => openRules(null);
+$('btn-reset').onclick = () => UI.open('ov-reset');
+$('btn-reset-no').onclick = () => UI.close('ov-reset');
+$('btn-reset-yes').onclick = () => {
+  Game.resetProgress();
+  UI.close('ov-reset');
+  UI.syncMenu();
+  if (window.KuArcade) KuArcade.toast('Прогресс 2048 сброшен', 'good');
+};
+$('btn-rules-x').onclick = $('btn-rules-ok').onclick = closeRules;
+
+$('btn-undo').onclick = () => Game.undo();
+$('btn-pause').onclick = () => { if (!UI.anyOverlay()) UI.open('ov-pause'); };
+$('btn-resume').onclick = () => UI.close('ov-pause');
+$('btn-p-new').onclick = () => { UI.close('ov-pause'); Game.restart(); };
+$('btn-p-rules').onclick = () => openRules('ov-pause');
+$('btn-p-menu').onclick = toMenu;
+
+$('btn-w-continue').onclick = () => Game.continueGame();
+$('btn-w-new').onclick = () => Game.restart();
+$('btn-w-menu').onclick = toMenu;
+
+$('btn-o-again').onclick = () => Game.restart();
+$('btn-o-undo').onclick = () => Game.undo();
+$('btn-o-menu').onclick = toMenu;
+
+/* ═══ Клавиатура (по e.code — работает и в русской раскладке) ═══ */
+const KEYS = { ArrowUp: 0, KeyW: 0, ArrowRight: 1, KeyD: 1, ArrowDown: 2, KeyS: 2, ArrowLeft: 3, KeyA: 3,
+               w: 0, d: 1, s: 2, a: 3, W: 0, D: 1, S: 2, A: 3 };
+document.addEventListener('keydown', (e) => {
+  if (e.ctrlKey || e.metaKey || e.altKey || UI.screen !== 'game') return;
+  const k = e.code || e.key;
+  const ov = document.querySelector('.ku-overlay.open');
+  if (k === 'Escape' || k === 'KeyP') {
+    e.preventDefault();
+    if (!ov) UI.open('ov-pause');
+    else if (ov.id === 'ov-pause') UI.close('ov-pause');
+    else if (ov.id === 'ov-rules') closeRules();
+    else if (ov.id === 'ov-reset') UI.close('ov-reset');
+    return;
+  }
+  if (ov) return;
+  const dir = KEYS[k] !== undefined ? KEYS[k] : KEYS[e.key];
+  if (dir !== undefined) { e.preventDefault(); Game.move(dir); return; }
+  if (k === 'KeyZ' || k === 'KeyU' || k === 'Backspace') { e.preventDefault(); Game.undo(); }
 });
+
+/* ═══ Свайпы: Pointer Events (палец, мышь, перо) по всей зоне поля ═══ */
+(() => {
+  const zone = $('zone');
+  let pid = null, sx = 0, sy = 0, done = false;
+  const fire = (e, threshold) => {
+    const dx = e.clientX - sx, dy = e.clientY - sy;
+    if (Math.max(Math.abs(dx), Math.abs(dy)) < threshold) return;
+    done = true;
+    Game.move(Math.abs(dx) > Math.abs(dy) ? (dx > 0 ? 1 : 3) : (dy > 0 ? 2 : 0));
+  };
+  zone.addEventListener('pointerdown', (e) => {
+    if (!e.isPrimary || (e.pointerType === 'mouse' && e.button !== 0)) return;
+    pid = e.pointerId; sx = e.clientX; sy = e.clientY; done = false;
+    try { zone.setPointerCapture(pid); } catch (_) {}
+  });
+  zone.addEventListener('pointermove', (e) => { if (e.pointerId === pid && !done) fire(e, 30); });
+  zone.addEventListener('pointerup', (e) => {
+    if (e.pointerId !== pid) return;
+    if (!done) fire(e, 20);
+    pid = null;
+  });
+  zone.addEventListener('pointercancel', (e) => { if (e.pointerId === pid) pid = null; });
+})();
+
+UI.syncMenu();
 </script>
 </body>
 </html>

@@ -2,153 +2,181 @@
 <html lang="ru">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width,initial-scale=1,user-scalable=no">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
 <title>Неоновые Крестики-нолики</title>
+<link rel="stylesheet" href="ku-arcade.css">
+<script src="ku-arcade.js"></script>
 <style>
-  @import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;700;800&display=swap');
+  html,body{height:100%;overflow:hidden}
+  #screen-game,#screen-game *{touch-action:manipulation}
 
-  *{box-sizing:border-box;margin:0;padding:0; user-select: none; touch-action: none;}
-  :root{--bg:#050508;--sur:rgba(10, 10, 15, 0.85);--sur2:#22222f;--text:#f0f0f8;--text2:#8888aa;--g:#00e5a0;--r:#ff4466;--b:#5b8cff;--y:#ffd700}
-  body{background:var(--bg);color:var(--text);font-family:'JetBrains Mono',monospace;display:flex;flex-direction:column;align-items:center;justify-content:center;height:100dvh;overflow:hidden;}
+  /* ── Игровая колонка: счёт · статус · поле ── */
+  #stage{flex:1;min-height:0;width:100%;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:14px;padding-bottom:3vh}
+  #screen-game .ku-hud{margin:0}
+  #screen-game .ku-hint{margin:0}
+  .ku-stat{transition:border-color .25s,box-shadow .25s}
+  .ku-stat.dim b{color:var(--text)}
+  .ku-stat.turn{border-color:var(--cyan);box-shadow:0 0 16px rgba(0,229,255,.4)}
+  .ku-stat.c2.turn{border-color:var(--accent2);box-shadow:0 0 16px rgba(255,77,210,.4)}
+  #status{font-family:var(--font-display);font-size:17px;letter-spacing:1px;line-height:1.35;min-height:24px;max-width:92vw;
+    padding:0 8px;text-align:center;color:var(--text);transition:color .2s}
+  #status.x{color:var(--cyan);text-shadow:0 0 14px rgba(0,229,255,.5)}
+  #status.o{color:var(--accent2);text-shadow:0 0 14px rgba(255,77,210,.5)}
+  #status.bad{color:var(--bad)}
 
-  #game-wrapper {
-    position: relative;
-    width: 100%;
-    max-width: 400px;
-    height: 100%;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    gap: 16px;
-    box-shadow: 0 0 40px rgba(91, 140, 255, 0.05);
+  /* ── Поле 3×3 ── */
+  #board{position:relative;display:grid;grid-template-columns:repeat(3,minmax(0,1fr));grid-template-rows:repeat(3,minmax(0,1fr));gap:8px;
+    width:min(80vw,340px,46vh);width:min(80vw,340px,46dvh);aspect-ratio:1;--turn:0,229,255}
+  #board.o-turn{--turn:255,77,210}   /* rgb цвета того, чей ход: для подсветки клетки под курсором */
+  .cell{position:relative;min-width:0;min-height:0;padding:0;border-radius:12px;cursor:pointer;color:inherit;font:inherit;
+    display:flex;align-items:center;justify-content:center;
+    background:rgba(255,255,255,.045);border:1px solid rgba(255,255,255,.08);box-shadow:inset 0 1px 0 rgba(255,255,255,.05);
+    transition:background .15s,border-color .2s,box-shadow .25s,transform .15s}
+  .cell:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+  .cell.taken,#board.locked .cell{cursor:default}
+  @media (hover:hover){
+    #board:not(.locked) .cell:not(.taken):hover{background:rgba(255,255,255,.08);border-color:rgba(var(--turn),.55);
+      box-shadow:0 0 14px rgba(var(--turn),.25)}
   }
-
-  /* Scanlines effect */
-  #game-wrapper::after {
-    content: " ";
-    display: block;
-    position: absolute;
-    inset: 0;
-    background: linear-gradient(rgba(18, 16, 16, 0) 50%, rgba(0, 0, 0, 0.25) 50%), linear-gradient(90deg, rgba(255, 0, 0, 0.06), rgba(0, 255, 0, 0.02), rgba(0, 0, 255, 0.06));
-    z-index: 5;
-    background-size: 100% 4px, 6px 100%;
-    pointer-events: none;
-  }
-
-  #top-bar { display: flex; justify-content: space-between; width: min(80vw,280px); align-items: center; z-index: 10; }
-
-  #btn-pause {
-    background: rgba(255,255,255,0.1); border: 1px solid rgba(255,255,255,0.2);
-    color: #fff; width: 36px; height: 36px; border-radius: 50%; font-size: 1rem;
-    display: flex; align-items: center; justify-content: center; cursor: pointer;
-    backdrop-filter: blur(4px);
-  }
-
-  #status{font-size:1.1rem; font-weight: 700; color:var(--text); letter-spacing:.06em; height:24px; text-align:center; z-index: 10;}
-
-  #board{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;width:min(80vw,280px); z-index: 10;}
-  .cell{aspect-ratio:1;background:var(--sur);border-radius:12px;border:2px solid rgba(255,255,255,0.1);display:flex;align-items:center;justify-content:center;font-size:3rem;cursor:pointer;transition:all .15s; box-shadow: 0 0 15px rgba(0,0,0,0.5);}
-  .cell:hover:not(.taken){background:var(--sur2);border-color:rgba(255,255,255,.3);}
-  .cell.taken{cursor:default}
-  .cell.x{color:var(--b); text-shadow: 0 0 15px var(--b); border-color: rgba(91,140,255,0.3);}
-  .cell.o{color:var(--r); text-shadow: 0 0 15px var(--r); border-color: rgba(255,68,102,0.3);}
-  .cell.win{border-color:var(--y)!important;background:rgba(255,215,0,.15)!important; box-shadow: 0 0 20px rgba(255,215,0,0.5); transform: scale(1.05); z-index: 2;}
-
-  #score-row{display:flex;gap:30px;font-size:.75rem;color:var(--text2); z-index: 10;}
-  .sc{text-align:center}.sc-val{font-size:1.5rem;font-weight:800;color:var(--text); text-shadow: 0 0 10px currentColor;}
-
-  .btn {
-    background: transparent; color: #fff; border: 2px solid var(--b);
-    padding: 12px 30px; border-radius: 12px; font-size: 0.9rem; font-weight: 700;
-    font-family: inherit; cursor: pointer; margin-bottom: 10px; width: 80%; max-width: 250px;
-    transition: all 0.2s; text-transform: uppercase; letter-spacing: 0.1em;
-  }
-  .btn:active { transform: scale(0.95); }
-  .btn-primary { background: var(--b); color: #000; box-shadow: 0 0 20px rgba(91,140,255, 0.4); }
-
-  /* Overlays */
-  .overlay {
-    position: absolute; inset: 0; background: var(--sur); backdrop-filter: blur(6px);
-    display: flex; flex-direction: column; align-items: center; justify-content: center;
-    z-index: 50; opacity: 0; pointer-events: none; transition: opacity 0.3s ease;
-  }
-  .overlay.active { opacity: 1; pointer-events: auto; }
-
-  .menu-title {
-    font-size: 2.2rem; font-weight: 800; margin-bottom: 30px; text-align: center;
-    background: linear-gradient(90deg, var(--b), var(--r));
-    -webkit-background-clip: text; -webkit-text-fill-color: transparent;
-    filter: drop-shadow(0 0 10px rgba(255,255,255,0.2));
-  }
-
-  #diff-selectors { display: flex; gap: 8px; margin-bottom: 20px; width: 80%; max-width: 250px; }
-  .diff-btn {
-    flex: 1; background: transparent; border: 1px solid var(--text2); color: var(--text2);
-    padding: 8px 0; border-radius: 8px; font-family: inherit; font-size: 0.8rem; cursor: pointer;
-    transition: all 0.2s;
-  }
-  .diff-btn.active { border-color: var(--b); color: var(--b); background: rgba(91,140,255,0.1); }
+  #board:not(.locked) .cell:not(.taken):active{transform:scale(.95)}
+  .cell.x{background:rgba(0,229,255,.06);border-color:rgba(0,229,255,.28)}
+  .cell.o{background:rgba(255,77,210,.06);border-color:rgba(255,77,210,.28)}
+  .cell.win{animation:ttWin 1s ease-in-out infinite alternate}
+  .cell.win.x{background:rgba(0,229,255,.16);border-color:var(--cyan);
+    box-shadow:0 0 22px rgba(0,229,255,.45),inset 0 1px 0 rgba(255,255,255,.2)}
+  .cell.win.o{background:rgba(255,77,210,.16);border-color:var(--accent2);
+    box-shadow:0 0 22px rgba(255,77,210,.45),inset 0 1px 0 rgba(255,255,255,.2)}
+  @keyframes ttWin{to{transform:scale(1.04)}}
+  /* неоновые знаки: ✕ — циан, ○ — розовый, рисуются штрихом */
+  .mark{width:64%;height:64%;fill:none;stroke-width:10;stroke-linecap:round;overflow:visible;pointer-events:none}
+  .mark.x{stroke:var(--cyan);filter:drop-shadow(0 0 4px var(--cyan)) drop-shadow(0 0 12px rgba(0,229,255,.55))}
+  .mark.o{stroke:var(--accent2);filter:drop-shadow(0 0 4px var(--accent2)) drop-shadow(0 0 12px rgba(255,77,210,.55))}
+  .mark line,.mark circle{stroke-dasharray:100;animation:ttDraw .3s ease-out both}
+  .mark line+line{animation-delay:.12s}
+  @keyframes ttDraw{from{stroke-dashoffset:100}to{stroke-dashoffset:0}}
+  /* выигрышная линия */
+  #win-line{position:absolute;inset:0;width:100%;height:100%;pointer-events:none;overflow:visible;z-index:2}
+  #win-seg{stroke:var(--gold);stroke-width:7;stroke-linecap:round;stroke-dasharray:100;stroke-dashoffset:100;opacity:0;
+    filter:drop-shadow(0 0 5px var(--gold)) drop-shadow(0 0 14px rgba(255,214,10,.6))}
+  #win-line.show #win-seg{opacity:1;animation:ttDraw .45s ease-out .15s both}
+  @media (max-height:520px){#screen-game .ku-hint{display:none}}
+  /* цветные пометки в правилах (в наборе .ku-rules b перебивает утилиты .ku-accent/.ku-accent2) */
+  .ku-rules .ku-accent{color:var(--accent)} .ku-rules .ku-accent2{color:var(--accent2)}
 </style>
 </head>
-<body>
+<body class="ku">
+<main class="ku-app">
 
-<div id="game-wrapper">
+  <!-- ═══ МЕНЮ ═══ -->
+  <section id="screen-menu" class="ku-screen menu active">
+    <h1 class="ku-logo">TIC TAC TOE</h1>
+    <p class="ku-tagline">Крестики-нолики • Три в ряд</p>
+    <div class="ku-pills"><span>🤖 ИИ · 2 уровня</span><span>👥 Вдвоём</span><span>🌐 По сети</span><span>🏆 Счёт серии</span></div>
 
-  <!-- Main Game UI -->
-  <div id="top-bar">
-    <div style="width:36px;"></div> <!-- Spacer -->
-    <div id="status">Ваш ход</div>
-    <button id="btn-pause">⏸</button>
-  </div>
-
-  <div id="board"></div>
-
-  <div id="score-row">
-    <div class="sc"><div class="sc-val" id="sw" style="color:var(--b)">0</div><div id="lbl-p1">Вы</div></div>
-    <div class="sc"><div class="sc-val" id="sd">0</div><div>Ничья</div></div>
-    <div class="sc"><div class="sc-val" id="sl" style="color:var(--r)">0</div><div id="lbl-p2">ИИ</div></div>
-  </div>
-
-  <!-- Main Menu Overlay -->
-  <div class="overlay active" id="menu-main">
-    <div class="menu-title">TIC TAC TOE</div>
-
-    <div id="main-btns" style="display:flex; flex-direction:column; align-items:center; width:100%;">
-      <button class="btn btn-primary" id="btn-1p">1 Игрок</button>
-      <button class="btn" id="btn-2p">2 Игрока</button>
-      <button class="btn" id="btn-net" style="border-color:var(--g)">По сети</button>
-    </div>
-
-    <div id="diff-btns" style="display:none; flex-direction:column; align-items:center; width:100%;">
-      <div style="color:var(--text2); font-size:0.8rem; margin-bottom:10px;">Сложность ИИ</div>
-      <div id="diff-selectors">
-        <button class="diff-btn" data-d="easy">Легко</button>
-        <button class="diff-btn active" data-d="hard">Сложно</button>
+    <div class="ku-menu-btns" id="main-btns">
+      <button class="ku-btn big primary" id="btn-1p">🤖 1 игрок<span class="best">против ИИ</span></button>
+      <div class="ku-menu-duo">
+        <button class="ku-btn duo blue" id="btn-2p">👥 2 игрока<span class="best">на одном экране</span></button>
+        <button class="ku-btn duo green" id="btn-net">🌐 По сети<span class="best">с другом</span></button>
       </div>
-      <button class="btn btn-primary" id="btn-start-ai">Старт</button>
-      <button class="btn" id="btn-back-main" style="border-color:var(--text2); color:var(--text2);">Назад</button>
     </div>
-  </div>
 
-  <!-- Pause Menu Overlay -->
-  <div class="overlay" id="menu-pause">
-    <div class="menu-title" style="background:var(--text); -webkit-text-fill-color:var(--text);">ПАУЗА</div>
-    <button class="btn btn-primary" id="btn-resume">Продолжить</button>
-    <button class="btn" id="btn-restart">Сброс счета</button>
-    <button class="btn" id="btn-quit" style="border-color:var(--r); color:var(--r);">В меню</button>
-  </div>
+    <div class="ku-menu-btns" id="diff-btns" hidden>
+      <div class="ku-field" style="margin-top:0">
+        <div class="ku-label">Сложность ИИ</div>
+        <div class="ku-seg" id="diff-selectors">
+          <button data-d="easy">Легко</button>
+          <button class="active" data-d="hard">Сложно</button>
+        </div>
+      </div>
+      <button class="ku-btn big primary" id="btn-start-ai">▶ Старт</button>
+      <button class="ku-btn ghost" id="btn-back-main">← Назад</button>
+    </div>
 
-</div>
+    <div class="ku-menu-row"><button class="ku-btn ghost" id="btn-rules">📖 Правила</button></div>
+    <div class="ku-menu-hint">Ставьте ✕ и ○ по очереди — побеждает тот, кто первым соберёт три в ряд<br>Esc / P — пауза</div>
+  </section>
+
+  <!-- ═══ ИГРА ═══ -->
+  <section id="screen-game" class="ku-screen fit">
+    <header class="ku-top">
+      <div class="ku-top-left"></div>
+      <div class="ku-top-title"><div class="t" id="g-title">ПРОТИВ ИИ</div><div class="s" id="g-sub">ПАРТИЯ 1</div></div>
+      <div class="ku-top-actions">
+        <button class="ku-btn icon" id="btn-pause" aria-label="Пауза"><svg viewBox="0 0 24 24"><line x1="9" y1="5" x2="9" y2="19"/><line x1="15" y1="5" x2="15" y2="19"/></svg></button>
+      </div>
+    </header>
+    <div id="stage">
+      <div class="ku-hud">
+        <div class="ku-stat" id="st-x"><span id="lbl-p1">Вы ✕</span><b id="sw">0</b></div>
+        <div class="ku-stat dim"><span>Ничьи</span><b id="sd">0</b></div>
+        <div class="ku-stat c2" id="st-o"><span id="lbl-p2">ИИ ○</span><b id="sl">0</b></div>
+      </div>
+      <div id="status">Ваш ход</div>
+      <div class="ku-board" id="board-wrap">
+        <div id="board"><svg id="win-line" aria-hidden="true"><line id="win-seg" pathLength="100"/></svg></div>
+      </div>
+      <p class="ku-hint">Три в ряд по горизонтали, вертикали или диагонали</p>
+    </div>
+  </section>
+</main>
+
+<!-- ═══ ПРАВИЛА ═══ -->
+<div class="ku-overlay" id="menu-rules"><div class="ku-modal">
+  <header><h2>📖 Правила</h2><button class="ku-btn icon" id="btn-rules-x" aria-label="Закрыть">✕</button></header>
+  <div class="ku-body">
+    <h3>Цель</h3>
+    <ul class="ku-rules">
+      <li>Игроки по очереди ставят <b class="ku-accent">✕</b> и <b class="ku-accent2">○</b> в клетки поля 3×3. <b>✕ ходит первым.</b></li>
+      <li>Побеждает тот, кто первым выстроит <b>три своих знака в ряд</b> — по горизонтали, вертикали или диагонали.</li>
+      <li>Все клетки заняты, а ряда нет — <b>ничья</b>.</li>
+    </ul>
+    <h3>Режимы</h3>
+    <ul class="ku-rules">
+      <li><b>1 игрок</b> — против ИИ. «Легко» ходит наугад, «Сложно» не проигрывает никогда.</li>
+      <li><b>2 игрока</b> — по очереди на одном экране.</li>
+      <li><b>По сети</b> — с другом по коду комнаты (нужен вход по коду на платформе KuApp).</li>
+    </ul>
+    <h3>Счёт</h3>
+    <ul class="ku-rules"><li>Счёт серии копится, пока вы не выйдете в меню. Сбросить его можно в паузе.</li></ul>
+  </div>
+  <footer><button class="ku-btn primary" id="btn-rules-close">Понятно</button></footer>
+</div></div>
+
+<!-- ═══ ПАУЗА ═══ -->
+<div class="ku-overlay" id="menu-pause"><div class="ku-card">
+  <h2>⏸ ПАУЗА</h2>
+  <button class="ku-btn primary" id="btn-resume">Продолжить</button>
+  <button class="ku-btn" id="btn-restart">↺ Сбросить счёт</button>
+  <button class="ku-btn" id="btn-rules2">📖 Правила</button>
+  <button class="ku-btn ghost" id="btn-quit">В меню</button>
+</div></div>
+
+<!-- ═══ КОНЕЦ ПАРТИИ ═══ -->
+<div class="ku-overlay clear" id="menu-end"><div class="ku-card">
+  <h2 id="end-title">ПОБЕДА!</h2>
+  <p id="end-sub"></p>
+  <div class="ku-over-stats" id="end-stats"></div>
+  <button class="ku-btn primary" id="btn-again">Играть снова</button>
+  <button class="ku-btn ghost" id="btn-end-menu">В меню</button>
+</div></div>
+
+<div class="ku-toast" id="toast"></div>
 
 <script src="kunet.js"></script>
 <script>
+'use strict';
 /**
  * AUDIO SYSTEM
  */
 const AudioSys = {
   ctx: null,
-  init() { if (!this.ctx) this.ctx = new (window.AudioContext || window.webkitAudioContext)(); if (this.ctx.state === 'suspended') this.ctx.resume(); },
+  init() {
+    try {
+      if (!this.ctx) this.ctx = new (window.AudioContext || window.webkitAudioContext)();
+      if (this.ctx.state === 'suspended') this.ctx.resume();
+    } catch (e) {}
+  },
   playTone(freq, type, duration, vol=0.5) {
     if(!this.ctx) return; const osc = this.ctx.createOscillator(), gain = this.ctx.createGain();
     osc.type = type; osc.frequency.setValueAtTime(freq, this.ctx.currentTime);
@@ -169,6 +197,22 @@ let board = Array(9).fill(null), currentPlayer='X', mode='1p', diff='hard';
 let scores={w:0, d:0, l:0};
 let locked=false;
 let aiTimeout = null, endTimeout = null;
+// Пауза «замораживает» ход ИИ и окно итогов: они выполнятся после «Продолжить».
+let paused = false, thinking = false, aiPending = false, resultPending = false;
+let roundNo = 0, lastWin = null, lastResult = null;
+
+function $(id){return document.getElementById(id);}
+const isOpen = id => $(id).classList.contains('open');
+const showOv = id => $(id).classList.add('open');
+const hideOv = id => $(id).classList.remove('open');
+const esc = s => String(s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]);
+const short = s => { s = String(s); return s.length > 12 ? s.slice(0, 11) + '…' : s; };
+function setStatus(text, cls) { const s = $('status'); s.textContent = text; s.className = cls || ''; }
+const symCls = p => p === 'X' ? 'x' : 'o';
+function showScreen(name) {
+  $('screen-menu').classList.toggle('active', name === 'menu');
+  $('screen-game').classList.toggle('active', name === 'game');
+}
 
 /* ── Сетевая партия (KuNet): seat 0 = ✕, seat 1 = ○ ── */
 let net = null, mySym = 'X', netRound = 0;
@@ -177,41 +221,56 @@ const symOfSeat = s => s === 0 ? 'X' : 'O';
 function netName(sym) { return net && net.room ? (net.room.players[sym === 'X' ? 0 : 1] || '?') : (sym === 'X' ? 'Игрок 1' : 'Игрок 2'); }
 function netStatus() {
   if (!isNet() || locked) return;
-  if (net.room.status === 'closed') { $('status').textContent = 'Соперник вышел'; $('status').style.color = 'var(--r)'; return; }
+  if (net.room.status === 'closed') { setStatus('Соперник вышел', 'bad'); return; }
   const mine = currentPlayer === mySym;
-  $('status').textContent = mine ? `Ваш ход (${mySym === 'X' ? '✕' : '○'})` : 'Ход: ' + netName(currentPlayer);
-  $('status').style.color = currentPlayer === 'X' ? 'var(--b)' : 'var(--r)';
+  setStatus(mine ? `Ваш ход (${mySym === 'X' ? '✕' : '○'})` : 'Ход: ' + netName(currentPlayer), symCls(currentPlayer));
 }
 function netSerialize() { return { board: board.slice(), current: currentPlayer }; }
+const cleanBoard = b => Array.isArray(b) && b.length === 9 ? b.map(v => v === 'X' || v === 'O' ? v : null) : Array(9).fill(null);
 /* Применить состояние комнаты (ход соперника, новая партия, рассинхрон). */
 function netApply(room) {
   if (!isNet() || !room || !room.state) return;
-  if (room.round !== netRound) { netRound = room.round; clearPendingTimeouts(); locked = false; }
-  board = (room.state.board || Array(9).fill(null)).slice();
+  if (room.round !== netRound) {
+    // новая партия в комнате (её начал соперник или мы) — закрываем итоги прошлой
+    netRound = room.round; clearPendingTimeouts(); locked = false;
+    resultPending = false; lastResult = null; hideOv('menu-end'); roundNo++; updateTitle();
+  }
+  board = cleanBoard(room.state.board);
   currentPlayer = room.state.current === 'O' ? 'O' : 'X';
   renderBoard();
   const wx = checkWin(board, 'X'), wo = checkWin(board, 'O');
   if (wx) { highlight(wx); if (!locked) end('win'); return; }
   if (wo) { highlight(wo); if (!locked) end('win2'); return; }
   if (board.every(Boolean)) { if (!locked) end('draw'); return; }
-  locked = false; renderBoard(); netStatus();
+  locked = false; renderBoard(); netStatus(); updateTurnUI();
 }
 function netSend(finished) {
   const next = currentPlayer === 'X' ? 0 : 1;
   net.move(netSerialize(), next, null, finished).catch(e => {
     if (!isNet()) return;
-    $('status').textContent = e.message.includes('устарело') ? 'Синхронизация…' : 'Нет связи: ' + e.message;
+    setStatus(e.message.includes('устарело') ? 'Синхронизация…' : 'Нет связи: ' + e.message, 'bad');
   });
 }
 function startNet(sess) {
   net = sess; mode = 'net'; netRound = sess.room.round; mySym = symOfSeat(sess.seat);
-  $('lbl-p1').textContent = netName('X'); $('lbl-p2').textContent = netName('O');
+  setLabels();
   scores = { w: 0, d: 0, l: 0 }; updateScores();
-  $('menu-main').classList.remove('active');
+  roundNo = 1; locked = false; paused = false; thinking = false; aiPending = false; resultPending = false; lastWin = null; lastResult = null;
+  ['menu-pause', 'menu-end', 'menu-rules'].forEach(hideOv);
+  showScreen('game');
   AudioSys.init();
   sess.onUpdate = room => netApply(room);
-  sess.onClosed = () => { clearPendingTimeouts(); locked = true; $('status').textContent = 'Соперник вышел'; $('status').style.color = 'var(--r)'; renderBoard(); };
-  sess.onError = () => { if (!locked) $('status').textContent = 'Нет связи…'; };
+  sess.onClosed = () => {
+    if (net) net.stopPolling();          // комната закрыта — опрашивать сервер больше незачем
+    clearPendingTimeouts(); locked = true; thinking = false; resultPending = false; paused = false;
+    setStatus('Соперник вышел', 'bad'); updateTurnUI();
+    KuArcade.toast('Соперник вышел из игры', 'bad');
+    ['menu-pause', 'menu-rules'].forEach(hideOv);
+    fillEnd('СОПЕРНИК ВЫШЕЛ', 'lose', 'Партию продолжить нельзя', true);
+    showOv('menu-end');
+  };
+  sess.onError = () => { if (!locked) setStatus('Нет связи…', 'bad'); };
+  updateTitle();
   netApply(sess.room);
   sess.startPolling();
 }
@@ -226,17 +285,36 @@ function clearPendingTimeouts() {
   if (endTimeout) { clearTimeout(endTimeout); endTimeout = null; }
 }
 
-function $(id){return document.getElementById(id);}
+/* ── Поле: 9 клеток создаются один раз, знак рисуется только в изменившейся клетке ── */
+const cells = [];
+const SVG_X = '<svg class="mark x" viewBox="0 0 100 100" aria-hidden="true"><line x1="24" y1="24" x2="76" y2="76" pathLength="100"/><line x1="76" y1="24" x2="24" y2="76" pathLength="100"/></svg>';
+const SVG_O = '<svg class="mark o" viewBox="0 0 100 100" aria-hidden="true"><circle cx="50" cy="50" r="27" pathLength="100" transform="rotate(-90 50 50)"/></svg>';
+function buildBoard() {
+  const el = $('board');
+  for (let i = 0; i < 9; i++) {
+    const c = document.createElement('button');
+    c.type = 'button'; c.className = 'cell'; c.dataset.i = i; c.dataset.v = '';
+    c.setAttribute('aria-label', 'Клетка ' + (i + 1));
+    el.insertBefore(c, $('win-line'));
+    cells.push(c);
+  }
+  el.addEventListener('click', e => { const c = e.target.closest('.cell'); if (c) handleCellClick(+c.dataset.i); });
+}
 
 function renderBoard(){
-  const el=$('board'); el.innerHTML='';
-  board.forEach((v,i)=>{
-    const c=document.createElement('div');
-    c.className='cell'+(v?` taken ${v.toLowerCase()}`:'');
-    c.textContent=v==='X'?'✕':v==='O'?'○':'';
-    if(!v&&!locked) c.addEventListener('click',()=>handleCellClick(i));
-    el.appendChild(c);
+  board.forEach((v, i) => {
+    const c = cells[i], val = v || '';
+    if (c.dataset.v !== val) {
+      c.dataset.v = val;
+      c.className = 'cell' + (v ? ` taken ${v.toLowerCase()}` : '');
+      c.innerHTML = v === 'X' ? SVG_X : v === 'O' ? SVG_O : '';
+      c.setAttribute('aria-label', 'Клетка ' + (i + 1) + (v === 'X' ? ': крестик' : v === 'O' ? ': нолик' : ''));
+    }
+    c.classList.remove('win');
   });
+  $('win-line').classList.remove('show');
+  lastWin = null;
+  updateTurnUI();
 }
 
 function checkWin(b,p){
@@ -244,7 +322,7 @@ function checkWin(b,p){
 }
 
 function handleCellClick(i){
-  if(board[i]||locked) return;
+  if(board[i]||locked||paused) return;
   if (isNet() && (currentPlayer !== mySym || !net.isMyTurn() || net.busy)) return;
   board[i] = currentPlayer;
   if (currentPlayer === 'X') AudioSys.sfx.placeX();
@@ -266,27 +344,34 @@ function handleCellClick(i){
       netSend(false);
       netStatus();
   } else if (mode === '1p') {
-      locked=true; $('status').textContent='Думает…';
+      locked=true; thinking=true; setStatus('Думает…', 'o');
       clearPendingTimeouts();
-      aiTimeout = setTimeout(()=>{aiMove();}, diff==='hard'?300:100);
+      scheduleAI();
   } else {
       currentPlayer = currentPlayer === 'X' ? 'O' : 'X';
-      $('status').textContent=currentPlayer === 'X' ? 'Ход: ИГРОК 1 (✕)' : 'Ход: ИГРОК 2 (○)';
-      $('status').style.color = currentPlayer === 'X' ? 'var(--b)' : 'var(--r)';
+      setStatus(currentPlayer === 'X' ? 'Ход: ИГРОК 1 (✕)' : 'Ход: ИГРОК 2 (○)', symCls(currentPlayer));
   }
+  updateTurnUI();
 }
 
+function scheduleAI() {
+  if (paused) { aiPending = true; return; }
+  aiTimeout = setTimeout(() => { aiTimeout = null; aiMove(); }, diff==='hard'?300:100);
+}
+
+// Раньше доска перерисовывалась, пока была ещё «закрыта» (locked), и пустые клетки оставались
+// без обработчиков: после первого хода ИИ игрок больше не мог поставить ни одного знака.
 function aiMove(){
-  if (locked && board.every(Boolean)) return;
+  if (mode !== '1p' || !thinking) return;
   const idx=diff==='hard'?bestMove():randomMove();
-  if (idx === undefined || idx < 0 || board[idx]) return;
+  thinking = false;
+  if (idx === undefined || idx < 0 || board[idx]) { locked = false; updateTurnUI(); return; }
   board[idx]='O';
   AudioSys.sfx.placeO();
-  renderBoard();
   const w=checkWin(board,'O');
-  if(w){highlight(w);end('lose');return;}
-  if(board.every(Boolean)){end('draw');return;}
-  locked=false; $('status').textContent='Ваш ход';
+  if(w){ renderBoard(); highlight(w); end('lose'); return; }
+  if(board.every(Boolean)){ renderBoard(); end('draw'); return; }
+  locked=false; renderBoard(); setStatus('Ваш ход', 'x');
 }
 
 function randomMove(){
@@ -321,83 +406,165 @@ function minimax(b,depth,isMax){
   }
 }
 
+/* ── Выигрышная линия: клетки светятся, поверх — золотой луч ── */
 function highlight(w){
-  const cells=$('board').children;
   w.forEach(i=>cells[i].classList.add('win'));
+  lastWin = w;
+  drawWinLine(w, true);
 }
+function drawWinLine(w, restart) {
+  const svg = $('win-line'), seg = $('win-seg'), bd = $('board');
+  const a = cells[w[0]], b = cells[w[2]];
+  const ax = a.offsetLeft + a.offsetWidth / 2, ay = a.offsetTop + a.offsetHeight / 2;
+  const bx = b.offsetLeft + b.offsetWidth / 2, by = b.offsetTop + b.offsetHeight / 2;
+  const L = Math.hypot(bx - ax, by - ay) || 1, ux = (bx - ax) / L, uy = (by - ay) / L, ext = a.offsetWidth * .3;
+  svg.setAttribute('viewBox', `0 0 ${bd.clientWidth} ${bd.clientHeight}`);
+  seg.setAttribute('x1', ax - ux * ext); seg.setAttribute('y1', ay - uy * ext);
+  seg.setAttribute('x2', bx + ux * ext); seg.setAttribute('y2', by + uy * ext);
+  if (restart) { svg.classList.remove('show'); void svg.getBoundingClientRect(); }
+  svg.classList.add('show');
+}
+window.addEventListener('resize', () => { if (lastWin) drawWinLine(lastWin, false); });
+
+/* ── Счёт серии и чей ход ── */
+function labels() {
+  if (mode === 'net') return ['X', 'O'].map(s => (s === mySym ? 'Вы' : short(netName(s))) + (s === 'X' ? ' ✕' : ' ○'));
+  if (mode === '2p') return ['Игрок 1 ✕', 'Игрок 2 ○'];
+  return ['Вы ✕', 'ИИ ○'];
+}
+function setLabels() { const [a, b] = labels(); $('lbl-p1').textContent = a; $('lbl-p2').textContent = b; }
 
 function updateScores() {
-  $('sw').textContent = scores.w;
-  $('sd').textContent = scores.d;
-  $('sl').textContent = scores.l;
+  [['sw', scores.w], ['sd', scores.d], ['sl', scores.l]].forEach(([id, v]) => {
+    const el = $(id);
+    if (el.textContent !== String(v)) {
+      el.textContent = v;
+      if (v) { el.classList.remove('pop'); void el.offsetWidth; el.classList.add('pop'); }
+    }
+  });
+}
+
+function updateTurnUI() {
+  let turn = null;
+  if (!locked || thinking) turn = mode === '1p' ? (thinking ? 'O' : 'X') : currentPlayer;
+  $('st-x').classList.toggle('turn', turn === 'X');
+  $('st-o').classList.toggle('turn', turn === 'O');
+  const bd = $('board');
+  bd.classList.toggle('locked', locked || (isNet() && currentPlayer !== mySym));
+  bd.classList.toggle('o-turn', turn === 'O');
+}
+
+function updateTitle() {
+  $('g-title').textContent = mode === '1p' ? 'ПРОТИВ ИИ · ' + (diff === 'hard' ? 'СЛОЖНО' : 'ЛЕГКО')
+    : mode === '2p' ? '2 ИГРОКА' : 'ПО СЕТИ' + (net && net.room && net.room.id ? ' · ' + net.room.id : '');
+  $('g-sub').textContent = 'ПАРТИЯ ' + Math.max(1, roundNo);
+}
+
+/* ── Конец партии ── */
+function fillEnd(title, cls, sub, closed) {
+  $('end-title').textContent = title; $('end-title').className = cls;
+  $('end-sub').textContent = sub;
+  const [l1, l2] = labels();
+  $('end-stats').innerHTML = closed ? '' :
+    `<div>${esc(l1)}<b>${scores.w}</b></div><div>Ничьи<b>${scores.d}</b></div><div>${esc(l2)}<b>${scores.l}</b></div>`;
+  $('btn-again').hidden = !!closed;
 }
 
 function end(result){
-  locked=true;
+  locked=true; thinking=false; aiPending=false;
   clearPendingTimeouts();
-  $('status').style.color = 'var(--text)';
+  let title = 'НИЧЬЯ', cls = '', sub = 'Все клетки заняты — ряда нет';
   if(result==='win'){
       scores.w++;
-      $('status').textContent= mode==='1p' ? '🎉 Вы победили!' : (isNet() ? (mySym === 'X' ? '🎉 Вы победили!' : '😔 ' + netName('X') + ' победил') : '🎉 Игрок 1 победил!');
+      setStatus(mode==='1p' ? '🎉 Вы победили!' : (isNet() ? (mySym === 'X' ? '🎉 Вы победили!' : '😔 ' + netName('X') + ' победил') : '🎉 Игрок 1 победил!'), 'x');
       AudioSys.sfx.win();
+      if (mode === '1p' || (isNet() && mySym === 'X')) { title = 'ПОБЕДА!'; cls = 'win'; sub = 'Три в ряд!'; }
+      else if (isNet()) { title = 'ПОРАЖЕНИЕ'; cls = 'lose'; sub = netName('X') + ' собрал три в ряд'; }
+      else { title = 'ИГРОК 1 ПОБЕДИЛ!'; cls = 'win'; sub = '✕ — три в ряд'; }
   } else if(result==='lose'){
       scores.l++;
-      $('status').textContent='🤖 ИИ победил';
+      setStatus('🤖 ИИ победил', 'o');
+      title = 'ПОРАЖЕНИЕ'; cls = 'lose'; sub = 'ИИ собрал три в ряд';
   } else if (result==='win2') {
       scores.l++;
-      $('status').textContent= isNet() ? (mySym === 'O' ? '🎉 Вы победили!' : '😔 ' + netName('O') + ' победил') : '🎉 Игрок 2 победил!';
+      setStatus(isNet() ? (mySym === 'O' ? '🎉 Вы победили!' : '😔 ' + netName('O') + ' победил') : '🎉 Игрок 2 победил!', 'o');
       AudioSys.sfx.win();
+      if (isNet() && mySym === 'O') { title = 'ПОБЕДА!'; cls = 'win'; sub = 'Три в ряд!'; }
+      else if (isNet()) { title = 'ПОРАЖЕНИЕ'; cls = 'lose'; sub = netName('O') + ' собрал три в ряд'; }
+      else { title = 'ИГРОК 2 ПОБЕДИЛ!'; cls = 'win'; sub = '○ — три в ряд'; }
   } else {
       scores.d++;
-      $('status').textContent='🤝 Ничья';
+      setStatus('🤝 Ничья', '');
       AudioSys.sfx.draw();
   }
-  updateScores();
+  updateScores(); updateTurnUI();
+  lastResult = { title, cls, sub };
+  fillEnd(title, cls, sub, false);
 
-  // Auto restart after a bit if not in menu
+  // Итоги — через секунду, чтобы была видна выигрышная линия. Если в этот момент открыта пауза или
+  // правила, окно покажется после «Продолжить». (Раньше пауза в эти 1.6 с отменяла новую партию,
+  // и доска навсегда оставалась закрытой.)
   endTimeout = setTimeout(() => {
-    if ($('menu-main').classList.contains('active') || $('menu-pause').classList.contains('active')) return;
-    if (isNet()) {
-      // Новая партия в той же комнате: запрос идемпотентен, кто первый — тот и сбросил.
-      if (net.room.status === 'closed') return;
-      $('status').textContent = 'Новая партия…';
-      net.reset({ board: Array(9).fill(null), current: 'X' }, 0).then(room => netApply(room)).catch(() => {});
-      return;
-    }
-    newGame();
-  }, 1600);
+    endTimeout = null;
+    if (paused || isOpen('menu-rules')) { resultPending = true; return; }
+    showOv('menu-end');
+  }, 1000);
 }
 
 function newGame(){
   clearPendingTimeouts();
-  board=Array(9).fill(null); locked=false;
+  board=Array(9).fill(null); locked=false; thinking=false; aiPending=false; resultPending=false; lastResult=null;
   currentPlayer = 'X';
-  $('status').style.color = 'var(--text)';
-  $('status').textContent= mode==='1p' ? 'Ваш ход' : 'Ход: ИГРОК 1 (✕)';
-  if (mode === '2p') $('status').style.color = 'var(--b)';
-  renderBoard();
+  roundNo++;
+  hideOv('menu-end');
+  setStatus(mode==='1p' ? 'Ваш ход' : 'Ход: ИГРОК 1 (✕)', 'x');
+  renderBoard(); updateTitle();
+}
+
+function startMode(m) {
+  mode = m; setLabels();
+  scores={w:0,d:0,l:0}; updateScores();
+  roundNo = 0; paused = false;
+  ['menu-pause', 'menu-end', 'menu-rules'].forEach(hideOv);
+  showScreen('game');
+  AudioSys.init();
+  newGame();
+}
+
+/* ── Пауза ── */
+function openPause() {
+  if (paused || isOpen('menu-end') || !$('screen-game').classList.contains('active')) return;
+  paused = true;
+  if (aiTimeout) { clearTimeout(aiTimeout); aiTimeout = null; aiPending = true; }
+  showOv('menu-pause');
+}
+function resume() {
+  hideOv('menu-pause'); paused = false;
+  if (aiPending) { aiPending = false; scheduleAI(); }
+  if (resultPending) { resultPending = false; showOv('menu-end'); }
+}
+function toMenu() {
+  clearPendingTimeouts();
+  leaveNet();
+  paused = false; thinking = false; aiPending = false; resultPending = false; locked = true;
+  ['menu-pause', 'menu-end', 'menu-rules'].forEach(hideOv);
+  $('main-btns').hidden = false;
+  $('diff-btns').hidden = true;
+  showScreen('menu');
 }
 
 // UI bindings
 $('btn-1p').onclick = () => {
-    $('main-btns').style.display='none';
-    $('diff-btns').style.display='flex';
+    $('main-btns').hidden = true;
+    $('diff-btns').hidden = false;
     mode = '1p';
 };
 
-$('btn-2p').onclick = () => {
-    mode = '2p';
-    $('lbl-p1').textContent = 'Игрок 1';
-    $('lbl-p2').textContent = 'Игрок 2';
-    scores={w:0,d:0,l:0}; updateScores();
-    $('menu-main').classList.remove('active');
-    AudioSys.init();
-    newGame();
-};
+$('btn-2p').onclick = () => startMode('2p');
 
 $('btn-back-main').onclick = () => {
-    $('diff-btns').style.display='none';
-    $('main-btns').style.display='flex';
+    $('diff-btns').hidden = true;
+    $('main-btns').hidden = false;
 };
 
 $('btn-net').onclick = () => {
@@ -409,42 +576,64 @@ $('btn-net').onclick = () => {
     });
 };
 
-$('btn-start-ai').onclick = () => {
-    $('lbl-p1').textContent = 'Вы';
-    $('lbl-p2').textContent = 'ИИ';
-    scores={w:0,d:0,l:0}; updateScores();
-    $('menu-main').classList.remove('active');
-    AudioSys.init();
-    newGame();
-};
+$('btn-start-ai').onclick = () => startMode('1p');
 
-document.querySelectorAll('.diff-btn').forEach(b=>{
+document.querySelectorAll('#diff-selectors button').forEach(b=>{
   b.addEventListener('click',()=>{
     diff=b.dataset.d;
-    document.querySelectorAll('.diff-btn').forEach(x=>x.classList.remove('active'));
-    b.classList.add('active');
+    document.querySelectorAll('#diff-selectors button').forEach(x=>x.classList.toggle('active', x === b));
   });
 });
 
-$('btn-pause').onclick = () => $('menu-pause').classList.add('active');
-$('btn-resume').onclick = () => $('menu-pause').classList.remove('active');
+let rulesReturn = false;
+function closeRules() { hideOv('menu-rules'); if (rulesReturn && paused) showOv('menu-pause'); }
+$('btn-rules').onclick = () => { rulesReturn = false; showOv('menu-rules'); };
+$('btn-rules2').onclick = () => { rulesReturn = true; hideOv('menu-pause'); showOv('menu-rules'); };
+$('btn-rules-close').onclick = $('btn-rules-x').onclick = closeRules;
+
+$('btn-pause').onclick = openPause;
+$('btn-resume').onclick = resume;
 $('btn-restart').onclick = () => {
     clearPendingTimeouts();
     scores={w:0,d:0,l:0}; updateScores();
-    $('menu-pause').classList.remove('active');
-    if (isNet()) { netApply(net.room); return; }
+    hideOv('menu-pause'); paused = false; aiPending = false; resultPending = false;
+    if (isNet()) {
+      // по сети сбрасывается только счёт; если партия уже сыграна — снова показываем итоги
+      if (lastResult) { fillEnd(lastResult.title, lastResult.cls, lastResult.sub, false); showOv('menu-end'); }
+      else netApply(net.room);
+      return;
+    }
+    roundNo = 0;
     newGame();
 };
-$('btn-quit').onclick = () => {
-    clearPendingTimeouts();
-    leaveNet();
-    $('menu-pause').classList.remove('active');
-    $('menu-main').classList.add('active');
-    $('main-btns').style.display='flex';
-    $('diff-btns').style.display='none';
+$('btn-quit').onclick = toMenu;
+$('btn-end-menu').onclick = toMenu;
+$('btn-again').onclick = () => {
+    hideOv('menu-end');
+    if (isNet()) {
+      // Новая партия в той же комнате: запрос идемпотентен, кто первый — тот и сбросил.
+      if (net.room.status === 'closed') { toMenu(); return; }
+      setStatus('Новая партия…', '');
+      net.reset({ board: Array(9).fill(null), current: 'X' }, 0).then(room => netApply(room)).catch(e => {
+        if (!isNet()) return;
+        KuArcade.toast('Нет связи: ' + e.message, 'bad');
+        showOv('menu-end');
+      });
+      return;
+    }
+    newGame();
 };
 
-// Initial setup not starting game until menu selection
+document.addEventListener('keydown', e => {
+  if (e.code !== 'Escape' && e.code !== 'KeyP' && e.key !== 'Escape') return;
+  if (isOpen('menu-rules')) { closeRules(); return; }
+  if (!$('screen-game').classList.contains('active')) return;
+  if (isOpen('menu-pause')) resume(); else openPause();
+});
+
+buildBoard();
+renderBoard();
+updateScores();
 </script>
 </body>
 </html>

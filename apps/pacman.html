@@ -1,168 +1,170 @@
 <!DOCTYPE html>
 <html lang="ru">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Классический Пакман (Classic Pac-Man)</title>
-    <style>
-        :root {
-            --bg-color: #111;
-            --text-color: #fff;
-            --pacman-yellow: #FFFF00;
-        }
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+<title>Pac-Man</title>
+<link rel="stylesheet" href="ku-arcade.css">
+<script src="ku-arcade.js"></script>
+<style>
+  html,body{height:100%;overflow:hidden}
+  #screen-game,#screen-game *{touch-action:none}
 
-        * {
-            box-sizing: border-box;
-            margin: 0;
-            padding: 0;
-            user-select: none;
-        }
+  /* Сцена: поле + экранная крестовина (в ландшафте на телефоне — рядом) */
+  #stage{flex:1;min-height:0;width:100%;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:12px}
+  #board{line-height:0;flex:none}
+  #pad{flex:none}
+  #pad svg{width:22px;height:22px;fill:currentColor}
+  #pad .mid svg{width:18px;height:18px;fill:none;stroke:currentColor;stroke-width:2.4;stroke-linecap:round}
+  #lives{display:flex;gap:3px;align-items:center;min-height:21px}
+  #lives svg{width:15px;height:15px;filter:drop-shadow(0 0 4px rgba(255,214,10,.55))}
+  #hero{display:block;margin:18px auto 0;width:min(300px,80vw);height:46px}
 
-        body {
-            background-color: var(--bg-color);
-            color: var(--text-color);
-            font-family: 'Courier New', Courier, monospace;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            justify-content: center;
-            min-height: 100vh;
-            overflow: hidden;
-            touch-action: none;
-        }
-
-        #game-container {
-            position: relative;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-        }
-
-        #ui-layer {
-            display: flex;
-            justify-content: space-between;
-            width: 100%;
-            max-width: 560px;
-            padding: 10px 20px;
-            font-size: 24px;
-            font-weight: bold;
-            color: #FFF;
-            text-shadow: 2px 2px 0px #000;
-            z-index: 10;
-        }
-
-        canvas {
-            background-color: #000;
-            box-shadow: 0 0 20px rgba(0, 255, 255, 0.2);
-            image-rendering: pixelated;
-            max-width: 100vw;
-            max-height: 75vh;
-            object-fit: contain;
-        }
-
-        #controls {
-            display: grid;
-            grid-template-columns: 60px 60px 60px;
-            grid-template-rows: 60px 60px 60px;
-            gap: 10px;
-            margin-top: 20px;
-        }
-
-        .control-btn {
-            background-color: rgba(50, 50, 50, 0.8);
-            border: 2px solid #555;
-            border-radius: 10px;
-            color: white;
-            font-size: 24px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            cursor: pointer;
-            transition: background-color 0.1s;
-        }
-
-        .control-btn:active {
-            background-color: var(--pacman-yellow);
-            color: black;
-        }
-
-        #btn-up { grid-column: 2; grid-row: 1; }
-        #btn-left { grid-column: 1; grid-row: 2; }
-        #btn-down { grid-column: 2; grid-row: 3; }
-        #btn-right { grid-column: 3; grid-row: 2; }
-
-        #overlay {
-            position: absolute;
-            top: 0; left: 0; width: 100%; height: 100%;
-            background: rgba(0,0,0,0.7);
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            justify-content: center;
-            z-index: 20;
-        }
-
-        #overlay h1 {
-            color: var(--pacman-yellow);
-            font-size: 48px;
-            margin-bottom: 20px;
-            text-align: center;
-        }
-
-        #start-btn {
-            padding: 15px 30px;
-            font-size: 24px;
-            background-color: var(--pacman-yellow);
-            color: black;
-            border: none;
-            border-radius: 5px;
-            cursor: pointer;
-            font-weight: bold;
-            font-family: 'Courier New', Courier, monospace;
-        }
-
-        .hidden { display: none !important; }
-
-        @media (min-width: 1024px) {
-            #controls { display: none; }
-        }
-    </style>
+  /* на десктопе с мышью крестовина не нужна — клавиатура */
+  @media (min-width:821px) and (hover:hover) and (pointer:fine){#pad{display:none}}
+  @media (orientation:landscape) and (max-height:560px){
+    #stage{flex-direction:row;gap:20px}
+    /* телефон боком: показатели колонкой слева, вся высота — полю */
+    #screen-game{position:relative}
+    #screen-game .ku-hud{position:absolute;left:max(14px,env(safe-area-inset-left,0px));top:72px;flex-direction:column;margin:0;z-index:2}
+  }
+  /* низкие экраны (360×640): компактнее шапка, показатели и крестовина */
+  @media (max-height:720px){
+    #screen-game .ku-top{margin-bottom:4px}
+    #screen-game .ku-hud{margin:0 0 6px}
+    #screen-game .ku-stat{padding:4px 10px}
+    #screen-game .ku-stat b{font-size:15px}
+    #stage{gap:8px}
+    #pad{grid-template-columns:repeat(3,50px);grid-template-rows:repeat(3,50px);gap:5px}
+    #pad button{width:50px;height:50px}
+  }
+</style>
 </head>
-<body>
+<body class="ku">
+<main class="ku-app">
 
-    <div id="game-container">
-        <div id="ui-layer">
-            <div id="score-display">SCORE: <span id="score">0</span></div>
-            <div id="lives-display">LIVES: <span id="lives">3</span></div>
-        </div>
-        
-        <canvas id="gameCanvas" width="560" height="620"></canvas>
-        
-        <div id="overlay">
-            <h1 id="overlay-title">PAC-MAN</h1>
-            <button id="start-btn">НАЧАТЬ ИГРУ</button>
-        </div>
-
-        <div id="controls">
-            <div class="control-btn" id="btn-up">▲</div>
-            <div class="control-btn" id="btn-left">◄</div>
-            <div class="control-btn" id="btn-down">▼</div>
-            <div class="control-btn" id="btn-right">►</div>
-        </div>
+  <!-- ═══ МЕНЮ ═══ -->
+  <section id="screen-menu" class="ku-screen menu active">
+    <h1 class="ku-logo">PAC-MAN</h1>
+    <p class="ku-tagline">Неоновая аркада • Лабиринт • Рекорды</p>
+    <canvas id="hero" aria-hidden="true"></canvas>
+    <div class="ku-pills"><span>👻 4 привидения</span><span>⚡ Энерджайзеры</span><span>🌀 Туннели</span><span>♾ Уровни</span></div>
+    <div class="ku-menu-btns">
+      <button class="ku-btn big primary" id="btn-play">🎮 Играть<span class="best" id="menu-best">Рекорд: 0</span></button>
     </div>
+    <div class="ku-menu-row"><button class="ku-btn ghost" id="btn-rules">📖 Правила</button></div>
+    <div class="ku-menu-stats" id="menu-stats">Сыграно игр: 0 • Лучший уровень: 1</div>
+    <div class="ku-menu-hint">Клавиши: ← ↑ → ↓ / WASD — движение · P / Esc — пауза<br>На телефоне: свайпы по полю или крестовина · поворот можно нажать заранее</div>
+  </section>
+
+  <!-- ═══ ИГРА ═══ -->
+  <section id="screen-game" class="ku-screen fit">
+    <header class="ku-top">
+      <div class="ku-top-left"></div>
+      <div class="ku-top-title"><div class="t">PAC-MAN</div><div class="s">УРОВЕНЬ <b id="top-level">1</b></div></div>
+      <div class="ku-top-actions">
+        <button class="ku-btn icon" id="btn-pause" aria-label="Пауза"><svg viewBox="0 0 24 24"><line x1="9" y1="5" x2="9" y2="19"/><line x1="15" y1="5" x2="15" y2="19"/></svg></button>
+      </div>
+    </header>
+    <div class="ku-hud">
+      <div class="ku-stat"><span>Очки</span><b id="score">0</b></div>
+      <div class="ku-stat gold"><span>Рекорд</span><b id="best">0</b></div>
+      <div class="ku-stat"><span>Жизни</span><b id="lives"></b></div>
+    </div>
+    <div id="stage">
+      <div id="board" class="ku-board"><canvas id="gameCanvas"></canvas></div>
+      <div id="pad" class="ku-pad">
+        <button class="up" data-d="UP" aria-label="Вверх"><svg viewBox="0 0 24 24"><path d="M12 5l8 12H4z"/></svg></button>
+        <button class="left" data-d="LEFT" aria-label="Влево"><svg viewBox="0 0 24 24"><path d="M5 12l12-8v16z"/></svg></button>
+        <button class="mid" id="pad-pause" aria-label="Пауза"><svg viewBox="0 0 24 24"><line x1="9" y1="6" x2="9" y2="18"/><line x1="15" y1="6" x2="15" y2="18"/></svg></button>
+        <button class="right" data-d="RIGHT" aria-label="Вправо"><svg viewBox="0 0 24 24"><path d="M19 12L7 20V4z"/></svg></button>
+        <button class="down" data-d="DOWN" aria-label="Вниз"><svg viewBox="0 0 24 24"><path d="M12 19L4 7h16z"/></svg></button>
+      </div>
+    </div>
+  </section>
+</main>
+
+<!-- ═══ ПРАВИЛА ═══ -->
+<div class="ku-overlay" id="rules">
+  <div class="ku-modal">
+    <header><h2>📖 Правила</h2><button class="ku-btn icon" id="btn-rules-x" aria-label="Закрыть">✕</button></header>
+    <div class="ku-body">
+      <h3>Цель</h3>
+      <ul class="ku-rules">
+        <li><b>Съешьте все точки</b> в лабиринте — откроется следующий уровень.</li>
+        <li>Точка — <b>10</b> очков, энерджайзер (большая точка) — <b>50</b>.</li>
+        <li>Жизней <b>3</b>: касание привидения стоит одной жизни.</li>
+      </ul>
+      <h3>Привидения</h3>
+      <ul class="ku-rules">
+        <li><b style="color:#ff3b3b">Блинки</b> гонится прямо за вами, <b style="color:#ffb8ff">Пинки</b> заходит спереди, <b style="color:#00ffff">Инки</b> и <b style="color:#ffb852">Клайд</b> — хитрее.</li>
+        <li>Привидения то разбегаются по углам, то начинают охоту.</li>
+        <li><b>Энерджайзер</b> на 6 секунд делает их синими — синих можно съесть: <b>200 → 400 → 800 → 1600</b> очков подряд. Белое мигание — испуг скоро закончится.</li>
+        <li>Съеденное привидение возвращается глазами в домик и выходит снова.</li>
+      </ul>
+      <h3>Лабиринт</h3>
+      <ul class="ku-rules">
+        <li>Туннели слева и справа переносят на другую сторону. Привидения в туннеле медленнее.</li>
+      </ul>
+      <h3>Управление</h3>
+      <ul class="ku-rules">
+        <li>Стрелки или WASD, свайпы по полю, экранная крестовина.</li>
+        <li>Поворот можно нажать заранее — Pac-Man свернёт на ближайшем перекрёстке.</li>
+        <li>P или Esc — пауза.</li>
+      </ul>
+    </div>
+    <footer><button class="ku-btn primary" id="btn-rules-ok">Понятно</button></footer>
+  </div>
+</div>
+
+<!-- ═══ ПАУЗА ═══ -->
+<div class="ku-overlay" id="pause">
+  <div class="ku-card">
+    <h2>⏸ ПАУЗА</h2>
+    <button class="ku-btn primary" id="btn-resume">Продолжить</button>
+    <button class="ku-btn" id="btn-restart">Заново</button>
+    <button class="ku-btn" id="btn-rules2">📖 Правила</button>
+    <button class="ku-btn ghost" id="btn-quit">В меню</button>
+  </div>
+</div>
+
+<!-- ═══ КОНЕЦ ИГРЫ ═══ -->
+<div class="ku-overlay" id="over">
+  <div class="ku-card">
+    <h2 class="lose">ИГРА ОКОНЧЕНА</h2>
+    <div class="ku-new-best" id="over-best" hidden>🏆 НОВЫЙ РЕКОРД!</div>
+    <div class="ku-big-score" id="over-score">0</div>
+    <div class="ku-over-stats">
+      <div>Уровень<b id="over-level">1</b></div>
+      <div>Привидений съедено<b id="over-ghosts">0</b></div>
+      <div>Рекорд<b id="over-record">0</b></div>
+    </div>
+    <button class="ku-btn primary" id="btn-again">Играть снова</button>
+    <button class="ku-btn ghost" id="btn-over-menu">В меню</button>
+  </div>
+</div>
+
+<div class="ku-toast" id="toast"></div>
 
 <script>
+'use strict';
 /**
  * Классический Пакман
- * Полная реализация игровой логики, ИИ призраков и рендеринга на Canvas.
+ * Игровая логика, ИИ призраков и рендеринг на Canvas.
+ * Логика идёт фиксированным шагом 60 Гц (накопитель времени), поэтому все скорости —
+ * в пикселях за тик, а таймеры — в тиках, независимо от частоты экрана (60/120/144 Гц).
  */
 
 // --- КОНСТАНТЫ И НАСТРОЙКИ ---
 const TILE_SIZE = 20;
 const FPS = 60;
+const STEP_MS = 1000 / FPS;
 const GHOST_SPEED_NORMAL = 1.5;
 const GHOST_SPEED_FRIGHTENED = 0.8;
 const PACMAN_SPEED = 2;
+const FRIGHT_TICKS = 6 * FPS;    // 6 секунд испуга
+const DEATH_TICKS = 2 * FPS;     // пауза после гибели
+const WIN_TICKS = 2 * FPS;       // пауза после зачистки уровня
 
 const DIR = {
     UP: { x: 0, y: -1, code: 0 },
@@ -226,6 +228,8 @@ const rawMap = [
     [1,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,1],
     [1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1]
 ];
+const ROWS = rawMap.length, COLS = rawMap[0].length;
+const MAP_W = COLS * TILE_SIZE, MAP_H = ROWS * TILE_SIZE;
 
 // Координаты баз призраков и спавна
 const SPAWN = {
@@ -236,6 +240,18 @@ const SPAWN = {
     CLYDE:  { c: 16, r: 14 },
     GHOST_DOOR: { c: 14, r: 12 }
 };
+const DOOR_X = SPAWN.GHOST_DOOR.c * TILE_SIZE + TILE_SIZE / 2;
+const DOOR_Y = SPAWN.GHOST_DOOR.r * TILE_SIZE + TILE_SIZE / 2;
+
+// Цвета: классические цвета призраков и жёлтый Пакман (узнаваемость), «хром» — из палитры набора
+const PAC_COLOR = '#ffd60a';
+const GHOST_COLORS = { BLINKY: '#FF0000', PINKY: '#FFB8FF', INKY: '#00FFFF', CLYDE: '#FFB852' };
+const FRIGHT_COLOR = '#2b4bff';
+const WALL_COLOR = '#5b8cff';      // --blue
+const WALL_GLOW = '#00e5ff';       // --cyan
+const PELLET_COLOR = '#ffc9a3';    // тёплые точки
+const POWER_COLOR = '#ffb36b';
+const DOOR_COLOR = '#ff4dd2';      // --accent2
 
 // --- ГЛОБАЛЬНЫЕ ПЕРЕМЕННЫЕ ---
 let canvas, ctx;
@@ -245,18 +261,21 @@ let lives = 3;
 let pelletsTotal = 0;
 let pelletsEaten = 0;
 let ghostsEatenMultiplier = 1;
+let ghostsEatenTotal = 0;
 let level = 1;
 let gameMode = GHOST_STATE.SCATTER;
 let modeTimer = 0;
 let frightenedTimer = 0;
-let animationId;
-let gameState = 'START'; // START, PLAYING, DEATH, GAMEOVER, WIN
+let stateTimer = 0;            // тики в состояниях DEATH / WIN
+let gameState = 'START';       // START, PLAYING, DEATH, GAMEOVER, WIN
+let paused = false;
+let floaters = [];             // всплывающие очки за привидений
 
 // Объекты
 let pacman;
 let ghosts = [];
 
-// Тайминги режимов (в кадрах при 60 FPS)
+// Тайминги режимов (в тиках при 60 FPS)
 // Уровень 1: Разбегание(7с), Преследование(20с), Разбегание(7с), Преследование(20с), Разбегание(5с), Преследование(20с), Разбегание(5с), Преследование(постоянно)
 const MODE_TIMES = [
     7 * 60, 20 * 60, 7 * 60, 20 * 60, 5 * 60, 20 * 60, 5 * 60, Infinity
@@ -264,6 +283,9 @@ const MODE_TIMES = [
 let currentModeIndex = 0;
 
 // --- ВСПОМОГАТЕЛЬНЫЕ ФУНКЦИИ ---
+const $ = id => document.getElementById(id);
+const fmt = n => n.toLocaleString('ru-RU');
+
 function getDistance(x1, y1, x2, y2) {
     // В оригинале используется дистанция по прямой (Евклидова)
     return Math.sqrt(Math.pow(x2 - x1, 2) + Math.pow(y2 - y1, 2));
@@ -292,11 +314,83 @@ function cloneMap() {
     }
 }
 
+// Клетка карты. Столбцы за краем поля — продолжение туннеля: это клетки с другой стороны,
+// поэтому из туннеля нельзя свернуть вверх/вниз «в пустоту». За верх/низ карты — стена.
+function tileAt(c, r) {
+    if (r < 0 || r >= ROWS) return MAP_TYPES.WALL;
+    c = ((c % COLS) + COLS) % COLS;
+    return gameMap[r][c];
+}
+
 // Проверка на столкновение с картой
 function isWall(c, r) {
-    if (c < 0 || c >= rawMap[0].length) return false; // Для туннеля
-    if (r < 0 || r >= rawMap.length) return true;
-    return gameMap[r][c] === MAP_TYPES.WALL || gameMap[r][c] === MAP_TYPES.GHOST_DOOR;
+    const t = tileAt(c, r);
+    return t === MAP_TYPES.WALL || t === MAP_TYPES.GHOST_DOOR;
+}
+
+// --- ОТРИСОВКА ФИГУР (общая для игры и заставки меню) ---
+function drawPacShape(g, x, y, radius, angle, mouth, glow) {
+    g.save();
+    g.translate(x, y);
+    g.rotate(angle);
+    g.fillStyle = PAC_COLOR;
+    if (glow) { g.shadowColor = PAC_COLOR; g.shadowBlur = glow; }
+    g.beginPath();
+    g.arc(0, 0, radius, mouth, Math.PI * 2 - mouth);
+    g.lineTo(0, 0);
+    g.closePath();
+    g.fill();
+    g.restore();
+}
+
+function drawGhostShape(g, x, y, size, opts) {
+    const { body, dir = DIR.LEFT, frightened = false, eyesOnly = false, glow = 0, t = Date.now(), face = '#ffd2a6' } = opts;
+    g.save();
+    g.translate(x, y);
+    if (!eyesOnly) {
+        g.fillStyle = body;
+        if (glow) { g.shadowColor = body; g.shadowBlur = glow; }
+        g.beginPath();
+        g.arc(0, -size / 4, size / 2, Math.PI, 0); // Верхняя полусфера
+        // Волнистый низ
+        g.lineTo(size / 2, size / 2);
+        const waveOffset = (Math.floor(t / 150) % 2 === 0) ? 0 : size / 6;
+        g.lineTo(size / 3, size / 2 - waveOffset);
+        g.lineTo(size / 6, size / 2 + waveOffset);
+        g.lineTo(-size / 6, size / 2 - waveOffset);
+        g.lineTo(-size / 3, size / 2 + waveOffset);
+        g.lineTo(-size / 2, size / 2);
+        g.closePath();
+        g.fill();
+        g.shadowBlur = 0;
+    }
+    if (!frightened) {
+        const eyeOffsetX = (dir.x * size) / 5;
+        const eyeOffsetY = (dir.y * size) / 5;
+        // Белки глаз
+        g.fillStyle = '#ffffff';
+        g.beginPath(); g.arc(-size / 4 + eyeOffsetX, -size / 6 + eyeOffsetY, size / 5, 0, Math.PI * 2); g.fill();
+        g.beginPath(); g.arc(size / 4 + eyeOffsetX, -size / 6 + eyeOffsetY, size / 5, 0, Math.PI * 2); g.fill();
+        // Зрачки
+        g.fillStyle = '#1f3cff';
+        g.beginPath(); g.arc(-size / 4 + eyeOffsetX * 1.5, -size / 6 + eyeOffsetY * 1.5, size / 10, 0, Math.PI * 2); g.fill();
+        g.beginPath(); g.arc(size / 4 + eyeOffsetX * 1.5, -size / 6 + eyeOffsetY * 1.5, size / 10, 0, Math.PI * 2); g.fill();
+    } else {
+        // Глаза при испуге (простые квадратики) и волнистый рот
+        g.fillStyle = face;
+        g.fillRect(-size / 3, -size / 4, size / 5, size / 5);
+        g.fillRect(size / 6, -size / 4, size / 5, size / 5);
+        g.beginPath();
+        g.moveTo(-size / 3, size / 6);
+        g.lineTo(-size / 6, 0);
+        g.lineTo(0, size / 6);
+        g.lineTo(size / 6, 0);
+        g.lineTo(size / 3, size / 6);
+        g.strokeStyle = face;
+        g.lineWidth = 1.5;
+        g.stroke();
+    }
+    g.restore();
 }
 
 // --- КЛАСС ПАКМАНА ---
@@ -329,60 +423,51 @@ class Pacman {
             this.mouthDir *= -1;
         }
 
-        // Логика поворота. Пакман может повернуть только если впереди нет стены,
-        // либо может развернуться на 180 градусов в любой момент.
-        let gridPos = getGridPos(this.x, this.y);
-        
-        // Попытка применить желаемое направление (nextDir)
+        const gridPos = getGridPos(this.x, this.y);
+        const centerX = gridPos.c * TILE_SIZE + TILE_SIZE / 2;
+        const centerY = gridPos.r * TILE_SIZE + TILE_SIZE / 2;
+
+        // Попытка применить желаемое направление (nextDir — буфер поворота)
         if (this.nextDir !== this.dir) {
-            // Если разворот
             if (this.nextDir.x === -this.dir.x && this.nextDir.y === -this.dir.y) {
+                // Разворот на 180° — в любой момент
                 this.dir = this.nextDir;
-            } else {
-                // Пытаемся повернуть на перекрестке. Выравниваем по центру ячейки
-                let centerX = gridPos.c * TILE_SIZE + TILE_SIZE / 2;
-                let centerY = gridPos.r * TILE_SIZE + TILE_SIZE / 2;
-                
-                // Допуск для поворота (снаппинг к сетке)
-                if (Math.abs(this.x - centerX) < this.speed && Math.abs(this.y - centerY) < this.speed) {
-                    if (!isWall(gridPos.c + this.nextDir.x, gridPos.r + this.nextDir.y)) {
-                        this.x = centerX;
-                        this.y = centerY;
-                        this.dir = this.nextDir;
-                    }
-                }
+            } else if (Math.abs(this.x - centerX) < this.speed && Math.abs(this.y - centerY) < this.speed &&
+                       !isWall(gridPos.c + this.nextDir.x, gridPos.r + this.nextDir.y)) {
+                // Поворот — в центре клетки, если туда можно пройти (снаппинг к сетке)
+                this.x = centerX;
+                this.y = centerY;
+                this.dir = this.nextDir;
             }
         }
 
-        // Движение вперед
-        let nextX = this.x + this.dir.x * this.speed;
-        let nextY = this.y + this.dir.y * this.speed;
-        let nextGridPos = getGridPos(nextX, nextY);
-
-        // Проверка столкновения со стеной в текущем направлении
-        if (this.dir.x > 0 && isWall(nextGridPos.c, gridPos.r) && nextX > gridPos.c * TILE_SIZE + TILE_SIZE / 2) {
-            this.x = gridPos.c * TILE_SIZE + TILE_SIZE / 2;
-        } else if (this.dir.x < 0 && isWall(nextGridPos.c, gridPos.r) && nextX < gridPos.c * TILE_SIZE + TILE_SIZE / 2) {
-            this.x = gridPos.c * TILE_SIZE + TILE_SIZE / 2;
-        } else if (this.dir.y > 0 && isWall(gridPos.c, nextGridPos.r) && nextY > gridPos.r * TILE_SIZE + TILE_SIZE / 2) {
-            this.y = gridPos.r * TILE_SIZE + TILE_SIZE / 2;
-        } else if (this.dir.y < 0 && isWall(gridPos.c, nextGridPos.r) && nextY < gridPos.r * TILE_SIZE + TILE_SIZE / 2) {
-            this.y = gridPos.r * TILE_SIZE + TILE_SIZE / 2;
+        // Движение вперёд. Если дальше стена — доезжаем ровно до центра клетки и стоим
+        // (раньше Пакман проскакивал центр, «отскакивал» назад и дрожал у стены).
+        if (isWall(gridPos.c + this.dir.x, gridPos.r + this.dir.y)) {
+            const ahead = (centerX - this.x) * this.dir.x + (centerY - this.y) * this.dir.y;
+            if (ahead <= 0) {
+                this.x = centerX;
+                this.y = centerY;
+            } else {
+                const step = Math.min(this.speed, ahead);
+                this.x += this.dir.x * step;
+                this.y += this.dir.y * step;
+            }
         } else {
-            this.x = nextX;
-            this.y = nextY;
+            this.x += this.dir.x * this.speed;
+            this.y += this.dir.y * this.speed;
         }
 
         // Туннель
-        if (this.x < -TILE_SIZE / 2) this.x = gameMap[0].length * TILE_SIZE + TILE_SIZE / 2;
-        if (this.x > gameMap[0].length * TILE_SIZE + TILE_SIZE / 2) this.x = -TILE_SIZE / 2;
+        if (this.x < -TILE_SIZE / 2) this.x = MAP_W + TILE_SIZE / 2;
+        else if (this.x > MAP_W + TILE_SIZE / 2) this.x = -TILE_SIZE / 2;
 
         this.eat();
     }
 
     eat() {
         let gridPos = getGridPos(this.x, this.y);
-        if (gridPos.c >= 0 && gridPos.c < gameMap[0].length) {
+        if (gridPos.c >= 0 && gridPos.c < COLS) {
             let tile = gameMap[gridPos.r][gridPos.c];
             if (tile === MAP_TYPES.PELLET) {
                 gameMap[gridPos.r][gridPos.c] = MAP_TYPES.EMPTY;
@@ -395,38 +480,24 @@ class Pacman {
                 pelletsEaten++;
                 activateFrightenedMode();
                 checkWin();
+                popScore();
             }
         }
     }
 
-    draw(ctx) {
-        ctx.save();
-        ctx.translate(this.x, this.y);
-        
-        // Поворот в зависимости от направления
-        if (this.dir === DIR.RIGHT) ctx.rotate(0);
-        else if (this.dir === DIR.DOWN) ctx.rotate(Math.PI / 2);
-        else if (this.dir === DIR.LEFT) ctx.rotate(Math.PI);
-        else if (this.dir === DIR.UP) ctx.rotate(-Math.PI / 2);
+    draw(g) {
+        let angle = 0;
+        if (this.dir === DIR.DOWN) angle = Math.PI / 2;
+        else if (this.dir === DIR.LEFT) angle = Math.PI;
+        else if (this.dir === DIR.UP) angle = -Math.PI / 2;
 
-        ctx.fillStyle = "var(--pacman-yellow)";
-        ctx.beginPath();
-        
         if (this.dead) {
             // Анимация смерти Пакмана
-            let angle = (this.deathFrame / 60) * Math.PI;
-            if (angle < Math.PI) {
-                ctx.arc(0, 0, TILE_SIZE / 2.2, angle, Math.PI * 2 - angle);
-                ctx.lineTo(0, 0);
-            }
+            const a = (this.deathFrame / 60) * Math.PI;
+            if (a < Math.PI) drawPacShape(g, this.x, this.y, TILE_SIZE / 2.2, angle, a, blur(10));
         } else {
-            let angle = 0.2 * Math.PI * this.mouthOpen;
-            ctx.arc(0, 0, TILE_SIZE / 2.2, angle, Math.PI * 2 - angle);
-            ctx.lineTo(0, 0);
+            drawPacShape(g, this.x, this.y, TILE_SIZE / 2.2, angle, 0.2 * Math.PI * this.mouthOpen, blur(12));
         }
-        
-        ctx.fill();
-        ctx.restore();
     }
 }
 
@@ -443,7 +514,7 @@ class Ghost {
         this.x = this.startPos.c * TILE_SIZE + TILE_SIZE / 2;
         this.y = this.startPos.r * TILE_SIZE + TILE_SIZE / 2;
         this.dir = DIR.LEFT;
-        
+
         // Разные начальные состояния
         if (this.type === 'BLINKY') {
             this.state = gameMode;
@@ -452,7 +523,7 @@ class Ghost {
         } else {
             this.state = GHOST_STATE.IN_PEN;
         }
-        
+
         this.speed = GHOST_SPEED_NORMAL;
         this.target = { c: 0, r: 0 };
     }
@@ -462,29 +533,32 @@ class Ghost {
 
         // Логика выхода из домика
         if (this.state === GHOST_STATE.IN_PEN) {
-            // Упрощенная логика выхода (по таймеру/количеству съеденных точек)
+            // Упрощенная логика выхода (по количеству съеденных точек).
+            // Блинки выходит сразу — в том числе после того, как его съели (раньше он оставался в домике навсегда).
             let release = false;
-            if (this.type === 'PINKY') release = true;
+            if (this.type === 'BLINKY' || this.type === 'PINKY') release = true;
             if (this.type === 'INKY' && pelletsEaten > 30) release = true;
             if (this.type === 'CLYDE' && pelletsEaten > 80) release = true;
 
             if (release) {
-                // Двигаемся к двери
-                let targetX = SPAWN.GHOST_DOOR.c * TILE_SIZE + TILE_SIZE / 2;
-                let targetY = (SPAWN.GHOST_DOOR.r - 1) * TILE_SIZE + TILE_SIZE / 2;
-                
+                // Двигаемся к двери, затем вверх — на клетку над дверью
+                const targetX = DOOR_X;
+                const targetY = DOOR_Y - TILE_SIZE;
                 if (Math.abs(this.x - targetX) > 1) {
-                    this.x += (targetX - this.x) > 0 ? this.speed : -this.speed;
+                    this.x += Math.sign(targetX - this.x) * Math.min(this.speed, Math.abs(targetX - this.x));
                 } else if (Math.abs(this.y - targetY) > 1) {
                     this.y -= this.speed;
                 } else {
                     this.x = targetX;
                     this.y = targetY;
+                    this.dir = DIR.UP;
                     this.state = gameMode; // Вышли из домика
                 }
             } else {
-                // Подпрыгивание в домике
-                this.y += Math.sin(Date.now() / 150) * 0.5;
+                // Подпрыгивание в домике (±4.5 px). Фаза считается в тиках: раньше y накапливал
+                // sin(Date.now()), и при нескольких тиках за кадр привидение «уплывало» из домика.
+                this.bob = (this.bob || 0) + 0.11;
+                this.y = this.startPos.r * TILE_SIZE + TILE_SIZE / 2 + Math.sin(this.bob) * 4.5;
             }
             return;
         }
@@ -495,9 +569,13 @@ class Ghost {
         // Если съеден, летим на базу очень быстро
         if (this.state === GHOST_STATE.EATEN) {
             this.speed = PACMAN_SPEED * 2;
-            if (Math.abs(this.x - SPAWN.GHOST_DOOR.c * TILE_SIZE - TILE_SIZE/2) < 2 && 
-                Math.abs(this.y - SPAWN.GHOST_DOOR.r * TILE_SIZE - TILE_SIZE/2) < 2) {
+            if (Math.abs(this.x - DOOR_X) <= this.speed && Math.abs(this.y - DOOR_Y) <= this.speed) {
+                // Глаза добрались до двери — привидение снова в домике и сразу выходит
+                this.x = DOOR_X;
+                this.y = DOOR_Y;
+                this.speed = GHOST_SPEED_NORMAL;
                 this.state = GHOST_STATE.IN_PEN;
+                return;
             }
         } else if (this.state === GHOST_STATE.FRIGHTENED) {
             this.speed = GHOST_SPEED_FRIGHTENED;
@@ -505,7 +583,7 @@ class Ghost {
             this.speed = GHOST_SPEED_NORMAL;
             // Туннель замедляет
             let gPos = getGridPos(this.x, this.y);
-            if (gameMap[gPos.r] && gameMap[gPos.r][gPos.c] === MAP_TYPES.TUNNEL) {
+            if (tileAt(gPos.c, gPos.r) === MAP_TYPES.TUNNEL) {
                 this.speed = GHOST_SPEED_FRIGHTENED;
             }
         }
@@ -537,12 +615,12 @@ class Ghost {
                     break;
                 case 'PINKY':
                     // 4 клетки впереди Пакмана
-                    this.target = { 
-                        c: pGrid.c + pacman.dir.x * 4, 
-                        r: pGrid.r + pacman.dir.y * 4 
+                    this.target = {
+                        c: pGrid.c + pacman.dir.x * 4,
+                        r: pGrid.r + pacman.dir.y * 4
                     };
                     break;
-                case 'INKY':
+                case 'INKY': {
                     // Вектор от Блинки через точку в 2 клетках перед Пакманом
                     let blinky = ghosts.find(g => g.type === 'BLINKY');
                     let bGrid = getGridPos(blinky.x, blinky.y);
@@ -553,239 +631,143 @@ class Ghost {
                         r: pivotR + (pivotR - bGrid.r)
                     };
                     break;
-                case 'CLYDE':
+                }
+                case 'CLYDE': {
                     // К Пакману, если далеко, разбегание если близко
-                    let dist = getDistance(pGrid.c, pGrid.r, getGridPos(this.x, this.y).c, getGridPos(this.x, this.y).r);
+                    const my = getGridPos(this.x, this.y);
+                    let dist = getDistance(pGrid.c, pGrid.r, my.c, my.r);
                     if (dist > 8) {
                         this.target = { c: pGrid.c, r: pGrid.r };
                     } else {
                         this.target = { c: 1, r: 29 }; // Scatter target
                     }
                     break;
+                }
             }
+        }
+    }
+
+    // Выбор направления на перекрёстке (призрак стоит точно в центре клетки)
+    chooseDir(gridPos) {
+        let validMoves = [];
+        const directions = [DIR.UP, DIR.LEFT, DIR.DOWN, DIR.RIGHT];
+
+        for (let d of directions) {
+            // Призраки не могут разворачиваться на 180 градусов (кроме смены состояний)
+            if (d.x === -this.dir.x && d.y === -this.dir.y) continue;
+
+            // Дверь домика — стена для всех, кроме съеденных (глаза летят домой)
+            const tileType = tileAt(gridPos.c + d.x, gridPos.r + d.y);
+            if (tileType === MAP_TYPES.WALL) continue;
+            if (tileType === MAP_TYPES.GHOST_DOOR && this.state !== GHOST_STATE.EATEN) continue;
+            validMoves.push(d);
+        }
+
+        if (validMoves.length === 0) {
+            // Тупик (быть не должно на классической карте, но для безопасности разворот)
+            this.dir = { x: -this.dir.x, y: -this.dir.y };
+        } else if (this.state === GHOST_STATE.FRIGHTENED) {
+            // Случайный выбор при испуге
+            this.dir = validMoves[Math.floor(Math.random() * validMoves.length)];
+        } else {
+            // Выбор пути с минимальной дистанцией до цели
+            let minDistance = Infinity;
+            let bestMove = validMoves[0];
+            for (let move of validMoves) {
+                let dist = getDistance(gridPos.c + move.x, gridPos.r + move.y, this.target.c, this.target.r);
+                if (dist < minDistance) {
+                    minDistance = dist;
+                    bestMove = move;
+                }
+            }
+            this.dir = bestMove;
         }
     }
 
     move() {
-        let gridPos = getGridPos(this.x, this.y);
-        
         // Туннель - телепортация
-        if (this.x < -TILE_SIZE / 2) this.x = gameMap[0].length * TILE_SIZE + TILE_SIZE / 2;
-        if (this.x > gameMap[0].length * TILE_SIZE + TILE_SIZE / 2) this.x = -TILE_SIZE / 2;
+        if (this.x < -TILE_SIZE / 2) this.x = MAP_W + TILE_SIZE / 2;
+        else if (this.x > MAP_W + TILE_SIZE / 2) this.x = -TILE_SIZE / 2;
 
-        let centerX = gridPos.c * TILE_SIZE + TILE_SIZE / 2;
-        let centerY = gridPos.r * TILE_SIZE + TILE_SIZE / 2;
+        const gridPos = getGridPos(this.x, this.y);
+        const centerX = gridPos.c * TILE_SIZE + TILE_SIZE / 2;
+        const centerY = gridPos.r * TILE_SIZE + TILE_SIZE / 2;
 
-        // Если находимся точно по центру ячейки (перекресток)
-        if (Math.abs(this.x - centerX) <= this.speed && Math.abs(this.y - centerY) <= this.speed) {
+        // Сколько осталось до центра клетки по ходу движения. Решение на перекрёстке принимается,
+        // только когда центр впереди и достигается на этом шаге (раньше проверка «|x−центр| ≤ скорость»
+        // срабатывала и при выходе из центра — призрак каждый тик возвращался в центр и стоял на месте).
+        const ahead = (centerX - this.x) * this.dir.x + (centerY - this.y) * this.dir.y;
+        let step = this.speed;
+        if (ahead >= 0 && ahead <= this.speed) {
             this.x = centerX;
             this.y = centerY;
-
-            // Выбор следующего направления
-            let validMoves = [];
-            const directions = [DIR.UP, DIR.LEFT, DIR.DOWN, DIR.RIGHT];
-
-            for (let d of directions) {
-                // Призраки не могут разворачиваться на 180 градусов (кроме смены состояний)
-                if (d.x === -this.dir.x && d.y === -this.dir.y) continue;
-
-                let nextC = gridPos.c + d.x;
-                let nextR = gridPos.r + d.y;
-
-                // Проверка стены. Дверь домика - стена для всех, кроме тех, кто съеден или выходит
-                let tileType = (nextR >= 0 && nextR < rawMap.length) ? gameMap[nextR][nextC] : MAP_TYPES.EMPTY;
-                let isBlock = tileType === MAP_TYPES.WALL;
-                
-                if (tileType === MAP_TYPES.GHOST_DOOR && this.state !== GHOST_STATE.EATEN && this.state !== GHOST_STATE.IN_PEN) {
-                    isBlock = true;
-                }
-
-                if (!isBlock) {
-                    validMoves.push(d);
-                }
-            }
-
-            if (validMoves.length > 0) {
-                if (this.state === GHOST_STATE.FRIGHTENED) {
-                    // Случайный выбор при испуге
-                    this.dir = validMoves[Math.floor(Math.random() * validMoves.length)];
-                } else {
-                    // Выбор пути с минимальной дистанцией до цели
-                    let minDistance = Infinity;
-                    let bestMove = validMoves[0];
-
-                    for (let move of validMoves) {
-                        let testC = gridPos.c + move.x;
-                        let testR = gridPos.r + move.y;
-                        let dist = getDistance(testC, testR, this.target.c, this.target.r);
-                        
-                        if (dist < minDistance) {
-                            minDistance = dist;
-                            bestMove = move;
-                        }
-                    }
-                    this.dir = bestMove;
-                }
-            } else if (validMoves.length === 0) {
-                 // Тупик (быть не должно на классической карте, но для безопасности разворот)
-                 this.dir = {x: -this.dir.x, y: -this.dir.y};
-            }
+            step = this.speed - ahead;
+            this.chooseDir(gridPos);
         }
 
         // Движение
-        this.x += this.dir.x * this.speed;
-        this.y += this.dir.y * this.speed;
+        this.x += this.dir.x * step;
+        this.y += this.dir.y * step;
     }
 
-    draw(ctx) {
-        let x = this.x;
-        let y = this.y;
-        let size = TILE_SIZE * 0.8;
-
-        ctx.save();
-        ctx.translate(x, y);
-
-        // Отрисовка тела
-        if (this.state !== GHOST_STATE.EATEN) {
-            if (this.state === GHOST_STATE.FRIGHTENED) {
-                // Мигание перед окончанием испуга
-                if (frightenedTimer < 120 && Math.floor(Date.now() / 200) % 2 === 0) {
-                    ctx.fillStyle = "#FFF"; // Белый
-                } else {
-                    ctx.fillStyle = "#0000FF"; // Синий
-                }
-            } else {
-                ctx.fillStyle = this.color;
-            }
-
-            ctx.beginPath();
-            ctx.arc(0, -size/4, size/2, Math.PI, 0); // Верхняя полусфера
-            
-            // Волнистый низ
-            ctx.lineTo(size/2, size/2);
-            let waveOffset = (Math.floor(Date.now() / 150) % 2 === 0) ? 0 : size/6;
-            ctx.lineTo(size/3, size/2 - waveOffset);
-            ctx.lineTo(size/6, size/2 + waveOffset);
-            ctx.lineTo(-size/6, size/2 - waveOffset);
-            ctx.lineTo(-size/3, size/2 + waveOffset);
-            ctx.lineTo(-size/2, size/2);
-            
-            ctx.closePath();
-            ctx.fill();
+    draw(g) {
+        if (this.state === GHOST_STATE.EATEN) {
+            drawGhostShape(g, this.x, this.y, TILE_SIZE * 0.8, { dir: this.dir, eyesOnly: true });
+            return;
         }
-
-        // Глаза
-        let eyeOffsetX = (this.dir.x * size) / 5;
-        let eyeOffsetY = (this.dir.y * size) / 5;
-
-        // Белки глаз
-        if (this.state !== GHOST_STATE.FRIGHTENED || this.state === GHOST_STATE.EATEN) {
-            ctx.fillStyle = "white";
-            ctx.beginPath(); ctx.arc(-size/4 + eyeOffsetX, -size/6 + eyeOffsetY, size/5, 0, Math.PI*2); ctx.fill();
-            ctx.beginPath(); ctx.arc(size/4 + eyeOffsetX, -size/6 + eyeOffsetY, size/5, 0, Math.PI*2); ctx.fill();
-
-            // Зрачки
-            ctx.fillStyle = "blue";
-            ctx.beginPath(); ctx.arc(-size/4 + eyeOffsetX*1.5, -size/6 + eyeOffsetY*1.5, size/10, 0, Math.PI*2); ctx.fill();
-            ctx.beginPath(); ctx.arc(size/4 + eyeOffsetX*1.5, -size/6 + eyeOffsetY*1.5, size/10, 0, Math.PI*2); ctx.fill();
-        } else {
-            // Глаза при испуге (простые квадратики)
-            ctx.fillStyle = "#FFAA00";
-            ctx.fillRect(-size/3, -size/4, size/5, size/5);
-            ctx.fillRect(size/6, -size/4, size/5, size/5);
-            // Волнистый рот
-            ctx.beginPath();
-            ctx.moveTo(-size/3, size/6);
-            ctx.lineTo(-size/6, 0);
-            ctx.lineTo(0, size/6);
-            ctx.lineTo(size/6, 0);
-            ctx.lineTo(size/3, size/6);
-            ctx.strokeStyle = "#FFAA00";
-            ctx.lineWidth = 1.5;
-            ctx.stroke();
+        let body = this.color, frightened = false, face;
+        if (this.state === GHOST_STATE.FRIGHTENED) {
+            frightened = true;
+            // Мигание перед окончанием испуга
+            const flash = frightenedTimer < 120 && Math.floor(Date.now() / 200) % 2 === 0;
+            body = flash ? '#eef2ff' : FRIGHT_COLOR;
+            face = flash ? '#ff3b5c' : '#ffd2a6';
         }
-
-        ctx.restore();
+        drawGhostShape(g, this.x, this.y, TILE_SIZE * 0.8, { body, dir: this.dir, frightened, face, glow: blur(10) });
     }
 }
 
 // --- ЛОГИКА ИГРЫ ---
-
-function initGame() {
-    canvas = document.getElementById('gameCanvas');
-    ctx = canvas.getContext('2d');
-    
-    // События клавиатуры
-    document.addEventListener('keydown', handleKeyDown);
-
-    // События кнопок (для мобильных)
-    document.getElementById('btn-up').addEventListener('touchstart', (e) => { e.preventDefault(); pacman.nextDir = DIR.UP; });
-    document.getElementById('btn-down').addEventListener('touchstart', (e) => { e.preventDefault(); pacman.nextDir = DIR.DOWN; });
-    document.getElementById('btn-left').addEventListener('touchstart', (e) => { e.preventDefault(); pacman.nextDir = DIR.LEFT; });
-    document.getElementById('btn-right').addEventListener('touchstart', (e) => { e.preventDefault(); pacman.nextDir = DIR.RIGHT; });
-    // Клики мыши для отладки на ПК
-    document.getElementById('btn-up').addEventListener('click', () => pacman.nextDir = DIR.UP);
-    document.getElementById('btn-down').addEventListener('click', () => pacman.nextDir = DIR.DOWN);
-    document.getElementById('btn-left').addEventListener('click', () => pacman.nextDir = DIR.LEFT);
-    document.getElementById('btn-right').addEventListener('click', () => pacman.nextDir = DIR.RIGHT);
-
-    document.getElementById('start-btn').addEventListener('click', () => {
-        document.getElementById('overlay').classList.add('hidden');
-        resetLevel(true);
-    });
-
-    // Отрисовка начального экрана
-    cloneMap();
-    drawMap();
-}
-
-function handleKeyDown(e) {
-    if (gameState !== 'PLAYING') return;
-    switch(e.key) {
-        case 'ArrowUp': case 'w': case 'W': case 'ц': case 'Ц': pacman.nextDir = DIR.UP; break;
-        case 'ArrowDown': case 's': case 'S': case 'ы': case 'Ы': pacman.nextDir = DIR.DOWN; break;
-        case 'ArrowLeft': case 'a': case 'A': case 'ф': case 'Ф': pacman.nextDir = DIR.LEFT; break;
-        case 'ArrowRight': case 'd': case 'D': case 'в': case 'В': pacman.nextDir = DIR.RIGHT; break;
-    }
-}
 
 function resetLevel(fullReset = false) {
     if (fullReset) {
         score = 0;
         lives = 3;
         level = 1;
+        ghostsEatenTotal = 0;
         cloneMap();
-        updateUI();
     }
 
-    pacman = new Pacman();
-    ghosts = [
-        new Ghost('BLINKY', '#FF0000', SPAWN.BLINKY),
-        new Ghost('PINKY', '#FFB8FF', SPAWN.PINKY),
-        new Ghost('INKY', '#00FFFF', SPAWN.INKY),
-        new Ghost('CLYDE', '#FFB852', SPAWN.CLYDE)
-    ];
-
+    // Глобальный режим сбрасываем ДО создания призраков: Блинки берёт его в reset()
     currentModeIndex = 0;
     modeTimer = 0;
     frightenedTimer = 0;
+    ghostsEatenMultiplier = 1;
     gameMode = GHOST_STATE.SCATTER;
-    gameState = 'PLAYING';
 
-    if (animationId) cancelAnimationFrame(animationId);
-    gameLoop();
+    pacman = new Pacman();
+    ghosts = [
+        new Ghost('BLINKY', GHOST_COLORS.BLINKY, SPAWN.BLINKY),
+        new Ghost('PINKY', GHOST_COLORS.PINKY, SPAWN.PINKY),
+        new Ghost('INKY', GHOST_COLORS.INKY, SPAWN.INKY),
+        new Ghost('CLYDE', GHOST_COLORS.CLYDE, SPAWN.CLYDE)
+    ];
+
+    floaters = [];
+    stateTimer = 0;
+    gameState = 'PLAYING';
+    updateUI();
 }
 
 function activateFrightenedMode() {
-    frightenedTimer = 60 * 6; // 6 секунд испуга
+    frightenedTimer = FRIGHT_TICKS;
     ghostsEatenMultiplier = 1;
-    
+
     ghosts.forEach(g => {
         if (g.state !== GHOST_STATE.EATEN && g.state !== GHOST_STATE.IN_PEN) {
             g.state = GHOST_STATE.FRIGHTENED;
             // Призраки меняют направление при испуге
             g.dir = {x: -g.dir.x, y: -g.dir.y};
-            g.lastNode = null; // Заставляем пересчитать путь
         }
     });
 }
@@ -793,18 +775,22 @@ function activateFrightenedMode() {
 function checkCollisions() {
     for (let ghost of ghosts) {
         let dist = getDistance(pacman.x, pacman.y, ghost.x, ghost.y);
-        
+
         if (dist < TILE_SIZE * 0.8) {
             if (ghost.state === GHOST_STATE.FRIGHTENED) {
-                // Съели призрака
+                // Съели призрака: 200 → 400 → 800 → 1600
+                const pts = 200 * ghostsEatenMultiplier;
                 ghost.state = GHOST_STATE.EATEN;
-                score += 200 * ghostsEatenMultiplier;
+                score += pts;
                 ghostsEatenMultiplier *= 2;
+                ghostsEatenTotal++;
+                floaters.push({ x: ghost.x, y: ghost.y, text: String(pts), t: 0 });
                 updateUI();
-                // Небольшая пауза эффекта съедения можно добавить здесь
+                popScore();
             } else if (ghost.state === GHOST_STATE.CHASE || ghost.state === GHOST_STATE.SCATTER) {
-                // Пакман умер
+                // Пакман умер. Выходим: второе привидение в том же кадре не должно отнять ещё одну жизнь
                 killPacman();
+                return;
             }
         }
     }
@@ -813,83 +799,43 @@ function checkCollisions() {
 function killPacman() {
     gameState = 'DEATH';
     pacman.dead = true;
+    pacman.deathFrame = 0;
+    stateTimer = 0;
     lives--;
     updateUI();
-    
-    setTimeout(() => {
-        if (lives > 0) {
-            resetLevel(false);
-        } else {
-            gameOver();
-        }
-    }, 2000);
 }
 
 function checkWin() {
     updateUI();
     if (pelletsEaten >= pelletsTotal) {
         gameState = 'WIN';
-        setTimeout(() => {
-            level++;
-            cloneMap();
-            resetLevel(false);
-        }, 2000);
+        stateTimer = 0;
     }
+}
+
+function nextLevel() {
+    level++;
+    if (level > stats.maxLevel) { stats.maxLevel = level; saveStats(); }
+    cloneMap();
+    resetLevel(false);
+    KuArcade.toast('Уровень ' + level + '!', 'gold', 1600);
 }
 
 function gameOver() {
     gameState = 'GAMEOVER';
-    document.getElementById('overlay-title').innerText = 'ИГРА ОКОНЧЕНА';
-    document.getElementById('start-btn').innerText = 'ИГРАТЬ СНОВА';
-    document.getElementById('overlay').classList.remove('hidden');
+    const isBest = score > stats.best;
+    if (isBest) stats.best = score;
+    saveStats();
+    $('over-best').hidden = !isBest || score === 0;
+    $('over-score').textContent = fmt(score);
+    $('over-level').textContent = level;
+    $('over-ghosts').textContent = ghostsEatenTotal;
+    $('over-record').textContent = fmt(stats.best);
+    show('over');
 }
 
-function updateUI() {
-    document.getElementById('score').innerText = score;
-    document.getElementById('lives').innerText = lives;
-}
-
-// --- ОТРИСОВКА ---
-
-function drawMap() {
-    ctx.fillStyle = 'black';
-    ctx.fillRect(0, 0, canvas.width, canvas.height);
-
-    for (let r = 0; r < gameMap.length; r++) {
-        for (let c = 0; c < gameMap[r].length; c++) {
-            let tile = gameMap[r][c];
-            let x = c * TILE_SIZE;
-            let y = r * TILE_SIZE;
-
-            if (tile === MAP_TYPES.WALL) {
-                // Отрисовка стен в стиле неон
-                ctx.strokeStyle = '#1919A6'; // Классический синий цвет стен
-                ctx.lineWidth = 2;
-                ctx.strokeRect(x, y, TILE_SIZE, TILE_SIZE);
-            } else if (tile === MAP_TYPES.PELLET) {
-                ctx.fillStyle = '#FFB8AE';
-                ctx.beginPath();
-                ctx.arc(x + TILE_SIZE/2, y + TILE_SIZE/2, TILE_SIZE/8, 0, Math.PI*2);
-                ctx.fill();
-            } else if (tile === MAP_TYPES.POWER_PELLET) {
-                // Мигание энерджайзера
-                if (Math.floor(Date.now() / 200) % 2 === 0) {
-                    ctx.fillStyle = '#FFB8AE';
-                    ctx.beginPath();
-                    ctx.arc(x + TILE_SIZE/2, y + TILE_SIZE/2, TILE_SIZE/3.5, 0, Math.PI*2);
-                    ctx.fill();
-                }
-            } else if (tile === MAP_TYPES.GHOST_DOOR) {
-                ctx.fillStyle = 'pink';
-                ctx.fillRect(x, y + TILE_SIZE/2.5, TILE_SIZE, TILE_SIZE/5);
-            }
-        }
-    }
-}
-
-// --- ГЛАВНЫЙ ИГРОВОЙ ЦИКЛ ---
-
-function gameLoop() {
+// Один тик логики (1/60 с)
+function tick() {
     if (gameState === 'PLAYING') {
         // Управление глобальными таймерами
         if (frightenedTimer > 0) {
@@ -908,13 +854,12 @@ function gameLoop() {
                 modeTimer = 0;
                 currentModeIndex++;
                 gameMode = (gameMode === GHOST_STATE.SCATTER) ? GHOST_STATE.CHASE : GHOST_STATE.SCATTER;
-                
+
                 // Разворот призраков при смене глобального режима (классическое правило)
                 ghosts.forEach(g => {
                     if (g.state !== GHOST_STATE.IN_PEN && g.state !== GHOST_STATE.EATEN) {
                         g.state = gameMode;
                         g.dir = {x: -g.dir.x, y: -g.dir.y};
-                        g.lastNode = null; // Заставляем пересчитать путь
                     }
                 });
             }
@@ -922,32 +867,384 @@ function gameLoop() {
 
         pacman.update();
         ghosts.forEach(g => g.update());
-        checkCollisions();
+        // Последнюю точку съели в этом же тике — столкновения уже не считаем
+        if (gameState === 'PLAYING') checkCollisions();
     } else if (gameState === 'DEATH') {
         pacman.update(); // Для анимации смерти
+        if (++stateTimer >= DEATH_TICKS) {
+            if (lives > 0) resetLevel(false);
+            else gameOver();
+        }
+    } else if (gameState === 'WIN') {
+        if (++stateTimer >= WIN_TICKS) nextLevel();
     }
 
-    // Рендер
-    drawMap();
+    for (const f of floaters) f.t++;
+    if (floaters.length) floaters = floaters.filter(f => f.t < 60);
+}
+
+// --- ОТРИСОВКА ---
+const G = { s: 1, px: 1, dpr: 1 };      // s — масштаб поля, px — пикселей экрана на единицу карты
+const blur = n => n * G.px;             // shadowBlur не масштабируется трансформацией — в пикселях экрана
+const mazeCv = document.createElement('canvas');
+const mazeCtx = mazeCv.getContext('2d');
+const tintCv = document.createElement('canvas');
+const tintCtx = tintCv.getContext('2d');
+
+// Статичный слой лабиринта: неоновые контуры стен со свечением (рисуется один раз на размер)
+function buildMaze() {
+    mazeCv.width = canvas.width;
+    mazeCv.height = canvas.height;
+    const m = mazeCtx;
+    const T = TILE_SIZE, half = T / 2;
+    const isW = (c, r) => r >= 0 && r < ROWS && c >= 0 && c < COLS && rawMap[r][c] === MAP_TYPES.WALL;
+    const OUTER = T * 0.64, LINE = 2.2;
+    m.setTransform(G.px, 0, 0, G.px, 0, 0);
+    m.clearRect(0, 0, MAP_W, MAP_H);
+
+    // Форма стен = «трубки» между центрами соседних стеновых клеток + квадраты внутри блоков 2×2
+    function shape(g, width) {
+        g.lineWidth = width; g.lineCap = 'round'; g.lineJoin = 'round';
+        g.beginPath();
+        for (let r = 0; r < ROWS; r++) for (let c = 0; c < COLS; c++) {
+            if (!isW(c, r)) continue;
+            const x = c * T + half, y = r * T + half;
+            g.moveTo(x, y); g.lineTo(x + 0.01, y);
+            if (isW(c + 1, r)) { g.moveTo(x, y); g.lineTo(x + T, y); }
+            if (isW(c, r + 1)) { g.moveTo(x, y); g.lineTo(x, y + T); }
+        }
+        g.stroke();
+        g.beginPath();
+        for (let r = 0; r < ROWS - 1; r++) for (let c = 0; c < COLS - 1; c++)
+            if (isW(c, r) && isW(c + 1, r) && isW(c, r + 1) && isW(c + 1, r + 1)) g.rect(c * T + half, r * T + half, T, T);
+        g.fill();
+    }
+    // 1) залитая форма неоновым цветом со свечением
+    m.save();
+    m.strokeStyle = m.fillStyle = WALL_COLOR;
+    m.shadowColor = WALL_GLOW; m.shadowBlur = 9 * G.px;
+    shape(m, OUTER);
+    m.restore();
+    // 2) вырезаем середину — остаётся контур толщиной LINE
+    m.save();
+    m.globalCompositeOperation = 'destination-out';
+    m.strokeStyle = m.fillStyle = '#000';
+    shape(m, OUTER - LINE * 2);
+    m.restore();
+    // 3) лёгкая стеклянная заливка внутри стен: рисуем непрозрачно на отдельном слое и кладём с прозрачностью,
+    //    иначе перекрытия трубок и квадратов дают «кирпичный» узор
+    tintCv.width = mazeCv.width; tintCv.height = mazeCv.height;
+    tintCtx.setTransform(G.px, 0, 0, G.px, 0, 0);
+    tintCtx.strokeStyle = tintCtx.fillStyle = WALL_COLOR;
+    shape(tintCtx, OUTER - LINE * 2);
+    m.save();
+    m.setTransform(1, 0, 0, 1, 0, 0);
+    m.globalAlpha = 0.11;
+    m.drawImage(tintCv, 0, 0);
+    m.restore();
+    // Дверь домика
+    m.save();
+    m.fillStyle = DOOR_COLOR; m.shadowColor = DOOR_COLOR; m.shadowBlur = 8 * G.px;
+    for (let c = 0; c < COLS; c++) for (let r = 0; r < ROWS; r++)
+        if (rawMap[r][c] === MAP_TYPES.GHOST_DOOR) m.fillRect(c * T, r * T + T / 2.5, T, T / 5);
+    m.restore();
+}
+
+function drawPellets(t) {
+    const T = TILE_SIZE;
+    ctx.fillStyle = PELLET_COLOR;
+    ctx.beginPath();
+    for (let r = 0; r < ROWS; r++) for (let c = 0; c < COLS; c++) {
+        if (gameMap[r][c] !== MAP_TYPES.PELLET) continue;
+        const x = c * T + T / 2, y = r * T + T / 2;
+        ctx.moveTo(x + T / 8, y);
+        ctx.arc(x, y, T / 8, 0, Math.PI * 2);
+    }
+    ctx.fill();
+    // Энерджайзеры — пульсируют и светятся
+    const k = 0.82 + 0.18 * Math.sin(t / 130);
+    ctx.save();
+    ctx.fillStyle = POWER_COLOR; ctx.shadowColor = POWER_COLOR; ctx.shadowBlur = blur(12);
+    for (let r = 0; r < ROWS; r++) for (let c = 0; c < COLS; c++) {
+        if (gameMap[r][c] !== MAP_TYPES.POWER_PELLET) continue;
+        ctx.beginPath();
+        ctx.arc(c * T + T / 2, r * T + T / 2, (T / 3.5) * k, 0, Math.PI * 2);
+        ctx.fill();
+    }
+    ctx.restore();
+}
+
+function render(t) {
+    if (!ctx || !pacman) return;
+    ctx.setTransform(G.px, 0, 0, G.px, 0, 0);
+    ctx.clearRect(0, 0, MAP_W, MAP_H);
+    ctx.fillStyle = 'rgba(4,6,22,.6)';
+    ctx.fillRect(0, 0, MAP_W, MAP_H);
+    ctx.drawImage(mazeCv, 0, 0, MAP_W, MAP_H);
+    // Зачистка уровня — стены мигают
+    if (gameState === 'WIN' && Math.floor(stateTimer / 15) % 2 === 1) {
+        ctx.save(); ctx.globalCompositeOperation = 'lighter'; ctx.drawImage(mazeCv, 0, 0, MAP_W, MAP_H); ctx.restore();
+    }
+    drawPellets(t);
+
     if (!pacman.dead || gameState === 'DEATH') pacman.draw(ctx);
     if (gameState !== 'DEATH') ghosts.forEach(g => g.draw(ctx));
 
-    // Текст при ожидании
-    if (gameState === 'WIN') {
-        ctx.fillStyle = "yellow";
-        ctx.font = "30px Courier New";
-        ctx.textAlign = "center";
-        ctx.fillText("LEVEL CLEARED!", canvas.width/2, canvas.height/2 + 50);
+    // Очки за привидений
+    if (floaters.length) {
+        ctx.save();
+        ctx.font = '400 13px "Russo One", Rubik, sans-serif';
+        ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+        ctx.fillStyle = '#00e5ff'; ctx.shadowColor = '#00e5ff'; ctx.shadowBlur = blur(10);
+        for (const f of floaters) {
+            ctx.globalAlpha = Math.max(0, 1 - f.t / 60);
+            ctx.fillText(f.text, f.x, f.y - f.t * 0.35);
+        }
+        ctx.restore();
     }
 
-    if (gameState !== 'GAMEOVER') {
-        animationId = requestAnimationFrame(gameLoop);
+    if (gameState === 'WIN') {
+        // надпись — в коридоре под домиком, на тёмной плашке, чтобы не сливалась со стенами
+        const text = 'УРОВЕНЬ ПРОЙДЕН!', y = 17 * TILE_SIZE + TILE_SIZE / 2;
+        ctx.save();
+        ctx.font = '400 24px "Russo One", Rubik, sans-serif';
+        ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+        const w = ctx.measureText(text).width + 28;
+        ctx.fillStyle = 'rgba(4,6,22,.88)';
+        ctx.strokeStyle = 'rgba(255,214,10,.55)'; ctx.lineWidth = 1.5;
+        ctx.beginPath();
+        if (ctx.roundRect) ctx.roundRect(MAP_W / 2 - w / 2, y - 19, w, 38, 12); else ctx.rect(MAP_W / 2 - w / 2, y - 19, w, 38);
+        ctx.fill(); ctx.stroke();
+        ctx.fillStyle = '#ffd60a'; ctx.shadowColor = '#ffd60a'; ctx.shadowBlur = blur(14);
+        ctx.fillText(text, MAP_W / 2, y + 1);
+        ctx.restore();
     }
 }
 
-// Запуск инициализации при загрузке
-window.onload = initGame;
+// --- РАЗМЕРЫ ---
+function layout() {
+    const stage = $('stage');
+    if (!stage.clientHeight) return;                     // экран игры скрыт
+    const FRAME = 16, GAP = parseFloat(getComputedStyle(stage).gap) || 12;
+    const pad = $('pad');
+    const padOn = getComputedStyle(pad).display !== 'none';
+    const row = getComputedStyle(stage).flexDirection === 'row';
+    let availW = stage.clientWidth - FRAME, availH = stage.clientHeight - FRAME;
+    if (padOn) {
+        if (row) availW -= pad.offsetWidth + GAP;
+        else availH -= pad.offsetHeight + GAP;
+    }
+    const s = Math.max(0.3, Math.min(availW / MAP_W, availH / MAP_H, 1.25));
+    const w = Math.floor(MAP_W * s), h = Math.floor(MAP_H * s);
+    G.s = w / MAP_W;
+    G.dpr = Math.min(window.devicePixelRatio || 1, 3);
+    G.px = G.s * G.dpr;
+    canvas.style.width = w + 'px';
+    canvas.style.height = h + 'px';
+    canvas.width = Math.round(w * G.dpr);
+    canvas.height = Math.round(h * G.dpr);
+    buildMaze();
+    render(performance.now());
+}
+window.addEventListener('resize', layout);
 
+// --- ЗАСТАВКА В МЕНЮ ---
+const hero = $('hero'), heroCtx = hero.getContext('2d');
+function sizeHero() {
+    const dpr = Math.min(window.devicePixelRatio || 1, 3);
+    const w = hero.clientWidth || 300, h = hero.clientHeight || 46;
+    hero.width = Math.round(w * dpr); hero.height = Math.round(h * dpr);
+    heroCtx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    hero._w = w; hero._h = h; hero._dpr = dpr;
+}
+function drawHero(t) {
+    if (!hero._w) sizeHero();
+    const g = heroCtx, w = hero._w, h = hero._h, y = h / 2, u = Math.min(26, h * 0.56);
+    g.clearRect(0, 0, w, h);
+    const cols = ['BLINKY', 'PINKY', 'INKY', 'CLYDE'];
+    const mouth = 0.2 * Math.PI * (0.5 + 0.5 * Math.sin(t / 90));
+    let x = u * 0.7;
+    cols.forEach(k => { drawGhostShape(g, x, y + 2, u, { body: GHOST_COLORS[k], dir: DIR.RIGHT, glow: 10 * hero._dpr, t }); x += u * 1.25; });
+    x += u * 0.4;
+    drawPacShape(g, x, y, u * 0.55, 0, mouth, 12 * hero._dpr);
+    g.fillStyle = PELLET_COLOR;
+    for (let px = x + u * 1.2; px < w - u * 0.9; px += u * 0.8) { g.beginPath(); g.arc(px, y, 2.6, 0, Math.PI * 2); g.fill(); }
+    g.save(); g.fillStyle = POWER_COLOR; g.shadowColor = POWER_COLOR; g.shadowBlur = 10 * hero._dpr;
+    g.beginPath(); g.arc(w - u * 0.5, y, 6 * (0.85 + 0.15 * Math.sin(t / 130)), 0, Math.PI * 2); g.fill(); g.restore();
+}
+window.addEventListener('resize', () => { hero._w = 0; });
+
+// --- ГЛАВНЫЙ ЦИКЛ: фиксированный шаг логики + отрисовка каждый кадр ---
+let lastT = 0, acc = 0, screen = 'menu';
+function running() {
+    return screen === 'game' && !paused && (gameState === 'PLAYING' || gameState === 'DEATH' || gameState === 'WIN');
+}
+function frame(t) {
+    requestAnimationFrame(frame);
+    let dt = lastT ? t - lastT : 0;
+    lastT = t;
+    if (dt > 250) dt = 250;                 // после сна вкладки не «догоняем» секунды
+    if (running()) {
+        acc += dt;
+        let n = 0;
+        // допуск 1 мс: на 60 Гц кадры приходят чуть раньше/позже 16.67 мс — без него бывает «0 тиков, затем 2»
+        while (acc >= STEP_MS - 1 && n < 10) { tick(); acc -= STEP_MS; n++; }
+        if (n === 10) acc = 0;
+    } else acc = 0;
+    if (screen === 'game' && !paused) render(t);
+    else if (screen === 'menu') drawHero(t);
+}
+
+// --- ИНТЕРФЕЙС ---
+let stats = loadStats();
+function loadStats() {
+    try {
+        const o = JSON.parse(localStorage.getItem('pacman_stats') || '{}') || {};
+        return { best: o.best | 0, games: o.games | 0, maxLevel: Math.max(1, o.maxLevel | 0) };
+    } catch (e) { return { best: 0, games: 0, maxLevel: 1 }; }
+}
+function saveStats() { try { localStorage.setItem('pacman_stats', JSON.stringify(stats)); } catch (e) {} }
+
+const LIFE_SVG = '<svg viewBox="0 0 20 20"><path d="M10 10 L18.66 5 A10 10 0 1 0 18.66 15 Z" fill="#ffd60a"/></svg>';
+let shownLives = -1;
+function updateUI() {
+    $('score').textContent = fmt(score);
+    $('best').textContent = fmt(Math.max(stats.best, score));
+    $('top-level').textContent = level;
+    if (shownLives !== lives) {
+        shownLives = lives;
+        $('lives').innerHTML = lives > 0 ? LIFE_SVG.repeat(lives) : '0';
+    }
+}
+function popScore() {
+    const b = $('score');
+    b.classList.remove('pop'); void b.offsetWidth; b.classList.add('pop');
+}
+function refreshMenu() {
+    $('menu-best').textContent = 'Рекорд: ' + fmt(stats.best);
+    $('menu-stats').textContent = 'Сыграно игр: ' + stats.games + ' • Лучший уровень: ' + stats.maxLevel;
+}
+
+const show = id => $(id).classList.add('open');
+const hide = id => $(id).classList.remove('open');
+const anyOverlay = () => document.querySelector('.ku-overlay.open') !== null;
+
+function showScreen(name) {
+    screen = name;
+    $('screen-menu').classList.toggle('active', name === 'menu');
+    $('screen-game').classList.toggle('active', name === 'game');
+    if (name === 'menu') { refreshMenu(); hero._w = 0; }
+}
+
+function startGame() {
+    ['pause', 'over', 'rules'].forEach(hide);
+    paused = false;
+    stats.games++;
+    saveStats();
+    showScreen('game');
+    resetLevel(true);
+    shownLives = -1;
+    updateUI();
+    layout();
+}
+
+function pauseGame() {
+    if (screen !== 'game' || paused || gameState === 'GAMEOVER' || anyOverlay()) return;
+    paused = true;
+    show('pause');
+}
+function resumeGame() {
+    hide('pause');
+    paused = false;
+    lastT = 0;
+}
+function toMenu() {
+    // рекорд засчитываем и при выходе из партии
+    if (score > stats.best) { stats.best = score; saveStats(); }
+    ['pause', 'over', 'rules'].forEach(hide);
+    paused = false;
+    gameState = 'START';
+    showScreen('menu');
+}
+
+let rulesReturn = null;
+$('btn-play').onclick = startGame;
+$('btn-again').onclick = startGame;
+$('btn-restart').onclick = () => { if (score > stats.best) { stats.best = score; saveStats(); } startGame(); };
+$('btn-pause').onclick = pauseGame;
+$('pad-pause').addEventListener('pointerdown', e => { e.preventDefault(); pauseGame(); });
+$('btn-resume').onclick = resumeGame;
+$('btn-quit').onclick = toMenu;
+$('btn-over-menu').onclick = toMenu;
+$('btn-rules').onclick = () => { rulesReturn = null; show('rules'); };
+$('btn-rules2').onclick = () => { rulesReturn = 'pause'; hide('pause'); show('rules'); };
+$('btn-rules-ok').onclick = $('btn-rules-x').onclick = () => { hide('rules'); if (rulesReturn) show(rulesReturn); };
+
+// Вкладка/приложение свернули — ставим на паузу
+document.addEventListener('visibilitychange', () => { if (document.hidden && running()) pauseGame(); });
+
+// --- УПРАВЛЕНИЕ ---
+function steer(d) {
+    if (screen !== 'game' || paused || !pacman || gameState !== 'PLAYING') return;
+    pacman.nextDir = d;
+}
+
+const KEY_DIR = {
+    ArrowUp: DIR.UP, w: DIR.UP, W: DIR.UP, 'ц': DIR.UP, 'Ц': DIR.UP,
+    ArrowDown: DIR.DOWN, s: DIR.DOWN, S: DIR.DOWN, 'ы': DIR.DOWN, 'Ы': DIR.DOWN,
+    ArrowLeft: DIR.LEFT, a: DIR.LEFT, A: DIR.LEFT, 'ф': DIR.LEFT, 'Ф': DIR.LEFT,
+    ArrowRight: DIR.RIGHT, d: DIR.RIGHT, D: DIR.RIGHT, 'в': DIR.RIGHT, 'В': DIR.RIGHT
+};
+document.addEventListener('keydown', e => {
+    const k = e.key;
+    if (screen !== 'game') {
+        if (k === 'Escape' && $('rules').classList.contains('open')) $('btn-rules-ok').click();
+        return;
+    }
+    if (k === 'p' || k === 'P' || k === 'з' || k === 'З' || k === 'Escape') {
+        e.preventDefault();
+        if ($('rules').classList.contains('open')) { $('btn-rules-ok').click(); return; }
+        if (paused) resumeGame(); else pauseGame();
+        return;
+    }
+    const d = KEY_DIR[k];
+    if (d) { e.preventDefault(); steer(d); }
+});
+
+// Экранная крестовина: реагирует сразу на касание
+document.querySelectorAll('#pad button[data-d]').forEach(b => {
+    const d = DIR[b.dataset.d];
+    b.addEventListener('pointerdown', e => { e.preventDefault(); b.classList.add('pressed'); steer(d); });
+    const up = () => b.classList.remove('pressed');
+    b.addEventListener('pointerup', up);
+    b.addEventListener('pointercancel', up);
+    b.addEventListener('pointerleave', up);
+});
+
+// Свайпы по игровому экрану (кроме кнопок): каждые ~18px движения — новое направление
+let swipe = null;
+$('screen-game').addEventListener('pointerdown', e => {
+    if (e.target.closest('button')) return;
+    swipe = { id: e.pointerId, x: e.clientX, y: e.clientY };
+});
+$('screen-game').addEventListener('pointermove', e => {
+    if (!swipe || e.pointerId !== swipe.id) return;
+    const dx = e.clientX - swipe.x, dy = e.clientY - swipe.y;
+    if (Math.max(Math.abs(dx), Math.abs(dy)) < 18) return;
+    steer(Math.abs(dx) > Math.abs(dy) ? (dx > 0 ? DIR.RIGHT : DIR.LEFT) : (dy > 0 ? DIR.DOWN : DIR.UP));
+    swipe.x = e.clientX; swipe.y = e.clientY;
+});
+const endSwipe = e => { if (swipe && e.pointerId === swipe.id) swipe = null; };
+$('screen-game').addEventListener('pointerup', endSwipe);
+$('screen-game').addEventListener('pointercancel', endSwipe);
+
+// --- ЗАПУСК ---
+canvas = $('gameCanvas');
+ctx = canvas.getContext('2d');
+cloneMap();
+refreshMenu();
+requestAnimationFrame(frame);
+if (document.fonts && document.fonts.ready) document.fonts.ready.then(() => { hero._w = 0; });
 </script>
 </body>
 </html>

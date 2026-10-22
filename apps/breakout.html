@@ -1,292 +1,197 @@
 <!DOCTYPE html>
 <html lang="ru">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Арканоид PRO — Неоновый Разрушитель</title>
-    <style>
-        :root {
-            --bg: #050508;
-            --ui-bg: rgba(8, 8, 14, 0.92);
-            --primary: #00e5a0;
-            --accent: #5b8cff;
-            --gold: #ffd700;
-            --danger: #ff4466;
-            --text: #f0f0f8;
-            --text-dim: #8888aa;
-        }
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+<title>Арканоид PRO</title>
+<link rel="stylesheet" href="ku-arcade.css">
+<script src="ku-arcade.js"></script>
+<style>
+  html,body{height:100%;overflow:hidden}
+  #screen-game,#screen-game *{touch-action:none}
+  #screen-game .ku-hud{margin-bottom:8px}
+  #wrap{flex:1;min-height:0;width:100%;display:flex;align-items:center;justify-content:center}
+  #board{line-height:0}
+  #lives-val{letter-spacing:1px}
+  /* телефон в ландшафте: показатели — колонкой слева (ниже кнопки «←» платформы), поле — выше */
+  @media (orientation:landscape) and (max-height:500px){
+    #screen-game .ku-hud{position:absolute;left:max(14px,env(safe-area-inset-left,0px));top:72px;flex-direction:column;margin:0}
+  }
 
-        * { box-sizing: border-box; margin: 0; padding: 0; user-select: none; touch-action: none; }
+  /* Бонус — тот же ромб с буквой, что падает на поле */
+  .pu{display:inline-flex;align-items:center;justify-content:center;width:14px;height:14px;margin:0 8px 0 2px;border-radius:3px;flex:none;
+    transform:rotate(45deg);background:var(--c);box-shadow:0 0 8px var(--c);vertical-align:middle;font-style:normal}
+  .pu b{transform:rotate(-45deg);font:400 8px/1 var(--font-display);color:#041018}
+  .ku-pills span{display:inline-flex;align-items:center}
+  .ku-rules .pu{margin-left:0;vertical-align:-2px}
 
-        body {
-            background: var(--bg); color: var(--text);
-            font-family: 'JetBrains Mono', 'Courier New', monospace;
-            display: flex; flex-direction: column; align-items: center; justify-content: center;
-            height: 100dvh; overflow: hidden;
-        }
+  /* Выбор сектора */
+  #sector-pick{display:none}
+  .sectors{display:grid;grid-template-columns:repeat(4,1fr);gap:9px;width:min(340px,88vw)}
+  .sector{aspect-ratio:1;border-radius:12px;border:1px solid rgba(255,255,255,.08);background:rgba(255,255,255,.04);color:var(--text);
+    font:400 19px/1 var(--font-display);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px;cursor:pointer;
+    box-shadow:inset 0 1px 0 rgba(255,255,255,.06);transition:transform .15s,border-color .2s,box-shadow .2s}
+  .sector small{font:400 10px/1 var(--font-body);letter-spacing:1px;color:rgba(255,255,255,.16)}
+  .sector small i{font-style:normal;color:var(--gold);text-shadow:0 0 8px rgba(255,214,10,.5)}
+  .sector.done{border-color:color-mix(in srgb,var(--accent) 40%,transparent);background:color-mix(in srgb,var(--accent) 8%,transparent)}
+  .sector.next{border-color:var(--gold);color:var(--gold);box-shadow:0 0 16px rgba(255,214,10,.3),inset 0 1px 0 rgba(255,255,255,.06)}
+  .sector:disabled{opacity:.32;cursor:default}
+  @media (hover:hover){.sector:not(:disabled):hover{transform:translateY(-2px);border-color:var(--accent);box-shadow:0 0 14px color-mix(in srgb,var(--accent) 35%,transparent)}}
+  .sector:not(:disabled):active{transform:scale(.95)}
 
-        #game-container {
-            position: relative; width: 100%; max-width: 600px; height: 100%;
-            display: flex; flex-direction: column;
-            box-shadow: 0 0 60px rgba(0, 229, 160, 0.06);
-        }
-
-        canvas { display: block; width: 100%; flex-grow: 1; background: radial-gradient(circle at center, #111118 0%, #050508 100%); }
-
-        /* === HUD === */
-        .hud {
-            position: absolute; top: 0; left: 0; right: 0;
-            display: flex; justify-content: space-between; align-items: center;
-            padding: 10px 16px; pointer-events: none; z-index: 10;
-            background: linear-gradient(to bottom, rgba(5,5,8,0.8) 0%, transparent 100%);
-        }
-        .hud-box { display: flex; flex-direction: column; align-items: center; }
-        .hud-val {
-            font-size: 1.5rem; font-weight: 900; line-height: 1;
-            text-shadow: 0 0 10px currentColor; color: var(--primary);
-            transition: transform 0.15s cubic-bezier(0.34, 1.56, 0.64, 1);
-        }
-        .hud-val.pop { transform: scale(1.3); }
-        .hud-lbl { font-size: 0.5rem; letter-spacing: 0.15em; color: var(--text-dim); margin-top: 2px; text-transform: uppercase; }
-
-        .hud-center .hud-val { color: #fff; font-size: 0.9rem; text-shadow: 0 0 8px rgba(255,255,255,0.5); }
-        .hud-right { align-items: flex-end; }
-        .hud-right .hud-val { color: var(--danger); font-size: 1.2rem; }
-
-        /* Progress bar */
-        .progress-bar {
-            position: absolute; top: 0; left: 0; right: 0; height: 3px;
-            background: rgba(255,255,255,0.04); z-index: 11; pointer-events: none;
-        }
-        .progress-fill {
-            height: 100%; width: 0%;
-            background: linear-gradient(90deg, var(--primary), var(--accent));
-            box-shadow: 0 0 10px var(--primary); transition: width 0.3s ease;
-        }
-
-        /* Combo display */
-        .combo-display {
-            position: absolute; top: 50px; left: 50%; transform: translateX(-50%);
-            font-size: 1.2rem; font-weight: 900; color: var(--gold);
-            text-shadow: 0 0 15px rgba(255, 215, 0, 0.6);
-            pointer-events: none; z-index: 12; opacity: 0;
-            transition: opacity 0.3s, transform 0.3s;
-        }
-        .combo-display.visible { opacity: 1; transform: translateX(-50%) scale(1.1); }
-
-        /* === OVERLAYS === */
-        .overlay {
-            position: absolute; inset: 0; background: var(--ui-bg); backdrop-filter: blur(8px);
-            display: flex; flex-direction: column; align-items: center; justify-content: center;
-            z-index: 50; opacity: 0; pointer-events: none; transition: opacity 0.35s ease;
-        }
-        .overlay.active { opacity: 1; pointer-events: auto; }
-
-        .menu-title {
-            font-size: 2.4rem; font-weight: 900; margin-bottom: 8px; text-align: center;
-            background: linear-gradient(135deg, #00e5a0, #5b8cff, #ff8c42);
-            background-size: 200% 200%;
-            -webkit-background-clip: text; -webkit-text-fill-color: transparent;
-            filter: drop-shadow(0 0 15px rgba(0,229,160,0.4));
-            animation: gradientShift 3s ease infinite;
-        }
-        @keyframes gradientShift { 0%,100%{background-position:0% 50%;} 50%{background-position:100% 50%;} }
-
-        .menu-subtitle {
-            font-size: 0.75rem; color: var(--text-dim); margin-bottom: 28px;
-            text-align: center; max-width: 85%; line-height: 1.6;
-        }
-
-        .btn {
-            background: transparent; color: #fff; border: 2px solid var(--primary);
-            padding: 13px 36px; border-radius: 12px; font-size: 0.95rem; font-weight: 700;
-            font-family: inherit; cursor: pointer; margin-bottom: 12px; width: 82%; max-width: 260px;
-            transition: all 0.25s; text-transform: uppercase; letter-spacing: 0.12em;
-            position: relative; overflow: hidden;
-        }
-        .btn::before {
-            content: ''; position: absolute; top: 0; left: -100%; width: 100%; height: 100%;
-            background: linear-gradient(90deg, transparent, rgba(255,255,255,0.15), transparent);
-            transition: left 0.6s;
-        }
-        .btn:hover::before { left: 100%; }
-        .btn:active { transform: scale(0.96); }
-        .btn-primary { background: var(--primary); color: #000; box-shadow: 0 0 25px rgba(0, 229, 160, 0.35); }
-        .btn-primary:hover { box-shadow: 0 0 35px rgba(0, 229, 160, 0.55); }
-        .btn-gold { border-color: var(--gold); color: var(--gold); }
-        .btn-gold:hover { background: rgba(255,215,0,0.1); }
-        .btn-danger { border-color: var(--danger); color: var(--danger); }
-        .btn-danger:hover { background: rgba(255,68,102,0.1); }
-
-        #btn-pause {
-            position: absolute; bottom: 16px; right: 16px; width: 42px; height: 42px; border-radius: 50%;
-            background: rgba(255,255,255,0.08); border: 1px solid rgba(255,255,255,0.15);
-            color: #fff; font-size: 1.1rem; display: flex; align-items: center; justify-content: center;
-            cursor: pointer; z-index: 20; backdrop-filter: blur(4px); transition: background 0.2s;
-        }
-        #btn-pause:hover { background: rgba(255,255,255,0.15); }
-
-        /* Level Grid */
-        .level-grid {
-            display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px;
-            width: 90%; max-width: 360px; max-height: 55vh; overflow-y: auto;
-            margin-bottom: 16px; padding: 4px;
-        }
-        .level-grid::-webkit-scrollbar { width: 5px; }
-        .level-grid::-webkit-scrollbar-track { background: rgba(0,0,0,0.2); border-radius: 3px; }
-        .level-grid::-webkit-scrollbar-thumb { background: var(--primary); border-radius: 3px; }
-
-        .level-cell {
-            aspect-ratio: 1; border-radius: 10px; display: flex; flex-direction: column;
-            align-items: center; justify-content: center; font-size: 1rem; font-weight: 700;
-            cursor: pointer; transition: all 0.2s; border: 2px solid transparent;
-            background: rgba(255,255,255,0.04); color: var(--text-dim); position: relative;
-        }
-        .level-cell .stars-row { font-size: 0.55rem; margin-top: 2px; }
-        .level-cell .stars-row .s-on { color: var(--gold); }
-        .level-cell .stars-row .s-off { color: #333; }
-
-        .level-cell.unlocked {
-            border-color: rgba(0,229,160,0.3); background: rgba(0,229,160,0.06); color: var(--text);
-        }
-        .level-cell.unlocked:hover {
-            border-color: var(--primary); background: rgba(0,229,160,0.15);
-            box-shadow: 0 0 15px rgba(0,229,160,0.3); transform: scale(1.06);
-        }
-        .level-cell.locked { opacity: 0.3; cursor: not-allowed; }
-        .level-cell.current {
-            border-color: var(--gold); background: rgba(255,215,0,0.08);
-            animation: currentPulse 1.5s ease infinite;
-        }
-        @keyframes currentPulse {
-            0%,100%{box-shadow:0 0 5px rgba(255,215,0,0.2);}
-            50%{box-shadow:0 0 20px rgba(255,215,0,0.5);}
-        }
-
-        /* Stars overlay for level complete */
-        .stars-container { display: flex; gap: 8px; margin: 8px 0 12px; }
-        .star-icon { font-size: 2rem; color: #333; transition: all 0.4s cubic-bezier(0.34, 1.56, 0.64, 1); }
-        .star-icon.lit { color: var(--gold); text-shadow: 0 0 12px rgba(255,215,0,0.6); transform: scale(1.1); }
-
-        /* Power-up legend */
-        .powerup-legend {
-            display: grid; grid-template-columns: 1fr 1fr; gap: 8px;
-            margin-top: 16px; font-size: 0.7rem; text-align: left;
-        }
-        .powerup-legend div { display: flex; align-items: center; gap: 6px; }
-        .legend-icon { width: 14px; height: 14px; border-radius: 50%; display: inline-block; }
-
-        .controls-info {
-            font-size: 0.7rem; color: var(--text-dim); margin-top: 16px;
-            border-top: 1px solid rgba(255,255,255,0.08); padding-top: 16px; text-align: center; line-height: 1.6;
-        }
-
-        /* Scanlines */
-        #game-container::after {
-            content: " "; display: block; position: absolute; inset: 0;
-            background: linear-gradient(rgba(18,16,16,0) 50%, rgba(0,0,0,0.15) 50%);
-            z-index: 5; background-size: 100% 3px; pointer-events: none; mix-blend-mode: overlay; opacity: 0.25;
-        }
-
-        /* Floating text */
-        .float-text {
-            position: absolute; font-weight: 900; pointer-events: none; z-index: 25;
-            animation: floatUp 0.8s ease-out forwards; text-shadow: 0 2px 6px rgba(0,0,0,0.6);
-        }
-        @keyframes floatUp {
-            0% { opacity: 1; transform: translateY(0) scale(1); }
-            100% { opacity: 0; transform: translateY(-45px) scale(1.3); }
-        }
-    </style>
+  /* Звёзды в окне «Сектор очищен» */
+  .stars{display:flex;justify-content:center;gap:12px;font-size:36px;line-height:1;margin:2px 0}
+  .stars span{color:rgba(255,255,255,.13);transition:color .3s,text-shadow .3s,transform .4s cubic-bezier(.34,1.56,.64,1)}
+  .stars span.lit{color:var(--gold);text-shadow:0 0 18px rgba(255,214,10,.6);transform:scale(1.15)}
+</style>
 </head>
-<body>
+<body class="ku">
+<main class="ku-app">
 
-<div id="game-container">
-    <div class="progress-bar"><div class="progress-fill" id="progress-fill"></div></div>
-
-    <div class="hud" id="hud" style="display:none;">
-        <div class="hud-box">
-            <div class="hud-val" id="score-val">0</div>
-            <div class="hud-lbl">СЧЁТ</div>
-        </div>
-        <div class="hud-box hud-center">
-            <div class="hud-val" id="lvl-val">УР 1</div>
-            <div class="hud-lbl" id="lvl-desc">Начало</div>
-        </div>
-        <div class="hud-box hud-right">
-            <div class="hud-val" id="lives-val">❤️❤️❤️</div>
-            <div class="hud-lbl">ЖИЗНИ</div>
-        </div>
+  <!-- ═══ МЕНЮ ═══ -->
+  <section id="screen-menu" class="ku-screen menu active">
+    <h1 class="ku-logo">АРКАНОИД</h1>
+    <p class="ku-tagline">PRO • 16 секторов • Бонусы • Рекорды</p>
+    <div class="ku-pills">
+      <span><i class="pu" style="--c:#51f58b"><b>E</b></i>Расширение</span>
+      <span><i class="pu" style="--c:#5b8cff"><b>M</b></i>Мультибол</span>
+      <span><i class="pu" style="--c:#ffd60a"><b>S</b></i>Замедление</span>
+      <span><i class="pu" style="--c:#ff5d7d"><b>L</b></i>Лазер</span>
     </div>
 
-    <div class="combo-display" id="combo-display">COMBO ×3</div>
-    <button id="btn-pause" style="display:none;">⏸</button>
-
-    <canvas id="c"></canvas>
-
-    <!-- Main Menu -->
-    <div class="overlay active" id="menu-main">
-        <div class="menu-title">АРКАНОИД PRO</div>
-        <div class="menu-subtitle">Разрушь 16 секторов неоновых блоков.<br>Лови бонусы. Не дай мячу упасть.</div>
-        <button class="btn btn-primary" id="btn-campaign">🎮 Кампания</button>
-        <button class="btn" id="btn-endless">♾️ Бесконечный</button>
-        <div class="powerup-legend">
-            <div><span class="legend-icon" style="background:#00e5a0;"></span> Расширение</div>
-            <div><span class="legend-icon" style="background:#5b8cff;"></span> Мультибол</div>
-            <div><span class="legend-icon" style="background:#ffd700;"></span> Замедление</div>
-            <div><span class="legend-icon" style="background:#ff4466;"></span> Лазер</div>
-        </div>
-        <div class="controls-info">
-            Мышь / Свайп / Стрелки — движение<br>
-            Тап / Клик / Пробел — запуск мяча
-        </div>
+    <div class="ku-menu-btns" id="main-btns">
+      <button class="ku-btn big primary" id="btn-campaign">🎮 Кампания<span class="best" id="best-campaign">16 секторов</span></button>
+      <button class="ku-btn big accent2" id="btn-endless">♾️ Бесконечный<span class="best" id="best-endless">Рекорд: 0</span></button>
+    </div>
+    <div class="ku-menu-btns" id="sector-pick">
+      <div class="ku-label">Выберите сектор</div>
+      <div class="sectors" id="level-grid"></div>
+      <button class="ku-btn ghost" id="btn-levels-back">← Назад</button>
     </div>
 
-    <!-- Level Select -->
-    <div class="overlay" id="menu-levels">
-        <div class="menu-title" style="font-size:1.5rem;">ВЫБОР СЕКТОРА</div>
-        <div class="level-grid" id="level-grid"></div>
-        <button class="btn btn-danger" id="btn-levels-back" style="max-width:180px; padding:10px 20px; font-size:0.8rem;">Назад</button>
+    <div class="ku-menu-row">
+      <button class="ku-btn ghost" id="btn-sectors">🗺️ Секторы</button>
+      <button class="ku-btn ghost" id="btn-rules">📖 Правила</button>
     </div>
+    <div class="ku-menu-stats" id="menu-stats"></div>
+    <div class="ku-menu-hint">Мышь или ← → — ракетка · клик / пробел — запуск мяча · P — пауза<br>На телефоне: ведите пальцем по полю, тап — запуск</div>
+  </section>
 
-    <!-- Pause -->
-    <div class="overlay" id="menu-pause">
-        <div class="menu-title" style="color:#fff; font-size:1.6rem;">ПАУЗА</div>
-        <button class="btn btn-primary" id="btn-resume">▶ Продолжить</button>
-        <button class="btn btn-danger" id="btn-quit">🏠 В меню</button>
+  <!-- ═══ ИГРА ═══ -->
+  <section id="screen-game" class="ku-screen fit">
+    <header class="ku-top">
+      <div class="ku-top-left"></div>
+      <div class="ku-top-title"><div class="t" id="game-title">СЕКТОР 1 / 16</div><div class="s" id="game-sub">ПЕРВЫЙ КОНТАКТ</div></div>
+      <div class="ku-top-actions">
+        <button class="ku-btn icon" id="btn-pause" aria-label="Пауза"><svg viewBox="0 0 24 24"><line x1="9" y1="5" x2="9" y2="19"/><line x1="15" y1="5" x2="15" y2="19"/></svg></button>
+      </div>
+    </header>
+    <div class="ku-hud">
+      <div class="ku-stat"><span>Очки</span><b id="score-val">0</b></div>
+      <div class="ku-stat bad"><span>Жизни</span><b id="lives-val">♥♥♥</b></div>
+      <div class="ku-stat c2"><span>Блоки</span><b id="bricks-val">0</b></div>
     </div>
+    <div id="wrap"><div class="ku-board" id="board"><canvas id="c"></canvas></div></div>
+  </section>
+</main>
 
-    <!-- Level Complete -->
-    <div class="overlay" id="menu-level-up">
-        <div class="menu-title" style="font-size:1.4rem; color:var(--primary);">СЕКТОР ОЧИЩЕН!</div>
-        <div class="stars-container" id="stars-container">
-            <span class="star-icon" id="star-1">★</span>
-            <span class="star-icon" id="star-2">★</span>
-            <span class="star-icon" id="star-3">★</span>
-        </div>
-        <div class="menu-subtitle" id="lvl-stats">Бонус: +1500</div>
-        <button class="btn btn-primary" id="btn-next-level">Следующий сектор →</button>
-        <button class="btn btn-gold" id="btn-replay-level" style="max-width:200px; padding:10px 20px; font-size:0.8rem;">🔄 Повторить</button>
+<!-- ═══ ПРАВИЛА ═══ -->
+<div class="ku-overlay" id="menu-rules">
+  <div class="ku-modal">
+    <header><h2>📖 Правила</h2><button class="ku-btn icon" id="btn-rules-x" aria-label="Закрыть">✕</button></header>
+    <div class="ku-body">
+      <h3>Цель</h3>
+      <ul class="ku-rules">
+        <li>Отбивайте мяч ракеткой и <b>разбейте все цветные блоки</b> сектора.</li>
+        <li>Цифра на блоке — сколько ударов ему осталось. <b>Стальные</b> серые блоки не разбиваются, мяч от них отскакивает.</li>
+        <li>Жизнь теряется, когда упали <b>все</b> мячи. Каждый разбитый блок чуть ускоряет мяч.</li>
+        <li><b>Комбо:</b> блоки, разбитые подряд (без паузы больше 2 с), умножают очки — до ×5.</li>
+      </ul>
+      <h3>Бонусы</h3>
+      <ul class="ku-rules">
+        <li><i class="pu" style="--c:#51f58b"><b>E</b></i><b>Расширение</b> — ракетка шире на 12 с.</li>
+        <li><i class="pu" style="--c:#5b8cff"><b>M</b></i><b>Мультибол</b> — ещё два мяча.</li>
+        <li><i class="pu" style="--c:#ffd60a"><b>S</b></i><b>Замедление</b> — мячи летят медленнее.</li>
+        <li><i class="pu" style="--c:#ff5d7d"><b>L</b></i><b>Лазер</b> — 12 с ракетка стреляет сама.</li>
+        <li><i class="pu" style="--c:#ff9f43"><b>★</b></i><b>Золото</b> — +500 очков (в особых секторах).</li>
+      </ul>
+      <h3>Режимы</h3>
+      <ul class="ku-rules">
+        <li><b>Кампания:</b> 16 секторов, на каждый — 3 жизни. Звёзды — за оставшиеся жизни; следующий сектор открывается после прохождения.</li>
+        <li><b>Бесконечный:</b> 5 жизней на всю игру, очки копятся, секторы идут по кругу, и с каждым кругом мяч быстрее.</li>
+      </ul>
+      <h3>Управление</h3>
+      <ul class="ku-rules">
+        <li>Мышь или ← → — ракетка, клик или пробел — запуск мяча, P / Esc — пауза.</li>
+        <li>На телефоне: ведите пальцем по полю, тап — запуск.</li>
+      </ul>
     </div>
-
-    <!-- Game Over -->
-    <div class="overlay" id="menu-game-over">
-        <div class="menu-title" style="font-size:1.4rem; color:var(--danger);" id="go-title">РАЗРУШЕН</div>
-        <div class="menu-subtitle" id="go-desc">Счёт: 0</div>
-        <button class="btn btn-primary" id="btn-restart">🔄 Повторить</button>
-        <button class="btn btn-danger" id="btn-go-menu">🏠 В меню</button>
-    </div>
+    <footer><button class="ku-btn primary" id="btn-rules-close">Понятно</button></footer>
+  </div>
 </div>
 
+<!-- ═══ ПАУЗА ═══ -->
+<div class="ku-overlay" id="menu-pause">
+  <div class="ku-card">
+    <h2>⏸ ПАУЗА</h2>
+    <button class="ku-btn primary" id="btn-resume">Продолжить</button>
+    <button class="ku-btn" id="btn-pause-restart">Заново</button>
+    <button class="ku-btn" id="btn-pause-rules">📖 Правила</button>
+    <button class="ku-btn ghost" id="btn-quit">В меню</button>
+  </div>
+</div>
+
+<!-- ═══ СЕКТОР ОЧИЩЕН ═══ -->
+<div class="ku-overlay" id="menu-level-up">
+  <div class="ku-card">
+    <h2 class="win" id="lu-title">СЕКТОР ОЧИЩЕН!</h2>
+    <div class="stars" id="stars-container"><span id="star-1">★</span><span id="star-2">★</span><span id="star-3">★</span></div>
+    <div class="ku-big-score" id="lu-score">0</div>
+    <div class="ku-over-stats" id="lu-stats"></div>
+    <button class="ku-btn primary" id="btn-next-level">Следующий сектор →</button>
+    <button class="ku-btn" id="btn-replay-level">🔄 Повторить</button>
+    <button class="ku-btn ghost" id="btn-lu-menu">В меню</button>
+  </div>
+</div>
+
+<!-- ═══ КОНЕЦ ИГРЫ ═══ -->
+<div class="ku-overlay" id="menu-game-over">
+  <div class="ku-card">
+    <h2 class="lose" id="go-title">ИГРА ОКОНЧЕНА</h2>
+    <div class="ku-new-best" id="go-best" hidden>🏆 НОВЫЙ РЕКОРД!</div>
+    <div class="ku-big-score" id="go-score">0</div>
+    <div class="ku-over-stats" id="go-stats"></div>
+    <button class="ku-btn primary" id="btn-restart">Играть снова</button>
+    <button class="ku-btn ghost" id="btn-go-menu">В меню</button>
+  </div>
+</div>
+
+<div class="ku-toast" id="toast"></div>
+
 <script>
+'use strict';
+const $ = id => document.getElementById(id);
+const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
+const fmt = n => Math.round(n).toLocaleString('ru-RU');
+
+/* localStorage может быть недоступен (приватный режим, песочница iframe) или повреждён */
+function loadJSON(key) {
+    try { const v = JSON.parse(localStorage.getItem(key) || '{}'); return v && typeof v === 'object' ? v : {}; } catch (e) { return {}; }
+}
+function saveJSON(key, v) { try { localStorage.setItem(key, JSON.stringify(v)); } catch (e) {} }
+function loadNum(key) { try { return Math.max(0, parseInt(localStorage.getItem(key), 10) || 0); } catch (e) { return 0; } }
+function saveNum(key, n) { try { localStorage.setItem(key, String(n)); } catch (e) {} }
+
 /**
  * AUDIO — Web Audio API
  */
 const AudioSys = {
     ctx: null,
     init() {
-        if (!this.ctx) this.ctx = new (window.AudioContext || window.webkitAudioContext)();
-        if (this.ctx.state === 'suspended') this.ctx.resume();
+        try {
+            if (!this.ctx) this.ctx = new (window.AudioContext || window.webkitAudioContext)();
+            if (this.ctx.state === 'suspended') this.ctx.resume();
+        } catch (e) {}
     },
     tone(freq, type, dur, vol=0.5, slide=null) {
         if(!this.ctx) return;
@@ -322,18 +227,41 @@ const AudioSys = {
         win: () => { [523,659,784,1047].forEach((f,i) => setTimeout(()=>AudioSys.tone(f,'square',0.2,0.25), i*130)); }
     }
 };
-const vibrate = ms => navigator.vibrate && navigator.vibrate(ms);
+const vibrate = ms => { try { if (navigator.vibrate && (!navigator.userActivation || navigator.userActivation.hasBeenActive)) navigator.vibrate(ms); } catch (e) {} };
 
 /**
- * THEMES — визуальные темы для уровней
+ * ПАЛИТРА — цвета набора ku-arcade (палитра фигур Тетриса)
+ */
+const C = { cyan:'#00e5ff', yellow:'#ffd60a', purple:'#c77dff', green:'#51f58b', red:'#ff5d7d', blue:'#5b8cff', orange:'#ff9f43', pink:'#ff4dd2' };
+function hexRgb(h) { const n = parseInt(h.slice(1), 16); return [n >> 16 & 255, n >> 8 & 255, n & 255]; }
+function mixHex(a, b, t) { const A = hexRgb(a), B = hexRgb(b); return '#' + A.map((v, i) => Math.round(v + (B[i] - v) * t).toString(16).padStart(2, '0')).join(''); }
+function shade(hex, p) { return p >= 0 ? mixHex(hex, '#ffffff', p) : mixHex(hex, '#000000', -p); }
+function alpha(hex, a) { const [r, g, b] = hexRgb(hex); return `rgba(${r},${g},${b},${a})`; }
+const ramp = (a, b, n) => Array.from({ length: n }, (_, i) => mixHex(a, b, i / (n - 1)));
+function rr(ctx, x, y, w, h, r) {   // скруглённый прямоугольник (ctx.roundRect есть не во всех WebView)
+    r = Math.max(0, Math.min(r, w / 2, h / 2));
+    ctx.beginPath();
+    ctx.moveTo(x + r, y); ctx.arcTo(x + w, y, x + w, y + h, r); ctx.arcTo(x + w, y + h, x, y + h, r);
+    ctx.arcTo(x, y + h, x, y, r); ctx.arcTo(x, y, x + w, y, r); ctx.closePath();
+}
+
+/**
+ * THEMES — оттенок сектора: цвет ракетки/мяча и ряды блоков (все цвета — из палитры набора)
  */
 const Themes = {
-    classic: { bg1: '#0a0a12', bg2: '#050508', grid: 'rgba(255,255,255,0.02)', ball: '#fff', ballGlow: '#fff', paddle: '#5b8cff', paddleGlow: '#5b8cff', brickColors: ['#00e5a0','#5b8cff','#ffd700','#ff8c42','#ff4466','#a044ff'], powerup: {expand:'#00e5a0', multiball:'#5b8cff', slow:'#ffd700', laser:'#ff4466'} },
-    ice:     { bg1: '#060a14', bg2: '#030508', grid: 'rgba(100,180,255,0.025)', ball: '#7ec8e3', ballGlow: '#7ec8e3', paddle: '#7ec8e3', paddleGlow: '#7ec8e3', brickColors: ['#7ec8e3','#5ba8c8','#3d8ab0','#2a6e90','#1a5570','#0d3a50'], powerup: {expand:'#00e5a0', multiball:'#5b8cff', slow:'#ffd700', laser:'#ff4466'} },
-    fire:    { bg1: '#0e0604', bg2: '#080302', grid: 'rgba(255,80,40,0.025)', ball: '#ff6e40', ballGlow: '#ff6e40', paddle: '#ff5722', paddleGlow: '#ff5722', brickColors: ['#ff6e40','#e64a19','#d84315','#bf360c','#a12d0a','#8b2508'], powerup: {expand:'#00e5a0', multiball:'#5b8cff', slow:'#ffd700', laser:'#ff4466'} },
-    cyber:   { bg1: '#080410', bg2: '#040208', grid: 'rgba(180,100,255,0.025)', ball: '#b388ff', ballGlow: '#b388ff', paddle: '#b388ff', paddleGlow: '#b388ff', brickColors: ['#b388ff','#9c70e8','#7c4dff','#651fff','#5e35b1','#4527a0'], powerup: {expand:'#00e5a0', multiball:'#5b8cff', slow:'#ffd700', laser:'#ff4466'} },
-    neon:    { bg1: '#050510', bg2: '#020208', grid: 'rgba(255,255,0,0.015)', ball: '#e040fb', ballGlow: '#e040fb', paddle: '#e040fb', paddleGlow: '#e040fb', brickColors: ['#e040fb','#d500f9','#aa00ff','#76ff03','#64dd17','#00e676'], powerup: {expand:'#00e5a0', multiball:'#5b8cff', slow:'#ffd700', laser:'#ff4466'} },
-    void:    { bg1: '#030303', bg2: '#010101', grid: 'rgba(255,255,255,0.01)', ball: '#ff1744', ballGlow: '#ff1744', paddle: '#ff1744', paddleGlow: '#ff1744', brickColors: ['#ff1744','#d50000','#ff5252','#ff8a80','#ff80ab','#ff4081'], powerup: {expand:'#00e5a0', multiball:'#5b8cff', slow:'#ffd700', laser:'#ff4466'} },
+    classic: { accent: C.cyan,   bricks: [C.green, C.blue, C.yellow, C.orange, C.red, C.purple] },
+    ice:     { accent: C.cyan,   bricks: ramp(C.cyan, C.blue, 6) },
+    fire:    { accent: C.orange, bricks: [C.yellow, mixHex(C.yellow, C.orange, .5), C.orange, mixHex(C.orange, C.red, .5), C.red, mixHex(C.red, C.pink, .5)] },
+    cyber:   { accent: C.purple, bricks: ramp(C.purple, C.blue, 6) },
+    neon:    { accent: C.pink,   bricks: [C.pink, mixHex(C.pink, C.purple, .5), C.purple, C.green, mixHex(C.green, C.cyan, .5), C.cyan] },
+    void:    { accent: C.red,    bricks: ramp(C.red, C.pink, 6) },
+};
+const PU = {
+    expand:    { color: C.green,  letter: 'E' },
+    multiball: { color: C.blue,   letter: 'M' },
+    slow:      { color: C.yellow, letter: 'S' },
+    laser:     { color: C.red,    letter: 'L' },
+    gold:      { color: C.orange, letter: '★' },
 };
 
 /**
@@ -370,12 +298,13 @@ const Levels = [
       map:["........",".111111.","1.3333.1","1.3333.1","1.3333.1",".111111.","........"] },
     { id:15, name:"УР 15", desc:"Хаос", theme:"fire", target: 150, speed: 520, walls:[], special:{type:'gold'},
       map:["3.1.4.13","1.32.1.4","4.1.32.1","2.4.13.2","1.3.21.3","3.12.4.1"] },
+    // Нижний ряд — с проходом (как у «Бабочки»): раньше рамка была глухой, а сталь теперь непробиваема — сектор был непроходим
     { id:16, name:"УР 16", desc:"ФИНАЛ", theme:"void", target: 170, speed: 540, walls:[], special:{type:'gold', type2:'laser'},
-      map:["44444444","4.3333.4","4.3223.4","4.3113.4","4.3113.4","4.3223.4","4.3333.4","44444444"] }
+      map:["44444444","4.3333.4","4.3223.4","4.3113.4","4.3113.4","4.3223.4","4.3333.4","444..444"] }
 ];
 
 /**
- * PARTICLE
+ * PARTICLE — скорости заданы «на кадр 60 Гц», поэтому всё домножается на dt·60
  */
 class Particle {
     constructor(x, y, color, speed=4, life=1) {
@@ -386,201 +315,298 @@ class Particle {
         this.decay = Math.random() * 0.025 + 0.015;
         this.size = Math.random() * 5 + 2;
     }
-    update(dt) { this.x += this.vx * dt * 60; this.y += this.vy * dt * 60; this.vy += 0.15 * dt * 60; this.vx *= 0.97; this.life -= this.decay; }
+    update(dt) {
+        const k = dt * 60;
+        this.x += this.vx * k; this.y += this.vy * k; this.vy += 0.15 * k;
+        this.vx *= Math.pow(0.97, k); this.life -= this.decay * k;
+    }
     draw(ctx) {
-        ctx.globalAlpha = Math.max(0, this.life / this.maxLife);
+        const q = Math.max(0, this.life / this.maxLife);
+        ctx.globalAlpha = q;
         ctx.fillStyle = this.color;
-        ctx.fillRect(this.x - this.size/2, this.y - this.size/2, this.size * (this.life/this.maxLife), this.size * (this.life/this.maxLife));
+        ctx.fillRect(this.x - this.size/2, this.y - this.size/2, this.size * q, this.size * q);
         ctx.globalAlpha = 1;
     }
 }
 
 /**
- * FLOATING TEXT (DOM)
- */
-function spawnText(x, y, text, color) {
-    const el = document.createElement('div');
-    el.className = 'float-text';
-    el.textContent = text;
-    el.style.left = x + 'px'; el.style.top = y + 'px'; el.style.color = color;
-    document.getElementById('game-container').appendChild(el);
-    setTimeout(() => el.remove(), 800);
-}
-
-/**
  * GAME ENGINE
+ *  Поле — в логических единицах: ширина всегда LW, высота подбирается под экран в начале
+ *  сектора; канвас только масштабируется. Физика — фиксированным шагом STEP с накопителем:
+ *  скорость не зависит от частоты экрана (60/120/144 Гц), а за шаг мяч (≤ 800 ед/с)
+ *  смещается меньше своего радиуса — не пролетает сквозь блоки и ракетку.
  */
+const LW = 400;
+const STEP = 1 / 120;
+const TRAIL_DT = 1 / 30;
+const COARSE = !!(window.matchMedia && matchMedia('(pointer: coarse)').matches);
+const LAUNCH_HINT = COARSE ? 'Тапните — запуск мяча' : 'Клик или пробел — запуск мяча';
+
 const Game = {
-    canvas: document.getElementById('c'),
-    ctx: null,
-    W: 0, H: 0,
+    canvas: $('c'),
+    ctx: $('c').getContext('2d'),
+    layer: document.createElement('canvas'),   // кэш блоков: перерисовывается только при изменениях
+    lctx: null,
+    brickDirty: true,
+    W: LW, H: 700,
 
-    state: 'MENU', mode: 'CAMPAIGN', levelIdx: 0,
+    state: 'MENU', mode: 'CAMPAIGN', levelIdx: 0, cycle: 0,
     lives: 3, score: 0, combo: 0, comboTimer: 0,
-    shake: 0, bgTime: 0, frameCount: 0,
+    broken: 0, runBroken: 0, sectorsCleared: 0,
+    shake: 0, time: 0, acc: 0, lastTime: 0, trailT: 0,
 
-    paddle: null, balls: [], bricks: [], powerups: [], projectiles: [], particles: [],
-    bgParticles: [],
+    paddle: null, balls: [], bricks: [], powerups: [], projectiles: [], particles: [], floaters: [],
+    keys: { left: false, right: false },
+    timers: [],
+    rulesReturn: null,
 
-    // Progress
-    completed: JSON.parse(localStorage.getItem('breakout_completed') || '{}'),
-    bestScores: JSON.parse(localStorage.getItem('breakout_best') || '{}'),
+    // Прогресс (ключи прежние): breakout_completed {id:true}, breakout_best {id:звёзды}
+    completed: loadJSON('breakout_completed'),
+    bestScores: loadJSON('breakout_best'),
+    endlessBest: loadNum('breakout_endless_best'),
 
-    theme: null,
+    theme: Themes.classic,
 
     get levelCfg() { return Levels[Math.min(this.levelIdx, Levels.length - 1)]; },
 
-    resize() {
-        const container = document.getElementById('game-container');
-        this.W = container.clientWidth;
-        this.H = container.clientHeight;
-        this.canvas.width = this.W; this.canvas.height = this.H;
-        this.ctx = this.canvas.getContext('2d');
-        if (this.paddle) {
-            this.paddle.y = this.H - 45;
-            this.paddle.x = Math.max(0, Math.min(this.paddle.x, this.W - this.paddle.w));
-        }
-    },
+    /* ── прогресс кампании ── */
+    // Пройден — есть звёзды. Старые версии писали completed[следующий] = true как «открыт», это учитываем.
+    isDone(i) { const id = Levels[i].id; return !!this.completed[id] && (this.bestScores[id] | 0) > 0; },
+    isUnlocked(i) { return i === 0 || this.isDone(i - 1) || !!this.completed[Levels[i].id]; },
+    allDone() { return Levels.every((_, i) => this.isDone(i)); },
+    nextSector() { for (let i = 0; i < Levels.length; i++) if (this.isUnlocked(i) && !this.isDone(i)) return i; return 0; },
+
+    /* ── таймеры интерфейса (сбрасываются при старте/выходе) ── */
+    later(fn, ms) { const id = setTimeout(() => { this.timers = this.timers.filter(t => t !== id); fn(); }, ms); this.timers.push(id); },
+    clearTimers() { this.timers.forEach(clearTimeout); this.timers = []; },
 
     init() {
-        window.addEventListener('resize', () => this.resize());
-        this.resize();
+        this.lctx = this.layer.getContext('2d');
+        window.addEventListener('resize', () => this.layout(false));
+        if (document.fonts && document.fonts.ready) document.fonts.ready.then(() => { this.brickDirty = true; });
 
-        // Input
-        let sx, sy;
-        this.canvas.addEventListener('touchstart', e => { sx = e.touches[0].clientX; sy = e.touches[0].clientY; this.tryLaunch(); }, {passive:true});
-        this.canvas.addEventListener('touchmove', e => {
-            const rect = this.canvas.getBoundingClientRect();
-            const x = (e.touches[0].clientX - rect.left) * (this.W / rect.width);
-            if(this.paddle) this.paddle.targetX = x - this.paddle.w/2;
-        }, {passive:true});
-        this.canvas.addEventListener('mousedown', () => this.tryLaunch());
-        this.canvas.addEventListener('mousemove', e => {
-            const rect = this.canvas.getBoundingClientRect();
-            const x = (e.clientX - rect.left) * (this.W / rect.width);
-            if(this.paddle) this.paddle.targetX = x - this.paddle.w/2;
+        // Ввод: мышь, тач и перо — через Pointer Events
+        const c = this.canvas;
+        const xOf = e => { const r = c.getBoundingClientRect(); return (e.clientX - r.left) / Math.max(1, r.width) * LW; };
+        c.addEventListener('pointerdown', e => {
+            AudioSys.init();
+            if (e.pointerType !== 'mouse') { try { c.setPointerCapture(e.pointerId); } catch (_) {} }
+            this.tryLaunch();
+        });
+        c.addEventListener('pointermove', e => {
+            if (this.paddle && this.state === 'PLAYING') this.paddle.targetX = xOf(e) - this.paddle.w / 2;
         });
 
         document.addEventListener('keydown', e => {
-            if(e.code === 'Escape' || e.code === 'KeyP') {
-                if(this.state === 'PLAYING') { this.state='PAUSED'; this.showMenu('pause'); }
-                else if(this.state === 'PAUSED') { this.state='PLAYING'; this.hideMenus(); }
+            if (e.code === 'Escape' || e.code === 'KeyP') {
+                if ($('menu-rules').classList.contains('open')) { this.closeRules(); return; }
+                if (this.state === 'PLAYING') this.pause();
+                else if (this.state === 'PAUSED') this.resume();
                 return;
             }
-            if(e.code === 'ArrowLeft' && this.paddle) this.paddle.keyDir = -1;
-            if(e.code === 'ArrowRight' && this.paddle) this.paddle.keyDir = 1;
-            if(e.code === 'Space') this.tryLaunch();
+            if (this.state !== 'PLAYING') return;
+            if (e.code === 'ArrowLeft') { this.keys.left = true; e.preventDefault(); }
+            else if (e.code === 'ArrowRight') { this.keys.right = true; e.preventDefault(); }
+            // preventDefault: пробел не должен «нажимать» кнопку, на которой остался фокус
+            else if (e.code === 'Space') { e.preventDefault(); if (!e.repeat) this.tryLaunch(); }
         });
         document.addEventListener('keyup', e => {
-            if(e.code === 'ArrowLeft' || e.code === 'ArrowRight') { if(this.paddle) this.paddle.keyDir = 0; }
+            if (e.code === 'ArrowLeft') this.keys.left = false;
+            if (e.code === 'ArrowRight') this.keys.right = false;
         });
+        window.addEventListener('blur', () => { this.keys.left = this.keys.right = false; });
+        document.addEventListener('visibilitychange', () => { if (document.hidden) this.pause(); });
 
-        // Buttons
-        document.getElementById('btn-campaign').onclick = () => { AudioSys.init(); this.mode='CAMPAIGN'; this.levelIdx=0; this.startLevel(); };
-        document.getElementById('btn-endless').onclick = () => { AudioSys.init(); this.mode='ENDLESS'; this.levelIdx=0; this.startLevel(); };
-        document.getElementById('btn-resume').onclick = () => { this.state='PLAYING'; this.hideMenus(); };
-        document.getElementById('btn-quit').onclick = () => { this.state='MENU'; this.showMenu('main'); };
-        document.getElementById('btn-go-menu').onclick = () => { this.state='MENU'; this.showMenu('main'); };
-        document.getElementById('btn-restart').onclick = () => this.startLevel();
-        document.getElementById('btn-replay-level').onclick = () => this.startLevel();
-        document.getElementById('btn-next-level').onclick = () => {
-            this.levelIdx++;
-            if(this.levelIdx >= Levels.length) { this.state='MENU'; this.showMenu('main'); }
-            else this.startLevel();
-        };
-        document.getElementById('btn-levels-back').onclick = () => { this.state='MENU'; this.showMenu('main'); };
-        document.getElementById('btn-pause').onclick = () => { this.state='PAUSED'; this.showMenu('pause'); };
+        // Кнопки
+        const on = (id, fn) => $(id).addEventListener('click', fn);
+        on('btn-campaign', () => { if (this.allDone()) this.showSectors(); else this.startRun('CAMPAIGN', this.nextSector()); });
+        on('btn-endless', () => this.startRun('ENDLESS', 0));
+        on('btn-sectors', () => this.showSectors());
+        on('btn-levels-back', () => this.hideSectors());
+        on('btn-rules', () => { this.rulesReturn = null; this.open('menu-rules'); });
+        on('btn-pause-rules', () => { this.rulesReturn = 'menu-pause'; this.close('menu-pause'); this.open('menu-rules'); });
+        on('btn-rules-x', () => this.closeRules());
+        on('btn-rules-close', () => this.closeRules());
+        on('btn-pause', () => this.pause());
+        on('btn-resume', () => this.resume());
+        on('btn-pause-restart', () => this.restart());
+        on('btn-quit', () => this.toMenu());
+        on('btn-lu-menu', () => this.toMenu());
+        on('btn-go-menu', () => this.toMenu());
+        on('btn-restart', () => this.restart());
+        on('btn-replay-level', () => this.startLevel());
+        on('btn-next-level', () => this.nextLevel());
 
-        // Background particles
-        this.bgParticles = [];
-        for(let i=0; i<40; i++) this.bgParticles.push({
-            x: Math.random()*this.W, y: Math.random()*this.H,
-            size: Math.random()*1.5+0.3, speed: Math.random()*0.4+0.1,
-            alpha: Math.random()*0.25+0.05
-        });
-
+        this.refreshMenu();
         requestAnimationFrame(t => this.loop(t));
     },
 
-    showMenu(id) {
-        document.querySelectorAll('.overlay').forEach(m => m.classList.remove('active'));
-        document.getElementById('menu-'+id)?.classList.add('active');
-        if(id === 'main' || id === 'levels') {
-            document.getElementById('hud').style.display = 'none';
-            document.getElementById('btn-pause').style.display = 'none';
-        }
-        if(id === 'levels') this.buildLevelGrid();
+    /* ── экраны и оверлеи ── */
+    showScreen(name) {
+        $('screen-menu').classList.toggle('active', name === 'menu');
+        $('screen-game').classList.toggle('active', name === 'game');
+        document.body.classList.toggle('ku-calm', name === 'game');
+        if (name === 'menu') this.refreshMenu();
     },
-    hideMenus() {
-        document.querySelectorAll('.overlay').forEach(m => m.classList.remove('active'));
-        document.getElementById('hud').style.display = 'flex';
-        document.getElementById('btn-pause').style.display = 'block';
+    open(id) { $(id).classList.add('open'); },
+    close(id) { $(id).classList.remove('open'); },
+    closeAll() { document.querySelectorAll('.ku-overlay.open').forEach(o => o.classList.remove('open')); },
+    closeRules() {
+        this.close('menu-rules');
+        if (this.rulesReturn) this.open(this.rulesReturn);
+        this.rulesReturn = null;
+    },
+    showSectors() {
+        this.buildLevelGrid();
+        $('main-btns').style.display = 'none';
+        $('btn-sectors').style.display = 'none';
+        $('sector-pick').style.display = 'flex';
+    },
+    hideSectors() {
+        $('sector-pick').style.display = 'none';
+        $('main-btns').style.display = 'flex';
+        $('btn-sectors').style.display = '';
+    },
+
+    refreshMenu() {
+        const done = Levels.filter((_, i) => this.isDone(i)).length;
+        const stars = Levels.reduce((s, l, i) => s + (this.isDone(i) ? Math.min(3, this.bestScores[l.id] | 0) : 0), 0);
+        const total = Levels.length;
+        $('best-campaign').textContent = done === total ? `Все секторы пройдены · ★ ${stars}/${total * 3}`
+            : done ? `Продолжить: сектор ${this.nextSector() + 1} · ★ ${stars}/${total * 3}` : `${total} секторов · 3 жизни на сектор`;
+        $('best-endless').textContent = 'Рекорд: ' + fmt(this.endlessBest);
+        $('menu-stats').textContent = `Пройдено секторов: ${done} из ${total} • Звёзд: ${stars} из ${total * 3}`;
     },
 
     buildLevelGrid() {
-        const grid = document.getElementById('level-grid');
+        const grid = $('level-grid');
         grid.innerHTML = '';
-        const maxUnlocked = Math.max(1, ...Object.keys(this.completed).map(Number).filter(k => this.completed[k]));
+        const next = this.allDone() ? -1 : this.nextSector();
         Levels.forEach((lvl, i) => {
-            const cell = document.createElement('div');
-            cell.className = 'level-cell';
-            const unlocked = i <= maxUnlocked || i === 0;
-            const completed = this.completed[lvl.id];
-            if(completed) {
-                const stars = this.bestScores[lvl.id] || 0;
-                cell.classList.add('unlocked');
-                cell.innerHTML = `<span>${lvl.id}</span><div class="stars-row">${'★'.repeat(Math.min(3,stars)).split('').map(c=>`<span class="s-on">${c}</span>`).join('')}${'☆'.repeat(Math.max(0,3-stars)).split('').map(c=>`<span class="s-off">${c}</span>`).join('')}</div>`;
-            } else if(unlocked && i === maxUnlocked && maxUnlocked > 0) {
-                cell.classList.add('current'); cell.innerHTML = `<span>${lvl.id}</span>`;
-            } else if(unlocked) {
-                cell.classList.add('unlocked'); cell.innerHTML = `<span>${lvl.id}</span>`;
-            } else {
-                cell.classList.add('locked'); cell.innerHTML = `<span>🔒</span>`;
-            }
-            if(unlocked) cell.onclick = () => { this.levelIdx = i; this.mode = 'CAMPAIGN'; this.startLevel(); };
-            grid.appendChild(cell);
+            const b = document.createElement('button');
+            const open = this.isUnlocked(i), done = this.isDone(i);
+            const st = done ? Math.min(3, this.bestScores[lvl.id] | 0) : 0;
+            b.type = 'button';
+            b.className = 'sector' + (done ? ' done' : '') + (i === next ? ' next' : '');
+            b.disabled = !open;
+            b.title = lvl.desc;
+            b.setAttribute('aria-label', `Сектор ${lvl.id}: ${lvl.desc}` + (open ? '' : ' — закрыт'));
+            b.innerHTML = open ? `${lvl.id}<small>${'<i>★</i>'.repeat(st)}${'★'.repeat(3 - st)}</small>` : '🔒';
+            if (open) b.onclick = () => this.startRun('CAMPAIGN', i);
+            grid.appendChild(b);
         });
     },
 
-    tryLaunch() {
-        if(this.state === 'PLAYING') {
-            const b = this.balls.find(b => !b.active);
-            if(b) b.launch();
-        }
+    /* ── размер поля ── */
+    layout(newLevel) {
+        const wrap = $('wrap');
+        const aw = wrap.clientWidth - 16, ah = wrap.clientHeight - 16;   // рамка .ku-board: padding 7 + border 1
+        if (aw < 60 || ah < 60) return;                                  // экран игры скрыт
+        if (newLevel) this.H = Math.round(clamp(LW * ah / aw, 520, 820));
+        const s = Math.min(aw / LW, ah / this.H);
+        const cw = Math.floor(LW * s), ch = Math.floor(this.H * s);
+        const dpr = Math.min(2, window.devicePixelRatio || 1);
+        this.canvas.style.width = cw + 'px'; this.canvas.style.height = ch + 'px';
+        this.canvas.width = Math.round(cw * dpr); this.canvas.height = Math.round(ch * dpr);
+        this.ctx.setTransform(this.canvas.width / LW, 0, 0, this.canvas.height / this.H, 0, 0);
+        this.brickDirty = true;
+        if (this.paddle) this.draw();
     },
 
-    startLevel() {
-        this.hideMenus();
-        document.getElementById('btn-restart').style.display = 'block';
-        this.score = 0; this.combo = 0; this.comboTimer = 0; this.shake = 0;
-        if(this.mode === 'CAMPAIGN') this.lives = 3;
-        else this.lives = 5;
+    /* ── партия ── */
+    startRun(mode, idx) {
+        AudioSys.init();
+        this.mode = mode; this.levelIdx = idx; this.cycle = 0;
+        this.score = 0; this.lives = mode === 'ENDLESS' ? 5 : 3;
+        this.runBroken = 0; this.sectorsCleared = 0;
+        this.startLevel();
+    },
 
-        this.theme = Themes[this.levelCfg.theme || 'classic'];
+    // Кампания: каждый сектор — заново (очки с нуля, 3 жизни). Бесконечный: очки и жизни переходят дальше.
+    startLevel() {
+        this.clearTimers();
+        this.closeAll();
+        if (this.mode === 'CAMPAIGN') { this.score = 0; this.lives = 3; }
+        this.combo = 0; this.comboTimer = 0; this.shake = 0; this.broken = 0;
+        this.theme = Themes[this.levelCfg.theme] || Themes.classic;
+        this.paddle = null;
+        this.showScreen('game');
+        this.layout(true);
 
         // Paddle
         this.paddle = {
-            x: this.W/2 - 50, y: this.H - 45, w: 100, h: 14,
-            targetX: this.W/2 - 50, keyDir: 0, speed: 600,
-            baseW: 100, laserActive: false, laserTimer: 0, laserCooldown: 0
+            x: LW/2 - 50, y: this.H - 45, w: 100, h: 14,
+            targetX: LW/2 - 50, speed: 600,
+            baseW: 100, laserActive: false, laserTimer: 0, laserCooldown: 0, expandTimer: 0
         };
-
-        // Ball
-        this.balls = [{
-            x: this.W/2, y: this.paddle.y - 8, r: 7,
-            vx: 0, vy: 0, speed: this.levelCfg.speed,
-            active: false, trail: []
-        }];
-
-        this.bricks = [];
-        this.powerups = [];
-        this.projectiles = [];
-        this.particles = [];
-
+        this.balls = [this.newBall()];
+        this.bricks = []; this.powerups = []; this.projectiles = []; this.particles = []; this.floaters = [];
         this.buildBricks();
+        this.brickDirty = true;
+        this.keys.left = this.keys.right = false;
+        this.acc = 0; this.trailT = 0;
         this.updateHUD();
-        this.updateProgress();
         this.state = 'PLAYING';
+        if (document.activeElement && document.activeElement.blur) document.activeElement.blur();
+    },
+
+    restart() {
+        if (this.mode === 'ENDLESS') { this.commitEndless(); this.startRun('ENDLESS', 0); }
+        else this.startLevel();
+    },
+
+    nextLevel() {
+        if (this.mode === 'ENDLESS') {
+            this.levelIdx++;
+            if (this.levelIdx >= Levels.length) { this.levelIdx = 0; this.cycle++; }
+            this.startLevel();
+            return;
+        }
+        if (this.levelIdx + 1 >= Levels.length) { this.toMenu(); return; }
+        this.levelIdx++;
+        this.startLevel();
+    },
+
+    toMenu() {
+        this.clearTimers();
+        if (this.mode === 'ENDLESS' && this.state !== 'MENU') this.commitEndless();
+        this.state = 'MENU';
+        this.keys.left = this.keys.right = false;
+        this.closeAll();
+        this.hideSectors();
+        this.showScreen('menu');
+    },
+
+    pause() {
+        if (this.state !== 'PLAYING') return;
+        this.state = 'PAUSED';
+        this.keys.left = this.keys.right = false;
+        this.open('menu-pause');
+    },
+    resume() {
+        if (this.state !== 'PAUSED') return;
+        this.closeAll();
+        this.state = 'PLAYING';
+        if (document.activeElement && document.activeElement.blur) document.activeElement.blur();
+    },
+
+    ballSpeed() {
+        const base = this.levelCfg.speed;
+        return this.mode === 'ENDLESS' ? Math.min(800, base + this.cycle * 40) : base;
+    },
+    newBall() {
+        return { x: LW/2, y: this.paddle.y - 7, r: 7, vx: 0, vy: 0, speed: this.ballSpeed(), active: false, trail: [] };
+    },
+
+    tryLaunch() {
+        if(this.state !== 'PLAYING') return;
+        const b = this.balls.find(b => !b.active);
+        if(!b) return;
+        // пуск под случайным углом ±45° от вертикали
+        const a = (Math.random() * 2 - 1) * Math.PI / 4;
+        b.active = true;
+        b.vx = Math.sin(a) * b.speed;
+        b.vy = -Math.cos(a) * b.speed;
     },
 
     buildBricks() {
@@ -589,66 +615,54 @@ const Game = {
         const rows = map.length;
         const cols = map[0].length;
         const pad = 4;
-        const topOff = 55;
+        const topOff = 44;
         const sideOff = 12;
-        const availW = this.W - sideOff*2;
-        const bw = (availW / cols) - pad;
+        const bw = (LW - sideOff*2) / cols - pad;
         const bh = Math.min(24, (this.H * 0.32) / rows);
-
-        for(let r=0; r<rows; r++) {
-            for(let c=0; c<cols; c++) {
-                const ch = map[r][c];
-                if(ch !== '.') {
-                    const type = parseInt(ch);
-                    const x = sideOff + c * (bw + pad);
-                    const y = topOff + r * (bh + pad);
-                    this.bricks.push({
-                        x, y, w: bw, h: bh, type,
-                        hp: type === 4 ? Infinity : type,
-                        maxHp: type === 4 ? Infinity : type,
-                        color: type === 4 ? '#555' : this.theme.brickColors[r % this.theme.brickColors.length],
-                        score: type * 100,
-                        scale: 1, flash: 0,
-                        mark: false
-                    });
-                }
-            }
-        }
-
-        // Walls (indestructible)
-        if(cfg.walls) {
-            cfg.walls.forEach(w => {
-                let wx = w.x < 0 ? this.W + w.x - w.w : w.x;
-                let wy = w.y < 0 ? this.H + w.y - w.h : w.y;
-                // Convert to pixel coords if relative
-                if(w.x === 'center') wx = this.W/2 - (w.w * (bw+pad))/2;
-                // Simple: use as grid cells
-                for(let i=0; i<w.w; i++) for(let j=0; j<w.h; j++) {
-                    this.bricks.push({
-                        x: sideOff + (wx + i) * (bw+pad), y: topOff + (wy + j) * (bh+pad),
-                        w: bw, h: bh, type: 4, hp: Infinity, maxHp: Infinity,
-                        color: '#444', score: 0, scale: 1, flash: 0, mark: false
-                    });
-                }
+        const pal = this.theme.bricks;
+        const taken = new Set();
+        const add = (c, r, type) => {
+            const key = r + ':' + c;
+            if (taken.has(key)) return;
+            taken.add(key);
+            this.bricks.push({
+                x: sideOff + pad/2 + c * (bw + pad), y: topOff + r * (bh + pad), w: bw, h: bh, type,
+                hp: type === 4 ? Infinity : type,
+                maxHp: type === 4 ? Infinity : type,
+                color: type === 4 ? null : pal[r % pal.length],
+                score: type === 4 ? 0 : type * 100,
+                flash: 0, mark: false
             });
+        };
+        for(let r=0; r<rows; r++) for(let c=0; c<cols; c++) {
+            const ch = map[r][c];
+            if(ch !== '.') add(c, r, parseInt(ch, 10));
         }
+        // Неразрушимые стены в клетках сетки; x < 0 — отсчёт от правого края
+        (cfg.walls || []).forEach(w => {
+            const gx = w.x < 0 ? cols + w.x : w.x;
+            for(let i=0; i<w.w; i++) for(let j=0; j<w.h; j++) {
+                const c = gx + i;
+                if (c >= 0 && c < cols) add(c, w.y + j, 4);
+            }
+        });
     },
+
+    remaining() { let n = 0; for (const b of this.bricks) if (!b.mark && b.type !== 4) n++; return n; },
 
     updateHUD() {
-        const sv = document.getElementById('score-val');
-        sv.textContent = this.score;
-        sv.classList.add('pop'); setTimeout(() => sv.classList.remove('pop'), 150);
-        document.getElementById('lives-val').textContent = '❤️'.repeat(Math.max(0, this.lives));
+        const sv = $('score-val'), txt = fmt(this.score);
+        if (sv.textContent !== txt) { sv.textContent = txt; sv.classList.remove('pop'); void sv.offsetWidth; sv.classList.add('pop'); }
+        $('lives-val').textContent = this.lives > 5 ? '♥×' + this.lives : ('♥'.repeat(Math.max(0, this.lives)) || '—');
+        $('bricks-val').textContent = this.remaining();
         const cfg = this.levelCfg;
-        document.getElementById('lvl-val').textContent = this.mode === 'ENDLESS' ? 'БЕСКОН' : cfg.name;
-        document.getElementById('lvl-desc').textContent = this.mode === 'ENDLESS' ? 'Выживание' : cfg.desc;
-    },
-
-    updateProgress() {
-        const total = this.bricks.length;
-        const broken = total - this.bricks.filter(b => !b.mark).length;
-        const pct = total > 0 ? (broken / total) * 100 : 0;
-        document.getElementById('progress-fill').style.width = pct + '%';
+        if (this.mode === 'ENDLESS') {
+            $('game-title').textContent = '∞ СЕКТОР ' + (this.cycle * Levels.length + this.levelIdx + 1);
+            $('game-sub').textContent = 'РЕКОРД: ' + fmt(Math.max(this.endlessBest, this.score));
+        } else {
+            $('game-title').textContent = `СЕКТОР ${cfg.id} / ${Levels.length}`;
+            $('game-sub').textContent = cfg.desc.toUpperCase();
+        }
     },
 
     addScore(pts, x, y) {
@@ -657,23 +671,13 @@ const Game = {
         const total = pts * mult;
         this.score += total;
         this.updateHUD();
-
-        let color = '#fff';
-        if(mult >= 5) color = this.theme.powerup.laser;
-        else if(mult >= 3) color = this.theme.powerup.slow;
-
-        const text = mult > 1 ? `+${total} ×${mult}` : `+${total}`;
-        spawnText(x, y, text, color);
-
-        // Combo display
-        const cd = document.getElementById('combo-display');
-        if(this.combo >= 3) {
-            cd.textContent = `COMBO ×${this.combo}`;
-            cd.classList.add('visible');
-        } else {
-            cd.classList.remove('visible');
-        }
+        let color = '#eef2ff';
+        if(mult >= 5) color = C.red;
+        else if(mult >= 3) color = C.yellow;
+        this.floatText(x, y, mult > 1 ? `+${total} ×${mult}` : `+${total}`, color);
     },
+
+    floatText(x, y, text, color) { this.floaters.push({ x, y, text, color, t: 0, life: 0.8 }); },
 
     spawnPowerUp(x, y) {
         if(Math.random() > 0.22) return;
@@ -689,110 +693,131 @@ const Game = {
         else if(r < 0.85) type = 'multiball';
         else type = 'laser';
 
-        this.powerups.push({
-            x, y, r: 12, vy: 140, type,
-            color: this.theme.powerup[type] || '#fff',
-            letter: {expand:'E', multiball:'M', slow:'S', laser:'L', gold:'★'}[type] || '?',
-            angle: 0, mark: false
-        });
+        this.powerups.push({ x, y, r: 12, vy: 140, type, color: PU[type].color, letter: PU[type].letter, angle: 0, mark: false });
+    },
+
+    setPaddleWidth(w) {   // меняем ширину, сохраняя центр ракетки
+        const p = this.paddle, d = (w - p.w) / 2;
+        p.w = w; p.x -= d; p.targetX -= d;
+        p.x = clamp(p.x, 0, LW - p.w);
     },
 
     loseBall() {
         this.lives--;
         AudioSys.sfx.lose(); vibrate([50,50,50]);
         this.shake = 15;
+        const bd = $('board'); bd.classList.remove('shake'); void bd.offsetWidth; bd.classList.add('shake');
         this.updateHUD();
 
-        if(this.lives <= 0) {
-            this.state = 'TRANSITION';
-            document.getElementById('go-title').textContent = 'РАЗРУШЕН';
-            document.getElementById('go-desc').textContent = `Счёт: ${this.score}`;
-            document.getElementById('btn-restart').style.display = 'block';
-            setTimeout(() => this.showMenu('game-over'), 600);
-        } else {
-            // New ball
-            this.balls = [{
-                x: this.W/2, y: this.paddle.y - 8, r: 7,
-                vx: 0, vy: 0, speed: this.levelCfg.speed,
-                active: false, trail: []
-            }];
-            this.paddle.w = this.paddle.baseW;
-            this.paddle.laserActive = false;
-        }
+        if(this.lives <= 0) { this.gameOver(); return; }
+        const p = this.paddle;
+        this.setPaddleWidth(p.baseW);
+        p.expandTimer = 0;
+        p.laserActive = false; p.laserTimer = 0;
+        this.balls = [this.newBall()];
+    },
+
+    commitEndless() {
+        if (this.mode !== 'ENDLESS' || this.score <= this.endlessBest) return false;
+        this.endlessBest = this.score;
+        saveNum('breakout_endless_best', this.score);
+        return true;
+    },
+
+    gameOver() {
+        this.state = 'TRANSITION';
+        const cfg = this.levelCfg, endless = this.mode === 'ENDLESS';
+        const newBest = endless && this.commitEndless();
+        $('go-best').hidden = !newBest;
+        $('go-score').textContent = fmt(this.score);
+        $('go-stats').innerHTML = endless
+            ? `<div>Секторов пройдено<b>${this.sectorsCleared}</b></div><div>Разбито блоков<b>${this.runBroken}</b></div><div>Рекорд<b>${fmt(this.endlessBest)}</b></div>`
+            : `<div>Сектор<b>${cfg.id} · ${cfg.desc}</b></div><div>Разбито блоков<b>${this.broken}</b></div><div>Осталось блоков<b>${this.remaining()}</b></div>`;
+        $('btn-restart').textContent = endless ? 'Играть снова' : '🔄 Повторить сектор';
+        this.later(() => { this.state = 'OVER'; this.open('menu-game-over'); }, 650);
     },
 
     levelComplete() {
         this.state = 'TRANSITION';
         AudioSys.sfx.win();
-
-        // Stars
-        const activeBricks = this.bricks.filter(b => b.type !== 4).length;
-        const ratio = this.score / (this.bricks.length * 100);
-        const stars = this.lives >= 3 ? 3 : this.lives >= 2 ? 2 : 1;
-
-        const cfg = this.levelCfg;
-        this.completed[cfg.id] = true;
-        if(!this.bestScores[cfg.id] || this.bestScores[cfg.id] < stars) this.bestScores[cfg.id] = stars;
-        localStorage.setItem('breakout_completed', JSON.stringify(this.completed));
-        localStorage.setItem('breakout_best', JSON.stringify(this.bestScores));
-
-        // Unlock next
-        const nextId = cfg.id + 1;
-        if(nextId <= Levels.length && !this.completed[nextId]) {
-            this.completed[nextId] = true;
-            localStorage.setItem('breakout_completed', JSON.stringify(this.completed));
-        }
-
-        for(let i=1; i<=3; i++) {
-            setTimeout(() => {
-                document.getElementById('star-'+i).classList.toggle('lit', i <= stars);
-            }, i * 250);
-        }
-
+        const cfg = this.levelCfg, camp = this.mode === 'CAMPAIGN';
         const bonus = this.lives * 500;
         this.score += bonus;
-        document.getElementById('lvl-stats').textContent = `Бонус жизней: +${bonus} | Счёт: ${this.score}`;
-        document.getElementById('btn-next-level').style.display = this.levelIdx < Levels.length - 1 ? 'block' : 'none';
-        this.showMenu('level-up');
+        this.updateHUD();
+
+        let stars = 0;
+        if (camp) {
+            // Звёзды — за оставшиеся жизни. Прогресс кампании пишет только кампания.
+            stars = this.lives >= 3 ? 3 : this.lives >= 2 ? 2 : 1;
+            this.completed[cfg.id] = true;
+            if ((this.bestScores[cfg.id] | 0) < stars) this.bestScores[cfg.id] = stars;
+            saveJSON('breakout_completed', this.completed);
+            saveJSON('breakout_best', this.bestScores);
+        } else {
+            this.sectorsCleared++;
+        }
+        const last = camp && this.levelIdx >= Levels.length - 1;
+        $('lu-title').textContent = last ? 'КАМПАНИЯ ПРОЙДЕНА!' : 'СЕКТОР ОЧИЩЕН!';
+        $('stars-container').style.display = camp ? '' : 'none';
+        for (let i = 1; i <= 3; i++) $('star-' + i).classList.remove('lit');
+        $('lu-score').textContent = fmt(this.score);
+        $('lu-stats').innerHTML = `<div>Бонус жизней<b>+${fmt(bonus)}</b></div>` + (camp
+            ? `<div>Разбито блоков<b>${this.broken}</b></div>`
+            : `<div>Жизни<b>${this.lives}</b></div><div>Рекорд<b>${fmt(Math.max(this.endlessBest, this.score))}</b></div>`);
+        $('btn-next-level').style.display = last ? 'none' : '';
+        $('btn-next-level').textContent = camp ? 'Следующий сектор →' : 'Дальше →';
+        $('btn-replay-level').style.display = camp ? '' : 'none';
+        this.later(() => {
+            this.state = 'OVER';
+            this.open('menu-level-up');
+            for (let i = 1; i <= stars; i++) this.later(() => $('star-' + i).classList.add('lit'), 150 + i * 250);
+        }, 650);
     },
 
+    /* ── главный цикл: фиксированный шаг ── */
     loop(ts) {
         requestAnimationFrame(t => this.loop(t));
-        if(this.state !== 'PLAYING' && this.state !== 'TRANSITION') return;
-
-        const dt = Math.min((ts - (this.lastTime || ts)) / 1000, 0.05);
+        const dt = this.lastTime ? Math.min((ts - this.lastTime) / 1000, 0.1) : 0;
         this.lastTime = ts;
-        this.frameCount++;
-        this.bgTime += dt;
-
-        if(this.shake > 0) this.shake *= 0.9;
-        if(this.comboTimer > 0) {
-            this.comboTimer -= dt;
-            if(this.comboTimer <= 0) { this.combo = 0; document.getElementById('combo-display').classList.remove('visible'); }
-        }
-
-        // BG particles
-        this.bgParticles.forEach(p => {
-            p.y -= p.speed; p.x += Math.sin(this.bgTime + p.y * 0.01) * 0.2;
-            if(p.y < -10) { p.y = this.H + 10; p.x = Math.random() * this.W; }
-        });
-
-        if(this.state === 'PLAYING') {
-            this.update(dt);
-        }
-
+        if(this.state !== 'PLAYING' && this.state !== 'TRANSITION') return;
+        this.acc += dt;
+        let n = 0;
+        while (this.acc >= STEP && n < 14) { this.step(STEP); this.acc -= STEP; n++; }
+        if (n >= 14) this.acc = 0;
         this.draw();
+    },
+
+    step(dt) {
+        this.time += dt;
+        if (this.state === 'PLAYING') this.update(dt);
+        // эффекты идут и пока появляется итоговое окно
+        if (this.shake > 0) { this.shake *= Math.pow(0.9, dt * 60); if (this.shake < 0.3) this.shake = 0; }
+        if (this.comboTimer > 0) { this.comboTimer -= dt; if (this.comboTimer <= 0) this.combo = 0; }
+        if (this.particles.length) {
+            for (const p of this.particles) p.update(dt);
+            this.particles = this.particles.filter(p => p.life > 0);
+        }
+        if (this.floaters.length) {
+            for (const f of this.floaters) f.t += dt;
+            this.floaters = this.floaters.filter(f => f.t < f.life);
+        }
+        for (const br of this.bricks) if (br.flash > 0) br.flash = Math.max(0, br.flash - 4.8 * dt);
     },
 
     update(dt) {
         const p = this.paddle;
 
-        // Paddle movement
-        if(p.keyDir !== 0) p.targetX = p.x + p.keyDir * p.speed * dt;
-        p.x += (p.targetX - p.x) * 15 * dt;
-        p.x = Math.max(0, Math.min(p.x, this.W - p.w));
+        // Ракетка: клавиши — ровно p.speed ед/с, мышь/палец — плавное следование за указателем
+        const dir = (this.keys.right ? 1 : 0) - (this.keys.left ? 1 : 0);
+        if (dir) { p.x += dir * p.speed * dt; p.targetX = p.x; }
+        else p.x += (p.targetX - p.x) * Math.min(1, 15 * dt);
+        p.x = clamp(p.x, 0, LW - p.w);
 
-        // Laser
+        // Таймеры бонусов — игровое время: на паузе и в меню стоят
+        if (p.expandTimer > 0) {
+            p.expandTimer -= dt;
+            if (p.expandTimer <= 0) { p.expandTimer = 0; this.setPaddleWidth(p.baseW); }
+        }
         if(p.laserActive) {
             p.laserTimer -= dt; p.laserCooldown -= dt;
             if(p.laserCooldown <= 0) {
@@ -804,23 +829,27 @@ const Game = {
             if(p.laserTimer <= 0) p.laserActive = false;
         }
 
+        this.trailT += dt;
+        const sample = this.trailT >= TRAIL_DT;
+        if (sample) this.trailT = 0;
+
         // Balls
-        this.balls.forEach(b => {
+        for (const b of this.balls) {
             if(!b.active) {
                 b.x = p.x + p.w/2; b.y = p.y - b.r;
-                return;
+                continue;
             }
 
             // Trail
-            if(this.frameCount % 2 === 0) { b.trail.push({x: b.x, y: b.y, a: 1}); if(b.trail.length > 10) b.trail.shift(); }
-            b.trail.forEach(t => t.a -= dt * 3);
+            if (sample) { b.trail.push({x: b.x, y: b.y, a: 1}); if(b.trail.length > 10) b.trail.shift(); }
+            for (const t of b.trail) t.a -= dt * 3;
 
             b.x += b.vx * dt; b.y += b.vy * dt;
 
-            // Walls
-            if(b.x - b.r < 0) { b.x = b.r; b.vx *= -1; AudioSys.sfx.wall(); }
-            if(b.x + b.r > this.W) { b.x = this.W - b.r; b.vx *= -1; AudioSys.sfx.wall(); }
-            if(b.y - b.r < 0) { b.y = b.r; b.vy *= -1; AudioSys.sfx.wall(); }
+            // Walls (знак скорости — «от стены», чтобы мяч не залипал)
+            if(b.x - b.r < 0) { b.x = b.r; b.vx = Math.abs(b.vx); AudioSys.sfx.wall(); }
+            else if(b.x + b.r > LW) { b.x = LW - b.r; b.vx = -Math.abs(b.vx); AudioSys.sfx.wall(); }
+            if(b.y - b.r < 0) { b.y = b.r; b.vy = Math.abs(b.vy); AudioSys.sfx.wall(); }
 
             // Paddle collision
             if(b.vy > 0 && b.y + b.r >= p.y && b.y + b.r <= p.y + p.h + 8 && b.x >= p.x - b.r && b.x <= p.x + p.w + b.r) {
@@ -832,50 +861,37 @@ const Game = {
                 b.vx = spd * Math.sin(angle);
                 b.vy = -spd * Math.cos(angle);
                 b.y = p.y - b.r;
-                this.spawnParts(b.x, b.y, this.theme.paddle, 6, 3);
+                this.spawnParts(b.x, b.y, this.theme.accent, 6, 3);
             }
 
-            // Brick collision
+            // Brick collision: не больше одного блока за шаг
             for(const brick of this.bricks) {
-                if(brick.mark) continue;
-                if(this.ballRect(b, brick)) {
-                    if(brick.type === 4) {
-                        AudioSys.sfx.wall();
-                        // Reflect
-                        const overlapL = (b.x+b.r) - brick.x;
-                        const overlapR = (brick.x+brick.w) - (b.x-b.r);
-                        const overlapT = (b.y+b.r) - brick.y;
-                        const overlapB = (brick.y+brick.h) - (b.y-b.r);
-                        const min = Math.min(overlapL, overlapR, overlapT, overlapB);
-                        if(min === overlapT || min === overlapB) b.vy *= -1; else b.vx *= -1;
+                if(brick.mark || !this.ballRect(b, brick)) continue;
+                this.bounceOff(b, brick);
+                if(brick.type === 4) {
+                    AudioSys.sfx.wall();
+                    brick.flash = 0.5;
+                } else {
+                    brick.hp--;
+                    brick.flash = 1;
+                    this.brickDirty = true;
+                    if(brick.hp <= 0) {
+                        this.destroyBrick(brick);
+                        AudioSys.sfx.break();
+                        this.spawnParts(brick.x + brick.w/2, brick.y + brick.h/2, brick.color, 18, 5);
+                        this.addScore(brick.score, brick.x + brick.w/2, brick.y + brick.h/2);
+                        this.spawnPowerUp(brick.x + brick.w/2, brick.y + brick.h/2);
+                        // Speed up slightly
+                        b.speed = Math.min(800, b.speed + 3);
+                        const spd = Math.sqrt(b.vx*b.vx + b.vy*b.vy);
+                        b.vx = (b.vx/spd) * b.speed;
+                        b.vy = (b.vy/spd) * b.speed;
                     } else {
-                        brick.hp--;
-                        brick.flash = 1; brick.scale = 0.85;
-                        if(brick.hp <= 0) {
-                            brick.mark = true;
-                            AudioSys.sfx.break();
-                            this.spawnParts(brick.x + brick.w/2, brick.y + brick.h/2, brick.color, 18, 5);
-                            this.addScore(brick.score, brick.x + brick.w/2, brick.y + brick.h/2);
-                            this.spawnPowerUp(brick.x + brick.w/2, brick.y + brick.h/2);
-                            // Speed up slightly
-                            b.speed = Math.min(800, b.speed + 3);
-                            const spd = Math.sqrt(b.vx*b.vx + b.vy*b.vy);
-                            b.vx = (b.vx/spd) * b.speed;
-                            b.vy = (b.vy/spd) * b.speed;
-                        } else {
-                            AudioSys.sfx.brick();
-                            this.spawnParts(b.x, b.y, '#fff', 4, 2);
-                        }
+                        AudioSys.sfx.brick();
+                        this.spawnParts(b.x, b.y, '#ffffff', 4, 2);
                     }
-                    // Reflect
-                    const overlapL = (b.x+b.r) - brick.x;
-                    const overlapR = (brick.x+brick.w) - (b.x-b.r);
-                    const overlapT = (b.y+b.r) - brick.y;
-                    const overlapB = (brick.y+brick.h) - (b.y-b.r);
-                    const min = Math.min(overlapL, overlapR, overlapT, overlapB);
-                    if(min === overlapT || min === overlapB) b.vy *= -1; else b.vx *= -1;
-                    break;
                 }
+                break;
             }
 
             // Ball lost
@@ -895,26 +911,26 @@ const Game = {
                 b.vx = (b.vx/s) * b.speed;
                 b.vy = (b.vy/s) * b.speed;
             }
-        });
+        }
 
+        // Жизнь теряется, только когда пропали все мячи (мультибол)
         this.balls = this.balls.filter(b => !b.mark);
         if(this.balls.length === 0) { this.loseBall(); return; }
 
         // Powerups
-        this.powerups.forEach(pu => {
+        for (const pu of this.powerups) {
             pu.y += pu.vy * dt; pu.angle += 3 * dt;
-            if(pu.y > this.H) pu.mark = true;
+            if(pu.y - pu.r > this.H) pu.mark = true;
             // Paddle catch
-            if(pu.y + pu.r >= p.y && pu.y - pu.r <= p.y + p.h && pu.x >= p.x && pu.x <= p.x + p.w) {
+            if(!pu.mark && pu.y + pu.r >= p.y && pu.y - pu.r <= p.y + p.h && pu.x >= p.x && pu.x <= p.x + p.w) {
                 pu.mark = true;
                 AudioSys.sfx.powerup();
-                const px = this.paddle.x + this.paddle.w/2;
-                const py = this.paddle.y - 20;
+                const px = p.x + p.w/2;
+                const py = p.y - 20;
                 if(pu.type === 'expand') {
-                    p.w = Math.min(p.w + 40, this.W - 20);
-                    spawnText(px, py, 'ШИРОКАЯ', this.theme.powerup.expand);
-                    clearTimeout(this._expandTimeout);
-                    this._expandTimeout = setTimeout(() => { p.w = p.baseW; }, 12000);
+                    this.setPaddleWidth(Math.min(p.w + 40, LW - 20));
+                    p.expandTimer = 12;
+                    this.floatText(px, py, 'ШИРОКАЯ', PU.expand.color);
                 } else if(pu.type === 'multiball') {
                     const ab = this.balls.filter(b => b.active);
                     if(ab.length > 0 && ab.length < 6) {
@@ -927,24 +943,24 @@ const Game = {
                             });
                         }
                     }
-                    spawnText(px, py, 'МУЛЬТИБОЛ', this.theme.powerup.multiball);
+                    this.floatText(px, py, 'МУЛЬТИБОЛ', PU.multiball.color);
                 } else if(pu.type === 'slow') {
                     this.balls.forEach(b => { b.speed = Math.max(280, b.speed * 0.75); });
-                    spawnText(px, py, '⏳ ЗАМЕДЛЕНИЕ', this.theme.powerup.slow);
+                    this.floatText(px, py, 'ЗАМЕДЛЕНИЕ', PU.slow.color);
                 } else if(pu.type === 'laser') {
                     p.laserActive = true; p.laserTimer = 12;
-                    spawnText(px, py, 'ЛАЗЕР', this.theme.powerup.laser);
+                    this.floatText(px, py, 'ЛАЗЕР', PU.laser.color);
                 } else if(pu.type === 'gold') {
                     this.score += 500;
                     this.updateHUD();
-                    spawnText(px, py, '+500 ★', this.theme.powerup.slow);
+                    this.floatText(px, py, '+500 ★', C.yellow);
                 }
             }
-        });
+        }
         this.powerups = this.powerups.filter(pu => !pu.mark);
 
-        // Projectiles
-        this.projectiles.forEach(proj => {
+        // Projectiles (лазер стальные блоки не берёт — как и раньше)
+        for (const proj of this.projectiles) {
             proj.y += proj.vy * dt;
             if(proj.y < -20) proj.mark = true;
             for(const brick of this.bricks) {
@@ -952,25 +968,28 @@ const Game = {
                 if(proj.x + proj.w > brick.x && proj.x < brick.x + brick.w && proj.y + proj.h > brick.y && proj.y < brick.y + brick.h) {
                     proj.mark = true;
                     brick.hp--;
+                    brick.flash = 0.7;
+                    this.brickDirty = true;
                     if(brick.hp <= 0) {
-                        brick.mark = true;
+                        this.destroyBrick(brick);
                         this.spawnParts(brick.x+brick.w/2, brick.y+brick.h/2, brick.color, 12, 4);
                         this.addScore(Math.floor(brick.score/2), brick.x+brick.w/2, brick.y+brick.h/2);
                     }
                     break;
                 }
             }
-        });
-        this.projectiles = this.projectiles.filter(p => !p.mark);
-
-        // Particles
-        this.particles.forEach(p => p.update(dt));
-        this.particles = this.particles.filter(p => p.life > 0);
+        }
+        this.projectiles = this.projectiles.filter(pr => !pr.mark);
 
         // Level clear
-        const remaining = this.bricks.filter(b => !b.mark && b.type !== 4).length;
-        if(remaining === 0) this.levelComplete();
-        this.updateProgress();
+        if(this.remaining() === 0) this.levelComplete();
+    },
+
+    destroyBrick(brick) {
+        brick.mark = true;
+        this.brickDirty = true;
+        this.broken++; this.runBroken++;
+        $('bricks-val').textContent = this.remaining();
     },
 
     ballRect(b, r) {
@@ -980,158 +999,231 @@ const Game = {
         return (dx * dx + dy * dy) < (b.r * b.r);
     },
 
+    // Отскок от блока: выталкиваем мяч по оси наименьшего перекрытия и направляем скорость
+    // «наружу» — один отскок на касание, мяч не застревает внутри и не «сверлит» блок.
+    bounceOff(b, brick) {
+        const oL = (b.x + b.r) - brick.x, oR = (brick.x + brick.w) - (b.x - b.r);
+        const oT = (b.y + b.r) - brick.y, oB = (brick.y + brick.h) - (b.y - b.r);
+        const m = Math.min(oL, oR, oT, oB);
+        if (m === oT) { b.y = brick.y - b.r; b.vy = -Math.abs(b.vy); }
+        else if (m === oB) { b.y = brick.y + brick.h + b.r; b.vy = Math.abs(b.vy); }
+        else if (m === oL) { b.x = brick.x - b.r; b.vx = -Math.abs(b.vx); }
+        else { b.x = brick.x + brick.w + b.r; b.vx = Math.abs(b.vx); }
+    },
+
     spawnParts(x, y, color, count, speed) {
         for(let i=0; i<count; i++) this.particles.push(new Particle(x, y, color, speed));
     },
 
+    /* ── отрисовка ── */
+    drawBrick(ctx, br) {
+        const { x, y, w, h } = br, r = Math.min(5, h * 0.28);
+        if (br.type === 4) {   // сталь
+            const g = ctx.createLinearGradient(0, y, 0, y + h);
+            g.addColorStop(0, '#3b4469'); g.addColorStop(1, '#1a1f3f');
+            ctx.fillStyle = g; rr(ctx, x, y, w, h, r); ctx.fill();
+            ctx.save(); rr(ctx, x, y, w, h, r); ctx.clip();
+            ctx.strokeStyle = 'rgba(255,255,255,.07)'; ctx.lineWidth = 2;
+            ctx.beginPath();
+            for (let k = -h; k < w; k += 9) { ctx.moveTo(x + k, y + h); ctx.lineTo(x + k + h, y); }
+            ctx.stroke();
+            ctx.restore();
+            ctx.strokeStyle = 'rgba(143,154,194,.55)'; ctx.lineWidth = 1;
+            rr(ctx, x + .5, y + .5, w - 1, h - 1, r); ctx.stroke();
+            ctx.fillStyle = 'rgba(205,214,255,.4)';
+            for (const fx of [0.13, 0.87]) { ctx.beginPath(); ctx.arc(x + w * fx, y + h / 2, 1.6, 0, Math.PI * 2); ctx.fill(); }
+            return;
+        }
+        const col = br.color;
+        ctx.save();
+        ctx.shadowColor = alpha(col, 0.75); ctx.shadowBlur = 10;
+        const g = ctx.createLinearGradient(0, y, 0, y + h);
+        g.addColorStop(0, shade(col, 0.35)); g.addColorStop(0.5, col); g.addColorStop(1, shade(col, -0.35));
+        ctx.fillStyle = g; rr(ctx, x, y, w, h, r); ctx.fill();
+        ctx.restore();
+        // блик сверху (как у блоков Тетриса)
+        const hg = ctx.createLinearGradient(0, y, 0, y + h * 0.55);
+        hg.addColorStop(0, 'rgba(255,255,255,.45)'); hg.addColorStop(1, 'rgba(255,255,255,0)');
+        ctx.fillStyle = hg; rr(ctx, x + 2, y + 1.5, w - 4, h * 0.45, r * 0.8); ctx.fill();
+        ctx.strokeStyle = 'rgba(255,255,255,.16)'; ctx.lineWidth = 1;
+        rr(ctx, x + .5, y + .5, w - 1, h - 1, r); ctx.stroke();
+        const cx = x + w / 2, cy = y + h / 2;
+        // трещины у повреждённых
+        if (br.hp < br.maxHp) {
+            ctx.strokeStyle = 'rgba(4,16,24,.55)'; ctx.lineWidth = 1.5;
+            ctx.beginPath(); ctx.moveTo(cx - 3, y); ctx.lineTo(cx, cy); ctx.lineTo(cx + 3, y + h);
+            if (br.maxHp - br.hp > 1) { ctx.moveTo(x + w * 0.2, y + h); ctx.lineTo(x + w * 0.3, cy); }
+            ctx.stroke();
+        }
+        // сколько ударов осталось
+        if (br.maxHp > 1) {
+            ctx.fillStyle = 'rgba(4,16,24,.78)';
+            ctx.font = `400 ${Math.round(h * 0.55)}px 'Russo One', 'Rubik', sans-serif`;
+            ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+            ctx.fillText(br.hp, cx, cy + 1);
+        }
+    },
+
+    renderBricks() {
+        const L = this.layer, lc = this.lctx;
+        if (L.width !== this.canvas.width || L.height !== this.canvas.height) { L.width = this.canvas.width; L.height = this.canvas.height; }
+        lc.setTransform(1, 0, 0, 1, 0, 0);
+        lc.clearRect(0, 0, L.width, L.height);
+        lc.setTransform(L.width / LW, 0, 0, L.height / this.H, 0, 0);
+        for (const br of this.bricks) if (!br.mark) this.drawBrick(lc, br);
+        this.brickDirty = false;
+    },
+
     draw() {
-        const ctx = this.ctx;
-        const t = this.theme;
+        const ctx = this.ctx, t = this.theme, p = this.paddle;
+        const W = LW, H = this.H, acc = t.accent;
+        if (!p) return;
+        ctx.clearRect(0, 0, W, H);
 
-        // Background
-        const grad = ctx.createRadialGradient(this.W/2, this.H/3, 0, this.W/2, this.H/3, this.H);
-        grad.addColorStop(0, t.bg1); grad.addColorStop(1, t.bg2);
-        ctx.fillStyle = grad;
-        ctx.fillRect(0, 0, this.W, this.H);
-
-        // BG particles
-        this.bgParticles.forEach(p => {
-            ctx.fillStyle = `rgba(255,255,255,${p.alpha})`;
-            ctx.beginPath(); ctx.arc(p.x, p.y, p.size, 0, Math.PI*2); ctx.fill();
-        });
+        // Фон поля: тёмное стекло + свечение темы сверху
+        ctx.fillStyle = 'rgba(4,6,22,.55)';
+        ctx.fillRect(0, 0, W, H);
+        const glow = ctx.createRadialGradient(W/2, 0, 0, W/2, 0, H * 0.75);
+        glow.addColorStop(0, alpha(acc, 0.10)); glow.addColorStop(1, alpha(acc, 0));
+        ctx.fillStyle = glow; ctx.fillRect(0, 0, W, H);
 
         ctx.save();
         if(this.shake > 0.5) ctx.translate((Math.random()-0.5)*this.shake, (Math.random()-0.5)*this.shake);
 
         // Grid
-        ctx.strokeStyle = t.grid; ctx.lineWidth = 0.5;
+        ctx.strokeStyle = 'rgba(255,255,255,.035)'; ctx.lineWidth = 1;
         ctx.beginPath();
-        const cs = 30;
-        for(let x=0; x<this.W; x+=cs) { ctx.moveTo(x,0); ctx.lineTo(x,this.H); }
-        for(let y=0; y<this.H; y+=cs) { ctx.moveTo(0,y); ctx.lineTo(this.W,y); }
+        for(let x=40; x<W; x+=40) { ctx.moveTo(x,0); ctx.lineTo(x,H); }
+        for(let y=40; y<H; y+=40) { ctx.moveTo(0,y); ctx.lineTo(W,y); }
         ctx.stroke();
 
-        // Bricks
-        this.bricks.forEach(br => {
-            if(br.mark) return;
-            const cx = br.x + br.w/2, cy = br.y + br.h/2;
-            const w = br.w * br.scale, h = br.h * br.scale;
-            const bx = cx - w/2, by = cy - h/2;
-
-            ctx.shadowBlur = 8; ctx.shadowColor = br.color;
-            ctx.fillStyle = br.color;
-            ctx.beginPath(); ctx.roundRect(bx, by, w, h, 3); ctx.fill();
-            ctx.shadowBlur = 0;
-
-            // Top highlight
-            ctx.fillStyle = 'rgba(255,255,255,0.18)';
-            ctx.fillRect(bx+2, by+1, w-4, h*0.3);
-            // Bottom shadow
-            ctx.fillStyle = 'rgba(0,0,0,0.15)';
-            ctx.fillRect(bx+2, by+h-h*0.3-1, w-4, h*0.3);
-
-            // Cracks for damaged
-            if(br.hp < br.maxHp && br.type !== 4) {
-                ctx.strokeStyle = 'rgba(0,0,0,0.5)'; ctx.lineWidth = 1.5;
-                ctx.beginPath();
-                ctx.moveTo(cx - 3, by); ctx.lineTo(cx, cy); ctx.lineTo(cx + 3, by + h);
-                ctx.stroke();
-            }
-
-            // HP indicator for tough bricks
-            if(br.maxHp > 1 && br.type !== 4) {
-                ctx.fillStyle = 'rgba(0,0,0,0.6)';
-                ctx.font = 'bold 10px JetBrains Mono';
-                ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
-                ctx.fillText(br.hp, cx, cy);
-            }
-
-            // Flash
-            if(br.flash > 0) {
-                ctx.fillStyle = `rgba(255,255,255,${br.flash})`;
-                ctx.beginPath(); ctx.roundRect(bx, by, w, h, 3); ctx.fill();
-                br.flash -= 0.08;
-            }
-        });
+        // Bricks (кэш) + вспышки ударов
+        if (this.brickDirty) this.renderBricks();
+        ctx.drawImage(this.layer, 0, 0, W, H);
+        for (const br of this.bricks) {
+            if (br.mark || br.flash <= 0) continue;
+            ctx.fillStyle = `rgba(255,255,255,${(br.flash * 0.8).toFixed(3)})`;
+            rr(ctx, br.x, br.y, br.w, br.h, Math.min(5, br.h * 0.28)); ctx.fill();
+        }
 
         // Powerups
-        this.powerups.forEach(pu => {
+        for (const pu of this.powerups) {
             ctx.save();
             ctx.translate(pu.x, pu.y);
             ctx.rotate(pu.angle);
-
-            // Glow
-            ctx.shadowBlur = 15; ctx.shadowColor = pu.color;
-            ctx.fillStyle = pu.color;
+            ctx.shadowBlur = 14; ctx.shadowColor = pu.color;
+            const g = ctx.createLinearGradient(0, -pu.r, 0, pu.r);
+            g.addColorStop(0, shade(pu.color, 0.4)); g.addColorStop(1, pu.color);
+            ctx.fillStyle = g;
             ctx.beginPath();
             ctx.moveTo(0, -pu.r); ctx.lineTo(pu.r, 0); ctx.lineTo(0, pu.r); ctx.lineTo(-pu.r, 0);
             ctx.closePath(); ctx.fill();
             ctx.shadowBlur = 0;
-
             ctx.rotate(-pu.angle);
-            ctx.fillStyle = '#000';
-            ctx.font = 'bold 11px JetBrains Mono';
+            ctx.fillStyle = '#041018';
+            ctx.font = "400 11px 'Russo One', 'Rubik', sans-serif";
             ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
-            ctx.fillText(pu.letter, 0, 0);
+            ctx.fillText(pu.letter, 0, 1);
             ctx.restore();
-        });
+        }
 
         // Projectiles
-        ctx.shadowBlur = 10; ctx.shadowColor = '#ff4466';
-        ctx.fillStyle = '#ff4466';
-        this.projectiles.forEach(p => {
-            ctx.beginPath(); ctx.roundRect(p.x, p.y, p.w, p.h, 2); ctx.fill();
-        });
-        ctx.shadowBlur = 0;
+        if (this.projectiles.length) {
+            ctx.save();
+            ctx.shadowBlur = 10; ctx.shadowColor = C.red;
+            ctx.fillStyle = C.red;
+            for (const pr of this.projectiles) { rr(ctx, pr.x, pr.y, pr.w, pr.h, 2); ctx.fill(); }
+            ctx.restore();
+        }
 
         // Paddle
-        const p = this.paddle;
-        ctx.shadowBlur = 15; ctx.shadowColor = t.paddleGlow;
-        ctx.fillStyle = t.paddle;
-        ctx.beginPath(); ctx.roundRect(p.x, p.y, p.w, p.h, 6); ctx.fill();
-        ctx.shadowBlur = 0;
-
-        // Paddle highlight
-        ctx.fillStyle = 'rgba(255,255,255,0.25)';
-        ctx.fillRect(p.x + 6, p.y + 3, p.w - 12, 2);
+        ctx.save();
+        ctx.shadowBlur = 16; ctx.shadowColor = acc;
+        const pg = ctx.createLinearGradient(0, p.y, 0, p.y + p.h);
+        pg.addColorStop(0, shade(acc, 0.45)); pg.addColorStop(0.55, acc); pg.addColorStop(1, shade(acc, -0.3));
+        ctx.fillStyle = pg;
+        rr(ctx, p.x, p.y, p.w, p.h, p.h / 2); ctx.fill();
+        ctx.restore();
+        ctx.fillStyle = 'rgba(255,255,255,.45)';
+        rr(ctx, p.x + 8, p.y + 2.5, p.w - 16, 2.5, 1.25); ctx.fill();
+        // мигание перед концом расширения
+        if (p.expandTimer > 0 && p.expandTimer < 2 && Math.sin(this.time * 18) > 0) {
+            ctx.strokeStyle = alpha(PU.expand.color, 0.9); ctx.lineWidth = 2;
+            rr(ctx, p.x - 1, p.y - 1, p.w + 2, p.h + 2, p.h / 2 + 1); ctx.stroke();
+        }
 
         // Laser indicators
         if(p.laserActive) {
-            ctx.fillStyle = '#ff4466';
-            ctx.beginPath(); ctx.arc(p.x + 8, p.y - 5, 5, 0, Math.PI*2); ctx.fill();
-            ctx.beginPath(); ctx.arc(p.x + p.w - 8, p.y - 5, 5, 0, Math.PI*2); ctx.fill();
+            ctx.save();
+            ctx.shadowBlur = 10; ctx.shadowColor = C.red;
+            ctx.fillStyle = C.red;
+            ctx.beginPath(); ctx.arc(p.x + 8, p.y - 4, 4.5, 0, Math.PI*2); ctx.fill();
+            ctx.beginPath(); ctx.arc(p.x + p.w - 8, p.y - 4, 4.5, 0, Math.PI*2); ctx.fill();
+            ctx.restore();
         }
 
         // Balls
-        this.balls.forEach(b => {
-            // Trail
+        for (const b of this.balls) {
             b.trail.forEach((tr, i) => {
                 if(tr.a <= 0) return;
-                ctx.fillStyle = `rgba(255,255,255,${tr.a * 0.35})`;
+                ctx.fillStyle = alpha(acc, tr.a * 0.4);
                 ctx.beginPath(); ctx.arc(tr.x, tr.y, b.r * (i / b.trail.length) * 0.8, 0, Math.PI*2); ctx.fill();
             });
-
-            // Ball
-            ctx.shadowBlur = 18; ctx.shadowColor = t.ballGlow;
-            ctx.fillStyle = t.ball;
+            ctx.save();
+            ctx.shadowBlur = 18; ctx.shadowColor = acc;
+            const bg = ctx.createRadialGradient(b.x - b.r * 0.35, b.y - b.r * 0.4, b.r * 0.1, b.x, b.y, b.r);
+            bg.addColorStop(0, '#ffffff'); bg.addColorStop(0.55, '#f4fbff'); bg.addColorStop(1, shade(acc, 0.35));
+            ctx.fillStyle = bg;
             ctx.beginPath(); ctx.arc(b.x, b.y, b.r, 0, Math.PI*2); ctx.fill();
-            ctx.shadowBlur = 0;
-
-            // Shine
-            ctx.fillStyle = 'rgba(255,255,255,0.4)';
-            ctx.beginPath(); ctx.arc(b.x - 2, b.y - 2, b.r * 0.35, 0, Math.PI*2); ctx.fill();
-        });
+            ctx.restore();
+        }
 
         // Particles
         ctx.globalCompositeOperation = 'lighter';
-        this.particles.forEach(p => p.draw(ctx));
+        this.particles.forEach(pt => pt.draw(ctx));
         ctx.globalCompositeOperation = 'source-over';
 
+        // Всплывающие очки
+        if (this.floaters.length) {
+            ctx.save();
+            ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+            ctx.font = "400 15px 'Russo One', 'Rubik', sans-serif";
+            for (const f of this.floaters) {
+                const k = f.t / f.life;
+                ctx.globalAlpha = Math.max(0, 1 - k);
+                ctx.shadowColor = f.color; ctx.shadowBlur = 10;
+                ctx.fillStyle = f.color;
+                ctx.fillText(f.text, clamp(f.x, 40, W - 40), f.y - k * 45);
+            }
+            ctx.restore();
+        }
         ctx.restore();
+
+        // Комбо — по центру сверху (HUD вне канваса, левый угол свободен)
+        if (this.combo >= 3 && this.comboTimer > 0) {
+            ctx.save();
+            ctx.globalAlpha = Math.min(1, this.comboTimer * 2);
+            ctx.font = "400 16px 'Russo One', 'Rubik', sans-serif";
+            ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+            ctx.shadowColor = C.yellow; ctx.shadowBlur = 14; ctx.fillStyle = C.yellow;
+            ctx.fillText('КОМБО ×' + this.combo, W / 2, 22);
+            ctx.restore();
+        }
+
+        // Подсказка, пока мяч на ракетке
+        if (this.state === 'PLAYING' && this.balls.some(b => !b.active)) {
+            ctx.save();
+            ctx.globalAlpha = 0.55 + 0.3 * Math.sin(this.time * 4);
+            ctx.font = "500 13px 'Rubik', sans-serif";
+            ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+            ctx.fillStyle = '#8f9ac2';
+            ctx.fillText(LAUNCH_HINT, W / 2, p.y - 46);
+            ctx.restore();
+        }
     }
 };
 
-window.onload = () => Game.init();
+Game.init();
 </script>
 </body>
 </html>

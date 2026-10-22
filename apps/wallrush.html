@@ -4,164 +4,164 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
 <title>Wall Rush</title>
+<link rel="stylesheet" href="ku-arcade.css">
+<script src="ku-arcade.js"></script>
 <style>
-  @import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;700;800&display=swap');
+  html,body{height:100%;overflow:hidden}
+  #screen-game,#screen-game *{touch-action:none}
 
-  *{box-sizing:border-box;margin:0;padding:0;user-select:none;-webkit-user-select:none;touch-action:none;-webkit-tap-highlight-color:transparent}
-  :root{
-    --bg:#060608; --sur:rgba(10,10,15,.9); --text:#f0f0f8; --text2:#8888aa;
-    --red:#ef4444; --blue:#3b82f6; --board:#1b1b1d;
-  }
-  body{background:var(--bg);color:var(--text);font-family:'JetBrains Mono',monospace;height:100dvh;overflow:hidden;display:flex;justify-content:center}
-
-  #wrap{position:relative;width:100%;max-width:520px;height:100%;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:12px;padding:12px}
-
-  /* ── Top bar ── */
-  #top-bar{position:absolute;top:10px;left:12px;right:12px;display:flex;justify-content:space-between;z-index:20;pointer-events:none}
-  .ibtn{pointer-events:auto;width:36px;height:36px;border-radius:50%;background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.16);color:#fff;display:flex;align-items:center;justify-content:center;cursor:pointer;transition:opacity .2s,transform .1s}
-  .ibtn:active{transform:scale(.92)}
-  .ibtn svg{width:16px;height:16px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
-  .ibtn:disabled{opacity:.25;cursor:default}
-
-  /* ── Player panels ── */
-  .panel{display:flex;flex-direction:column;align-items:center;gap:6px;transition:transform .3s}
-  .panel.flip{transform:rotate(180deg)}
+  /* ── Игровая колонка: панель соперника · поле · ваша панель ── */
+  #wrap{flex:1;min-height:0;width:100%;max-width:520px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:10px}
+  .pside{display:flex;flex-direction:column;align-items:center;gap:6px;transition:transform .3s;flex:none}
+  .pside.flip{transform:rotate(180deg)}
   #wrap.netflip #panel-1{order:3}#wrap.netflip #board-box{order:2}#wrap.netflip #panel-0{order:1}
   #wrap.netflip:not(.race) #cv{transform:rotate(180deg)}
-  .plabel{font-size:.68rem;letter-spacing:.12em;text-transform:uppercase;color:var(--text2);height:14px;white-space:nowrap}
+  .plabel{font-family:var(--font-display);font-size:10.5px;letter-spacing:1.5px;text-transform:uppercase;color:var(--muted);height:14px;white-space:nowrap}
   .plabel.on{color:var(--text)}
-  .wbtn{min-width:96px;height:46px;padding:0 18px;border:none;border-radius:10px;display:flex;align-items:center;justify-content:center;gap:12px;color:#fff;font:800 1.15rem 'JetBrains Mono',monospace;cursor:pointer;transition:opacity .2s,filter .2s,box-shadow .2s,transform .1s;opacity:.4;filter:saturate(.55)}
-  .wbtn.red{background:var(--red)} .wbtn.blue{background:var(--blue)}
-  .wbtn .bar{width:26px;height:9px;border-radius:3px;background:#fff}
-  .wbtn.active{opacity:1;filter:none}
-  .wbtn.red.active{box-shadow:0 0 18px rgba(239,68,68,.45)}
-  .wbtn.blue.active{box-shadow:0 0 18px rgba(59,130,246,.45)}
+  .wbtn{min-width:104px;height:46px;padding:0 18px;border-radius:14px;display:flex;align-items:center;justify-content:center;gap:12px;
+    color:var(--text);font:400 19px var(--font-display);cursor:pointer;background:var(--glass);border:1px solid var(--pc);
+    box-shadow:var(--shadow-btn);transition:opacity .2s,filter .2s,box-shadow .2s,transform .1s,background .2s;opacity:.45;filter:saturate(.6)}
+  .wbtn.red{--pc:color-mix(in srgb,var(--red) 60%,transparent);--pg:linear-gradient(135deg,#ff5d7d,#ff4dd2)}
+  .wbtn.blue{--pc:color-mix(in srgb,var(--blue) 60%,transparent);--pg:linear-gradient(135deg,#5b8cff,#00e5ff)}
+  .wbtn .bar{width:26px;height:9px;border-radius:3px;background:currentColor}
+  .wbtn.active{opacity:1;filter:none;background:var(--pg);border-color:transparent;color:#fff}
+  .wbtn.red.active{box-shadow:0 0 22px rgba(255,93,125,.45)}
+  .wbtn.blue.active{box-shadow:0 0 22px rgba(91,140,255,.45)}
   .wbtn.armed{outline:3px solid #fff;outline-offset:3px}
   .wbtn:active{transform:scale(.95)}
   .wbtn.empty .bar{opacity:.35}
+  #board-box{line-height:0}
 
-  #board-box{position:relative;line-height:0}
-  canvas{display:block;border-radius:18px}
-
-  /* ── Overlays ── */
-  .overlay{position:absolute;inset:0;background:var(--sur);backdrop-filter:blur(6px);-webkit-backdrop-filter:blur(6px);display:flex;flex-direction:column;align-items:center;justify-content:center;z-index:50;opacity:0;pointer-events:none;transition:opacity .3s ease;padding:24px}
-  .overlay.active{opacity:1;pointer-events:auto}
-  .menu-title{font-size:2.4rem;font-weight:800;margin-bottom:8px;text-align:center;letter-spacing:.04em;background:linear-gradient(90deg,var(--red),var(--blue));-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent;filter:drop-shadow(0 0 12px rgba(255,255,255,.12))}
-  .menu-sub{font-size:.72rem;color:var(--text2);margin-bottom:28px;text-align:center;letter-spacing:.06em}
-  .btn{background:transparent;color:#fff;border:2px solid var(--blue);padding:12px 30px;border-radius:12px;font:700 .9rem 'JetBrains Mono',monospace;cursor:pointer;margin-bottom:10px;width:80%;max-width:260px;transition:all .2s;text-transform:uppercase;letter-spacing:.1em}
-  .btn:active{transform:scale(.95)}
-  .btn-primary{background:var(--blue);box-shadow:0 0 20px rgba(59,130,246,.35)}
-  .btn-red{border-color:var(--red);color:var(--red)}
-  .btn-dim{border-color:var(--text2);color:var(--text2)}
-  .col{display:flex;flex-direction:column;align-items:center;width:100%}
-  .seg{display:flex;gap:8px;margin-bottom:20px;width:80%;max-width:260px}
-  .diff-btn{flex:1;background:transparent;border:1px solid var(--text2);color:var(--text2);padding:9px 0;border-radius:8px;font:.78rem 'JetBrains Mono',monospace;cursor:pointer;transition:all .2s}
-  .diff-btn.active{border-color:var(--blue);color:#fff;background:rgba(59,130,246,.18)}
-  #mode-selectors{max-width:300px;width:90%}
-  #mode-selectors .diff-btn{padding:9px 2px;font-size:.74rem}
-  .lbl{color:var(--text2);font-size:.78rem;margin-bottom:10px}
-
-  #rules-text{max-width:340px;font-size:.78rem;line-height:1.55;color:#d0d0e0;margin-bottom:22px}
-  #rules-text li{margin:0 0 8px 18px}
-  #rules-text b{color:#fff}
   .r{color:var(--red)} .b{color:var(--blue)}
-
-  #end-title{font-size:2.2rem;font-weight:800;margin-bottom:6px;text-align:center}
-  #end-sub{font-size:.8rem;color:var(--text2);margin-bottom:8px;text-align:center}
-  #end-score{font-size:1.6rem;font-weight:800;margin-bottom:6px;color:#ffd166;text-shadow:0 0 12px rgba(255,209,102,.4)}
-  #end-stats{font-size:.72rem;color:var(--text2);margin-bottom:24px}
-
-  #toast{position:absolute;left:50%;top:50%;transform:translateX(-50%) translateY(10px);background:rgba(20,20,28,.95);border:1px solid rgba(255,255,255,.12);color:#fff;font-size:.75rem;padding:8px 14px;border-radius:10px;opacity:0;transition:all .25s;pointer-events:none;z-index:30;white-space:nowrap}
-  #toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
+  #menu-end h2.red{background:linear-gradient(90deg,#ff5d7d,#ff4dd2);-webkit-background-clip:text;background-clip:text}
+  #menu-end h2.blue{background:linear-gradient(90deg,#5b8cff,#00e5ff);-webkit-background-clip:text;background-clip:text}
+  #end-stats{font-size:12px}
+  #menu-sub{min-height:36px}
 </style>
 </head>
-<body>
-<div id="wrap">
+<body class="ku">
+<main class="ku-app">
 
-  <div id="top-bar">
-    <button class="ibtn" id="btn-pause" aria-label="Пауза"><svg viewBox="0 0 24 24"><line x1="9" y1="5" x2="9" y2="19"/><line x1="15" y1="5" x2="15" y2="19"/></svg></button>
-    <button class="ibtn" id="btn-undo" aria-label="Отменить ход"><svg viewBox="0 0 24 24"><polyline points="9 14 4 9 9 4"/><path d="M20 20v-7a4 4 0 0 0-4-4H4"/></svg></button>
-  </div>
+  <!-- ═══ МЕНЮ ═══ -->
+  <section id="screen-menu" class="ku-screen menu active">
+    <h1 class="ku-logo">WALL RUSH</h1>
+    <p class="ku-tagline">Стратегия • Стены • 3 цели</p>
+    <div class="ku-pills"><span>🧱 10 стен</span><span>🤖 ИИ · 3 уровня</span><span>👥 Вдвоём</span><span>🌐 По сети</span></div>
 
-  <!-- Top player: Blue (AI or Player 2) -->
-  <div class="panel" id="panel-1">
-    <button class="wbtn blue" id="wbtn-1"><span class="bar"></span><span id="wcount-1">10</span></button>
-    <div class="plabel" id="plabel-1"></div>
-  </div>
-
-  <div id="board-box"><canvas id="cv"></canvas></div>
-
-  <!-- Bottom player: Red (you / Player 1) -->
-  <div class="panel" id="panel-0">
-    <div class="plabel" id="plabel-0"></div>
-    <button class="wbtn red" id="wbtn-0"><span class="bar"></span><span id="wcount-0">10</span></button>
-  </div>
-
-  <div id="toast"></div>
-
-  <!-- Main menu -->
-  <div class="overlay active" id="menu-main">
-    <div class="menu-title">WALL RUSH</div>
-    <div class="menu-sub" id="menu-sub">Доведи фишку до своего ряда. Строй стены.</div>
-    <div class="col" id="main-btns">
-      <div class="lbl">Цель игры</div>
-      <div class="seg" id="mode-selectors">
-        <button class="diff-btn active" data-m="edge">К краю</button>
-        <button class="diff-btn" data-m="center">В центр</button>
-        <button class="diff-btn" data-m="race">🏁 Гонка</button>
+    <div class="ku-field">
+      <div class="ku-label">Цель игры</div>
+      <div class="ku-seg" id="mode-selectors">
+        <button class="active" data-m="edge">К краю</button>
+        <button data-m="center">В центр</button>
+        <button data-m="race">🏁 Гонка</button>
       </div>
-      <button class="btn btn-primary" id="btn-1p">1 Игрок</button>
-      <button class="btn" id="btn-2p">2 Игрока</button>
-      <button class="btn" id="btn-net" style="border-color:#00e5a0">По сети</button>
-      <button class="btn btn-dim" id="btn-rules">Правила</button>
+      <p class="ku-hint" id="menu-sub" style="margin-top:2px">Доведи фишку до своего ряда. Строй стены.</p>
     </div>
-    <div class="col" id="diff-btns" style="display:none">
-      <div class="lbl">Сложность ИИ</div>
-      <div class="seg" id="diff-selectors">
-        <button class="diff-btn" data-d="easy">Легко</button>
-        <button class="diff-btn active" data-d="medium">Средне</button>
-        <button class="diff-btn" data-d="hard">Сложно</button>
+
+    <div class="ku-menu-btns" id="main-btns" style="margin-top:14px">
+      <button class="ku-btn big primary" id="btn-1p">🤖 Против ИИ<span class="best" id="best-1p">Побед: 0</span></button>
+      <div class="ku-menu-duo">
+        <button class="ku-btn duo blue" id="btn-2p">👥 Вдвоём<span class="best">на одном экране</span></button>
+        <button class="ku-btn duo green" id="btn-net">🌐 По сети<span class="best">с другом</span></button>
       </div>
-      <button class="btn btn-primary" id="btn-start-ai">Старт</button>
-      <button class="btn btn-dim" id="btn-back-main">Назад</button>
     </div>
-  </div>
+    <div class="ku-menu-btns" id="diff-btns" style="display:none;margin-top:14px">
+      <div class="ku-field" style="margin-top:0">
+        <div class="ku-label">Сложность ИИ</div>
+        <div class="ku-seg" id="diff-selectors">
+          <button data-d="easy">Легко</button>
+          <button class="active" data-d="medium">Средне</button>
+          <button data-d="hard">Сложно</button>
+        </div>
+      </div>
+      <button class="ku-btn big primary" id="btn-start-ai">▶ Старт</button>
+      <button class="ku-btn ghost" id="btn-back-main">← Назад</button>
+    </div>
 
-  <!-- Rules -->
-  <div class="overlay" id="menu-rules">
-    <div class="menu-title" style="font-size:1.6rem;margin-bottom:18px">ПРАВИЛА</div>
-    <ul id="rules-text">
-      <li><b>Режим «К краю»:</b> первым довести фишку до дальнего ряда своего цвета. <span class="r">Красный</span> идёт вверх, <span class="b">синий</span> — вниз.</li>
-      <li><b>Режим «В центр»:</b> <span class="r">красный</span> стартует с левого края, <span class="b">синий</span> — с правого. Побеждает тот, кто первым встанет на <b>золотую клетку</b> в центре поля.</li>
-      <li><b>Режим «Гонка»:</b> вытянутая трасса 7×11. Обе фишки стартуют с <b>одной линии старта</b> внизу, финиш общий — <b>клетчатый ряд</b> наверху. Кто первым пересечёт финиш — победил. Стены тормозят и соперника, и вас: перекрывайте его полосу, не загоняя себя в тупик.</li>
-      <li><b>Ход:</b> шаг фишкой на 1 клетку <b>или</b> одна стена.</li>
-      <li><b>Стена</b> перекрывает 2 клетки. У каждого игрока по <b>10</b> стен (в гонке — <span class="r">8</span> и <span class="b">9</span>: синий ходит вторым и получает стену в запас). Стены нельзя накладывать и пересекать.</li>
-      <li>Нельзя полностью замуровать соперника — путь к цели должен оставаться у обоих.</li>
-      <li><b>Прыжок:</b> соперника рядом можно перепрыгнуть. Если за ним стена — шаг по диагонали.</li>
-      <li><b>Управление:</b> тап по подсвеченной клетке — ход. Тап по своей кнопке стен, затем проведите пальцем по доске и отпустите.</li>
-    </ul>
-    <button class="btn btn-primary" id="btn-rules-close">Понятно</button>
-  </div>
+    <div class="ku-menu-row"><button class="ku-btn ghost" id="btn-rules">📖 Правила</button></div>
+    <div class="ku-menu-stats" id="menu-stats"></div>
+    <div class="ku-menu-hint">Тап по подсвеченной клетке — ход · кнопка стен → проведите по доске и отпустите</div>
+  </section>
 
-  <!-- Pause -->
-  <div class="overlay" id="menu-pause">
-    <div class="menu-title" style="background:none;-webkit-text-fill-color:var(--text);margin-bottom:28px">ПАУЗА</div>
-    <button class="btn btn-primary" id="btn-resume">Продолжить</button>
-    <button class="btn" id="btn-restart">Начать заново</button>
-    <button class="btn btn-dim" id="btn-rules2">Правила</button>
-    <button class="btn btn-red" id="btn-quit">В меню</button>
-  </div>
+  <!-- ═══ ИГРА ═══ -->
+  <section id="screen-game" class="ku-screen fit">
+    <header class="ku-top">
+      <div class="ku-top-left"></div>
+      <div class="ku-top-title"><div class="t" id="game-title">WALL RUSH</div><div class="s" id="game-sub"></div></div>
+      <div class="ku-top-actions">
+        <button class="ku-btn icon" id="btn-undo" aria-label="Отменить ход"><svg viewBox="0 0 24 24"><polyline points="9 14 4 9 9 4"/><path d="M20 20v-7a4 4 0 0 0-4-4H4"/></svg></button>
+        <button class="ku-btn icon" id="btn-pause" aria-label="Пауза"><svg viewBox="0 0 24 24"><line x1="9" y1="5" x2="9" y2="19"/><line x1="15" y1="5" x2="15" y2="19"/></svg></button>
+      </div>
+    </header>
+    <div id="wrap">
+      <!-- Верхний игрок: синий (ИИ или второй игрок) -->
+      <div class="pside" id="panel-1">
+        <button class="wbtn blue" id="wbtn-1"><span class="bar"></span><span id="wcount-1">10</span></button>
+        <div class="plabel" id="plabel-1"></div>
+      </div>
+      <div id="board-box" class="ku-board"><canvas id="cv"></canvas></div>
+      <!-- Нижний игрок: красный (вы / первый игрок) -->
+      <div class="pside" id="panel-0">
+        <div class="plabel" id="plabel-0"></div>
+        <button class="wbtn red" id="wbtn-0"><span class="bar"></span><span id="wcount-0">10</span></button>
+      </div>
+    </div>
+  </section>
+</main>
 
-  <!-- Game over -->
-  <div class="overlay" id="menu-end">
-    <div id="end-title">Победа!</div>
-    <div id="end-sub"></div>
-    <div id="end-score"></div>
-    <div id="end-stats"></div>
-    <button class="btn btn-primary" id="btn-again">Ещё раз</button>
-    <button class="btn btn-dim" id="btn-end-menu">В меню</button>
+<!-- ═══ ПРАВИЛА ═══ -->
+<div class="ku-overlay" id="menu-rules">
+  <div class="ku-modal">
+    <header><h2>📖 Правила</h2><button class="ku-btn icon" id="btn-rules-x" aria-label="Закрыть">✕</button></header>
+    <div class="ku-body">
+      <h3>Цели игры</h3>
+      <ul class="ku-rules">
+        <li><b>«К краю»:</b> первым довести фишку до дальнего ряда своего цвета. <span class="r">Красный</span> идёт вверх, <span class="b">синий</span> — вниз.</li>
+        <li><b>«В центр»:</b> <span class="r">красный</span> стартует с левого края, <span class="b">синий</span> — с правого. Побеждает тот, кто первым встанет на <b>золотую клетку</b> в центре поля.</li>
+        <li><b>«Гонка»:</b> вытянутая трасса 7×11. Обе фишки стартуют с <b>одной линии старта</b> внизу, финиш общий — <b>клетчатый ряд</b> наверху. Кто первым пересечёт финиш — победил. Стены тормозят и соперника, и вас: перекрывайте его полосу, не загоняя себя в тупик.</li>
+      </ul>
+      <h3>Ход и стены</h3>
+      <ul class="ku-rules">
+        <li><b>Ход:</b> шаг фишкой на 1 клетку <b>или</b> одна стена.</li>
+        <li><b>Стена</b> перекрывает 2 клетки. У каждого игрока по <b>10</b> стен (в гонке — <span class="r">8</span> и <span class="b">9</span>: синий ходит вторым и получает стену в запас). Стены нельзя накладывать и пересекать.</li>
+        <li>Нельзя полностью замуровать соперника — путь к цели должен оставаться у обоих.</li>
+        <li><b>Прыжок:</b> соперника рядом можно перепрыгнуть. Если за ним стена — шаг по диагонали.</li>
+      </ul>
+      <h3>Управление</h3>
+      <ul class="ku-rules">
+        <li>Тап по подсвеченной клетке — ход.</li>
+        <li>Тап по своей кнопке стен, затем проведите пальцем по доске и отпустите. Направление свайпа задаёт ориентацию стены.</li>
+        <li>↶ — отменить свой ход (кроме игры по сети).</li>
+      </ul>
+    </div>
+    <footer><button class="ku-btn primary" id="btn-rules-close">Понятно</button></footer>
   </div>
 </div>
+
+<!-- ═══ ПАУЗА ═══ -->
+<div class="ku-overlay" id="menu-pause">
+  <div class="ku-card">
+    <h2>⏸ ПАУЗА</h2>
+    <button class="ku-btn primary" id="btn-resume">Продолжить</button>
+    <button class="ku-btn" id="btn-restart">Начать заново</button>
+    <button class="ku-btn" id="btn-rules2">📖 Правила</button>
+    <button class="ku-btn ghost" id="btn-quit">В меню</button>
+  </div>
+</div>
+
+<!-- ═══ КОНЕЦ ПАРТИИ ═══ -->
+<div class="ku-overlay" id="menu-end">
+  <div class="ku-card">
+    <h2 id="end-title">ПОБЕДА!</h2>
+    <p id="end-sub"></p>
+    <div class="ku-big-score" id="end-score"></div>
+    <p id="end-stats"></p>
+    <button class="ku-btn primary" id="btn-again">Играть снова</button>
+    <button class="ku-btn ghost" id="btn-end-menu">В меню</button>
+  </div>
+</div>
+
+<div class="ku-toast" id="toast"></div>
 
 <script src="kunet.js"></script>
 <script>
@@ -396,7 +396,7 @@ function aiChoose(s, level) {
  * GAME STATE / UI
  * ═════════════════════════════════════════════════════════════ */
 const $ = id => document.getElementById(id);
-const COL = ['#ef4444', '#3b82f6'];
+const COL = ['#ff5d7d', '#5b8cff'];   // --red / --blue из ku-arcade
 const NAMES = { '1p': ['Вы', 'ИИ'], '2p': ['Красный', 'Синий'], 'net': ['Красный', 'Синий'] };
 const MAX_PLY = 300;
 
@@ -465,7 +465,7 @@ function startNet(sess) {
   hide('menu-main'); AudioSys.init();
   newGame();
   sess.onUpdate = room => netApply(room);
-  sess.onClosed = () => { gameOver = true; aiBusy = false; armed = false; ghost = null; updateHUD(); toast('Соперник вышел из игры'); $('end-title').textContent = 'Соперник вышел'; $('end-title').style.color = '#fff'; $('end-sub').textContent = ''; $('end-score').style.display = 'none'; $('end-stats').textContent = ''; show('menu-end'); };
+  sess.onClosed = () => { gameOver = true; aiBusy = false; armed = false; ghost = null; updateHUD(); toast('Соперник вышел из игры'); $('end-title').textContent = 'СОПЕРНИК ВЫШЕЛ'; $('end-title').className = ''; $('end-sub').textContent = ''; $('end-score').style.display = 'none'; $('end-stats').textContent = ''; showEnd(); };
   sess.onError = () => toast('Нет связи с сервером…');
   netApply(sess.room);
   sess.startPolling();
@@ -476,25 +476,41 @@ function leaveNet() {
   $('wrap').classList.remove('netflip');
 }
 window.addEventListener('pagehide', () => { if (net) net.leaveBeacon(); });
-function anyMenu() { return document.querySelector('.overlay.active') !== null; }
+function anyMenu() { return document.querySelector('.ku-overlay.open') !== null || $('screen-menu').classList.contains('active'); }
 // В гонке трасса общая и направлена вверх для обоих — доску не поворачиваем.
 function boardFlipped() { return mode === 'net' && mySeat === 1 && GM !== 'race'; }
 const MODE_NAME = { edge: 'К краю', center: 'В центр', race: 'Гонка' };
+const LEVEL_NAME = { easy: 'Легко', medium: 'Средне', hard: 'Сложно' };
+// Строка статистики в меню и подпись кнопки «Против ИИ» для выбранной цели игры
+function refreshMenuStats() {
+  const st = loadStats();
+  let w = 0, l = 0, parts = [];
+  for (const lv of ['easy', 'medium', 'hard']) {
+    const r = st[GM === 'edge' ? lv : GM + '_' + lv];
+    if (!r) continue;
+    w += r.w | 0; l += r.l | 0;
+    if (r.w || r.l) parts.push(LEVEL_NAME[lv] + ' ' + (r.w | 0) + ':' + (r.l | 0));
+  }
+  $('best-1p').textContent = 'Побед: ' + w + ' · поражений: ' + l;
+  $('menu-stats').textContent = parts.length ? MODE_NAME[GM] + ' против ИИ — ' + parts.join(' • ') : 'Сыграйте первую партию против ИИ';
+}
 
 function toast(msg) {
   const t = $('toast'); t.textContent = msg; t.classList.add('show');
-  clearTimeout(toast._t); toast._t = setTimeout(() => t.classList.remove('show'), 1600);
+  clearTimeout(toast._t); toast._t = setTimeout(() => t.classList.remove('show'), 1800);
 }
 
 /* ── Layout ── */
 function layout() {
   const wrap = $('wrap');
-  const availW = wrap.clientWidth - 24;
-  const availH = wrap.clientHeight - 2 * 80 - 48;
-  // board size in cell units: cells + grooves (¼ cell) + padding on both sides
-  const GK = .25, PK = .32;
+  if (!wrap.clientHeight) return;                       // экран игры скрыт (меню)
+  const FRAME = 16;                                      // рамка .ku-board: padding 7 + border 1
+  const availW = wrap.clientWidth - FRAME;
+  const availH = wrap.clientHeight - $('panel-0').offsetHeight - $('panel-1').offsetHeight - 2 * 10 - FRAME;
+  // размер поля в клетках: клетки + пазы (¼ клетки) + поля по краям
+  const GK = .25, PK = .2;
   const uw = COLS + AC * GK + 2 * PK, uh = ROWS + AR * GK + 2 * PK, um = Math.max(uw, uh);
-  const cs = Math.max(220 / um, Math.min(availW / uw, availH / uh, 600 / um));
+  const cs = Math.max(200 / um, Math.min(availW / uw, availH / uh, 600 / um));
   const gp = cs * GK, pad = cs * PK, w = cs * uw, h = cs * uh;
   G = { w, h, pad, cs, gp, P: cs + gp, dpr: window.devicePixelRatio || 1 };
   cv.style.width = w + 'px'; cv.style.height = h + 'px';
@@ -524,6 +540,9 @@ function updateHUD() {
     lb.classList.toggle('on', active);
   }
   $('panel-1').classList.toggle('flip', mode === '2p' && GM !== 'race');
+  const who = mode === '1p' ? 'ИИ · ' + LEVEL_NAME[level] : mode === '2p' ? 'вдвоём' : 'по сети';
+  $('game-title').textContent = MODE_NAME[GM].toUpperCase();
+  $('game-sub').textContent = (who + ' · ' + (gameOver ? 'финал' : 'ход ' + (Math.floor(S.ply / 2) + 1))).toUpperCase();
   $('btn-undo').disabled = gameOver || aiBusy || mode === 'net' || !history.some(e => isHuman(e.by));
 }
 
@@ -585,20 +604,20 @@ function finish(w) {
   clearTimeout(aiTimer); aiBusy = false;
   updateHUD();
 
-  let title, sub = '', scoreTxt = '', statsTxt = '', color = '#fff';
-  if (w === -1) { title = 'Ничья'; sub = 'Слишком долгая партия'; }
+  let title, sub = '', scoreTxt = '', statsTxt = '', cls = '';
+  if (w === -1) { title = 'НИЧЬЯ'; sub = 'Слишком долгая партия'; }
   else if (mode === 'net') {
-    title = w === mySeat ? 'Победа!' : 'Поражение'; color = COL[w];
+    title = w === mySeat ? 'ПОБЕДА!' : 'ПОРАЖЕНИЕ'; cls = w === mySeat ? 'win' : 'lose';
     sub = nameOf(w) + (GM === 'race' ? ' финишировал первым' : ' дошёл первым') + ' · стен осталось: ' + S.walls[w];
   }
   else if (mode === '2p') {
-    title = (w === 0 ? 'Красный' : 'Синий') + ' победил!'; color = COL[w];
+    title = (w === 0 ? 'КРАСНЫЙ' : 'СИНИЙ') + ' ПОБЕДИЛ!'; cls = w === 0 ? 'red' : 'blue';
     sub = 'Осталось стен: ' + S.walls[w];
   } else {
     const key = GM === 'edge' ? level : GM + '_' + level;
     const st = loadStats(), rec = st[key] || { w: 0, l: 0 };
     if (w === 0) {
-      title = 'Победа!'; color = COL[0];
+      title = 'ПОБЕДА!'; cls = 'win';
       const base = { easy: 100, medium: 250, hard: 500 }[level];
       const score = base + S.walls[0] * 15 + Math.max(0, 60 - humanMoves) * 3;
       scoreTxt = '+' + score;
@@ -609,20 +628,20 @@ function finish(w) {
         if (api && api.gameplay) api.gameplay.submitScore('wallrush', score, Math.round(score / 10));
       } catch (e) {}
     } else {
-      title = 'Поражение'; color = COL[1]; sub = GM === 'race' ? 'ИИ финишировал первым' : 'ИИ дошёл первым'; rec.l++;
+      title = 'ПОРАЖЕНИЕ'; cls = 'lose'; sub = GM === 'race' ? 'ИИ финишировал первым' : 'ИИ дошёл первым'; rec.l++;
     }
     st[key] = rec; saveStats(st);
-    const lvName = { easy: 'Легко', medium: 'Средне', hard: 'Сложно' }[level];
+    const lvName = LEVEL_NAME[level];
     statsTxt = MODE_NAME[GM] + ' · ' + lvName + ': побед ' + rec.w + ' · поражений ' + rec.l;
   }
   (w === 0 || mode === '2p' || (mode === 'net' && w === mySeat)) && w !== -1 ? AudioSys.sfx.win() : AudioSys.sfx.lose();
 
-  $('end-title').textContent = title; $('end-title').style.color = color;
+  $('end-title').textContent = title; $('end-title').className = cls;
   $('end-sub').textContent = sub;
   $('end-score').textContent = scoreTxt; $('end-score').style.display = scoreTxt ? '' : 'none';
   $('end-stats').textContent = statsTxt;
   clearTimeout(endTimer);
-  endTimer = setTimeout(() => $('menu-end').classList.add('active'), 900);
+  endTimer = setTimeout(showEnd, 900);
 }
 
 function newGame() {
@@ -716,7 +735,7 @@ function wallRect(o, r, c) {
 }
 function drawWall(o, r, c, color, scale = 1, alpha = 1) {
   const q = wallRect(o, r, c);
-  ctx.save(); ctx.globalAlpha = alpha; ctx.fillStyle = color;
+  ctx.save(); ctx.globalAlpha = alpha; ctx.fillStyle = color; ctx.shadowColor = color; ctx.shadowBlur = 8;
   if (scale !== 1) {
     const cx = q.x + q.w / 2, cy = q.y + q.h / 2;
     const w = o === 'h' ? q.w * scale : q.w, h = o === 'v' ? q.h * scale : q.h;
@@ -727,24 +746,25 @@ function drawWall(o, r, c, color, scale = 1, alpha = 1) {
 
 function frame(now) {
   const { w: bw, h: bh, pad, cs, gp, P } = G;
+  // фон поля даёт рамка .ku-board; клетки — стеклянные, как пустые клетки Тетриса
   ctx.clearRect(0, 0, bw, bh);
-  ctx.fillStyle = '#1b1b1d'; rr(0, 0, bw, bh, 18); ctx.fill();
+  ctx.fillStyle = 'rgba(4,6,22,.55)'; rr(0, 0, bw, bh, 11); ctx.fill();
 
   // cells
   for (let r = 0; r < ROWS; r++) for (let c = 0; c < COLS; c++) {
     const x = pad + c * P, y = pad + r * P;
-    let fill = '#2a2a2c', stroke = '#343437', flag = false;
+    let fill = 'rgba(255,255,255,.045)', stroke = 'rgba(255,255,255,.07)', flag = false;
     if (GM === 'edge') {
-      if (r === 0) { fill = '#5c2b2f'; stroke = '#77393d'; }
-      else if (r === AR) { fill = '#2b3b58'; stroke = '#3d527c'; }
+      if (r === 0) { fill = 'rgba(255,93,125,.18)'; stroke = 'rgba(255,93,125,.42)'; }
+      else if (r === AR) { fill = 'rgba(91,140,255,.18)'; stroke = 'rgba(91,140,255,.42)'; }
     } else if (GM === 'race') {
-      if (r === 0) { fill = '#2a2a2c'; stroke = '#8a7330'; flag = true; }
-      else if (r === AR) { fill = '#233029'; stroke = '#31443a'; }
-    } else if (r * COLS + c === CENTER) { fill = '#5a4a1c'; stroke = '#8a7330'; }
-    ctx.fillStyle = fill; rr(x, y, cs, cs, cs * .06); ctx.fill();
+      if (r === 0) { fill = 'rgba(255,214,10,.06)'; stroke = 'rgba(255,214,10,.4)'; flag = true; }
+      else if (r === AR) { fill = 'rgba(81,245,139,.1)'; stroke = 'rgba(81,245,139,.28)'; }
+    } else if (r * COLS + c === CENTER) { fill = 'rgba(255,214,10,.2)'; stroke = 'rgba(255,214,10,.55)'; }
+    ctx.fillStyle = fill; rr(x, y, cs, cs, cs * .12); ctx.fill();
     if (flag) {   // chequered finish flag
       ctx.save(); ctx.clip();
-      const q = cs / 4; ctx.fillStyle = 'rgba(236,236,244,.22)';
+      const q = cs / 4; ctx.fillStyle = 'rgba(238,242,255,.2)';
       for (let i = 0; i < 4; i++) for (let j = 0; j < 4; j++) if ((i + j) % 2 === 0) ctx.fillRect(x + j * q, y + i * q, q, q);
       ctx.restore();
     }
@@ -755,7 +775,7 @@ function frame(now) {
   if (GM === 'race') {
     const k = .5 + .5 * Math.sin(now / 420);
     ctx.save();
-    ctx.strokeStyle = '#f5c542'; ctx.shadowColor = '#f5c542'; ctx.shadowBlur = 4 + 8 * k;
+    ctx.strokeStyle = '#ffd60a'; ctx.shadowColor = '#ffd60a'; ctx.shadowBlur = 4 + 8 * k;
     ctx.lineWidth = Math.max(1.5, cs * .05); ctx.globalAlpha = .55 + .35 * k;
     rr(pad - gp * .35, pad - gp * .35, COLS * P - gp + gp * .7, cs + gp * .7, cs * .12); ctx.stroke();
     ctx.restore();
@@ -767,10 +787,10 @@ function frame(now) {
     const x = pad + cc * P + cs / 2, y = pad + cr * P + cs / 2;
     const k = .5 + .5 * Math.sin(now / 420);
     ctx.save();
-    ctx.strokeStyle = '#f5c542'; ctx.shadowColor = '#f5c542'; ctx.shadowBlur = 6 + 8 * k;
+    ctx.strokeStyle = '#ffd60a'; ctx.shadowColor = '#ffd60a'; ctx.shadowBlur = 6 + 8 * k;
     ctx.lineWidth = Math.max(1.5, cs * .06);
     ctx.beginPath(); ctx.arc(x, y, cs * (.3 + .04 * k), 0, Math.PI * 2); ctx.stroke();
-    ctx.fillStyle = '#f5c542'; ctx.beginPath(); ctx.arc(x, y, cs * .07, 0, Math.PI * 2); ctx.fill();
+    ctx.fillStyle = '#ffd60a'; ctx.beginPath(); ctx.arc(x, y, cs * .07, 0, Math.PI * 2); ctx.fill();
     ctx.restore();
   }
 
@@ -798,7 +818,7 @@ function frame(now) {
       drawWall(o, r, c, COL[own - 1], sc);
     }
   }
-  if (ghost) drawWall(ghost.o, ghost.r, ghost.c, ghost.ok ? COL[S.turn] : '#777', 1, ghost.ok ? .55 : .35);
+  if (ghost) drawWall(ghost.o, ghost.r, ghost.c, ghost.ok ? COL[S.turn] : '#8f9ac2', 1, ghost.ok ? .55 : .35);
 
   // pawns
   for (const p of [0, 1]) {
@@ -810,8 +830,10 @@ function frame(now) {
     let rad = cs * .28;
     if (gameOver && winner === p) rad *= 1 + .08 * Math.sin(now / 140);
     ctx.save();
-    if (!gameOver && S.turn === p) { ctx.shadowColor = COL[p]; ctx.shadowBlur = 14; }
-    ctx.fillStyle = COL[p];
+    ctx.shadowColor = COL[p]; ctx.shadowBlur = !gameOver && S.turn === p ? 18 : 8;
+    const g = ctx.createRadialGradient(x - rad * .35, y - rad * .4, rad * .1, x, y, rad);
+    g.addColorStop(0, '#fff'); g.addColorStop(.25, COL[p]); g.addColorStop(1, COL[p]);
+    ctx.fillStyle = g;
     ctx.beginPath(); ctx.arc(x, y, rad, 0, Math.PI * 2); ctx.fill();
     ctx.restore();
   }
@@ -821,9 +843,18 @@ function frame(now) {
 /* ═══════════════════════════════════════════════════════════════
  * MENUS
  * ═════════════════════════════════════════════════════════════ */
-const show = id => $(id).classList.add('active');
-const hide = id => $(id).classList.remove('active');
-let rulesReturn = 'menu-main';
+function showScreen(name) {
+  $('screen-menu').classList.toggle('active', name === 'menu');
+  $('screen-game').classList.toggle('active', name === 'game');
+  if (name === 'menu') refreshMenuStats();
+}
+// 'menu-main' — экран меню, остальные id — оверлеи .ku-overlay
+const show = id => { if (id === 'menu-main') showScreen('menu'); else $(id).classList.add('open'); };
+const hide = id => { if (id === 'menu-main') showScreen('game'); else $(id).classList.remove('open'); };
+let rulesReturn = null;
+// Окно итогов: финал (ход ИИ/соперника) мог случиться, пока открыта пауза или правила — закрываем их,
+// иначе итоги ложились поверх паузы, а после «Играть снова» новая партия оставалась под паузой
+function showEnd() { hide('menu-pause'); hide('menu-rules'); rulesReturn = null; show('menu-end'); }
 
 $('btn-1p').onclick = () => { $('main-btns').style.display = 'none'; $('diff-btns').style.display = 'flex'; };
 $('btn-back-main').onclick = () => { $('diff-btns').style.display = 'none'; $('main-btns').style.display = 'flex'; };
@@ -838,16 +869,21 @@ $('btn-net').onclick = () => {
     onStart: startNet
   });
 };
-document.querySelectorAll('.diff-btn[data-d]').forEach(b => b.addEventListener('click', () => {
+document.querySelectorAll('#diff-selectors button').forEach(b => b.addEventListener('click', () => {
   level = b.dataset.d;
-  document.querySelectorAll('.diff-btn[data-d]').forEach(x => x.classList.toggle('active', x === b));
+  document.querySelectorAll('#diff-selectors button').forEach(x => x.classList.toggle('active', x === b));
 }));
 
-$('btn-rules').onclick = () => { rulesReturn = 'menu-main'; hide('menu-main'); show('menu-rules'); };
+$('btn-rules').onclick = () => { rulesReturn = null; show('menu-rules'); };
 $('btn-rules2').onclick = () => { rulesReturn = 'menu-pause'; hide('menu-pause'); show('menu-rules'); };
-$('btn-rules-close').onclick = () => { hide('menu-rules'); show(rulesReturn); };
+$('btn-rules-close').onclick = $('btn-rules-x').onclick = () => { hide('menu-rules'); if (rulesReturn) show(rulesReturn); };
 
-$('btn-pause').onclick = () => { if (!anyMenu()) { armed = false; ghost = null; updateHUD(); show('menu-pause'); } };
+$('btn-pause').onclick = () => {
+  if (anyMenu() || gameOver) return;   // после финала через 0.9 с откроется окно итогов
+  armed = false; ghost = null; updateHUD();
+  $('btn-restart').style.display = isNet() ? 'none' : '';   // по сети «заново» = общий сброс, он в «Играть снова»
+  show('menu-pause');
+};
 $('btn-resume').onclick = () => { hide('menu-pause'); updateHUD(); };
 $('btn-restart').onclick = () => { hide('menu-pause'); if (isNet()) { netApply(net.room); return; } newGame(); };
 $('btn-undo').onclick = () => undo();
@@ -881,14 +917,14 @@ const MODE_SUB = {
 function chooseGoalMode(m) {
   setGoalMode(m);
   try { localStorage.setItem('wallrush_mode', GM); } catch (e) {}
-  document.querySelectorAll('.diff-btn[data-m]').forEach(x => x.classList.toggle('active', x.dataset.m === GM));
+  document.querySelectorAll('#mode-selectors button').forEach(x => x.classList.toggle('active', x.dataset.m === GM));
   $('menu-sub').textContent = MODE_SUB[GM];
   $('wrap').classList.toggle('race', GM === 'race');
   S = newState(); history = []; ghost = null; lastWall = null;
   for (const p of [0, 1]) { disp[p].x = S.pos[p][1]; disp[p].y = S.pos[p][0]; }
-  layout(); updateHUD();
+  layout(); updateHUD(); refreshMenuStats();
 }
-document.querySelectorAll('.diff-btn[data-m]').forEach(b => b.addEventListener('click', () => chooseGoalMode(b.dataset.m)));
+document.querySelectorAll('#mode-selectors button').forEach(b => b.addEventListener('click', () => chooseGoalMode(b.dataset.m)));
 
 /* ── Boot ── */
 try { chooseGoalMode(localStorage.getItem('wallrush_mode') || 'edge'); } catch (e) { chooseGoalMode('edge'); }

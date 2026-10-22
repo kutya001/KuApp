@@ -2,200 +2,689 @@
 <html lang="ru">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width,initial-scale=1,user-scalable=no">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
 <title>Слово</title>
+<link rel="stylesheet" href="ku-arcade.css">
+<script src="ku-arcade.js"></script>
 <style>
-*{box-sizing:border-box;margin:0;padding:0}
-body{background:#0a0a0f;color:#f0f0f8;font-family:'JetBrains Mono',monospace;display:flex;flex-direction:column;align-items:center;height:100dvh;overflow:hidden;user-select:none}
-#top{padding:8px 0 6px;text-align:center}
-h3{font-size:1rem;font-weight:700;letter-spacing:.1em}
-#sub{font-size:.65rem;color:#8888aa;margin-top:2px}
-#board{display:flex;flex-direction:column;gap:6px;margin:8px 0}
-.row{display:flex;gap:6px}
-.tile{width:clamp(42px,12vw,52px);height:clamp(42px,12vw,52px);border:2px solid #2c2c40;border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:clamp(1.1rem,5vw,1.5rem);font-weight:700;transition:background .3s,border-color .3s}
-.tile.cur{border-color:#5b8cff}
-.tile.hit{background:#00e5a0;border-color:#00e5a0;color:#000}
-.tile.near{background:#ffd700;border-color:#ffd700;color:#000}
-.tile.miss{background:#22222f;border-color:#22222f}
-.tile.pop{animation:pop .15s}
-@keyframes pop{0%{transform:scale(1)}50%{transform:scale(1.12)}100%{transform:scale(1)}}
-.tile.shake{animation:shake .3s}
-@keyframes shake{0%,100%{transform:translateX(0)}25%{transform:translateX(-5px)}75%{transform:translateX(5px)}}
-#kbd{display:flex;flex-direction:column;gap:5px;margin-top:auto;padding-bottom:12px}
-.krow{display:flex;gap:4px;justify-content:center}
-.key{background:#22222f;border:none;color:#f0f0f8;border-radius:6px;padding:10px 5px;min-width:clamp(26px,7.5vw,34px);font-family:inherit;font-size:clamp(.65rem,2.5vw,.8rem);cursor:pointer;transition:background .2s}
-.key.wide{min-width:clamp(42px,11vw,54px);font-size:.65rem}
-.key.hit{background:#00e5a0;color:#000}
-.key.near{background:#ffd700;color:#000}
-.key.miss{background:#111118;color:#44445a}
-#toast{position:fixed;top:70px;left:50%;transform:translateX(-50%);background:#22222f;border:1px solid rgba(255,255,255,.15);color:#f0f0f8;padding:7px 18px;border-radius:20px;font-size:.8rem;pointer-events:none;opacity:0;transition:opacity .3s}
-#msg{position:fixed;inset:0;background:rgba(10,10,15,.88);display:none;flex-direction:column;align-items:center;justify-content:center;gap:12px}
-#msg h2{font-size:1.2rem}#msg p{font-size:.78rem;color:#8888aa;text-align:center}
-#mBtn{background:#5b8cff;color:#fff;border:none;padding:11px 32px;border-radius:10px;font-size:.9rem;font-weight:700;cursor:pointer;font-family:inherit}
+  html,body{height:100%;overflow:hidden}
+  /* цвета плиток — палитра набора (--green #51f58b, --gold #ffd60a), без color-mix: работают и в старых браузерах */
+  :root{
+    --w-hit:linear-gradient(160deg,#a8fac5 0%,#51f58b 48%,#3fbf6c 100%);
+    --w-near:linear-gradient(160deg,#ffeb85 0%,#ffd60a 48%,#ccab08 100%);
+    --w-hit-glow:0 0 14px rgba(81,245,139,.45),inset 0 1px 0 rgba(255,255,255,.35);
+    --w-near-glow:0 0 14px rgba(255,214,10,.4),inset 0 1px 0 rgba(255,255,255,.35);
+  }
+  #screen-game{padding-left:8px;padding-right:8px}
+  #screen-game .ku-hud{margin-bottom:6px}
+
+  /* ── Поле: 6 строк × 5 плиток ── */
+  #boardArea{flex:1 1 auto;min-height:0;width:100%;display:flex;align-items:center;justify-content:center}
+  #boardBox{line-height:0;padding:9px}
+  #board{--ts:56px;--tg:6px;display:grid;grid-template-rows:repeat(6,var(--ts));gap:var(--tg)}
+  .wrow{display:grid;grid-template-columns:repeat(5,var(--ts));gap:var(--tg)}
+  .wrow.shake{animation:kuShakeX .35s}
+  .tile{width:var(--ts);height:var(--ts);border-radius:calc(var(--ts)*.2);display:flex;align-items:center;justify-content:center;
+    font-family:var(--font-display);font-size:calc(var(--ts)*.5);line-height:1;color:var(--text);
+    background:rgba(255,255,255,.035);border:1px solid rgba(255,255,255,.08);
+    transition:border-color .15s,background-color .15s,box-shadow .15s}
+  .tile.caret{border-color:rgba(0,229,255,.35);border-color:color-mix(in srgb,var(--accent) 35%,transparent)}
+  .tile.filled{background:rgba(255,255,255,.075);border-color:rgba(0,229,255,.6);border-color:color-mix(in srgb,var(--accent) 60%,transparent);
+    box-shadow:0 0 12px rgba(0,229,255,.22),inset 0 1px 0 rgba(255,255,255,.12);
+    box-shadow:0 0 12px color-mix(in srgb,var(--accent) 22%,transparent),inset 0 1px 0 rgba(255,255,255,.12)}
+  .tile.hit{background:var(--w-hit);border-color:transparent;color:#041018;box-shadow:var(--w-hit-glow)}
+  .tile.near{background:var(--w-near);border-color:transparent;color:#1d1300;box-shadow:var(--w-near-glow)}
+  .tile.miss{background:rgba(5,8,24,.55);border-color:rgba(255,255,255,.05);color:rgba(238,242,255,.42)}
+  .tile.pop{animation:wPop .12s ease}
+  .tile.flip{animation:wFlip .36s ease}
+  .tile.jump{animation:wJump .5s ease}
+  @keyframes wPop{50%{transform:scale(1.1)}}
+  @keyframes wFlip{50%{transform:rotateX(90deg)}}
+  @keyframes wJump{30%{transform:translateY(-14px)}60%{transform:translateY(2px)}}
+
+  /* ── Экранная клавиатура ── */
+  #kbd{--kh:clamp(40px,6.4vh,58px);width:100%;max-width:520px;display:flex;flex-direction:column;gap:6px;margin-top:10px;flex:none}
+  .krow{display:flex;gap:4px;justify-content:center}
+  #kbd .ku-key{flex:1 1 0;min-width:0;max-width:46px;height:var(--kh);min-height:0;padding:0;border-radius:9px;
+    font-family:var(--font-display);font-weight:400;font-size:clamp(13px,4vw,18px)}
+  #kbd .ku-key.wide{flex:1.55 1 0;max-width:74px;font-family:var(--font-body);font-weight:700;font-size:11px;letter-spacing:.5px}
+  #kbd .ku-key svg{width:22px;height:22px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+  #kbd .ku-key.hit{background:var(--w-hit);border-color:transparent;color:#03210f;box-shadow:var(--w-hit-glow)}
+  #kbd .ku-key.near{background:var(--w-near);border-color:transparent;color:#241500;box-shadow:var(--w-near-glow)}
+  #kbd .ku-key.miss{background:rgba(0,0,0,.28);border-color:rgba(255,255,255,.04);color:rgba(143,154,194,.5);box-shadow:none}
+
+  /* ── Статистика: плитки и распределение попыток ── */
+  .stat-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px}
+  .stat-grid .ku-stat{min-width:0;padding:8px 2px}
+  .stat-grid .ku-stat span{font-size:9.5px;letter-spacing:.8px}
+  .dist{display:flex;flex-direction:column;gap:5px;text-align:left}
+  .dist .dr{display:grid;grid-template-columns:14px 1fr;align-items:center;gap:8px}
+  .dist .dr>b{font-family:var(--font-display);font-weight:400;font-size:13px;color:var(--muted);text-align:center}
+  .dist .bar{height:19px;min-width:26px;border-radius:6px;background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.06);
+    display:flex;align-items:center;justify-content:flex-end;padding:0 7px;font-family:var(--font-display);font-size:11.5px;color:var(--text)}
+  .dist .dr.cur .bar{background:var(--w-hit);border-color:transparent;color:#03210f;box-shadow:0 0 10px rgba(81,245,139,.35)}
+  .dist .dr.cur>b{color:var(--green)}
+  #over .dist{margin:2px 0 4px}
+  #overWord{letter-spacing:.12em}
+
+  /* ── Правила: примеры плиток ── */
+  .ex{display:flex;gap:5px;margin:8px 0 4px;--ts:34px}
+  .ex .tile{font-size:16px}
+  .ex-note{margin:0 0 10px;color:#d6dcf5;font-size:13.5px}
+
+  @media (max-height:700px){ #screen-game .ku-hud{display:none} }
+  @media (prefers-reduced-motion:reduce){ .tile.flip,.tile.jump,.tile.pop,.wrow.shake{animation:none} }
 </style>
 </head>
-<body>
-<div id="top"><h3>СЛОВО</h3><div id="sub">Угадай слово за 6 попыток</div></div>
-<div id="board"></div>
-<div id="kbd"></div>
-<div id="toast"></div>
-<div id="msg"><h2 id="mt"></h2><p id="mp"></p><button id="mBtn">Новое слово</button></div>
+<body class="ku">
+<main class="ku-app">
+
+  <!-- ═══ МЕНЮ ═══ -->
+  <section id="screen-menu" class="ku-screen menu active">
+    <h1 class="ku-logo">СЛОВО</h1>
+    <p class="ku-tagline">Угадай слово • 5 букв • 6 попыток</p>
+    <div class="ku-pills"><span>🟩 На месте</span><span>🟨 Есть в слове</span><span>⬛ Нет в слове</span><span id="dictPill">📚 Словарь</span></div>
+    <div class="ku-menu-btns">
+      <button class="ku-btn big primary" id="btnPlay"><span id="btnPlayLabel">🎮 Играть</span><span class="best" id="bestPlay">Серия: 0 • Лучшая: 0</span></button>
+    </div>
+    <div class="ku-menu-row">
+      <button class="ku-btn ghost" id="btnRules">📖 Правила</button>
+      <button class="ku-btn ghost" id="btnStats">📊 Статистика</button>
+    </div>
+    <div class="ku-menu-stats" id="menuStats">Сыграно: 0 • Побед: 0%</div>
+    <div class="ku-menu-hint">Клавиатура: буквы (русская или латинская раскладка) · Enter — проверить · Backspace — стереть · Esc — пауза<br>На телефоне: экранная клавиатура</div>
+  </section>
+
+  <!-- ═══ ИГРА ═══ -->
+  <section id="screen-game" class="ku-screen fit">
+    <header class="ku-top">
+      <div class="ku-top-left"></div>
+      <div class="ku-top-title"><div class="t">СЛОВО</div><div class="s" id="gameSub">ПОПЫТКА 1 ИЗ 6</div></div>
+      <div class="ku-top-actions">
+        <button class="ku-btn icon" id="btnPause" aria-label="Пауза"><svg viewBox="0 0 24 24"><line x1="9" y1="5" x2="9" y2="19"/><line x1="15" y1="5" x2="15" y2="19"/></svg></button>
+      </div>
+    </header>
+    <div class="ku-hud">
+      <div class="ku-stat"><span>Серия</span><b id="hudStreak">0</b></div>
+      <div class="ku-stat gold"><span>Лучшая</span><b id="hudBest">0</b></div>
+      <div class="ku-stat c2"><span>Побед</span><b id="hudRate">0%</b></div>
+    </div>
+    <div id="boardArea"><div class="ku-board" id="boardBox"><div id="board"></div></div></div>
+    <div id="kbd" role="group" aria-label="Клавиатура"></div>
+  </section>
+</main>
+
+<!-- ═══ ПАУЗА ═══ -->
+<div class="ku-overlay" id="pause"><div class="ku-card">
+  <h2>⏸ ПАУЗА</h2>
+  <p id="pauseInfo">Попытка 1 из 6</p>
+  <button class="ku-btn primary" id="btnResume">Продолжить</button>
+  <button class="ku-btn" id="btnNewWord">🔄 Другое слово</button>
+  <button class="ku-btn" id="btnRules2">📖 Правила</button>
+  <button class="ku-btn ghost" id="btnQuit">В меню</button>
+</div></div>
+
+<!-- ═══ КОНЕЦ ПАРТИИ ═══ -->
+<div class="ku-overlay" id="over"><div class="ku-card">
+  <h2 id="overTitle" class="win">ПОБЕДА!</h2>
+  <div class="ku-new-best" id="overBest" hidden>🔥 НОВАЯ ЛУЧШАЯ СЕРИЯ!</div>
+  <p id="overSub">Загаданное слово</p>
+  <div class="ku-big-score" id="overWord"></div>
+  <div class="ku-over-stats">
+    <div>Попытки<b id="ovTries">—</b></div>
+    <div>Серия<b id="ovStreak">0</b></div>
+    <div>Побед<b id="ovRate">0%</b></div>
+  </div>
+  <div class="dist" id="overDist"></div>
+  <button class="ku-btn primary" id="btnAgain">Новое слово</button>
+  <button class="ku-btn ghost" id="btnOverMenu">В меню</button>
+</div></div>
+
+<!-- ═══ ПРАВИЛА ═══ -->
+<div class="ku-overlay" id="rules"><div class="ku-modal">
+  <header><h2>📖 Правила</h2><button class="ku-btn icon" data-close aria-label="Закрыть">✕</button></header>
+  <div class="ku-body">
+    <h3>Цель</h3>
+    <ul class="ku-rules">
+      <li>Угадайте <b>загаданное слово из 5 букв</b> за <b>6 попыток</b>.</li>
+      <li>Попытка — существительное в начальной форме (ед. ч., им. п.) из словаря игры. Слово, которого нет в словаре, попыткой не считается.</li>
+      <li>Буква <b>Ё</b> вводится как <b>Е</b>.</li>
+    </ul>
+    <h3>Подсказки цветом</h3>
+    <div class="ex"><div class="tile hit">К</div><div class="tile">Н</div><div class="tile">И</div><div class="tile">Г</div><div class="tile">А</div></div>
+    <p class="ex-note"><b>К</b> есть в слове и стоит на своём месте.</p>
+    <div class="ex"><div class="tile">П</div><div class="tile near">А</div><div class="tile">Р</div><div class="tile">У</div><div class="tile">С</div></div>
+    <p class="ex-note"><b>А</b> есть в слове, но в другом месте.</p>
+    <div class="ex"><div class="tile">В</div><div class="tile">Е</div><div class="tile miss">Т</div><div class="tile">Е</div><div class="tile">Р</div></div>
+    <p class="ex-note">Буквы <b>Т</b> в слове нет.</p>
+    <ul class="ku-rules">
+      <li>Повторы считаются честно: если буква встречается в слове один раз, а в попытке дважды, подсвечена будет только одна — лишняя станет тёмной.</li>
+      <li>Экранная клавиатура запоминает цвета букв.</li>
+    </ul>
+    <h3>Управление</h3>
+    <ul class="ku-rules">
+      <li>Экранная клавиатура или обычная: буквы (латинская раскладка тоже работает — как ЙЦУКЕН), <b>Enter</b> — проверить, <b>Backspace</b> — стереть, <b>Esc</b> — пауза.</li>
+      <li>В паузе можно сдаться — слово будет показано, партия засчитается как поражение.</li>
+    </ul>
+  </div>
+  <footer><button class="ku-btn primary" data-close>Понятно</button></footer>
+</div></div>
+
+<!-- ═══ СТАТИСТИКА ═══ -->
+<div class="ku-overlay" id="stats"><div class="ku-modal">
+  <header><h2>📊 Статистика</h2><button class="ku-btn icon" data-close aria-label="Закрыть">✕</button></header>
+  <div class="ku-body">
+    <div class="stat-grid" id="statGrid"></div>
+    <h3 style="margin-top:16px">Распределение попыток</h3>
+    <div class="dist" id="statDist"></div>
+  </div>
+  <footer><button class="ku-btn primary" data-close>Понятно</button></footer>
+</div></div>
+
+<div class="ku-toast" id="toast"></div>
 
 <script>
-// 5-буквенные русские слова
-const WORDS=['АБРИС','АГЕНТ','АДРЕС','АИСТ','АКЦИЯ','АЛГОРИТМ','АЛМАЗ','АЛЬФА','АНИМЕ','АНТРЕ',
-'АППАРАТ','АРЕСТ','АРКАДА','АРХИВ','АСТРА','АТАКА','АТЛЕТ','АФИША','БАДЬЯ','БАЛКА',
-'БАНАН','БАРИН','БАССЕЙН','БАТОН','БАШНЯ','БЕЛКА','БЕСЕДА','БИЗОН','БИЛЕТ','БИНГО',
-'БИРКА','БЛАНК','БЛЕСК','БЛИНТ','БЛЮДО','БОРЬБА','БОЧКА','БРАВО','БРИФИНГ','БУКВА',
-'БУНКЕР','ВАГОН','ВАЛЕТ','ВАРЯГ','ВЕКТОР','ВЕРБА','ВИЛКА','ВИТАЯ','ВИХРЬ','ВЛАСТЬ',
-'ВОЛНА','ВОПРОС','ВРЕМЯ','ВУЛКАН','ВЫХОД','ГЕНИЙ','ГЛАВА','ГЛАДЬ','ГОНКА','ГОРКА',
-'ГОСТЬ','ГРАНЬ','ГРОЗА','ГРУША','ГУБКА','ДАВКА','ДВЕРЬ','ДЕЛЕЦ','ДЕМОН','ДИВАН',
-'ДИЕТА','ДИСКО','ДОБРО','ДОКЕР','ДОСКА','ДОЧКА','ДРАКОН','ДРЕЛЬ','ДРОВА','ДРОЖЬ',
-'ДРОНА','ДУМКА','ДЫМКА','ДЯТЕЛ','ЕГЕРЬ','ЁЖИК','ЖАЖДА','ЖАНЕТ','ЖАРКОЕ','ЖЕЛУДЬ',
-'ЖЕТОН','ЖИЗНЬ','ЖИРАФ','ЖОНГЛЁР','ЗАБОР','ЗАГАР','ЗАГИБ','ЗАДОР','ЗАЙКА','ЗАЛИВ',
-'ЗАМОК','ЗАПАС','ЗЕФИР','ЗИМНИЙ','ЗОНТИК','ЗУБЕЦ','ИГРОК','ИВОЛГА','ИДЕАЛ','ИЗГИБ'].filter(w=>w.length===5);
+'use strict';
+/* ═══════════════════════════════════════════════════════════════
+ * СЛОВАРЬ (Ё записана как Е)
+ *  ANSWERS — загадываемые слова: частые существительные, им. п. ед. ч.
+ *  EXTRA   — дополнительно допустимые попытки (реже встречаются).
+ * ═══════════════════════════════════════════════════════════════ */
+const ANSWERS = `
+абзац аванс автор агент адрес азарт актер актив акула акция аллея алмаз ангел анонс аорта арбуз арена арест
+армия архив астра атака атлас атлет афиша багаж багор базар байка балет балка банан банда банка барак баран
+барин барон басня батон башня бегун бедро бекон белка белок берег берет бетон бидон бизон билет биржа бирка
+бисер битва бланк блеск блоха блуза блюдо бобер богач бокал бомба бонус борец бочка брань бремя бровь броня
+брошь бубен бугор будка буква букет булка буран бурка бутон буфер буфет бухта вагон вазон валет валик валун
+вальс ванна варка вафля вахта вдова ведро веник венок верба верфь весло весна весть ветвь ветер ветка вечер
+взвод вздох взлет взмах взнос взрыв видео визит вилка вилла вирус висок виток вихрь вишня вклад влага вожак
+вождь война вокал волна волос ворон ворох время выбор вывод вывоз выдох выдра вызов выкуп вылет выпад вырез
+выход вычет вышка вьюга газон гайка галка галоп гамак гамма гараж гений герой гиена глава гладь глина глыба
+гобой голод голос гольф гонец гонка горец горка горло город горох гость грамм грант грань графа грива гроза
+груда грудь грунт груша гряда грязь гуашь губка гудок гуляш гусар дамба дверь дебют девиз декан декор демон
+десна дефис джинн дзюдо диван диета длина днище добро довод догма дождь дозор домик донор доска досуг доход
+дочка драка драма дрель дробь дрожь дрозд дубок дудка дупло дуэль дымка дырка дятел егерь ездок ересь жабра
+жажда жакет жатва желоб желчь жених жердь жерло жесть жетон живот жизнь жилет жилец жилье жираф жокей жрица
+жулик жучок забег забор завет завод завуч загар загон задор заезд зажим заказ закат закон залив залог замер
+замок замша занос запад запал запас запах запев заряд засов затея зачет звено зверь зебра зевок зелье земля
+зенит зерно зефир злоба знамя игрок идеал изгиб изгой излом изъян икона икота индюк инжир искра испуг исток
+исход кабан кадет казак казан казна какао калач камин камыш канал канат канон канун капля капот карта каска
+касса катер каток каюта квант квест квота кепка кефир кивок киоск кисть кишка класс клерк клоун книга князь
+коала кобра ковер козел койка кокос колба колея колос комар комик комод комок конек конец конус копия копье
+корка корма кость котел кофта кочка кошка кража краса кредо крест кровь крона кросс кроха круиз крупа крыло
+крыса крыша кубик кубок кузов кукла кулак кулич кулон кумир купец купол купон курок кусок кухня лаваш лавка
+ладья лазер лайка лампа лапша ларек ларец ласка лейка лента лепка лесть лиана лидер ликер лилия лимит лимон
+линза линия лицей ловец логин лодка ложка локон лоток лотос лужок лунка лыжня лютня магия магма мазок майка
+майор макет малыш маляр манго манеж мания марка маска масло масса масть мафия мачта медик мелок месть месяц
+метка метла метод метро мечта мешок мидия минус мираж миска мишка модем мойка молот монах мопед мороз моряк
+мотив мотор мошка мужик музей мумия мусор муфта мушка мысль мышка мышца мэрия мячик набег набор навес навык
+налог намек народ наряд насос наука невод нерпа нефть нитка ничья ножик ножка номер норка норма носок нужда
+нюанс оазис обвал обзор обида облик обман обмен образ обрыв обряд обувь обход обыск овраг огонь озеро океан
+оклад округ окунь олень олива олово омега омлет опека опера опора опрос орган орден ореол орлан осада осень
+осина оскал ослик особа осока отбор отвар ответ отдел отдых отель отзыв отказ отлив отряд отсек отчет охота
+очерк пакет палец палка панда папка парад парик паром парта парус паста пасть пауза пачка пашня певец пенал
+пение пепел перец песня песок петля петух печка пешка пиала пижон пикет пилка пилот пират пирог питон пихта
+пицца пламя плата плато племя плечо плита побег повар повод поезд пожар поиск покой полет полис полка полюс
+помпа порог порох порыв посол посох поток поход почва почет почта поэма право пресс принц приют проба проза
+просо пряжа птица пудра пульс пульт пункт пурга пуфик пушка пушок пчела пшено пьеса пятак пятка пятно радар
+радио разум район ралли рамка ранец ранчо раунд рация ребро ребус регби редис режим рейка рельс рента репка
+рикша рифма робот родня рожок ролик роман рояль рубеж рубин рубка рубль ружье рукав рулет рулон рупор русло
+ручей ручка рыбак рыбка рывок рыжик рынок рысак рычаг рюмка сабля садик салат салон салют самбо самка сапер
+сапог сарай сатин сауна сахар сачок свеча свист свита сдача сеанс север седло сезон семья сенат серия сетка
+силач синяк сироп ситец скала сквер скейт склад склон скука слава слайд слеза слива слово слуга смена смерч
+смесь смета смола смысл собор совет совок сокол сосед сосна сотня спина спирт спица сплав спорт спрос среда
+ссора стадо сталь старт ствол стена стенд степь стиль стопа страж страх стриж строй струя стужа судак судно
+судья суета сукно сумка сумма сурок сушка сфера схема сцена съезд сынок сырок сырье сыщик сюжет табак табло
+табун тайга тайна такси талия талон танго танец таран тариф тахта тачка театр тезка текст тембр тенор тепло
+тесто тесть тетка тиара тираж тиран титан титул ткань товар толпа томат тонна тонус топаз топор торец тоска
+точка трава тракт трель тренд треск тропа труба тулуп туман тумба тунец тупик туфля тучка тыква тюбик уголь
+угорь удача укроп уксус улика улица успех устав устье ухват учеба ущерб фагот фазан факел факир фасад фасон
+фауна ферзь ферма филин фильм финал финик финиш фирма фишка фланг флирт флора фляга фокус форма форум фраза
+фронт фрукт фужер хакер халат халва хвост химик химия хобби хобот холод холст хомут хомяк хорек хохот хруст
+хурма хутор цапля центр цифра чайка часть чашка челка череп черта честь чехол чижик число чугун чудак чулан
+чулок шайба шакал шалаш шаман шапка шарик шатер шахта шашка шериф шифер шишка шкала шквал школа шкура шланг
+шляпа шмель шорох шоссе шофер шпага шпион шприц шрифт штамп штора шторм штраф штука шуруп шутка шхуна щегол
+щенок щепка щетка щиток экран элита эмаль эпоха эскиз юноша юрист ягода ягуар якорь ямщик ярлык ясень
+`.trim().split(/\s+/).map(w => w.toUpperCase());
+const EXTRA = `
+аббат аборт абрек абрис авгур авизо аврал агава агнец адепт аймак айран акрил аксон акциз алиби аллюр алтын
+алыча амбар амбра амвон амеба ампер ампир ангар аниме анион анкер анчар апорт аргон ареал аркан армяк архар
+аршин аскет аспид астат астма атолл аудит афера бабка бабье багет бадья базис бакен балда балык баржа барий
+барка барыш басок батат батик батог батут бахча бачок башка бекар бекас бивак бином бирюк битум благо блажь
+бляха бобик божок бозон бойня болид бонза ботва ботик бочок брага брасс бренд брешь бридж бронх брюки брюхо
+бубны бугай будни булат бурав бурак бурда бурса бурун бутан бутик бутуз бытие бычок вакса валок ватин ведун
+велюр венец вепрь ветла вешка вещун взвар вздор взлом видок вилок вираж вирши вихор вобла водка вожжи возня
+возок волан волок волхв вольт вопль ворог ворот вотум вояка впуск враль всход вуаль въезд вывих выгон выгул
+выдел вылаз вылов вынос выпас высев вязка гавот газик гарем гарус гвалт гейша гелий геном гетры гетто гидра
+главк глист глубь глушь гнейс гнида гниль говор гогот годок голец голыш гомон гонор гопак греза грыжа гумно
+гумус гусак гусли гуцул дамка дартс дачка дебет дебош дебри делец денек дилер динар дичок докер домна домра
+донка донос драже дрейф дрема дрифт дрова дрянь дужка дукат дурак дутик дышло евнух ежиха есаул жатка живец
+жилка жирок житие жница жупел забой завал загиб загул задел зазор заика закал залом замах запор зарок засев
+засол засор затон затор зачин зипун злюка зубец зубок иваси идиот извоз излет износ изыск имидж индий иприт
+ирбис искус ислам истец ишиас кабак кавер кадка кадык казус кайло кайма кайра калан калий калым камея канва
+каноэ капор карат карга карма катар катет катод качок кашка кашне кварк кегль кегля кельт келья кенар кижуч
+кизил кинза кирза кирка кирха кисет киска киста клеть клещи клика клише клуша клюка кляча ковка кодек кожух
+козлы козни койот кокон колли кольт конка конюх копер копна котик кочан крепь криль круча кудри кузня кукиш
+кулан кулек кулер кулик культ кумач кумыс кураж кутеж кутья кучер кушак кювет кюрий лабаз лавра ладан лакей
+лапта латка латук лафет левша легат лежак лейбл лемех лемур лепет леска летун ливер лиман лимфа лирик литий
+литье лихач лишай лобик ловля логик лоция лошак лубок лузга люпин лютик лямка мазня мазут малек малец мамба
+мамка манат манга манка манок манто марал марля масон матка мезон мелос мерин мерка метан метис мизер минер
+мирок мирра митра модус мойва молва морок моток мохер мочка мулла муляж мысок мытье мюсли мякиш мятеж набат
+набоб навал навар навет наган нагар надел надир надой наезд нажим наказ накал накат налет налив налим намаз
+намыв нанос напев напор нарды нарез нарты натек нахал начес недуг нимфа ножны нолик норов нутро нырок нытик
+нытье обгон обжиг облом обмер обрез обруч обуза огрех озноб окапи окрас оксид омуль оникс опала опара опиум
+оплот опция орава оргия ордер осмий остов осыпь отава отара отбой отвал отвес отвод отгул отжим откат откуп
+отлет отлов отпор отрез отрок отрыв отсев отток отход отчим отшиб офорт офсет охват пакля палас палач палаш
+панно парча пасха пафос пекло пемза пенек пенни перст песец петит пикап пикша пинок пинта писец питье плаха
+плеер плеск плеть погон позер позор пойма покос полив полип полог полоз помет помои помол понос пончо попка
+порез порка порок посад посев посул посыл потоп почин почка пошив прайс праща прима прыть прядь псарь псина
+птаха пупок пучок пырей пытка радий радон рампа ранка рахит рачок рвота редут резак резец резня резус рений
+ретро решка ритор ровер ровня рогоз родео родий рокот ропот ротик ротор рохля ртуть рубец рупия русак рытье
+рэкет рэпер рядок ряска сазан сайга сайра салки самец самса санки сатир сброд сбруя сглаз сдвиг седан секта
+селен селфи семга сепия серна сечка силос синус скарб скетч склеп скопа скраб скула скунс слюда слюна смотр
+смута снедь сноха созыв сойка сомик сонет сопка сопло сорго соска сосок софит спазм спесь сплин спрей спрут
+спурт спуск ссуда створ стезя стела стерх стоик стрим строп струп ступа сурик сутки сутра суфле сучок схима
+схрон сюита тавро таган тальк тапир тапка тварь тезис телец тенге терем терка тесак тизер тиски токен тонер
+топка топот торба торий торос тотем траур треба треть трефы трико триод тромб трояк трусы тубус тукан тулий
+тумак тушка тщета тюнер тягач тягло тяжба тяпка удаль уклад уклон умник устой уступ утеха утиль ухарь фаянс
+феска фетиш фиакр фибра физик филей филер финка фиорд флокс фобия фотон фраер франк франт фрахт фреза френч
+фреон фугас фураж фурия фурор хабар хамса ханжа харчи хвала хворь херес хиппи хитин хитон хлыст хлябь хмель
+ходка ходок хорал хорда хорей цанга цапфа цевье цезий церий цинга циник цокот чабан чадра чалма чарка часок
+чекан чепец червы червь чернь четки чибис чирей чирок читка чомга чрево чтиво чубук чужак чуйка чурка чутье
+шабаш шажок шайка шалун шасси шатен шатун шафер шейка шельф шинок ширма шитье шифон шлейф шорты шпала шпиль
+шпора шпрот шпунт штаны штиль штрек штурм шулер шумок шурин щебет щечка щипцы эгида эдикт эрбий эрзац эстет
+этика этнос юдоль юниор юнкер юннат ябеда ягель яичко яхонт
+`.trim().split(/\s+/).map(w => w.toUpperCase());
+const DICT = new Set(ANSWERS.concat(EXTRA));
 
-const ROWS_N=6,COLS_N=5;
-const LAYOUT=[
-  'ЙЦУКЕНГШЩЗХЪ',
-  'ФЫВАПРОЛДЖЭ',
-  'ЯЧСМИТЬБЮ',
-  'ДЕЙСТВО'
-];
-let target,guesses,current,over;
-const keyState={};
+const ROWS = 6, COLS = 5;
+const ALPHABET = 'АБВГДЕЖЗИЙКЛМНОПРСТУФХЦЧШЩЪЫЬЭЮЯ';
+const LAYOUT = ['ЙЦУКЕНГШЩЗХЪ', 'ФЫВАПРОЛДЖЭ', '+ЯЧСМИТЬБЮ-'];          // + — ВВОД, - — стереть
+// физические клавиши → ЙЦУКЕН (если на компьютере включена латинская раскладка)
+const CODE_MAP = {
+  KeyQ: 'Й', KeyW: 'Ц', KeyE: 'У', KeyR: 'К', KeyT: 'Е', KeyY: 'Н', KeyU: 'Г', KeyI: 'Ш', KeyO: 'Щ', KeyP: 'З',
+  BracketLeft: 'Х', BracketRight: 'Ъ', KeyA: 'Ф', KeyS: 'Ы', KeyD: 'В', KeyF: 'А', KeyG: 'П', KeyH: 'Р', KeyJ: 'О',
+  KeyK: 'Л', KeyL: 'Д', Semicolon: 'Ж', Quote: 'Э', KeyZ: 'Я', KeyX: 'Ч', KeyC: 'С', KeyV: 'М', KeyB: 'И', KeyN: 'Т',
+  KeyM: 'Ь', Comma: 'Б', Period: 'Ю', Backquote: 'Е'
+};
+const RANK = { miss: 1, near: 2, hit: 3 };
+const STEP_MS = 180, FLIP_MS = 360;
+const reduceMotion = !!(window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches);
 
-function newGame(){
-  target=WORDS[Math.floor(Math.random()*WORDS.length)];
-  guesses=[];current='';over=false;
-  Object.keys(keyState).forEach(k=>delete keyState[k]);
-  document.getElementById('msg').style.display='none';
-  buildBoard();buildKbd();render();
+const $ = id => document.getElementById(id);
+function toast(msg, kind, ms) { if (window.KuArcade) KuArcade.toast(msg, kind, ms); }
+function plural(n, one, few, many) {
+  const a = n % 10, b = n % 100;
+  return a === 1 && b !== 11 ? one : a >= 2 && a <= 4 && (b < 12 || b > 14) ? few : many;
 }
 
-function buildBoard(){
-  const b=document.getElementById('board');b.innerHTML='';
-  for(let r=0;r<ROWS_N;r++){
-    const row=document.createElement('div');row.className='row';row.id='row-'+r;
-    for(let c=0;c<COLS_N;c++){
-      const t=document.createElement('div');t.className='tile';t.id=`t-${r}-${c}`;
+/* ═══ СТАТИСТИКА (localStorage) ═══ */
+const STATS_KEY = 'wordle_stats';
+function loadStats() {
+  const def = { played: 0, wins: 0, streak: 0, maxStreak: 0, dist: [0, 0, 0, 0, 0, 0], last: 0, recent: [] };
+  try {
+    const s = JSON.parse(localStorage.getItem(STATS_KEY) || 'null');
+    if (s && typeof s === 'object') {
+      const out = Object.assign(def, s);
+      if (!Array.isArray(out.dist) || out.dist.length !== ROWS) out.dist = [0, 0, 0, 0, 0, 0];
+      if (!Array.isArray(out.recent)) out.recent = [];
+      return out;
+    }
+  } catch (e) {}
+  return def;
+}
+let stats = loadStats();
+function saveStats() { try { localStorage.setItem(STATS_KEY, JSON.stringify(stats)); } catch (e) {} }
+function winRate() { return stats.played ? Math.round(stats.wins / stats.played * 100) : 0; }
+
+/* ═══ СОСТОЯНИЕ ═══ */
+let target = '', guesses = [], results = [], cur = '';
+let phase = 'idle';            // idle — партии нет, play — идёт, over — окончена
+let busy = false;              // идёт анимация открытия строки — ввод заблокирован
+let paused = false, keyState = {}, currentScreen = 'menu';
+const timers = new Set();
+function later(fn, ms) { const id = setTimeout(() => { timers.delete(id); fn(); }, ms); timers.add(id); return id; }
+function clearTimers() { timers.forEach(clearTimeout); timers.clear(); }
+
+/* Оценка попытки: сначала точные совпадения, затем «есть в слове» —
+ * не больше раз, чем буква осталась в загаданном слове. */
+function score(guess, word) {
+  const res = Array(COLS).fill('miss'), left = {};
+  for (let i = 0; i < COLS; i++) {
+    if (guess[i] === word[i]) res[i] = 'hit';
+    else left[word[i]] = (left[word[i]] || 0) + 1;
+  }
+  for (let i = 0; i < COLS; i++) {
+    if (res[i] === 'hit') continue;
+    const ch = guess[i];
+    if (left[ch] > 0) { res[i] = 'near'; left[ch]--; }
+  }
+  return res;
+}
+
+function pickWord() {
+  const recent = new Set(stats.recent);
+  let pool = ANSWERS.filter(w => !recent.has(w));
+  if (!pool.length) { stats.recent = []; pool = ANSWERS; }
+  const w = pool[Math.floor(Math.random() * pool.length)];
+  stats.recent.push(w);
+  if (stats.recent.length > 200) stats.recent.splice(0, stats.recent.length - 200);
+  saveStats();
+  return w;
+}
+
+/* ═══ ПАРТИЯ ═══ */
+function newGame() {
+  clearTimers();
+  target = pickWord();
+  guesses = []; results = []; cur = ''; keyState = {};
+  phase = 'play'; busy = false; paused = false;
+  closeOverlay('over'); closeOverlay('pause');
+  buildBoard(); paintKeys(); renderRow(); updateHud();
+  showScreen('game');
+}
+
+function buildBoard() {
+  const b = $('board');
+  b.textContent = '';
+  for (let r = 0; r < ROWS; r++) {
+    const row = document.createElement('div');
+    row.className = 'wrow'; row.id = 'row-' + r;
+    for (let c = 0; c < COLS; c++) {
+      const t = document.createElement('div');
+      t.className = 'tile'; t.id = 't-' + r + '-' + c;
       row.appendChild(t);
     }
     b.appendChild(row);
   }
 }
 
-function buildKbd(){
-  const k=document.getElementById('kbd');k.innerHTML='';
-  // Действия в отдельной строке
-  [...LAYOUT,'ВВОД⌫'].forEach((row,ri)=>{
-    const div=document.createElement('div');div.className='krow';
-    if(ri<4){
-      [...row].forEach(ch=>{
-        const btn=document.createElement('button');btn.className='key';btn.textContent=ch;btn.dataset.k=ch;
-        btn.addEventListener('click',()=>inputChar(ch));div.appendChild(btn);
-      });
-    } else {
-      const enter=document.createElement('button');enter.className='key wide';enter.textContent='ВВОД';enter.addEventListener('click',submit);div.appendChild(enter);
-      const del=document.createElement('button');del.className='key wide';del.textContent='⌫';del.addEventListener('click',()=>del_ch());div.appendChild(del);
+function renderRow() {
+  const r = guesses.length;
+  if (r >= ROWS) return;
+  for (let c = 0; c < COLS; c++) {
+    const t = $('t-' + r + '-' + c), ch = cur[c] || '';
+    t.textContent = ch;
+    t.className = 'tile' + (ch ? ' filled' : (c === cur.length && phase === 'play' ? ' caret' : ''));
+  }
+}
+
+function typeChar(ch) {
+  if (cur.length >= COLS) return;
+  cur += ch;
+  renderRow();
+  const t = $('t-' + guesses.length + '-' + (cur.length - 1));
+  if (t && !reduceMotion) { void t.offsetWidth; t.classList.add('pop'); }
+}
+
+function erase() {
+  if (!cur.length) return;
+  cur = cur.slice(0, -1);
+  renderRow();
+}
+
+function rejectRow(msg) {
+  const row = $('row-' + guesses.length);
+  if (row) { row.classList.remove('shake'); void row.offsetWidth; row.classList.add('shake'); }
+  toast(msg, 'bad top', 1500);               // сверху: снизу тост закрывал нижний ряд экранной клавиатуры
+}
+
+function submit() {
+  if (cur.length < COLS) { rejectRow('Мало букв'); return; }
+  if (!DICT.has(cur)) { rejectRow('Нет в словаре'); return; }
+  if (guesses.includes(cur)) { rejectRow('Это слово уже было'); return; }
+  const word = cur, res = score(word, target), r = guesses.length;
+  guesses.push(word); results.push(res); cur = '';
+  busy = true;                               // до конца анимации ввод и пауза заблокированы
+  revealRow(r, word, res, () => {
+    mergeKeys(word, res); paintKeys();
+    if (res.every(x => x === 'hit')) finish(true);
+    else if (guesses.length >= ROWS) finish(false);
+    else { busy = false; renderRow(); updateHud(); }
+  });
+}
+
+function revealRow(r, word, res, done) {
+  for (let c = 0; c < COLS; c++) {
+    const t = $('t-' + r + '-' + c);
+    t.textContent = word[c];
+    if (reduceMotion) { t.className = 'tile ' + res[c]; continue; }
+    later(() => {
+      t.className = 'tile filled flip';
+      later(() => { t.className = 'tile flip ' + res[c]; }, FLIP_MS / 2);
+    }, c * STEP_MS);
+  }
+  later(done, reduceMotion ? 150 : (COLS - 1) * STEP_MS + FLIP_MS + 40);
+}
+
+function mergeKeys(word, res) {
+  for (let i = 0; i < COLS; i++) {
+    const ch = word[i], s = res[i];
+    if (!keyState[ch] || RANK[s] > RANK[keyState[ch]]) keyState[ch] = s;
+  }
+}
+
+function finish(win) {
+  phase = 'over'; busy = false;
+  const prevMax = stats.maxStreak;
+  stats.played++;
+  if (win) {
+    stats.wins++; stats.streak++;
+    stats.dist[guesses.length - 1]++;
+    stats.maxStreak = Math.max(stats.maxStreak, stats.streak);
+    stats.last = guesses.length;
+  } else {
+    stats.streak = 0; stats.last = 0;
+  }
+  saveStats();
+  updateHud();
+  const newBest = win && stats.streak > prevMax && stats.streak >= 2;
+  if (win && !reduceMotion) {
+    const r = guesses.length - 1;
+    for (let c = 0; c < COLS; c++) later(() => {
+      const t = $('t-' + r + '-' + c);
+      t.classList.remove('flip'); t.classList.add('jump');
+    }, c * 90);
+  }
+  later(() => showOver(win, newBest), win ? 1100 : 450);
+}
+
+async function giveUp() {
+  if (phase !== 'play' || busy) return;
+  if (!guesses.length) { newGame(); return; }      // попыток не было — просто другое слово
+  const ok = window.KuArcade && KuArcade.confirm
+    ? await KuArcade.confirm('Слово будет показано, партия засчитается как поражение, серия прервётся.',
+        { title: 'СДАТЬСЯ?', ok: '🏳 Сдаться', cancel: 'Отмена', danger: true })
+    : true;
+  if (!ok || phase !== 'play' || busy) return;
+  paused = false; closeOverlay('pause');
+  finish(false);
+}
+
+function showOver(win, newBest) {
+  const h = $('overTitle');
+  h.textContent = win ? 'ПОБЕДА!' : 'НЕ УГАДАНО';
+  h.className = win ? 'win' : 'lose';
+  $('overBest').hidden = !newBest;
+  const n = guesses.length;
+  $('overSub').textContent = win
+    ? (n === 1 ? 'С первой попытки!' : 'Угадано за ' + n + ' ' + plural(n, 'попытку', 'попытки', 'попыток'))
+    : 'Загаданное слово';
+  $('overWord').textContent = target;
+  $('ovTries').textContent = win ? n + ' из ' + ROWS : '—';
+  $('ovStreak').textContent = stats.streak;
+  $('ovRate').textContent = winRate() + '%';
+  renderDist($('overDist'), win ? n : 0);
+  openOverlay('over');
+}
+
+/* ═══ КЛАВИАТУРА ═══ */
+function buildKbd() {
+  const k = $('kbd');
+  k.textContent = '';
+  LAYOUT.forEach(row => {
+    const div = document.createElement('div');
+    div.className = 'krow';
+    for (const ch of row) {
+      const b = document.createElement('button');
+      b.type = 'button'; b.className = 'ku-key';
+      if (ch === '+') { b.classList.add('wide'); b.textContent = 'ВВОД'; b.dataset.k = 'ENTER'; b.setAttribute('aria-label', 'Проверить слово'); }
+      else if (ch === '-') {
+        b.classList.add('wide'); b.dataset.k = 'BACK'; b.setAttribute('aria-label', 'Стереть букву');
+        b.innerHTML = '<svg viewBox="0 0 24 24"><path d="M21 5H9l-6 7 6 7h12a1 1 0 0 0 1-1V6a1 1 0 0 0-1-1z"/><line x1="17" y1="9" x2="12" y2="15"/><line x1="12" y1="9" x2="17" y2="15"/></svg>';
+      } else { b.textContent = ch; b.dataset.k = ch; }
+      div.appendChild(b);
     }
     k.appendChild(div);
   });
 }
 
-function render(){
-  const row=guesses.length;
-  // Заполнить текущую строку
-  for(let c=0;c<COLS_N;c++){
-    const t=document.getElementById(`t-${row}-${c}`);
-    if(!t) continue;
-    t.className='tile'+(c<current.length?' cur':'');
-    t.textContent=current[c]||'';
-  }
-}
-
-function inputChar(ch){
-  if(over||current.length>=COLS_N) return;
-  current+=ch;render();
-  const t=document.getElementById(`t-${guesses.length}-${current.length-1}`);
-  if(t){t.classList.add('pop');setTimeout(()=>t.classList.remove('pop'),150);}
-}
-
-function del_ch(){
-  if(!current.length) return;
-  current=current.slice(0,-1);render();
-}
-
-function submit(){
-  if(over||current.length<COLS_N){shake();return;}
-  if(!WORDS.includes(current)){toast('Нет в словаре');shake();return;}
-  const row=guesses.length;
-  const result=score(current,target);
-  result.forEach((r,c)=>{
-    const t=document.getElementById(`t-${row}-${c}`);
-    setTimeout(()=>{t.className='tile '+r;},c*80);
-    const ch=current[c];
-    if(!keyState[ch]||r==='hit'||(r==='near'&&keyState[ch]==='miss')) keyState[ch]=r;
-  });
-  setTimeout(updateKbd,(COLS_N-1)*80+200);
-  guesses.push(current);current='';
-  const won=result.every(r=>r==='hit');
-  setTimeout(()=>{
-    if(won){ over=true; showMsg('🎉 Верно!',`Слово: ${target}`); }
-    else if(guesses.length>=ROWS_N){ over=true; showMsg('😞 Не угадал',`Слово было: ${target}`); }
-    else render();
-  },COLS_N*80+300);
-}
-
-function score(guess,tgt){
-  const res=Array(COLS_N).fill('miss');
-  const rem=[...tgt];
-  // Сначала точные
-  for(let i=0;i<COLS_N;i++) if(guess[i]===tgt[i]){res[i]='hit';rem[rem.indexOf(guess[i])]='_';}
-  // Потом близкие
-  for(let i=0;i<COLS_N;i++){
-    if(res[i]==='hit') continue;
-    const idx=rem.indexOf(guess[i]);
-    if(idx>=0){res[i]='near';rem[idx]='_';}
-  }
-  return res;
-}
-
-function updateKbd(){
-  document.querySelectorAll('.key').forEach(btn=>{
-    const k=btn.dataset.k;if(!k) return;
-    const s=keyState[k];if(s) btn.className=`key ${s}`;
+function paintKeys() {
+  document.querySelectorAll('#kbd .ku-key').forEach(b => {
+    const s = keyState[b.dataset.k];
+    b.classList.remove('hit', 'near', 'miss');
+    if (s) b.classList.add(s);
   });
 }
 
-function shake(){
-  const row=document.getElementById('row-'+guesses.length);
-  row.querySelectorAll('.tile').forEach(t=>{t.classList.add('shake');setTimeout(()=>t.classList.remove('shake'),300);});
+function flashKey(k) {
+  const b = document.querySelector('#kbd .ku-key[data-k="' + k + '"]');
+  if (!b) return;
+  b.classList.add('pressed');
+  setTimeout(() => b.classList.remove('pressed'), 110);
 }
 
-let toastTid;
-function toast(msg){
-  const t=document.getElementById('toast');t.textContent=msg;t.style.opacity='1';
-  clearTimeout(toastTid);toastTid=setTimeout(()=>t.style.opacity='0',1500);
+function press(k) {
+  if (currentScreen !== 'game' || phase !== 'play' || busy || paused) return;
+  if (k === 'ENTER') submit();
+  else if (k === 'BACK') erase();
+  else if (k && k.length === 1) typeChar(k);
 }
 
-function showMsg(h,p){
-  document.getElementById('mt').textContent=h;
-  document.getElementById('mp').textContent=p;
-  document.getElementById('msg').style.display='flex';
-}
-
-document.addEventListener('keydown',e=>{
-  if(e.key==='Enter') submit();
-  else if(e.key==='Backspace') del_ch();
-  else {
-    const ch=e.key.toUpperCase();
-    if('АБВГДЕЁЖЗИЙКЛМНОПРСТУФХЦЧШЩЪЫЬЭЮЯ'.includes(ch)) inputChar(ch);
-  }
+// экранные клавиши не забирают фокус — иначе Enter с клавиатуры «нажимал» бы последнюю кнопку;
+// само окно игры фокус получает, чтобы работала и физическая клавиатура
+$('kbd').addEventListener('mousedown', e => { e.preventDefault(); try { window.focus(); } catch (_) {} });
+$('kbd').addEventListener('click', e => {
+  const b = e.target.closest('.ku-key');
+  if (b) press(b.dataset.k);
 });
 
-document.getElementById('mBtn').addEventListener('click',newGame);
-newGame();
+document.addEventListener('keydown', e => {
+  if (e.ctrlKey || e.metaKey || e.altKey) return;
+  const modal = topModal();
+  if (modal) {
+    if (e.key === 'Escape') { e.preventDefault(); closeOverlay(modal.id); }
+    return;
+  }
+  if (currentScreen !== 'game') return;
+  if (isOpen('over')) {
+    const onButton = document.activeElement && document.activeElement.closest && document.activeElement.closest('#over .ku-btn');
+    if (e.key === 'Enter' && !onButton) { e.preventDefault(); newGame(); }   // Enter — новое слово (кнопку в фокусе не перехватываем)
+    return;
+  }
+  if (e.key === 'Escape') { e.preventDefault(); paused ? resume() : pause(); return; }
+  if (paused) return;
+  if (e.key === 'Enter') { e.preventDefault(); if (!e.repeat) { flashKey('ENTER'); press('ENTER'); } return; }
+  if (e.key === 'Backspace') { e.preventDefault(); flashKey('BACK'); press('BACK'); return; }
+  let ch = e.key && e.key.length === 1 ? e.key.toUpperCase() : '';
+  if (ch === 'Ё') ch = 'Е';
+  if (!(ch.length === 1 && ALPHABET.indexOf(ch) >= 0)) ch = CODE_MAP[e.code] || '';
+  if (ch) { e.preventDefault(); flashKey(ch); press(ch); }
+});
+
+/* ═══ ЭКРАНЫ, ОВЕРЛЕИ, ШАПКА ═══ */
+function showScreen(id) {
+  currentScreen = id;
+  document.querySelectorAll('.ku-screen').forEach(s => s.classList.toggle('active', s.id === 'screen-' + id));
+  if (id === 'game') layout(); else updateMenu();
+}
+function openOverlay(id) { $(id).classList.add('open'); }
+function closeOverlay(id) { $(id).classList.remove('open'); }
+function isOpen(id) { return $(id).classList.contains('open'); }
+function topModal() {
+  const open = [...document.querySelectorAll('.ku-overlay.open')].filter(o => o.querySelector('.ku-modal'));
+  return open[open.length - 1] || null;
+}
+
+function pause() {
+  if (currentScreen !== 'game' || phase !== 'play' || busy || paused) return;
+  paused = true;
+  $('pauseInfo').textContent = 'Попытка ' + (guesses.length + 1) + ' из ' + ROWS;
+  $('btnNewWord').textContent = guesses.length ? '🏳 Сдаться' : '🔄 Другое слово';
+  openOverlay('pause');
+}
+function resume() { if (!paused) return; paused = false; closeOverlay('pause'); }
+function toMenu() {
+  paused = false;
+  closeOverlay('pause'); closeOverlay('over');
+  showScreen('menu');
+}
+
+function updateHud() {
+  $('gameSub').textContent = phase === 'over' ? 'ПАРТИЯ ОКОНЧЕНА' : 'ПОПЫТКА ' + Math.min(guesses.length + 1, ROWS) + ' ИЗ ' + ROWS;
+  $('hudStreak').textContent = stats.streak;
+  $('hudBest').textContent = stats.maxStreak;
+  $('hudRate').textContent = winRate() + '%';
+}
+
+function updateMenu() {
+  const inGame = phase === 'play';
+  $('btnPlayLabel').textContent = inGame ? '▶ Продолжить' : '🎮 Играть';
+  $('bestPlay').textContent = inGame
+    ? 'Попытка ' + (guesses.length + 1) + ' из ' + ROWS
+    : 'Серия: ' + stats.streak + ' • Лучшая: ' + stats.maxStreak;
+  $('menuStats').textContent = stats.played
+    ? 'Сыграно: ' + stats.played + ' • Побед: ' + winRate() + '% • Лучшая серия: ' + stats.maxStreak
+    : 'Сыграйте первую партию';
+}
+
+function renderDist(el, highlight) {
+  const max = Math.max(1, ...stats.dist);
+  el.innerHTML = stats.dist.map((n, i) =>
+    '<div class="dr' + (highlight === i + 1 ? ' cur' : '') + '"><b>' + (i + 1) + '</b>' +
+    '<div class="bar" style="width:' + Math.max(8, Math.round(n / max * 100)) + '%">' + n + '</div></div>').join('');
+}
+
+function renderStats() {
+  const items = [['Сыграно', stats.played, ''], ['Побед', winRate() + '%', 'good'], ['Серия', stats.streak, ''], ['Лучшая', stats.maxStreak, 'gold']];
+  $('statGrid').innerHTML = items.map(([l, v, c]) => '<div class="ku-stat ' + c + '"><span>' + l + '</span><b>' + v + '</b></div>').join('');
+  renderDist($('statDist'), phase === 'over' ? stats.last : 0);
+}
+
+/* Размер плиток — по свободному месту между шапкой и клавиатурой */
+function layout() {
+  const area = $('boardArea');
+  if (!area || !area.clientHeight) return;
+  const FRAME = 20;                                         // .ku-board: padding 9 + border 1 с каждой стороны
+  const w = area.clientWidth - FRAME, h = area.clientHeight - FRAME;
+  const gap = Math.max(4, Math.min(8, Math.round(Math.min(w / 5, h / 6) * 0.1)));
+  const ts = Math.floor(Math.max(28, Math.min((w - 4 * gap) / COLS, (h - 5 * gap) / ROWS, 64)));
+  const b = $('board');
+  b.style.setProperty('--ts', ts + 'px');
+  b.style.setProperty('--tg', gap + 'px');
+}
+let resizeT = 0;
+window.addEventListener('resize', () => { clearTimeout(resizeT); resizeT = setTimeout(layout, 80); });
+
+/* ═══ КНОПКИ ═══ */
+$('btnPlay').addEventListener('click', () => { if (phase === 'play') showScreen('game'); else newGame(); });
+$('btnRules').addEventListener('click', () => openOverlay('rules'));
+$('btnStats').addEventListener('click', () => { renderStats(); openOverlay('stats'); });
+$('btnPause').addEventListener('click', pause);
+$('btnResume').addEventListener('click', resume);
+$('btnNewWord').addEventListener('click', giveUp);
+$('btnRules2').addEventListener('click', () => openOverlay('rules'));
+$('btnQuit').addEventListener('click', toMenu);
+$('btnAgain').addEventListener('click', newGame);
+$('btnOverMenu').addEventListener('click', toMenu);
+document.querySelectorAll('[data-close]').forEach(b => b.addEventListener('click', () => closeOverlay(b.closest('.ku-overlay').id)));
+document.querySelectorAll('.ku-overlay').forEach(o => o.addEventListener('click', e => {
+  if (e.target === o && o.querySelector('.ku-modal')) closeOverlay(o.id);   // клик мимо окна правил/статистики
+}));
+
+buildKbd();
+$('dictPill').textContent = '📚 ' + DICT.size.toLocaleString('ru-RU') + ' слов';
+updateMenu();
 </script>
 </body>
 </html>

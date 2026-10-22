@@ -2,408 +2,436 @@
 <html lang="ru">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width,initial-scale=1,user-scalable=no">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
 <title>Судоку PRO</title>
+<link rel="stylesheet" href="ku-arcade.css">
+<script src="ku-arcade.js"></script>
 <style>
-  @import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;700;800;900&display=swap');
+  /* цвета: сначала rgba-запасной вариант (браузеры без color-mix), затем токен набора */
+  html,body{height:100%;overflow:hidden}
+  #screen-game,#screen-game *{touch-action:none}
 
-  *{box-sizing:border-box;margin:0;padding:0; user-select:none; touch-action:manipulation;}
-  :root{
-    --bg:#050508;--ui:rgba(8,8,16,0.92);--text:#f0f0f8;--text2:#8888aa;
-    --g:#00e5a0;--b:#5b8cff;--r:#ff4466;--y:#ffd700;--p:#e040fb;
-    --cell-bg:rgba(15,15,22,0.9);--cell-border:rgba(255,255,255,0.08);
-  }
-  body{
-    background:var(--bg);color:var(--text);
-    font-family:'JetBrains Mono',monospace;
-    display:flex;flex-direction:column;align-items:center;justify-content:center;
-    height:100dvh;overflow:hidden;
-  }
+  /* ── Игровая область: HUD · поле · панель ввода (портрет) ── */
+  #play{flex:1;min-height:0;width:100%;display:flex;flex-direction:column;align-items:center}
+  #play .ku-hud{margin:0 0 10px}
+  #board{flex:none;padding:6px;margin-top:auto;line-height:1}
+  /* свободная высота делится поровну: над полем, между полем и панелью, под панелью */
+  #controls{flex:none;display:flex;flex-direction:column;gap:8px;width:100%;padding-top:12px;margin:auto 0}
+  /* альбом / десктоп: поле слева, HUD и панель — колонкой справа */
+  #play.land{display:grid;grid-template-columns:auto auto;grid-template-rows:1fr auto auto 1fr;
+    grid-template-areas:"board ." "board hud" "board ctrl" "board .";justify-content:center;align-content:center;column-gap:22px}
+  #play.land .ku-hud{grid-area:hud;margin:0 0 10px;flex-wrap:nowrap}
+  #play.land .ku-stat{flex:1 1 0;min-width:0;padding:6px}
+  #play.land #board{grid-area:board;margin:0;align-self:center}
+  #play.land #controls{grid-area:ctrl;margin:0;padding:0}
+  #play.land .digits{grid-template-columns:repeat(3,minmax(0,1fr));gap:7px}
+  #play.land .dg{height:clamp(40px,10.5dvh,62px)}
+  #play.land .tool{height:clamp(42px,9dvh,56px)}
 
-  #game-wrapper{
-    position:relative; width:100%; max-width:420px; height:100%;
-    display:flex;flex-direction:column;align-items:center;
-    padding:8px;
-  }
+  /* ── Поле 9×9: квадраты 3×3 с акцентной рамкой, клетки — тёмное стекло ── */
+  #grid{width:100%;height:100%;display:grid;grid-template-columns:repeat(3,minmax(0,1fr));grid-template-rows:repeat(3,minmax(0,1fr));gap:4px}
+  .box{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));grid-template-rows:repeat(3,minmax(0,1fr));gap:2px;padding:2px;border-radius:10px;
+    border:1px solid rgba(0,229,255,.28);border-color:color-mix(in srgb,var(--accent) 28%,transparent);
+    background:rgba(0,229,255,.03);background:color-mix(in srgb,var(--accent) 3%,transparent);
+    transition:border-color .2s,box-shadow .2s}
+  .box.act{border-color:rgba(0,229,255,.62);border-color:color-mix(in srgb,var(--accent) 62%,transparent);
+    box-shadow:0 0 14px rgba(0,229,255,.24);box-shadow:0 0 14px color-mix(in srgb,var(--accent) 24%,transparent)}
+  .cell{position:relative;display:flex;align-items:center;justify-content:center;min-width:0;min-height:0;overflow:hidden;cursor:pointer;
+    border-radius:7px;background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.07);
+    font-family:var(--font-display);font-size:calc(var(--cs,34px)*.6);line-height:1;color:var(--text);
+    transition:background .15s,border-color .15s,box-shadow .15s}
+  .cell.user{color:var(--cyan);text-shadow:0 0 10px rgba(0,229,255,.6);text-shadow:0 0 10px color-mix(in srgb,var(--cyan) 60%,transparent)}
+  .cell.hint{color:var(--gold);text-shadow:0 0 10px rgba(255,214,10,.5)}
+  .cell.peer{background:rgba(0,229,255,.09);background:color-mix(in srgb,var(--accent) 9%,transparent);
+    border-color:rgba(0,229,255,.15);border-color:color-mix(in srgb,var(--accent) 15%,transparent)}
+  .cell.same{background:rgba(0,229,255,.22);background:color-mix(in srgb,var(--accent) 22%,transparent);
+    border-color:rgba(0,229,255,.45);border-color:color-mix(in srgb,var(--accent) 45%,transparent)}
+  .cell.sel{background:rgba(0,229,255,.3);background:color-mix(in srgb,var(--accent) 30%,transparent);border-color:var(--accent);
+    box-shadow:0 0 14px rgba(0,229,255,.5),inset 0 1px 0 rgba(255,255,255,.25);
+    box-shadow:0 0 14px color-mix(in srgb,var(--accent) 50%,transparent),inset 0 1px 0 rgba(255,255,255,.25)}
+  .cell.sel.user,.cell.same.user{color:#c9fbff}
+  .cell.err{color:var(--bad);background:rgba(255,93,125,.16);border-color:rgba(255,93,125,.55);text-shadow:0 0 10px rgba(255,93,125,.55)}
+  .cell.err.sel{background:rgba(255,93,125,.28);border-color:var(--bad);box-shadow:0 0 14px rgba(255,93,125,.5)}
+  .cell.conflict{border-color:rgba(255,93,125,.85);box-shadow:inset 0 0 0 1px rgba(255,93,125,.7)}
+  .nt{position:absolute;inset:0;display:grid;grid-template-columns:repeat(3,1fr);grid-template-rows:repeat(3,1fr);padding:1px}
+  .nt i{display:flex;align-items:center;justify-content:center;font-style:normal;font-family:var(--font-body);font-weight:600;
+    font-size:max(8px,calc(var(--cs,34px)*.27));line-height:1;color:var(--muted)}
+  .nt i.on{color:var(--accent);text-shadow:0 0 6px rgba(0,229,255,.7);text-shadow:0 0 6px color-mix(in srgb,var(--accent) 70%,transparent)}
+  .cell.pop{animation:cellPop .28s ease}
+  .cell.bad{animation:kuShakeX .35s}
+  .cell.flash{animation:cellFlash .9s ease}
+  .cell.win{animation:cellWin .7s ease both;animation-delay:var(--dl,0s)}
+  @keyframes cellPop{45%{transform:scale(1.16)}}
+  @keyframes cellFlash{30%{background:rgba(255,214,10,.38);box-shadow:0 0 18px rgba(255,214,10,.6)}}
+  @keyframes cellWin{45%{transform:scale(1.12);background:rgba(81,245,139,.4);box-shadow:0 0 16px rgba(81,245,139,.6)}}
 
-  /* Scanlines */
-  #game-wrapper::after{
-    content:" ";display:block;position:absolute;inset:0;
-    background:linear-gradient(rgba(18,16,16,0) 50%,rgba(0,0,0,0.15) 50%);
-    z-index:5;background-size:100% 3px;pointer-events:none;mix-blend-mode:overlay;opacity:0.2;
-  }
+  /* ── Панель ввода: инструменты + цифры (клавиши набора .ku-key) ── */
+  #controls .ku-key{min-width:0;padding:0;border-radius:12px}
+  .ku-key:disabled{opacity:.3;cursor:default;transform:none;pointer-events:none}
+  .ku-key:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+  .tools{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px}
+  .tool{position:relative;flex-direction:column;gap:3px;height:clamp(46px,6.6dvh,60px);font-size:11px;font-weight:500;color:var(--muted)}
+  .tool svg{width:20px;height:20px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round;color:var(--text)}
+  .tool.on{color:var(--accent);border-color:var(--accent);background:rgba(0,229,255,.15);background:color-mix(in srgb,var(--accent) 15%,transparent);
+    box-shadow:0 0 14px rgba(0,229,255,.35),inset 0 1px 0 rgba(255,255,255,.08);
+    box-shadow:0 0 14px color-mix(in srgb,var(--accent) 35%,transparent),inset 0 1px 0 rgba(255,255,255,.08)}
+  .tool.on svg{color:var(--accent)}
+  .badge{position:absolute;top:4px;right:6px;min-width:17px;height:17px;padding:0 4px;border-radius:9px;font-style:normal;
+    font-family:var(--font-display);font-size:10px;line-height:17px;text-align:center;color:#241500;
+    background:linear-gradient(135deg,#ffd60a,#ff9f43);box-shadow:0 0 8px rgba(255,214,10,.5)}
+  .digits{display:grid;grid-template-columns:repeat(9,minmax(0,1fr));gap:5px}
+  .dg{flex-direction:column;gap:3px;height:clamp(50px,8dvh,70px)}
+  .dg b{font-family:var(--font-display);font-weight:400;font-size:clamp(20px,3.1dvh,27px);line-height:1;color:var(--text)}
+  .dg small{font-size:10px;font-weight:500;line-height:1;color:var(--muted)}
+  #controls.notes .dg b{color:var(--accent);font-size:clamp(15px,2.3dvh,20px);
+    text-shadow:0 0 8px rgba(0,229,255,.6);text-shadow:0 0 8px color-mix(in srgb,var(--accent) 60%,transparent)}
 
-  /* Top bar */
-  #top-bar{
-    display:flex;justify-content:space-between;align-items:center;
-    width:100%;max-width:360px;padding:4px 0 8px;z-index:10;position:relative;
-  }
-  #level-label{font-size:.7rem;color:var(--text2);text-transform:uppercase;letter-spacing:.1em;}
-  #stats{display:flex;gap:12px;font-size:.65rem;color:var(--text2);align-items:center;}
-  #stats span{display:flex;align-items:center;gap:3px;}
-  .stat-val{font-weight:700;color:var(--text);font-size:.8rem;}
+  /* ── Выбор уровня кампании ── */
+  .lv-sum{display:flex;justify-content:space-between;align-items:center;gap:8px 14px;flex-wrap:wrap;margin:0 0 14px;font-size:13px;color:var(--muted)}
+  .lv-sum b{font-family:var(--font-display);font-weight:400;color:var(--text)}
+  .lv-legend{display:flex;gap:10px;font-size:11px}
+  .lv-legend i{font-style:normal}
+  .lv-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px}
+  .lv{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;aspect-ratio:1;min-width:0;padding:4px;cursor:pointer;
+    border-radius:14px;background:var(--glass);border:1px solid var(--panel-border);color:var(--text);box-shadow:var(--shadow-btn);
+    transition:transform .15s,border-color .15s,box-shadow .15s}
+  .lv b{font-family:var(--font-display);font-weight:400;font-size:24px;line-height:1}
+  .lv .st{font-size:12px;letter-spacing:1px;line-height:1;color:var(--gold)}
+  .lv .st s{text-decoration:none;color:rgba(255,255,255,.18)}
+  .lv small{font-size:10px;line-height:1;color:var(--muted);white-space:nowrap}
+  .lv.d0 b,.lv-legend .d0{color:var(--green)} .lv.d1 b,.lv-legend .d1{color:var(--yellow)} .lv.d2 b,.lv-legend .d2{color:var(--red)}
+  .lv.done{border-color:rgba(255,214,10,.35)}
+  .lv.cur{border-color:var(--accent);box-shadow:0 0 0 2px rgba(0,229,255,.4),0 0 18px rgba(0,229,255,.35);
+    box-shadow:0 0 0 2px color-mix(in srgb,var(--accent) 40%,transparent),0 0 18px color-mix(in srgb,var(--accent) 35%,transparent)}
+  .lv:disabled{opacity:.38;cursor:default;box-shadow:none}
+  .lv:active{transform:scale(.95)}
+  @media (hover:hover){.lv:not(:disabled):hover{transform:translateY(-2px);border-color:var(--accent)}}
 
-  /* Progress bar */
-  #progress-bar{
-    width:100%;max-width:360px;height:3px;background:rgba(255,255,255,0.04);border-radius:2px;
-    margin-bottom:6px;overflow:hidden;position:relative;z-index:10;
+  /* ── Оверлеи ── */
+  .stars{display:flex;justify-content:center;gap:12px;font-size:36px;line-height:1;margin:2px 0}
+  .stars span{color:rgba(255,255,255,.14);transition:color .3s,transform .45s cubic-bezier(.34,1.56,.64,1),text-shadow .3s}
+  .stars span.lit{color:var(--gold);text-shadow:0 0 18px rgba(255,214,10,.65);transform:scale(1.15)}
+  .ku-card .note{font-size:12px}
+  .wc{display:flex;flex-direction:column;gap:12px}
+  /* телефон в альбоме: карточка победы в две колонки, чтобы кнопки помещались без прокрутки */
+  @media (orientation:landscape) and (max-height:520px){
+    .win-card{flex-direction:row;align-items:center;gap:26px;width:min(640px,94vw);padding:18px 24px}
+    .win-card .wc{flex:1 1 0;min-width:0;gap:8px}
+    .win-card .ku-over-stats{gap:4px;margin:0}
+    .win-card .ku-btn{padding:9px 16px}
   }
-  #progress-fill{
-    height:100%;width:0%;background:linear-gradient(90deg,var(--g),var(--b));
-    box-shadow:0 0 8px var(--g);transition:width .3s ease;
-  }
-
-  /* Board */
-  #board{
-    display:grid;grid-template-columns:repeat(9,1fr);
-    background:rgba(255,255,255,0.06);
-    border:2px solid var(--g);border-radius:6px;
-    width:min(94vw,360px);margin-bottom:10px;z-index:10;position:relative;
-    box-shadow:0 0 20px rgba(0,229,160,0.15);
-  }
-  .cell{
-    aspect-ratio:1;display:flex;align-items:center;justify-content:center;
-    font-size:clamp(.9rem,4.5vw,1.15rem);cursor:pointer;
-    background:var(--cell-bg);border:1px solid var(--cell-border);
-    transition:background .1s,color .1s;position:relative;
-  }
-  .cell.given{font-weight:800;color:var(--text);}
-  .cell.user-val{color:var(--g);font-weight:700;}
-  .cell.selected{background:rgba(0,229,160,0.18);border-color:rgba(0,229,160,0.5);}
-  .cell.highlight{background:rgba(0,229,160,0.06);}
-  .cell.same-num{background:rgba(91,140,255,0.1);color:var(--b);}
-  .cell.error{color:var(--r)!important;background:rgba(255,68,102,0.12)!important;}
-  .cell.hint-flash{animation:hintFlash .6s ease;}
-  @keyframes hintFlash{0%,100%{background:var(--cell-bg);}50%{background:rgba(0,229,160,0.25);}}
-
-  /* 3x3 box borders */
-  .cell.box-right{border-right:2px solid rgba(0,229,160,0.4);}
-  .cell.box-bottom{border-bottom:2px solid rgba(0,229,160,0.4);}
-
-  /* Notes */
-  .cell .notes{
-    display:grid;grid-template-columns:repeat(3,1fr);grid-template-rows:repeat(3,1fr);
-    width:100%;height:100%;position:absolute;top:0;left:0;
-  }
-  .cell .notes span{
-    display:flex;align-items:center;justify-content:center;
-    font-size:clamp(.35rem,1.8vw,.5rem);color:var(--text2);font-weight:400;
-  }
-
-  /* Numpad */
-  #numpad{
-    display:grid;grid-template-columns:repeat(5,1fr);gap:6px;
-    width:min(94vw,360px);z-index:10;margin-bottom:6px;
-  }
-  .nBtn{
-    background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.1);border-radius:8px;
-    padding:10px 4px;font-size:1.1rem;font-weight:700;color:var(--text);
-    cursor:pointer;transition:all .15s;font-family:inherit;position:relative;
-  }
-  .nBtn:active{transform:scale(.93);}
-  .nBtn .count{
-    position:absolute;top:2px;right:4px;font-size:.45rem;color:var(--text2);font-weight:400;
-  }
-  .nBtn.done{opacity:.3;pointer-events:none;}
-
-  /* Actions */
-  #actions{
-    display:flex;gap:6px;width:min(94vw,360px);z-index:10;
-  }
-  .aBtn{
-    flex:1;background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.08);
-    color:var(--text2);border-radius:8px;padding:8px 4px;font-family:inherit;
-    font-size:.55rem;cursor:pointer;transition:all .2s;display:flex;align-items:center;
-    justify-content:center;gap:3px;
-  }
-  .aBtn:active{transform:scale(.95);}
-  .aBtn:hover{border-color:var(--g);color:var(--g);}
-  .aBtn.notes-active{background:rgba(0,229,160,0.15);border-color:var(--g);color:var(--g);}
-
-  /* Overlays */
-  .overlay{
-    position:absolute;inset:0;background:var(--ui);backdrop-filter:blur(8px);
-    display:flex;flex-direction:column;align-items:center;justify-content:center;
-    z-index:50;opacity:0;pointer-events:none;transition:opacity .35s ease;
-  }
-  .overlay.active{opacity:1;pointer-events:auto;}
-
-  .menu-title{
-    font-size:2rem;font-weight:900;margin-bottom:6px;text-align:center;
-    background:linear-gradient(135deg,var(--g),var(--b),var(--p));
-    background-size:200% 200%;
-    -webkit-background-clip:text;-webkit-text-fill-color:transparent;
-    filter:drop-shadow(0 0 12px rgba(0,229,160,0.3));
-    animation:gradShift 3s ease infinite;
-  }
-  @keyframes gradShift{0%,100%{background-position:0% 50%;}50%{background-position:100% 50%;}}
-
-  .menu-subtitle{
-    font-size:.7rem;color:var(--text2);margin-bottom:20px;
-    text-align:center;max-width:85%;line-height:1.6;
-  }
-
-  .btn{
-    background:transparent;color:#fff;border:2px solid var(--g);
-    padding:11px 28px;border-radius:10px;font-size:.85rem;font-weight:700;
-    font-family:inherit;cursor:pointer;margin-bottom:8px;width:80%;max-width:240px;
-    transition:all .25s;text-transform:uppercase;letter-spacing:.1em;
-    position:relative;overflow:hidden;
-  }
-  .btn::before{
-    content:'';position:absolute;top:0;left:-100%;width:100%;height:100%;
-    background:linear-gradient(90deg,transparent,rgba(255,255,255,0.12),transparent);
-    transition:left .6s;
-  }
-  .btn:hover::before{left:100%;}
-  .btn:active{transform:scale(.96);}
-  .btn-primary{background:var(--g);color:#000;box-shadow:0 0 20px rgba(0,229,160,0.35);}
-  .btn-primary:hover{box-shadow:0 0 30px rgba(0,229,160,0.55);}
-  .btn-gold{border-color:var(--y);color:var(--y);}
-  .btn-gold:hover{background:rgba(255,215,0,0.1);}
-  .btn-danger{border-color:var(--r);color:var(--r);}
-  .btn-danger:hover{background:rgba(255,68,102,0.1);}
-
-  /* Difficulty selector */
-  #diff-row{display:flex;gap:6px;margin-bottom:18px;}
-  .diff-btn{
-    background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.1);
-    color:var(--text2);padding:7px 14px;border-radius:8px;font-family:inherit;
-    font-size:.7rem;cursor:pointer;transition:all .2s;
-  }
-  .diff-btn.active{border-color:var(--g);color:var(--g);background:rgba(0,229,160,0.1);}
-
-  /* Level select grid */
-  .level-grid{
-    display:grid;grid-template-columns:repeat(4,1fr);gap:8px;
-    width:90%;max-width:300px;max-height:45vh;overflow-y:auto;margin-bottom:14px;padding:4px;
-  }
-  .level-grid::-webkit-scrollbar{width:5px;}
-  .level-grid::-webkit-scrollbar-track{background:rgba(0,0,0,0.2);border-radius:3px;}
-  .level-grid::-webkit-scrollbar-thumb{background:var(--g);border-radius:3px;}
-
-  .level-cell{
-    aspect-ratio:1;border-radius:8px;display:flex;flex-direction:column;
-    align-items:center;justify-content:center;font-size:.85rem;font-weight:700;
-    cursor:pointer;transition:all .2s;border:2px solid transparent;
-    background:rgba(255,255,255,0.04);color:var(--text2);
-  }
-  .level-cell .stars-row{font-size:.45rem;margin-top:2px;}
-  .level-cell .stars-row .s-on{color:var(--y);}
-  .level-cell .stars-row .s-off{color:#333;}
-  .level-cell.unlocked{border-color:rgba(0,229,160,0.3);background:rgba(0,229,160,0.06);color:var(--text);}
-  .level-cell.unlocked:hover{border-color:var(--g);background:rgba(0,229,160,0.15);box-shadow:0 0 12px rgba(0,229,160,0.3);transform:scale(1.05);}
-  .level-cell.locked{opacity:.3;cursor:not-allowed;}
-  .level-cell.current{border-color:var(--y);background:rgba(255,215,0,0.08);animation:currPulse 1.5s ease infinite;}
-  @keyframes currPulse{0%,100%{box-shadow:0 0 5px rgba(255,215,0,0.2);}50%{box-shadow:0 0 18px rgba(255,215,0,0.5);}}
-
-  /* Stars */
-  .stars-container{display:flex;gap:8px;margin:6px 0 10px;}
-  .star-icon{font-size:1.5rem;color:#333;transition:all .4s cubic-bezier(0.34,1.56,0.64,1);}
-  .star-icon.lit{color:var(--y);text-shadow:0 0 10px rgba(255,215,0,0.5);transform:scale(1.1);}
-
-  .mistake-bar{
-    display:flex;gap:4px;margin:4px 0 10px;
-  }
-  .mistake-dot{
-    width:10px;height:10px;border-radius:50%;background:rgba(255,255,255,0.1);border:1px solid rgba(255,255,255,0.2);
-  }
-  .mistake-dot.used{background:var(--r);border-color:var(--r);box-shadow:0 0 8px rgba(255,68,102,0.5);}
-
-  .hint-text{
-    font-size:.55rem;color:var(--text2);margin-top:12px;text-align:center;
-    border-top:1px solid rgba(255,255,255,0.06);padding-top:12px;line-height:1.6;
-  }
+  .spin{width:42px;height:42px;margin:4px auto 0;border-radius:50%;border:3px solid rgba(255,255,255,.12);
+    border-top-color:var(--accent);border-right-color:var(--accent2);animation:spin .8s linear infinite}
+  @keyframes spin{to{transform:rotate(360deg)}}
+  @media (prefers-reduced-motion:reduce){.cell.win,.cell.pop,.cell.flash{animation:none}}
 </style>
 </head>
-<body>
+<body class="ku">
+<main class="ku-app">
 
-<div id="game-wrapper">
-  <div id="top-bar" style="display:none;">
-    <div id="level-label">Судоку</div>
-    <div id="stats">
-      <span>⏱ <span class="stat-val" id="timer-val">00:00</span></span>
-      <span>❌ <span class="stat-val" id="mistakes-val">0/3</span></span>
+  <!-- ═══ МЕНЮ ═══ -->
+  <section id="screen-menu" class="ku-screen menu active">
+    <h1 class="ku-logo">СУДОКУ</h1>
+    <p class="ku-tagline">Неоновая головоломка&nbsp;• 12&nbsp;уровней&nbsp;• Рекорды</p>
+    <div class="ku-pills"><span>✏️ Заметки</span><span>💡 Подсказки</span><span>↶ Отмена хода</span><span>⭐ Звёзды за уровни</span><span>💾 Автосохранение</span></div>
+
+    <div class="ku-field">
+      <div class="ku-label">Сложность свободной игры</div>
+      <div class="ku-seg" id="diff-seg">
+        <button class="active" data-d="0">Легко</button>
+        <button data-d="1">Средне</button>
+        <button data-d="2">Сложно</button>
+      </div>
     </div>
-  </div>
-  <div id="progress-bar" style="display:none;"><div id="progress-fill"></div></div>
 
-  <div id="board"></div>
-  <div id="numpad"></div>
-  <div id="actions">
-    <button class="aBtn" id="btnUndo">↩️ Отмена</button>
-    <button class="aBtn" id="btnNotes">✏️ Заметки</button>
-    <button class="aBtn" id="btnErase">⌫ Стереть</button>
-    <button class="aBtn" id="btnHint">💡 <span id="hint-count">3</span></button>
-  </div>
-
-  <!-- Main Menu -->
-  <div class="overlay active" id="menu-main">
-    <div class="menu-title">SUDOKU PRO</div>
-    <div class="menu-subtitle">Классическое судоку с заметками,<br>подсказками и 12 уровнями.</div>
-    <div id="diff-row">
-      <button class="diff-btn active" data-d="0">Легко</button>
-      <button class="diff-btn" data-d="1">Средне</button>
-      <button class="diff-btn" data-d="2">Сложно</button>
+    <div class="ku-menu-btns">
+      <button class="ku-btn big green" id="btn-continue" hidden>▶ Продолжить<span class="best" id="best-continue"></span></button>
+      <button class="ku-btn big primary" id="btn-campaign">🧩 Кампания<span class="best" id="best-campaign">12 уровней</span></button>
+      <button class="ku-btn big accent2" id="btn-free">♾ Свободная игра<span class="best" id="best-free">Случайная головоломка</span></button>
     </div>
-    <button class="btn btn-primary" id="btn-campaign">🧩 Кампания</button>
-    <button class="btn btn-gold" id="btn-free">♾️ Свободная игра</button>
-    <div class="hint-text">
-      Заметки: ✏️ режим для пометок кандидатов<br>
-      Клавиатура: 1-9, стрелки, Backspace
+    <div class="ku-menu-row"><button class="ku-btn ghost" id="btn-rules">📖 Правила</button></div>
+    <div class="ku-menu-stats" id="menu-stats"></div>
+    <div class="ku-menu-hint">Клавиши: 1–9 — цифра · стрелки — выбор клетки · Backspace — стереть · N — заметки · U — отмена · H — подсказка · P — пауза<br>
+      На телефоне: тап по клетке, затем цифра на панели внизу</div>
+  </section>
+
+  <!-- ═══ ИГРА ═══ -->
+  <section id="screen-game" class="ku-screen fit">
+    <header class="ku-top">
+      <div class="ku-top-left"></div>
+      <div class="ku-top-title"><div class="t" id="game-title">КАМПАНИЯ · УР. 1</div><div class="s" id="game-sub">ЛЁГКИЙ · 0%</div></div>
+      <div class="ku-top-actions">
+        <button class="ku-btn icon" id="btn-pause" aria-label="Пауза"><svg viewBox="0 0 24 24"><line x1="9" y1="5" x2="9" y2="19"/><line x1="15" y1="5" x2="15" y2="19"/></svg></button>
+      </div>
+    </header>
+    <div id="play">
+      <div class="ku-hud" id="hud">
+        <div class="ku-stat"><span>Время</span><b id="hud-time">00:00</b></div>
+        <div class="ku-stat bad"><span>Ошибки</span><b id="hud-mist">0/3</b></div>
+        <div class="ku-stat c2" id="hud-3"><span id="hud-3l">Уровень</span><b id="hud-3v">1/12</b></div>
+      </div>
+      <div class="ku-board" id="board"><div id="grid"></div></div>
+      <div id="controls">
+        <div class="tools">
+          <button class="ku-key tool" id="btn-undo" aria-label="Отменить ход"><svg viewBox="0 0 24 24"><polyline points="9 14 4 9 9 4"/><path d="M20 20v-7a4 4 0 0 0-4-4H4"/></svg><span>Отмена</span></button>
+          <button class="ku-key tool" id="btn-erase" aria-label="Стереть"><svg viewBox="0 0 24 24"><path d="M20 20H8.5L3.6 15.1a2 2 0 0 1 0-2.8l9.2-9.2a2 2 0 0 1 2.8 0l4.8 4.8a2 2 0 0 1 0 2.8L12 19"/><line x1="7.5" y1="9.5" x2="14.5" y2="16.5"/></svg><span>Стереть</span></button>
+          <button class="ku-key tool" id="btn-notes" aria-label="Заметки" aria-pressed="false"><svg viewBox="0 0 24 24"><path d="M12 20h9"/><path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4Z"/></svg><span>Заметки</span></button>
+          <button class="ku-key tool" id="btn-hint" aria-label="Подсказка"><svg viewBox="0 0 24 24"><path d="M9 18h6"/><path d="M10 22h4"/><path d="M12 2a7 7 0 0 0-4 12.74c.62.47 1 1.2 1 1.98V17h6v-.28c0-.78.38-1.51 1-1.98A7 7 0 0 0 12 2z"/></svg><span>Подсказка</span><i class="badge" id="hint-count">3</i></button>
+        </div>
+        <div class="digits" id="digits"></div>
+      </div>
     </div>
-  </div>
+  </section>
+</main>
 
-  <!-- Level Select -->
-  <div class="overlay" id="menu-levels">
-    <div class="menu-title" style="font-size:1.3rem;">ВЫБОР УРОВНЯ</div>
-    <div class="level-grid" id="level-grid"></div>
-    <button class="btn btn-gold" id="btn-levels-back" style="max-width:160px;padding:9px 18px;font-size:.7rem;">Назад</button>
-  </div>
-
-  <!-- Pause -->
-  <div class="overlay" id="menu-pause">
-    <div class="menu-title" style="background:var(--text);-webkit-text-fill-color:var(--text);font-size:1.4rem;">ПАУЗА</div>
-    <button class="btn btn-primary" id="btn-resume">▶ Продолжить</button>
-    <button class="btn btn-gold" id="btn-restart">🔄 Новая игра</button>
-    <button class="btn btn-danger" id="btn-quit">🏠 В меню</button>
-  </div>
-
-  <!-- Level Complete -->
-  <div class="overlay" id="menu-level-up">
-    <div class="menu-title" style="font-size:1.3rem;color:var(--g);">РЕШЕНО!</div>
-    <div class="stars-container" id="stars-container">
-      <span class="star-icon" id="star-1">★</span>
-      <span class="star-icon" id="star-2">★</span>
-      <span class="star-icon" id="star-3">★</span>
+<!-- ═══ ВЫБОР УРОВНЯ ═══ -->
+<div class="ku-overlay" id="ov-levels">
+  <div class="ku-modal">
+    <header><h2>🧩 Кампания</h2><button class="ku-btn icon" id="btn-levels-x" aria-label="Закрыть">✕</button></header>
+    <div class="ku-body">
+      <div class="lv-sum"><span id="lv-progress"></span>
+        <span class="lv-legend"><i class="d0">● Легко</i><i class="d1">● Средне</i><i class="d2">● Сложно</i></span></div>
+      <div class="lv-grid" id="lv-grid"></div>
     </div>
-    <div class="mistake-bar" id="end-mistakes"></div>
-    <p class="menu-subtitle" id="lvl-stats">Время: 00:00 | Ошибки: 0</p>
-    <button class="btn btn-primary" id="btn-next-level">Следующий уровень →</button>
-    <button class="btn btn-gold" id="btn-replay" style="max-width:180px;padding:9px 16px;font-size:.7rem;">🔄 Повторить</button>
-  </div>
-
-  <!-- Game Over -->
-  <div class="overlay" id="menu-game-over">
-    <div class="menu-title" style="font-size:1.3rem;color:var(--r);">ИГРА ОКОНЧЕНА</div>
-    <p class="menu-subtitle" id="go-stats">Слишком много ошибок</p>
-    <button class="btn btn-primary" id="btn-go-restart">🔄 Попробовать снова</button>
-    <button class="btn btn-danger" id="btn-go-menu">🏠 В меню</button>
   </div>
 </div>
 
+<!-- ═══ ПРАВИЛА ═══ -->
+<div class="ku-overlay" id="ov-rules">
+  <div class="ku-modal">
+    <header><h2>📖 Правила</h2><button class="ku-btn icon" id="btn-rules-x" aria-label="Закрыть">✕</button></header>
+    <div class="ku-body">
+      <h3>Цель</h3>
+      <ul class="ku-rules">
+        <li>Заполните сетку 9×9 цифрами <b>1–9</b> так, чтобы в каждой <b>строке</b>, каждом <b>столбце</b> и каждом <b>квадрате 3×3</b> цифры не повторялись.</li>
+        <li>У каждой головоломки <b>ровно одно решение</b> — угадывать не нужно.</li>
+      </ul>
+      <h3>Ввод</h3>
+      <ul class="ku-rules">
+        <li><b>Тап по клетке</b>, затем цифра на панели. Подсвечиваются строка, столбец, квадрат и такие же цифры.</li>
+        <li><b>Клавиатура:</b> 1–9 — цифра, стрелки — выбор клетки, Backspace / Delete / 0 — стереть, N — заметки, U или Ctrl+Z — отмена, H — подсказка, P / Esc — пауза.</li>
+        <li>Цифра под кнопкой — сколько таких цифр ещё не поставлено.</li>
+      </ul>
+      <h3>Заметки, отмена, подсказки</h3>
+      <ul class="ku-rules">
+        <li><b>✏️ Заметки</b> — режим пометок кандидатов. Верная цифра сама убирается из заметок своей строки, столбца и квадрата.</li>
+        <li><b>↶ Отмена</b> возвращает последний ввод (ошибки при этом не списываются).</li>
+        <li><b>💡 Подсказка</b> открывает выбранную клетку (или случайную). На партию — 3 подсказки.</li>
+      </ul>
+      <h3>Ошибки и звёзды</h3>
+      <ul class="ku-rules">
+        <li>Неверная цифра подсвечивается <span class="ku-bad">красным</span>. <b>3 ошибки</b> — игра окончена.</li>
+        <li><b>★★★</b> — без ошибок и не дольше норматива уровня; <b>★★</b> — не больше 1 ошибки и до 1,5 норматива; <b>★</b> — решено.</li>
+        <li>Следующий уровень кампании открывается после прохождения предыдущего.</li>
+        <li>Партия сохраняется автоматически — её можно продолжить из меню.</li>
+      </ul>
+    </div>
+    <footer><button class="ku-btn primary" id="btn-rules-ok">Понятно</button></footer>
+  </div>
+</div>
+
+<!-- ═══ ПАУЗА ═══ -->
+<div class="ku-overlay" id="ov-pause">
+  <div class="ku-card">
+    <h2>⏸ ПАУЗА</h2>
+    <button class="ku-btn primary" id="btn-resume">Продолжить</button>
+    <button class="ku-btn" id="btn-restart">🔄 Новая головоломка</button>
+    <button class="ku-btn" id="btn-rules2">📖 Правила</button>
+    <button class="ku-btn ghost" id="btn-quit">В меню</button>
+    <p class="note">Партия сохраняется — её можно продолжить из меню</p>
+  </div>
+</div>
+
+<!-- ═══ ПОБЕДА ═══ -->
+<div class="ku-overlay" id="ov-win">
+  <div class="ku-card win-card">
+    <div class="wc">
+      <h2 class="win" id="win-title">РЕШЕНО!</h2>
+      <div class="stars" id="win-stars"><span>★</span><span>★</span><span>★</span></div>
+      <div class="ku-new-best" id="win-best" hidden>🏆 НОВЫЙ РЕКОРД!</div>
+      <div class="ku-big-score" id="win-time">00:00</div>
+    </div>
+    <div class="wc">
+      <div class="ku-over-stats" id="win-stats"></div>
+      <p id="win-note" hidden></p>
+      <button class="ku-btn primary" id="btn-next">Следующий уровень →</button>
+      <button class="ku-btn" id="btn-again">🔄 Ещё раз</button>
+      <button class="ku-btn ghost" id="btn-win-menu">В меню</button>
+    </div>
+  </div>
+</div>
+
+<!-- ═══ ПОРАЖЕНИЕ ═══ -->
+<div class="ku-overlay" id="ov-lose">
+  <div class="ku-card">
+    <h2 class="lose">ИГРА ОКОНЧЕНА</h2>
+    <p>Допущено 3 ошибки</p>
+    <div class="ku-over-stats" id="lose-stats"></div>
+    <button class="ku-btn primary" id="btn-retry">🔄 Попробовать снова</button>
+    <button class="ku-btn ghost" id="btn-lose-menu">В меню</button>
+  </div>
+</div>
+
+<!-- ═══ ГЕНЕРАЦИЯ ═══ -->
+<div class="ku-overlay clear" id="ov-gen">
+  <div class="ku-card">
+    <h2>ГЕНЕРАЦИЯ…</h2>
+    <div class="spin"></div>
+    <p>Подбираем головоломку с единственным решением</p>
+  </div>
+</div>
+
+<div class="ku-toast" id="toast"></div>
+
 <script>
-/**
- * AUDIO ENGINE
- */
+'use strict';
+const $ = id => document.getElementById(id);
+const toast = (msg, kind, ms) => { if (window.KuArcade) KuArcade.toast(msg, kind, ms); };
+
+/* ═══════════════════════════════════════════════════════════════
+ * AUDIO
+ * ═════════════════════════════════════════════════════════════ */
 const AudioSys = {
   ctx: null,
-  init(){ if(!this.ctx) this.ctx = new (window.AudioContext||window.webkitAudioContext)(); if(this.ctx.state==='suspended') this.ctx.resume(); },
-  tone(f,t,d,v=.5,s=null){
-    if(!this.ctx) return;
-    const o=this.ctx.createOscillator(),g=this.ctx.createGain();
-    o.type=t;o.connect(g);g.connect(this.ctx.destination);
-    const n=this.ctx.currentTime;
-    o.frequency.setValueAtTime(f,n);
-    if(s) o.frequency.exponentialRampToValueAtTime(s,n+d);
-    g.gain.setValueAtTime(v,n);g.gain.exponentialRampToValueAtTime(.01,n+d);
-    o.start(n);o.stop(n+d);
+  init() {
+    try {
+      if (!this.ctx) this.ctx = new (window.AudioContext || window.webkitAudioContext)();
+      if (this.ctx.state === 'suspended') this.ctx.resume();
+    } catch (e) {}
   },
-  sfx:{
-    place:()=>AudioSys.tone(500,'sine',.06,.15),
-    error:()=>AudioSys.tone(180,'square',.15,.15),
-    erase:()=>AudioSys.tone(300,'triangle',.06,.1),
-    select:()=>AudioSys.tone(400,'sine',.04,.08),
-    note:()=>AudioSys.tone(600,'triangle',.05,.1),
-    win:()=>{[523,659,784,1047].forEach((f,i)=>setTimeout(()=>AudioSys.tone(f,'square',.15,.2),i*100));},
-    gameOver:()=>{AudioSys.tone(200,'sawtooth',.3,.2,80);},
+  tone(f, t, d, v = .5, s = null) {
+    if (!this.ctx) return;
+    try {
+      const o = this.ctx.createOscillator(), g = this.ctx.createGain();
+      o.type = t; o.connect(g); g.connect(this.ctx.destination);
+      const n = this.ctx.currentTime;
+      o.frequency.setValueAtTime(f, n);
+      if (s) o.frequency.exponentialRampToValueAtTime(s, n + d);
+      g.gain.setValueAtTime(v, n); g.gain.exponentialRampToValueAtTime(.01, n + d);
+      o.start(n); o.stop(n + d);
+    } catch (e) {}
+  },
+  sfx: {
+    place: () => AudioSys.tone(500, 'sine', .06, .15),
+    error: () => AudioSys.tone(180, 'square', .15, .15),
+    erase: () => AudioSys.tone(300, 'triangle', .06, .1),
+    select: () => AudioSys.tone(400, 'sine', .04, .08),
+    note: () => AudioSys.tone(600, 'triangle', .05, .1),
+    win: () => { [523, 659, 784, 1047].forEach((f, i) => setTimeout(() => AudioSys.tone(f, 'square', .15, .2), i * 100)); },
+    gameOver: () => { AudioSys.tone(200, 'sawtooth', .3, .2, 80); },
   }
 };
 
-/**
- * SUDOKU GENERATOR & SOLVER
- */
-function shuffle(a){for(let i=a.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]];}return a;}
-
-function isValid(board, pos, val){
-  const r=Math.floor(pos/9),c=pos%9;
-  for(let i=0;i<9;i++){if(board[r*9+i]===val||board[i*9+c]===val) return false;}
-  const br=Math.floor(r/3)*3,bc=Math.floor(c/3)*3;
-  for(let i=0;i<3;i++) for(let j=0;j<3;j++) if(board[(br+i)*9+bc+j]===val) return false;
-  return true;
+/* ═══════════════════════════════════════════════════════════════
+ * ГЕНЕРАТОР И РЕШАТЕЛЬ
+ * Битовые маски кандидатов (строка/столбец/квадрат), выбор клетки с
+ * наименьшим числом вариантов, подсчёт решений с выходом на 2.
+ * Генерация режется на кусочки по ~24 мс (setTimeout) — UI не замирает.
+ * ═════════════════════════════════════════════════════════════ */
+const ROW = new Uint8Array(81), COL = new Uint8Array(81), BOX = new Uint8Array(81);
+for (let i = 0; i < 81; i++) { ROW[i] = (i / 9) | 0; COL[i] = i % 9; BOX[i] = ((ROW[i] / 3) | 0) * 3 + ((COL[i] / 3) | 0); }
+const PEERS = [];                        // 20 «соседей» клетки: строка + столбец + квадрат
+for (let i = 0; i < 81; i++) {
+  const p = [];
+  for (let j = 0; j < 81; j++) if (j !== i && (ROW[j] === ROW[i] || COL[j] === COL[i] || BOX[j] === BOX[i])) p.push(j);
+  PEERS.push(Uint8Array.from(p));
 }
+const ALL = 0x3FE;                       // биты 1..9
+const POP = new Uint8Array(1024);
+for (let m = 1; m < 1024; m++) POP[m] = POP[m >> 1] + (m & 1);
 
-function solve(board){
-  for(let i=0;i<81;i++){
-    if(board[i]===0){
-      shuffle([1,2,3,4,5,6,7,8,9]);
-      for(const n of [1,2,3,4,5,6,7,8,9]){
-        if(isValid(board,i,n)){
-          board[i]=n;
-          if(solve(board)) return true;
-          board[i]=0;
-        }
-      }
-      return false;
-    }
-  }
-  return true;
-}
+function shuffle(a) { for (let i = a.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); const t = a[i]; a[i] = a[j]; a[j] = t; } return a; }
 
-function countSolutions(board, limit=2){
-  let count=0;
-  function _solve(b){
-    if(count>=limit) return;
-    for(let i=0;i<81;i++){
-      if(b[i]===0){
-        for(let n=1;n<=9;n++){
-          if(isValid(b,i,n)){
-            b[i]=n;
-            _solve(b);
-            b[i]=0;
-            if(count>=limit) return;
-          }
-        }
-        return;
-      }
-    }
-    count++;
+// Решает g (81 клетка, 0 — пусто) на месте. Возвращает число решений, но не больше limit.
+// rnd — случайный порядок цифр (генерация полной сетки). При limit=1 и успехе g остаётся заполненной.
+function solveGrid(g, limit, rnd) {
+  const rm = new Uint16Array(9), cm = new Uint16Array(9), bm = new Uint16Array(9), empty = [];
+  for (let i = 0; i < 81; i++) {
+    const v = g[i];
+    if (!v) { empty.push(i); continue; }
+    const bit = 1 << v;
+    if ((rm[ROW[i]] | cm[COL[i]] | bm[BOX[i]]) & bit) return 0;
+    rm[ROW[i]] |= bit; cm[COL[i]] |= bit; bm[BOX[i]] |= bit;
   }
-  _solve(board);
+  const n = empty.length;
+  let count = 0;
+  function rec(k) {
+    if (k === n) return ++count >= limit;
+    let bj = k, bmask = 0, bc = 10;
+    for (let j = k; j < n; j++) {
+      const i = empty[j], m = ALL & ~(rm[ROW[i]] | cm[COL[i]] | bm[BOX[i]]), c = POP[m];
+      if (c < bc) { bc = c; bj = j; bmask = m; if (c < 2) break; }
+    }
+    if (!bc) return false;
+    const i = empty[bj]; empty[bj] = empty[k]; empty[k] = i;
+    const r = ROW[i], c = COL[i], b = BOX[i], vals = [];
+    for (let v = 1; v <= 9; v++) if (bmask & (1 << v)) vals.push(v);
+    if (rnd) shuffle(vals);
+    for (const v of vals) {
+      const bit = 1 << v;
+      rm[r] |= bit; cm[c] |= bit; bm[b] |= bit; g[i] = v;
+      if (rec(k + 1)) return true;
+      rm[r] ^= bit; cm[c] ^= bit; bm[b] ^= bit;
+    }
+    g[i] = 0;
+    return false;
+  }
+  rec(0);
   return count;
 }
+const countSolutions = (p, limit = 2) => solveGrid(Uint8Array.from(p), limit, false);
 
-function generatePuzzle(clues){
-  // Generate full board
-  const board=Array(81).fill(0);
-  solve(board);
-  const solution=[...board];
-
-  // Remove cells
-  const indices=shuffle([...Array(81).keys()]);
-  let removed=0;
-  const target=81-clues;
-
-  for(const idx of indices){
-    if(removed>=target) break;
-    const backup=board[idx];
-    board[idx]=0;
-    // Check unique solution
-    const testBoard=[...board];
-    if(countSolutions(testBoard,2)===1){
-      removed++;
-    } else {
-      board[idx]=backup;
-    }
+// Убирает цифры в случайном порядке, пока решение остаётся единственным.
+function makePuzzle(sol, clues) {
+  const p = Uint8Array.from(sol), order = shuffle([...Array(81).keys()]);
+  let left = 81;
+  for (let k = 0; k < 81 && left > clues; k++) {
+    if (left - clues > 81 - k) break;              // до цели уже не дойти — новая попытка
+    const i = order[k], v = p[i];
+    p[i] = 0;
+    if (countSolutions(p, 2) === 1) left--; else p[i] = v;
   }
-
-  return {puzzle:board, solution};
+  return { puzzle: p, clues: left };
 }
 
-/**
- * LEVELS
- */
-const LEVELS=[
+// Асинхронная генерация: попытки, пока не наберётся нужное число подсказок
+// (лимит 60 попыток / 2.5 с — тогда берём лучшую). Новый вызов отменяет предыдущий.
+let genToken = 0;
+function generateAsync(clues, done) {
+  const token = ++genToken, t0 = performance.now();
+  let best = null, tries = 0;
+  const step = () => {
+    if (token !== genToken) return;
+    const until = performance.now() + 24;
+    do {
+      tries++;
+      const sol = new Uint8Array(81);
+      solveGrid(sol, 1, true);
+      const r = makePuzzle(sol, clues);
+      if (!best || r.clues < best.clues) best = { puzzle: r.puzzle, solution: sol, clues: r.clues };
+    } while (best.clues > clues && performance.now() < until);
+    if (best.clues <= clues || tries >= 60 || performance.now() - t0 > 2500) done(best);
+    else setTimeout(step, 0);
+  };
+  setTimeout(step, 0);
+}
+
+function validSolution(S) {
+  for (let u = 0; u < 9; u++) {
+    let r = 0, c = 0, b = 0;
+    for (let k = 0; k < 9; k++) {
+      r |= 1 << S[u * 9 + k]; c |= 1 << S[k * 9 + u];
+      b |= 1 << S[(((u / 3) | 0) * 3 + ((k / 3) | 0)) * 9 + (u % 3) * 3 + (k % 3)];
+    }
+    if (r !== ALL || c !== ALL || b !== ALL) return false;
+  }
+  return true;
+}
+
+/* ═══════════════════════════════════════════════════════════════
+ * УРОВНИ И ХРАНИЛИЩЕ
+ * ═════════════════════════════════════════════════════════════ */
+const LEVELS = [
   {id:1, name:"УР 1",  diff:0, clues:46, par:180},  // Easy
   {id:2, name:"УР 2",  diff:0, clues:44, par:200},
   {id:3, name:"УР 3",  diff:0, clues:42, par:220},
@@ -417,413 +445,656 @@ const LEVELS=[
   {id:11,name:"УР 11", diff:2, clues:25, par:660},
   {id:12,name:"УР 12", diff:2, clues:24, par:720},
 ];
+const DIFF_NAMES = ['Лёгкий', 'Средний', 'Сложный'];
+const DIFF_SHORT = ['Легко', 'Средне', 'Сложно'];
+const FREE_CLUES = [42, 34, 27];
+const FREE_PAR = [220, 340, 550];        // норматив звёзд свободной игры (как у уровней с тем же числом подсказок)
+const MAX_MISTAKES = 3, MAX_HINTS = 3;
+const SAVE_KEY = 'sudoku_save';          // текущая партия (автосохранение)
 
-const DIFF_NAMES=['Лёгкий','Средний','Сложный'];
-
-/**
- * GAME ENGINE
- */
-let puzzle, solution, given, board, notes;
-let selected=null, mistakes=0, maxMistakes=3;
-let notesMode=false, hintsLeft=3, undoStack=[];
-let seconds=0, timerID=null, over=false;
-let levelIdx=0, mode='CAMPAIGN', diff=0;
-
-let completed=JSON.parse(localStorage.getItem('sudoku_completed')||'{}');
-let bestTimes=JSON.parse(localStorage.getItem('sudoku_best')||'{}');
-
-function $(id){return document.getElementById(id);}
-
-function showMenu(id){
-  document.querySelectorAll('.overlay').forEach(m=>m.classList.remove('active'));
-  if(id) $('menu-'+id)?.classList.add('active');
-}
-
-function buildLevelGrid(){
-  const grid=$('level-grid'); grid.innerHTML='';
-  const maxUnlocked=Math.max(1,...Object.keys(completed).map(Number).filter(k=>completed[k]));
-  LEVELS.forEach((lvl,i)=>{
-    const cell=document.createElement('div');
-    cell.className='level-cell';
-    const unlocked=i<=maxUnlocked||i===0;
-    const comp=completed[lvl.id];
-    if(comp){
-      const stars=bestTimes[lvl.id]?.stars||0;
-      cell.classList.add('unlocked');
-      cell.innerHTML=`<span>${lvl.id}</span><div class="stars-row">${'★'.repeat(Math.min(3,stars)).split('').map(c=>`<span class="s-on">${c}</span>`).join('')}${'☆'.repeat(Math.max(0,3-stars)).split('').map(c=>`<span class="s-off">${c}</span>`).join('')}</div>`;
-    } else if(unlocked&&i===maxUnlocked&&maxUnlocked>0){
-      cell.classList.add('current'); cell.innerHTML=`<span>${lvl.id}</span>`;
-    } else if(unlocked){
-      cell.classList.add('unlocked'); cell.innerHTML=`<span>${lvl.id}</span>`;
-    } else {
-      cell.classList.add('locked'); cell.innerHTML=`<span>🔒</span>`;
-    }
-    if(unlocked) cell.onclick=()=>{levelIdx=i;mode='CAMPAIGN';startLevel(i);};
-    grid.appendChild(cell);
-  });
-}
-
-function updateTimer(){
-  const m=String(Math.floor(seconds/60)).padStart(2,'0');
-  const s=String(seconds%60).padStart(2,'0');
-  $('timer-val').textContent=`${m}:${s}`;
-}
-
-function updateProgress(){
-  let filled=0;
-  for(let i=0;i<81;i++) if(board[i]!==0&&!given[i]) filled++;
-  const total=81-given.filter(g=>g).length;
-  $('progress-fill').style.width=(total>0?filled/total*100:0)+'%';
-}
-
-function updateNumPad(){
-  const counts=Array(10).fill(0);
-  for(let i=0;i<81;i++) if(board[i]>0&&board[i]===solution[i]) counts[board[i]]++;
-  document.querySelectorAll('.nBtn').forEach(btn=>{
-    const n=+btn.dataset.n;
-    if(n>=1&&n<=9){
-      const remaining=9-counts[n];
-      const cntEl=btn.querySelector('.count');
-      if(cntEl) cntEl.textContent=remaining;
-      btn.classList.toggle('done',remaining<=0);
-    }
-  });
-}
-
-function startLevel(idx){
-  AudioSys.init();
-  levelIdx=idx;
-  const cfg=LEVELS[idx];
-  diff=cfg.diff;
-
-  const {puzzle:p, solution:s} = generatePuzzle(cfg.clues);
-  puzzle=p; solution=s;
-  board=[...p];
-  given=p.map(v=>v!==0);
-  notes=Array.from({length:81},()=>new Set());
-
-  selected=null; mistakes=0; notesMode=false;
-  hintsLeft=3; undoStack=[]; seconds=0; over=false;
-
-  $('level-label').textContent=`${cfg.name} • ${DIFF_NAMES[cfg.diff]}`;
-  $('mistakes-val').textContent=`0/${maxMistakes}`;
-  $('hint-count').textContent=hintsLeft;
-  $('btnNotes').classList.remove('notes-active');
-  updateTimer(); updateProgress(); updateNumPad();
-
-  $('top-bar').style.display='flex';
-  $('progress-bar').style.display='block';
-
-  clearInterval(timerID);
-  timerID=setInterval(()=>{if(!over) {seconds++;updateTimer();}},1000);
-
-  showMenu(null);
-  render();
-}
-
-function startFree(){
-  AudioSys.init();
-  mode='FREE';
-  const clues=[42,34,27][diff];
-  const {puzzle:p, solution:s} = generatePuzzle(clues);
-  puzzle=p; solution=s;
-  board=[...p];
-  given=p.map(v=>v!==0);
-  notes=Array.from({length:81},()=>new Set());
-
-  selected=null; mistakes=0; notesMode=false;
-  hintsLeft=3; undoStack=[]; seconds=0; over=false;
-
-  $('level-label').textContent=`Свободная • ${DIFF_NAMES[diff]}`;
-  $('mistakes-val').textContent=`0/${maxMistakes}`;
-  $('hint-count').textContent=hintsLeft;
-  $('btnNotes').classList.remove('notes-active');
-  updateTimer(); updateProgress(); updateNumPad();
-
-  $('top-bar').style.display='flex';
-  $('progress-bar').style.display='block';
-
-  clearInterval(timerID);
-  timerID=setInterval(()=>{if(!over){seconds++;updateTimer();}},1000);
-
-  showMenu(null);
-  render();
-}
-
-function selectCell(i){
-  if(over) return;
-  selected=i;
-  AudioSys.sfx.select();
-  render();
-}
-
-function placeNumber(n){
-  if(selected===null||given[selected]||over) return;
-
-  if(n===0){
-    // Erase
-    if(board[selected]!==0||notes[selected].size>0){
-      undoStack.push({cell:selected, val:board[selected], notes:new Set(notes[selected])});
-      board[selected]=0;
-      notes[selected].clear();
-      AudioSys.sfx.erase();
-      updateProgress(); updateNumPad(); render();
-    }
-    return;
-  }
-
-  if(notesMode){
-    // Toggle note
-    undoStack.push({cell:selected, val:board[selected], notes:new Set(notes[selected])});
-    if(board[selected]!==0) return; // Can't add notes to filled cell
-    if(notes[selected].has(n)) notes[selected].delete(n);
-    else notes[selected].add(n);
-    AudioSys.sfx.note();
-    render();
-    return;
-  }
-
-  // Place number
-  undoStack.push({cell:selected, val:board[selected], notes:new Set(notes[selected])});
-
-  if(n===solution[selected]){
-    board[selected]=n;
-    notes[selected].clear();
-    // Remove this number from notes in same row/col/box
-    const r=Math.floor(selected/9),c=selected%9;
-    const br=Math.floor(r/3)*3,bc=Math.floor(c/3)*3;
-    for(let i=0;i<81;i++){
-      if(i===selected) continue;
-      const ir=Math.floor(i/9),ic=i%9;
-      if(ir===r||ic===c||(Math.floor(ir/3)*3===br&&Math.floor(ic/3)*3===bc)){
-        notes[i].delete(n);
-      }
-    }
-    AudioSys.sfx.place();
-  } else {
-    board[selected]=n;
-    mistakes++;
-    $('mistakes-val').textContent=`${mistakes}/${maxMistakes}`;
-    AudioSys.sfx.error();
-
-    if(mistakes>=maxMistakes){
-      over=true;
-      clearInterval(timerID);
-      AudioSys.sfx.gameOver();
-      setTimeout(()=>{
-        $('go-stats').textContent=`Время: ${$('timer-val').textContent} | Ошибки: ${mistakes}`;
-        showMenu('game-over');
-      },600);
-      render();
-      return;
-    }
-  }
-
-  updateProgress(); updateNumPad();
-  render();
-
-  // Check win
-  if(board.every((v,i)=>v===solution[i])){
-    over=true;
-    clearInterval(timerID);
-    AudioSys.sfx.win();
-    setTimeout(()=>levelComplete(),400);
-  }
-}
-
-function levelComplete(){
-  const cfg=LEVELS[levelIdx]||{par:300};
-  const timeRatio=cfg.par/seconds;
-  const stars=mistakes===0&&seconds<=cfg.par?3:mistakes<=1&&seconds<=cfg.par*1.5?2:1;
-
-  if(mode==='CAMPAIGN'){
-    completed[cfg.id]=true;
-    if(!bestTimes[cfg.id]||mistakes<bestTimes[cfg.id].mistakes||(mistakes===bestTimes[cfg.id].mistakes&&seconds<bestTimes[cfg.id].time)){
-      bestTimes[cfg.id]={mistakes,time:seconds,stars};
-    }
-    localStorage.setItem('sudoku_completed',JSON.stringify(completed));
-    localStorage.setItem('sudoku_best',JSON.stringify(bestTimes));
-
-    const nextId=cfg.id+1;
-    if(nextId<=LEVELS.length&&!completed[nextId]){
-      completed[nextId]=true;
-      localStorage.setItem('sudoku_completed',JSON.stringify(completed));
-    }
-  }
-
-  for(let i=1;i<=3;i++){
-    setTimeout(()=>{$('star-'+i).classList.toggle('lit',i<=stars);},i*250);
-  }
-  $('lvl-stats').textContent=`Время: ${$('timer-val').textContent} | Ошибки: ${mistakes}`;
-  $('btn-next-level').style.display=mode==='CAMPAIGN'&&levelIdx<LEVELS.length-1?'block':'none';
-  showMenu('level-up');
-}
-
-function doUndo(){
-  if(undoStack.length===0||over) return;
-  const action=undoStack.pop();
-  board[action.cell]=action.val;
-  notes[action.cell]=action.notes;
-  selected=action.cell;
-  updateProgress(); updateNumPad(); render();
-}
-
-function doHint(){
-  if(hintsLeft<=0||over) return;
-  // Find an empty or wrong cell
-  const emptyCells=[];
-  for(let i=0;i<81;i++){
-    if(!given[i]&&board[i]!==solution[i]) emptyCells.push(i);
-  }
-  if(emptyCells.length===0) return;
-
-  hintsLeft--;
-  $('hint-count').textContent=hintsLeft;
-
-  // Prefer selected cell if it's empty
-  let target=selected!==null&&emptyCells.includes(selected)?selected:emptyCells[Math.floor(Math.random()*emptyCells.length)];
-  board[target]=solution[target];
-  notes[target].clear();
-  given[target]=true; // Mark as given so it can't be changed
-
-  // Flash animation
-  AudioSys.sfx.place();
-  updateProgress(); updateNumPad(); render();
-
-  // Add hint flash class
-  setTimeout(()=>{
-    const cells=$('board').children;
-    if(cells[target]) cells[target].classList.add('hint-flash');
-  },50);
-
-  // Check win
-  if(board.every((v,i)=>v===solution[i])){
-    over=true;
-    clearInterval(timerID);
-    AudioSys.sfx.win();
-    setTimeout(()=>levelComplete(),400);
-  }
-}
-
-function render(){
-  const bd=$('board');
-  bd.innerHTML='';
-
-  const selVal=selected!==null?board[selected]:0;
-  const selNotes=selected!==null?notes[selected]:new Set();
-
-  for(let i=0;i<81;i++){
-    const r=Math.floor(i/9),c=i%9;
-    const d=document.createElement('div');
-    d.className='cell';
-
-    // Content
-    if(board[i]!==0){
-      d.textContent=board[i];
-      d.classList.add(given[i]?'given':'user-val');
-      // Error check
-      if(!given[i]&&board[i]!==solution[i]) d.classList.add('error');
-    } else if(notes[i].size>0){
-      const nd=document.createElement('div');
-      nd.className='notes';
-      for(let n=1;n<=9;n++){
-        const sp=document.createElement('span');
-        sp.textContent=notes[i].has(n)?n:'';
-        nd.appendChild(sp);
-      }
-      d.appendChild(nd);
-    }
-
-    // Highlighting
-    if(i===selected) d.classList.add('selected');
-    else if(selVal!==0&&board[i]===selVal) d.classList.add('same-num');
-    else if(selected!==null){
-      const sr=Math.floor(selected/9),sc=selected%9;
-      const sbr=Math.floor(sr/3)*3,sbc=Math.floor(sc/3)*3;
-      if(r===sr||c===sc||(Math.floor(r/3)*3===sbr&&Math.floor(c/3)*3===sbc)) d.classList.add('highlight');
-    }
-
-    // 3x3 box borders
-    if(c===2||c===5) d.classList.add('box-right');
-    if(r===2||r===5) d.classList.add('box-bottom');
-
-    d.addEventListener('click',()=>selectCell(i));
-    bd.appendChild(d);
-  }
-}
-
-function buildNumPad(){
-  $('numpad').innerHTML=[1,2,3,4,5,6,7,8,9,'✕'].map(n=>
-    `<button class="nBtn" data-n="${n}">${n==='✕'?'✕':n}<span class="count"></span></button>`
-  ).join('');
-  $('numpad').addEventListener('click',e=>{
-    const btn=e.target.closest('.nBtn');
-    if(!btn) return;
-    const n=btn.dataset.n;
-    if(n==='✕') placeNumber(0);
-    else placeNumber(+n);
-  });
-}
-
-// Build numpad on load
-buildNumPad();
-
-// Buttons
-$('btn-campaign').onclick=()=>{showMenu('levels');buildLevelGrid();};
-$('btn-free').onclick=()=>startFree();
-$('btnUndo').onclick=()=>doUndo();
-$('btnErase').onclick=()=>placeNumber(0);
-$('btnHint').onclick=()=>doHint();
-$('btnNotes').onclick=()=>{
-  notesMode=!notesMode;
-  $('btnNotes').classList.toggle('notes-active',notesMode);
+const store = {
+  get(k, d) { try { const v = localStorage.getItem(k); if (v === null) return d; const o = JSON.parse(v); return o === null ? d : o; } catch (e) { return d; } },
+  set(k, v) { try { localStorage.setItem(k, JSON.stringify(v)); } catch (e) {} },
+  del(k) { try { localStorage.removeItem(k); } catch (e) {} }
 };
-$('btn-levels-back').onclick=()=>showMenu('main');
-$('btn-next-level').onclick=()=>{if(levelIdx<LEVELS.length-1) startLevel(levelIdx+1);};
-$('btn-replay').onclick=()=>startLevel(levelIdx);
-$('btn-restart').onclick=()=>{if(mode==='CAMPAIGN') startLevel(levelIdx); else startFree();};
-$('btn-quit').onclick=()=>{clearInterval(timerID);showMenu('main');$('top-bar').style.display='none';$('progress-bar').style.display='none';};
-$('btn-resume').onclick=()=>showMenu(null);
-$('btn-go-restart').onclick=()=>{if(mode==='CAMPAIGN') startLevel(levelIdx); else startFree();};
-$('btn-go-menu').onclick=()=>{clearInterval(timerID);showMenu('main');$('top-bar').style.display='none';$('progress-bar').style.display='none';};
+const asObj = o => (o && typeof o === 'object' && !Array.isArray(o)) ? o : {};
+// sudoku_completed / sudoku_best — прежние ключи. Пройден = есть запись в sudoku_best
+// (старая версия ставила completed[следующий] = true как «открыт», это остаётся признаком доступа).
+let completed = asObj(store.get('sudoku_completed', {}));
+let bestTimes = asObj(store.get('sudoku_best', {}));
+const freeRec = (() => {                 // sudoku_free: выбранная сложность, рекорды и число решённых
+  const o = asObj(store.get('sudoku_free', {}));
+  const arr = a => [0, 1, 2].map(k => Array.isArray(a) && Number.isFinite(a[k]) && a[k] > 0 ? Math.floor(a[k]) : 0);
+  return { d: [0, 1, 2].includes(o.d) ? o.d : 0, best: arr(o.best), solved: arr(o.solved) };
+})();
+const saveFree = () => store.set('sudoku_free', freeRec);
+const isDone = id => !!(bestTimes[id] && typeof bestTimes[id] === 'object');
+// Старая версия открывала уровни с индексом ≤ max(id в sudoku_completed) — на один дальше «следующего».
+// Для старых сохранений (есть отметка «открыт» без записи в sudoku_best) эти уровни остаются открытыми.
+const legacyOpen = (() => {
+  let mx = 0, legacy = false;
+  for (const k in completed) { const n = +k; if (completed[k] === true && Number.isInteger(n) && n > 0) { mx = Math.max(mx, n); if (!isDone(n)) legacy = true; } }
+  return legacy ? mx : 0;
+})();
+const isUnlocked = i => i === 0 || isDone(LEVELS[i - 1].id) || completed[LEVELS[i].id] === true || i <= legacyOpen;
+const fmt = s => { s = Math.max(0, Math.floor(s)); return String(Math.floor(s / 60)).padStart(2, '0') + ':' + String(s % 60).padStart(2, '0'); };
+const starsText = n => '★'.repeat(n) + '<s>' + '★'.repeat(3 - n) + '</s>';
+const rows = list => list.map(([k, v]) => `<div>${k}<b>${v}</b></div>`).join('');
 
-// Difficulty
-document.querySelectorAll('.diff-btn').forEach(b=>b.addEventListener('click',()=>{
-  diff=+b.dataset.d;
-  document.querySelectorAll('.diff-btn').forEach(x=>x.classList.remove('active'));
-  b.classList.add('active');
+/* ═══════════════════════════════════════════════════════════════
+ * СОСТОЯНИЕ ПАРТИИ
+ * ═════════════════════════════════════════════════════════════ */
+let puzzle = null, solution = null, board = null, given = null, hinted = null, notes = null;   // notes — битовые маски 1..9
+let selected = null, mistakes = 0, hintsLeft = MAX_HINTS, notesMode = false, undoStack = [];
+let over = true, paused = false, genBusy = false, mode = 'CAMPAIGN', levelIdx = 0, gameDiff = 0;
+let screen = 'menu', endTimer = 0, saveTimer = 0, genShowTimer = 0, rulesReturn = null, starTimers = [];
+
+// Таймер: копит время только пока партия реально идёт (не пауза, не фон, не оверлей)
+const clock = {
+  acc: 0, t0: 0, on: false,
+  run(on) {
+    const now = performance.now();
+    if (on && !this.on) { this.t0 = now; this.on = true; }
+    else if (!on && this.on) { this.acc += now - this.t0; this.on = false; }
+  },
+  ms() { return this.acc + (this.on ? performance.now() - this.t0 : 0); },
+  reset(ms) { this.acc = ms || 0; this.t0 = performance.now(); }
+};
+const secs = () => Math.floor(clock.ms() / 1000);
+const anyOverlay = () => !!document.querySelector('.ku-overlay.open');
+function syncClock() {
+  clock.run(screen === 'game' && !over && !paused && !genBusy && !document.hidden && !anyOverlay());
+  updateTimer();
+}
+let shownSec = -1;
+function updateTimer(force) {
+  const s = secs();
+  if (force || s !== shownSec) { shownSec = s; $('hud-time').textContent = fmt(s); }
+}
+setInterval(() => { if (clock.on) updateTimer(); }, 250);
+
+/* ═══════════════════════════════════════════════════════════════
+ * ПОЛЕ (DOM-клетки создаются один раз, render только меняет классы)
+ * ═════════════════════════════════════════════════════════════ */
+const gridEl = $('grid'), boardEl = $('board'), playEl = $('play'), ctrlEl = $('controls'), hudEl = $('hud'), digitsEl = $('digits');
+const topEl = document.querySelector('#screen-game .ku-top');
+const cellEls = new Array(81), boxEls = [], htmlCache = new Array(81).fill(null);
+for (let b = 0; b < 9; b++) {
+  const box = document.createElement('div');
+  box.className = 'box';
+  for (let k = 0; k < 9; k++) {
+    const r = ((b / 3) | 0) * 3 + ((k / 3) | 0), c = (b % 3) * 3 + (k % 3), i = r * 9 + c;
+    const d = document.createElement('div');
+    d.className = 'cell'; d.dataset.i = i;
+    d.style.setProperty('--dl', ((r + c) * .035).toFixed(3) + 's');
+    box.appendChild(d); cellEls[i] = d;
+  }
+  gridEl.appendChild(box); boxEls.push(box);
+}
+gridEl.addEventListener('pointerdown', e => {
+  const d = e.target.closest('.cell');
+  if (d) { AudioSys.init(); selectCell(+d.dataset.i); }
+});
+gridEl.addEventListener('animationend', e => {
+  if (e.target.classList && e.target.classList.contains('cell')) e.target.classList.remove('pop', 'bad', 'flash');
+});
+digitsEl.innerHTML = [1, 2, 3, 4, 5, 6, 7, 8, 9].map(n =>
+  `<button class="ku-key dg" data-n="${n}" aria-label="Цифра ${n}"><b>${n}</b><small>9</small></button>`).join('');
+digitsEl.addEventListener('click', e => {
+  const b = e.target.closest('.dg');
+  if (b) { AudioSys.init(); placeNumber(+b.dataset.n); }
+});
+// клик мышью по клавишам панели не забирает фокус: иначе остаётся рамка фокуса,
+// а Enter/Пробел повторяют последнюю нажатую клавишу
+ctrlEl.addEventListener('mousedown', e => { if (e.target.closest('button')) e.preventDefault(); });
+
+function fx(i, cls) { const d = cellEls[i]; d.classList.remove(cls); void d.offsetWidth; d.classList.add(cls); }
+function popStat(id) { const b = $(id); b.classList.remove('pop'); void b.offsetWidth; b.classList.add('pop'); }
+
+function notesHTML(mask, hl) {
+  let s = '<div class="nt">';
+  for (let n = 1; n <= 9; n++) s += mask & (1 << n) ? (n === hl ? `<i class="on">${n}</i>` : `<i>${n}</i>`) : '<i></i>';
+  return s + '</div>';
+}
+
+function render() {
+  if (!board) return;
+  const s = selected, sv = s !== null ? board[s] : 0;
+  const sr = s !== null ? ROW[s] : -1, sc = s !== null ? COL[s] : -1, sb = s !== null ? BOX[s] : -1;
+  // конфликты: неверная цифра и совпадающие с ней цифры в строке/столбце/квадрате
+  const conflict = new Uint8Array(81);
+  for (let i = 0; i < 81; i++) {
+    const v = board[i];
+    if (v && !given[i] && v !== solution[i]) for (const j of PEERS[i]) if (board[j] === v) conflict[j] = 1;
+  }
+  for (let i = 0; i < 81; i++) {
+    const d = cellEls[i], cl = d.classList, v = board[i];
+    const fixed = v !== 0 && given[i], err = v !== 0 && !given[i] && v !== solution[i];
+    cl.toggle('given', fixed && !hinted[i]);
+    cl.toggle('hint', fixed && hinted[i]);
+    cl.toggle('user', v !== 0 && !given[i]);
+    cl.toggle('err', err);
+    cl.toggle('sel', i === s);
+    cl.toggle('same', i !== s && sv !== 0 && v === sv);
+    cl.toggle('peer', s !== null && i !== s && (ROW[i] === sr || COL[i] === sc || BOX[i] === sb));
+    cl.toggle('conflict', conflict[i] === 1 && !err);
+    const html = v ? String(v) : notes[i] ? notesHTML(notes[i], sv) : '';
+    if (html !== htmlCache[i]) { d.innerHTML = html; htmlCache[i] = html; }
+  }
+  for (let b = 0; b < 9; b++) boxEls[b].classList.toggle('act', b === sb);
+}
+
+function progressPct() {
+  let tot = 0, ok = 0;
+  for (let i = 0; i < 81; i++) if (!puzzle[i]) { tot++; if (board[i] === solution[i]) ok++; }
+  return tot ? Math.round(ok / tot * 100) : 100;
+}
+function updateDigits() {
+  const cnt = new Array(10).fill(0);
+  for (let i = 0; i < 81; i++) if (board[i] && board[i] === solution[i]) cnt[board[i]]++;
+  digitsEl.querySelectorAll('.dg').forEach(b => {
+    const n = +b.dataset.n, left = 9 - cnt[n];
+    b.lastElementChild.textContent = left;
+    b.disabled = left <= 0 || over;
+  });
+  ctrlEl.classList.toggle('notes', notesMode);
+}
+function updateTools() {
+  $('btn-undo').disabled = over || !undoStack.length;
+  $('btn-erase').disabled = over;
+  $('btn-notes').disabled = over;
+  $('btn-hint').disabled = over || hintsLeft <= 0;
+  $('hint-count').textContent = hintsLeft;
+  $('btn-notes').classList.toggle('on', notesMode);
+  $('btn-notes').setAttribute('aria-pressed', String(notesMode));
+}
+function updateHUD() {
+  const camp = mode === 'CAMPAIGN';
+  $('game-title').textContent = camp ? `КАМПАНИЯ · УР. ${LEVELS[levelIdx].id}` : 'СВОБОДНАЯ ИГРА';
+  $('game-sub').textContent = `${DIFF_NAMES[gameDiff].toUpperCase()} · ${progressPct()}%`;
+  $('hud-mist').textContent = `${mistakes}/${MAX_MISTAKES}`;
+  if (camp) {
+    $('hud-3').className = 'ku-stat c2'; $('hud-3l').textContent = 'Уровень';
+    $('hud-3v').textContent = `${LEVELS[levelIdx].id}/${LEVELS.length}`;
+  } else {
+    $('hud-3').className = 'ku-stat gold'; $('hud-3l').textContent = 'Рекорд';
+    $('hud-3v').textContent = freeRec.best[gameDiff] ? fmt(freeRec.best[gameDiff]) : '—';
+  }
+  updateTimer(true);
+}
+function afterChange() { render(); updateDigits(); updateTools(); updateHUD(); scheduleSave(); }
+
+/* ── Раскладка: квадратное поле максимального размера ── */
+function layout() {
+  if (screen !== 'game' || !playEl.clientHeight) return;
+  const W = playEl.clientWidth, H = playEl.clientHeight;
+  const land = W > H * 1.1;               // альбом / десктоп — панель справа от поля
+  playEl.classList.toggle('land', land);
+  let side, cw = 0;
+  if (land) {
+    cw = Math.round(Math.max(220, Math.min(300, W - Math.min(H, 620) - 22)));   // панель пошире, если поле и так упирается в высоту
+    ctrlEl.style.width = hudEl.style.width = cw + 'px';
+    side = Math.min(H, W - cw - 22);
+  } else {
+    hudEl.style.width = '';
+    side = Math.min(W, H - hudEl.offsetHeight - 10 - ctrlEl.offsetHeight);   // offsetHeight панели включает её отступ 12px
+  }
+  side = Math.floor(Math.max(150, Math.min(side, 620)));
+  boardEl.style.width = boardEl.style.height = side + 'px';
+  if (!land) { cw = Math.min(W, Math.max(side, 300)); ctrlEl.style.width = cw + 'px'; }
+  // шапка — по ширине игровой области, чтобы кнопка паузы стояла над правым краем поля/панели
+  topEl.style.maxWidth = Math.max(300, land ? side + 22 + cw : Math.max(side, cw)) + 'px';
+  boardEl.style.setProperty('--cs', cellEls[0].getBoundingClientRect().width.toFixed(1) + 'px');
+}
+let layoutRaf = 0;
+const queueLayout = () => { cancelAnimationFrame(layoutRaf); layoutRaf = requestAnimationFrame(layout); };
+window.addEventListener('resize', queueLayout);
+if (window.ResizeObserver) { const ro = new ResizeObserver(queueLayout); ro.observe(playEl); ro.observe(hudEl); }
+if (document.fonts && document.fonts.ready) document.fonts.ready.then(queueLayout);
+
+/* ═══════════════════════════════════════════════════════════════
+ * ХОДЫ
+ * ═════════════════════════════════════════════════════════════ */
+function pushUndo(cells) {
+  undoStack.push(cells.map(j => [j, board[j], notes[j]]));
+  if (undoStack.length > 400) undoStack.shift();
+}
+
+function selectCell(i) {
+  if (over || paused || !board) return;
+  if (selected !== i) AudioSys.sfx.select();
+  selected = i;
+  render();
+}
+
+function toggleNotes() {
+  if (over || paused || !board) return;
+  notesMode = !notesMode;
+  AudioSys.sfx.note();
+  updateTools(); updateDigits();
+}
+
+function placeNumber(n) {
+  if (over || paused || !board) return;
+  if (selected === null) { toast('Сначала выберите клетку'); return; }
+  const i = selected;
+  if (given[i]) return;
+
+  if (n === 0) {                                   // стереть
+    if (!board[i] && !notes[i]) return;
+    pushUndo([i]);
+    board[i] = 0; notes[i] = 0;
+    AudioSys.sfx.erase();
+    afterChange();
+    return;
+  }
+
+  if (notesMode) {                                 // заметка
+    if (board[i]) return;                          // в заполненную клетку заметки не ставятся
+    pushUndo([i]);
+    notes[i] ^= 1 << n;
+    AudioSys.sfx.note();
+    afterChange();
+    return;
+  }
+
+  if (board[i] === n) return;                      // та же цифра — не ошибка повторно
+
+  if (n === solution[i]) {
+    const bit = 1 << n, touched = [i];
+    for (const j of PEERS[i]) if (notes[j] & bit) touched.push(j);
+    pushUndo(touched);                             // отмена вернёт и снятые заметки соседей
+    board[i] = n; notes[i] = 0;
+    for (const j of PEERS[i]) notes[j] &= ~bit;
+    AudioSys.sfx.place();
+    fx(i, 'pop');
+    afterChange();
+    if (board.every((v, k) => v === solution[k])) win();
+  } else {
+    pushUndo([i]);
+    board[i] = n;
+    mistakes++;
+    AudioSys.sfx.error();
+    fx(i, 'bad'); popStat('hud-mist');
+    afterChange();
+    if (mistakes >= MAX_MISTAKES) lose();
+  }
+}
+
+function doUndo() {
+  if (over || paused || !undoStack.length) return;
+  const a = undoStack.pop();
+  for (const [j, v, nt] of a) { if (!given[j]) board[j] = v; notes[j] = nt; }
+  selected = a[0][0];
+  AudioSys.sfx.erase();
+  afterChange();
+}
+
+function doHint() {
+  if (over || paused || !board || hintsLeft <= 0) return;
+  const cand = [];
+  for (let k = 0; k < 81; k++) if (!given[k] && board[k] !== solution[k]) cand.push(k);
+  if (!cand.length) return;
+  hintsLeft--;
+  const t = selected !== null && cand.includes(selected) ? selected : cand[Math.floor(Math.random() * cand.length)];
+  const v = solution[t], bit = 1 << v;
+  board[t] = v; notes[t] = 0; given[t] = true; hinted[t] = true;
+  for (const j of PEERS[t]) notes[j] &= ~bit;
+  // клетка с подсказкой зафиксирована: убираем её из истории, иначе «Отмена» оставила бы
+  // пустую заблокированную клетку и головоломку нельзя было бы решить
+  for (const a of undoStack) for (let q = a.length - 1; q >= 0; q--) if (a[q][0] === t) a.splice(q, 1);
+  undoStack = undoStack.filter(a => a.length);
+  selected = t;
+  AudioSys.sfx.place();
+  fx(t, 'flash');
+  afterChange();
+  if (board.every((x, k) => x === solution[k])) win();
+}
+
+/* ═══════════════════════════════════════════════════════════════
+ * ПОБЕДА / ПОРАЖЕНИЕ
+ * ═════════════════════════════════════════════════════════════ */
+function finishGame() {
+  over = true; paused = false;
+  syncClock();
+  clearTimeout(saveTimer); store.del(SAVE_KEY);
+}
+
+function win() {
+  finishGame();
+  selected = null;
+  const sec = secs(), camp = mode === 'CAMPAIGN';
+  const par = camp ? LEVELS[levelIdx].par : FREE_PAR[gameDiff];
+  const stars = mistakes === 0 && sec <= par ? 3 : mistakes <= 1 && sec <= par * 1.5 ? 2 : 1;
+  let newBest = false, bestTime = sec;
+  if (camp) {
+    const id = LEVELS[levelIdx].id, b = isDone(id) ? bestTimes[id] : null;
+    const bt = b && Number.isFinite(b.time) ? b.time : Infinity, bm = b && Number.isFinite(b.mistakes) ? b.mistakes : Infinity;
+    newBest = !!b && sec < bt;
+    // лучшие показатели по отдельности — звёзды уровня больше не могут уменьшиться
+    bestTimes[id] = { mistakes: Math.min(bm, mistakes), time: Math.min(bt, sec), stars: Math.max(b ? (b.stars | 0) : 0, stars) };
+    completed[id] = true;
+    store.set('sudoku_completed', completed);
+    store.set('sudoku_best', bestTimes);
+    bestTime = bestTimes[id].time;
+  } else {
+    const b = freeRec.best[gameDiff];
+    newBest = b > 0 && sec < b;
+    freeRec.best[gameDiff] = b > 0 ? Math.min(b, sec) : sec;
+    freeRec.solved[gameDiff]++;
+    saveFree();
+    bestTime = freeRec.best[gameDiff];
+  }
+  AudioSys.sfx.win();
+  render(); updateDigits(); updateTools(); updateHUD();
+  cellEls.forEach(d => d.classList.add('win'));
+  clearTimeout(endTimer);
+  endTimer = setTimeout(() => showWin({ sec, stars, par, newBest, bestTime }), 900);
+}
+
+function showWin(o) {
+  const camp = mode === 'CAMPAIGN', last = camp && levelIdx >= LEVELS.length - 1;
+  const allDone = LEVELS.every(l => isDone(l.id));
+  const st = $('win-stars').children;
+  starTimers.forEach(clearTimeout); starTimers = [];
+  for (let k = 0; k < 3; k++) {
+    st[k].classList.remove('lit');
+    if (k < o.stars) starTimers.push(setTimeout(() => st[k].classList.add('lit'), 250 + k * 250));
+  }
+  $('win-best').hidden = !o.newBest;
+  $('win-time').textContent = fmt(o.sec);
+  $('win-stats').innerHTML = rows([
+    camp ? ['Уровень', `${LEVELS[levelIdx].id} · ${DIFF_SHORT[gameDiff]}`] : ['Сложность', DIFF_SHORT[gameDiff]],
+    ['Ошибки', `${mistakes}/${MAX_MISTAKES}`],
+    ['Подсказки', `${MAX_HINTS - hintsLeft}/${MAX_HINTS}`],
+    ['Норматив ★★★', fmt(o.par)],
+    ['Лучшее время', fmt(o.bestTime)]
+  ]);
+  $('win-note').hidden = !(camp && allDone && last);
+  $('win-note').textContent = '🏆 Вся кампания пройдена!';
+  $('btn-next').hidden = !(camp && !last);
+  $('btn-again').textContent = camp ? '🔄 Ещё раз' : '🧩 Новая головоломка';
+  $('btn-again').className = 'ku-btn' + (camp && !last ? '' : ' primary');
+  $('ov-win').classList.add('open');
+  syncClock();
+}
+
+function lose() {
+  finishGame();
+  AudioSys.sfx.gameOver();
+  boardEl.classList.remove('shake'); void boardEl.offsetWidth; boardEl.classList.add('shake');
+  render(); updateDigits(); updateTools(); updateHUD();
+  clearTimeout(endTimer);
+  endTimer = setTimeout(() => {
+    $('lose-stats').innerHTML = rows([
+      mode === 'CAMPAIGN' ? ['Уровень', `${LEVELS[levelIdx].id} · ${DIFF_SHORT[gameDiff]}`] : ['Сложность', DIFF_SHORT[gameDiff]],
+      ['Время', fmt(secs())],
+      ['Заполнено', progressPct() + '%']
+    ]);
+    $('ov-lose').classList.add('open');
+    syncClock();
+  }, 700);
+}
+
+/* ═══════════════════════════════════════════════════════════════
+ * АВТОСОХРАНЕНИЕ ПАРТИИ
+ * ═════════════════════════════════════════════════════════════ */
+function saveNow() {
+  clearTimeout(saveTimer);
+  if (!board || over || genBusy) return;
+  store.set(SAVE_KEY, {
+    v: 1, mode, lvl: levelIdx, d: gameDiff,
+    p: puzzle.join(''), s: solution.join(''), b: board.join(''),
+    h: hinted.map(x => x ? 1 : 0).join(''), n: notes.slice(),
+    m: mistakes, hl: hintsLeft, t: Math.round(clock.ms())
+  });
+}
+function scheduleSave() { clearTimeout(saveTimer); saveTimer = setTimeout(saveNow, 400); }
+function loadSave() {
+  const s = store.get(SAVE_KEY, null);
+  try {
+    if (!s || s.v !== 1) return null;
+    const dig = x => typeof x === 'string' && /^[0-9]{81}$/.test(x);
+    if (!dig(s.p) || !dig(s.s) || !dig(s.b) || typeof s.h !== 'string' || !/^[01]{81}$/.test(s.h)) return null;
+    if (s.mode !== 'CAMPAIGN' && s.mode !== 'FREE') return null;
+    if (s.mode === 'CAMPAIGN' && !(Number.isInteger(s.lvl) && s.lvl >= 0 && s.lvl < LEVELS.length)) return null;
+    if (!(Number.isInteger(s.d) && s.d >= 0 && s.d <= 2)) return null;
+    const P = Array.from(s.p, Number), S = Array.from(s.s, Number), B = Array.from(s.b, Number), Hm = Array.from(s.h, x => x === '1');
+    if (!validSolution(S)) return null;
+    for (let i = 0; i < 81; i++) {
+      if (P[i] && P[i] !== S[i]) return null;
+      if ((P[i] || Hm[i]) && B[i] !== S[i]) return null;
+    }
+    if (!Array.isArray(s.n) || s.n.length !== 81 || s.n.some(x => !Number.isInteger(x) || x < 0 || x > 1023)) return null;
+    if (!Number.isInteger(s.m) || s.m < 0 || s.m >= MAX_MISTAKES) return null;
+    if (!Number.isInteger(s.hl) || s.hl < 0 || s.hl > MAX_HINTS) return null;
+    if (!(Number.isFinite(s.t) && s.t >= 0)) return null;
+    if (B.every((v, i) => v === S[i])) return null;
+    return { mode: s.mode, lvl: s.mode === 'CAMPAIGN' ? s.lvl : 0, d: s.mode === 'CAMPAIGN' ? LEVELS[s.lvl].diff : s.d,
+             P, S, B, H: Hm, n: s.n.map(x => x & ALL), m: s.m, hl: s.hl, t: s.t };
+  } catch (e) { return null; }
+}
+
+/* ═══════════════════════════════════════════════════════════════
+ * ЭКРАНЫ И МЕНЮ
+ * ═════════════════════════════════════════════════════════════ */
+function setupGame(p, s, sv) {
+  puzzle = p; solution = s;
+  if (sv) {
+    board = sv.B; hinted = sv.H; notes = sv.n; mistakes = sv.m; hintsLeft = sv.hl; clock.reset(sv.t);
+  } else {
+    board = p.slice(); hinted = new Array(81).fill(false); notes = new Array(81).fill(0);
+    mistakes = 0; hintsLeft = MAX_HINTS; clock.reset(0);
+  }
+  clock.on = false;
+  given = p.map((v, i) => v !== 0 || hinted[i]);
+  selected = null; notesMode = false; undoStack = []; over = false; paused = false;
+  htmlCache.fill(null);
+  cellEls.forEach(d => d.classList.remove('win', 'pop', 'bad', 'flash'));
+  boardEl.classList.remove('shake');
+}
+
+function showScreen(name) {
+  screen = name;
+  $('screen-menu').classList.toggle('active', name === 'menu');
+  $('screen-game').classList.toggle('active', name === 'game');
+  if (name === 'menu') refreshMenu();
+  else { layout(); render(); updateDigits(); updateTools(); updateHUD(); }
+  syncClock();
+}
+const open = id => { $(id).classList.add('open'); syncClock(); };
+const close = id => { $(id).classList.remove('open'); syncClock(); };
+const OVERLAYS = ['ov-pause', 'ov-win', 'ov-lose', 'ov-levels', 'ov-rules', 'ov-gen'];
+
+function startGame(m, idx) {
+  AudioSys.init();
+  clearTimeout(endTimer); clearTimeout(genShowTimer); clearTimeout(saveTimer);
+  OVERLAYS.forEach(id => $(id).classList.remove('open'));
+  paused = false; over = true; genBusy = true;
+  syncClock();
+  const clues = m === 'CAMPAIGN' ? LEVELS[idx].clues : FREE_CLUES[idx];
+  genShowTimer = setTimeout(() => open('ov-gen'), 160);    // индикатор — только если генерация затянулась
+  generateAsync(clues, res => {
+    clearTimeout(genShowTimer);
+    OVERLAYS.forEach(id => $(id).classList.remove('open'));   // и модалки, открытые, пока шла генерация
+    genBusy = false;
+    mode = m;
+    if (m === 'CAMPAIGN') { levelIdx = idx; gameDiff = LEVELS[idx].diff; } else gameDiff = idx;
+    setupGame(Array.from(res.puzzle), Array.from(res.solution), null);
+    showScreen('game');
+    saveNow();
+  });
+}
+
+// Новая партия из меню при сохранённой (с прогрессом) — спросить, чтобы автосохранение не пропало молча
+async function startFromMenu(m, idx) {
+  const sv = loadSave();
+  const progress = sv && (sv.t >= 30000 || sv.B.some((v, i) => v !== sv.P[i]) || sv.n.some(x => x));
+  if (progress && window.KuArcade && KuArcade.confirm) {
+    const yes = await KuArcade.confirm(`Сохранённая партия будет потеряна: ${describeSave(sv)}.`,
+      { title: 'НАЧАТЬ НОВУЮ?', ok: 'Начать новую', cancel: 'Отмена' });
+    syncClock();
+    if (!yes) return;
+  }
+  startGame(m, idx);
+}
+
+function continueGame() {
+  const sv = loadSave();
+  if (!sv) { store.del(SAVE_KEY); refreshMenu(); toast('Сохранённая партия не найдена'); return; }
+  AudioSys.init();
+  clearTimeout(endTimer); clearTimeout(genShowTimer);
+  genToken++; genBusy = false;                              // отменить генерацию, если она ещё идёт
+  OVERLAYS.forEach(id => $(id).classList.remove('open'));
+  mode = sv.mode; gameDiff = sv.d;
+  if (sv.mode === 'CAMPAIGN') levelIdx = sv.lvl;
+  setupGame(sv.P, sv.S, sv);
+  showScreen('game');
+}
+
+function openPause() {
+  if (screen !== 'game' || over || genBusy || anyOverlay()) return;
+  paused = true;
+  saveNow();
+  open('ov-pause');
+}
+function resume() { paused = false; close('ov-pause'); }
+
+function toMenu() {
+  clearTimeout(endTimer); clearTimeout(genShowTimer);
+  genToken++; genBusy = false;
+  if (!over) saveNow();
+  paused = false;
+  OVERLAYS.forEach(id => $(id).classList.remove('open'));
+  showScreen('menu');
+}
+
+function openRules(from) { rulesReturn = from || null; if (from) $(from).classList.remove('open'); open('ov-rules'); }
+function closeRules() { $('ov-rules').classList.remove('open'); if (rulesReturn) $(rulesReturn).classList.add('open'); rulesReturn = null; syncClock(); }
+
+function describeSave(sv) {
+  let tot = 0, ok = 0;
+  for (let i = 0; i < 81; i++) if (!sv.P[i]) { tot++; if (sv.B[i] === sv.S[i]) ok++; }
+  const what = sv.mode === 'CAMPAIGN' ? `Кампания · ур. ${LEVELS[sv.lvl].id}` : `Свободная · ${DIFF_SHORT[sv.d]}`;
+  return `${what} · ${fmt(sv.t / 1000)} · ${tot ? Math.round(ok / tot * 100) : 0}%`;
+}
+
+function campaignStats() {
+  let done = 0, stars = 0;
+  LEVELS.forEach(l => { if (isDone(l.id)) { done++; stars += Math.min(3, Math.max(0, bestTimes[l.id].stars | 0)); } });
+  return { done, stars };
+}
+
+function refreshMenu() {
+  const { done, stars } = campaignStats();
+  $('best-campaign').textContent = done ? `Пройдено: ${done}/${LEVELS.length} · ★ ${stars}/${LEVELS.length * 3}` : `${LEVELS.length} уровней · от лёгких к сложным`;
+  const fb = freeRec.best[freeRec.d];
+  $('best-free').textContent = fb ? `Рекорд (${DIFF_SHORT[freeRec.d].toLowerCase()}): ${fmt(fb)}` : `Случайная головоломка · ${DIFF_SHORT[freeRec.d].toLowerCase()}`;
+  document.querySelectorAll('#diff-seg button').forEach(b => b.classList.toggle('active', +b.dataset.d === freeRec.d));
+  const sv = loadSave();
+  $('btn-continue').hidden = !sv;
+  if (sv) $('best-continue').textContent = describeSave(sv);
+  const solved = freeRec.solved.reduce((a, b) => a + b, 0);
+  $('menu-stats').textContent = `Кампания: ★\u00a0${stars}/${LEVELS.length * 3} • Свободная игра: решено\u00a0${solved}`;
+}
+
+function openLevels() {
+  const g = $('lv-grid');
+  g.innerHTML = '';
+  let cur = -1;
+  LEVELS.forEach((l, i) => { if (cur < 0 && isUnlocked(i) && !isDone(l.id)) cur = i; });
+  LEVELS.forEach((l, i) => {
+    const b = document.createElement('button'), un = isUnlocked(i), dn = isDone(l.id);
+    b.className = `lv d${l.diff}` + (dn ? ' done' : '') + (i === cur ? ' cur' : '');
+    b.disabled = !un;
+    if (!un) b.innerHTML = `<b>🔒</b><small>Уровень ${l.id}</small>`;
+    else if (dn) {
+      const r = bestTimes[l.id], n = Math.min(3, Math.max(0, r.stars | 0));
+      b.innerHTML = `<b>${l.id}</b><span class="st">${starsText(n)}</span><small>${Number.isFinite(r.time) ? fmt(r.time) : '—'}</small>`;
+    } else b.innerHTML = `<b>${l.id}</b><span class="st">${starsText(0)}</span><small>${DIFF_SHORT[l.diff]}</small>`;
+    b.setAttribute('aria-label', `Уровень ${l.id}` + (un ? '' : ' — закрыт'));
+    if (un) b.onclick = () => startFromMenu('CAMPAIGN', i);
+    g.appendChild(b);
+  });
+  const { done, stars } = campaignStats();
+  $('lv-progress').innerHTML = `Пройдено <b>${done}/${LEVELS.length}</b> · ★ <b>${stars}/${LEVELS.length * 3}</b>`;
+  open('ov-levels');
+}
+
+/* ── Кнопки ── */
+$('btn-campaign').onclick = () => { AudioSys.init(); openLevels(); };
+$('btn-free').onclick = () => startFromMenu('FREE', freeRec.d);
+$('btn-continue').onclick = () => continueGame();
+$('btn-levels-x').onclick = () => close('ov-levels');
+$('btn-rules').onclick = () => openRules(null);
+$('btn-rules2').onclick = () => openRules('ov-pause');
+$('btn-rules-x').onclick = $('btn-rules-ok').onclick = () => closeRules();
+document.querySelectorAll('#diff-seg button').forEach(b => b.addEventListener('click', () => {
+  freeRec.d = +b.dataset.d;
+  saveFree();
+  refreshMenu();
 }));
 
-// Keyboard
-document.addEventListener('keydown',e=>{
-  if(document.querySelector('.overlay.active')){
-    // Allow Escape to close overlays
-    if(e.code==='Escape'){
-      if($('menu-pause').classList.contains('active')){$('menu-pause').classList.remove('active');}
-      else if($('menu-levels').classList.contains('active')){showMenu('main');}
-    }
+$('btn-pause').onclick = () => { AudioSys.init(); openPause(); };
+$('btn-resume').onclick = () => resume();
+$('btn-restart').onclick = () => startGame(mode, mode === 'CAMPAIGN' ? levelIdx : gameDiff);
+$('btn-quit').onclick = () => toMenu();
+$('btn-undo').onclick = () => doUndo();
+$('btn-erase').onclick = () => placeNumber(0);
+$('btn-notes').onclick = () => toggleNotes();
+$('btn-hint').onclick = () => doHint();
+
+$('btn-next').onclick = () => { if (mode === 'CAMPAIGN' && levelIdx < LEVELS.length - 1) startGame('CAMPAIGN', levelIdx + 1); };
+$('btn-again').onclick = () => startGame(mode, mode === 'CAMPAIGN' ? levelIdx : gameDiff);
+$('btn-win-menu').onclick = () => toMenu();
+$('btn-retry').onclick = () => startGame(mode, mode === 'CAMPAIGN' ? levelIdx : gameDiff);
+$('btn-lose-menu').onclick = () => toMenu();
+
+/* ── Клавиатура ── */
+const isOpen = id => $(id).classList.contains('open');
+document.addEventListener('keydown', e => {
+  const k = e.key, code = e.code;
+  if (e.key === 'Escape') {
+    if (isOpen('ov-rules')) closeRules();
+    else if (isOpen('ov-levels')) close('ov-levels');
+    else if (isOpen('ov-pause')) resume();
+    else if (screen === 'game' && !anyOverlay()) openPause();
     return;
   }
-  if(e.key>='1'&&e.key<='9') placeNumber(+e.key);
-  if(e.key==='Backspace'||e.key==='Delete') placeNumber(0);
-  if(e.code==='KeyN'){$('btnNotes').click();}
-  if(e.code==='KeyU') doUndo();
-  if(e.code==='KeyH') doHint();
-  if(e.code==='Escape'){showMenu('pause');}
-
-  if(selected!==null){
-    const r=Math.floor(selected/9),c=selected%9;
-    let nr=r,nc=c;
-    if(e.key==='ArrowRight') nc=Math.min(8,c+1);
-    if(e.key==='ArrowLeft') nc=Math.max(0,c-1);
-    if(e.key==='ArrowDown') nr=Math.min(8,r+1);
-    if(e.key==='ArrowUp') nr=Math.max(0,r-1);
-    if(nr!==r||nc!==c){selectCell(nr*9+nc);e.preventDefault();}
+  if (screen !== 'game') return;
+  if (code === 'KeyP' && !e.ctrlKey && !e.metaKey && !e.altKey) {
+    if (isOpen('ov-pause')) resume(); else openPause();
+    return;
+  }
+  if (anyOverlay() || over || paused) return;
+  if ((e.ctrlKey || e.metaKey) && code === 'KeyZ') { e.preventDefault(); doUndo(); return; }
+  if (e.ctrlKey || e.metaKey || e.altKey) return;
+  let n = -1;
+  if (/^[1-9]$/.test(k)) n = +k;
+  else if (/^(Digit|Numpad)[1-9]$/.test(code)) n = +code.slice(-1);
+  if (n > 0) { e.preventDefault(); placeNumber(n); return; }
+  if (k === 'Backspace' || k === 'Delete' || k === '0' || code === 'Digit0' || code === 'Numpad0') { e.preventDefault(); placeNumber(0); return; }
+  if (code === 'KeyN') { toggleNotes(); return; }
+  if (code === 'KeyU') { doUndo(); return; }
+  if (code === 'KeyH') { doHint(); return; }
+  const dir = { ArrowUp: [-1, 0], ArrowDown: [1, 0], ArrowLeft: [0, -1], ArrowRight: [0, 1] }[k];
+  if (dir) {
+    e.preventDefault();
+    if (selected === null) { selectCell(40); return; }
+    const r = Math.min(8, Math.max(0, ROW[selected] + dir[0])), c = Math.min(8, Math.max(0, COL[selected] + dir[1]));
+    if (r * 9 + c !== selected) selectCell(r * 9 + c);
   }
 });
 
-// Show main menu on load
-showMenu('main');
+/* ── Фон / сворачивание: пауза и сохранение ── */
+document.addEventListener('visibilitychange', () => {
+  if (document.hidden) { openPause(); saveNow(); }
+  syncClock();
+});
+window.addEventListener('pagehide', saveNow);
+
+/* ── Старт ── */
+showScreen('menu');
 </script>
 </body>
 </html>

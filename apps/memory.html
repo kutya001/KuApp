@@ -2,104 +2,363 @@
 <html lang="ru">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width,initial-scale=1,user-scalable=no">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
 <title>Найди пару</title>
+<link rel="stylesheet" href="ku-arcade.css">
+<script src="ku-arcade.js"></script>
 <style>
-*{box-sizing:border-box;margin:0;padding:0}
-body{background:#0a0a0f;color:#f0f0f8;font-family:'JetBrains Mono',monospace;display:flex;flex-direction:column;align-items:center;height:100dvh;overflow:hidden;user-select:none;padding:10px}
-#top{display:flex;justify-content:space-between;align-items:center;width:min(94vw,360px);margin-bottom:10px}
-#diff-row{display:flex;gap:6px}
-.dbtn{background:#22222f;border:1px solid #22222f;color:#8888aa;padding:5px 10px;border-radius:6px;font-family:inherit;font-size:.68rem;cursor:pointer}
-.dbtn.on{border-color:#5b8cff;color:#5b8cff}
-#meta{font-size:.75rem;color:#8888aa}
-#grid{display:grid;gap:8px;width:min(94vw,360px)}
-.card{aspect-ratio:1;border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:clamp(1.4rem,7vw,2rem);cursor:pointer;transition:transform .2s,background .2s;background:#1a1a24;border:1px solid #2c2c40}
-.card.flip{background:#22222f;transform:rotateY(180deg)}
-.card.show{background:#1a1a24;border-color:#2c2c40}
-.card.matched{background:rgba(0,229,160,.12);border-color:#00e5a0;cursor:default}
-.card.shake{animation:shake .3s}
-@keyframes shake{0%,100%{transform:translateX(0)}25%{transform:translateX(-4px)}75%{transform:translateX(4px)}}
-#msg{position:fixed;inset:0;background:rgba(10,10,15,.88);display:none;flex-direction:column;align-items:center;justify-content:center;gap:12px}
-#msg h2{font-size:1.2rem}#msg p{font-size:.78rem;color:#8888aa}
-#mBtn{background:#ffd700;color:#000;border:none;padding:11px 32px;border-radius:10px;font-size:.95rem;font-weight:700;cursor:pointer;font-family:inherit}
+  html,body{height:100%;overflow:hidden}
+
+  /* ── Поле карточек ── */
+  #stage{flex:1;min-height:0;width:100%;display:flex;align-items:center;justify-content:center}
+  #grid{display:grid;gap:var(--gap,8px);grid-template-columns:repeat(var(--cols,3),var(--cs,80px))}
+  .card{position:relative;width:var(--cs,80px);height:var(--cs,80px);padding:0;margin:0;border:0;border-radius:12px;background:none;
+    color:inherit;font:inherit;cursor:pointer;perspective:800px;touch-action:manipulation;-webkit-tap-highlight-color:transparent}
+  .card .in{position:absolute;inset:0;transform-style:preserve-3d;transition:transform .36s cubic-bezier(.3,.7,.35,1.12)}
+  .card.open .in{transform:rotateY(180deg)}
+  .card .side{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;border-radius:12px;
+    backface-visibility:hidden;-webkit-backface-visibility:hidden}
+  /* рубашка — как пустая клетка Тетриса, с неоновым ромбом */
+  .card .back{background:rgba(255,255,255,.045);border:1px solid rgba(255,255,255,.08);
+    box-shadow:inset 0 1px 0 rgba(255,255,255,.06);transition:border-color .2s,box-shadow .2s}
+  .card .back::before{content:'';width:30%;height:30%;border-radius:24%;transform:rotate(45deg);
+    border:2px solid color-mix(in srgb,var(--accent) 32%,transparent);box-shadow:0 0 10px color-mix(in srgb,var(--accent) 20%,transparent)}
+  /* лицо: открытая карточка — бирюзовое свечение, пара — зелёное, промах — красное */
+  .card .face{transform:rotateY(180deg);font-size:calc(var(--cs,80px)*.5);line-height:1;
+    background:linear-gradient(160deg,color-mix(in srgb,var(--accent) 20%,transparent),rgba(255,255,255,.035));
+    border:1px solid color-mix(in srgb,var(--accent) 60%,transparent);
+    box-shadow:0 0 12px color-mix(in srgb,var(--accent) 40%,transparent),inset 0 1px 0 rgba(255,255,255,.25)}
+  .card.matched{cursor:default}
+  .card.matched .in{animation:memMatch .42s ease .3s}
+  .card.matched .face{background:linear-gradient(160deg,color-mix(in srgb,var(--good) 24%,transparent),rgba(255,255,255,.035));
+    border-color:color-mix(in srgb,var(--good) 72%,transparent);
+    box-shadow:0 0 14px color-mix(in srgb,var(--good) 45%,transparent),inset 0 1px 0 rgba(255,255,255,.25)}
+  .card.miss .face{background:linear-gradient(160deg,color-mix(in srgb,var(--bad) 24%,transparent),rgba(255,255,255,.035));
+    border-color:color-mix(in srgb,var(--bad) 72%,transparent);
+    box-shadow:0 0 14px color-mix(in srgb,var(--bad) 45%,transparent),inset 0 1px 0 rgba(255,255,255,.25)}
+  .card.miss{animation:kuShakeX .4s ease .3s}
+  @keyframes memMatch{0%,100%{transform:rotateY(180deg)}50%{transform:rotateY(180deg) scale(1.08)}}
+  @media (hover:hover){
+    .card:not(.open):hover .back{border-color:color-mix(in srgb,var(--accent) 45%,transparent);
+      box-shadow:0 0 12px color-mix(in srgb,var(--accent) 25%,transparent)}
+  }
+  .card:focus-visible{outline:2px solid var(--accent);outline-offset:3px}
+  @media (prefers-reduced-motion:reduce){.card .in{transition:none}.card.matched .in,.card.miss{animation:none}}
+
+  #big-sub{margin-top:-8px}
+  #menu-stats b{color:var(--text);font-weight:600}
 </style>
 </head>
-<body>
-<div id="top">
-  <div id="diff-row">
-    <button class="dbtn on" data-p="6">3×4</button>
-    <button class="dbtn" data-p="8">4×4</button>
-    <button class="dbtn" data-p="10">4×5</button>
+<body class="ku">
+<main class="ku-app">
+
+  <!-- ═══ МЕНЮ ═══ -->
+  <section id="screen-menu" class="ku-screen menu active">
+    <h1 class="ku-logo">НАЙДИ ПАРУ</h1>
+    <p class="ku-tagline">Тренировка памяти • 3 поля • Рекорды</p>
+    <div class="ku-pills"><span>🧠 Память</span><span>🏋️ Спорт-эмодзи</span><span>⏱ На время</span></div>
+
+    <div class="ku-field">
+      <div class="ku-label">Размер поля</div>
+      <div class="ku-seg" id="size-seg">
+        <button data-p="6">3×4 · 6 пар</button>
+        <button data-p="8">4×4 · 8 пар</button>
+        <button data-p="10">4×5 · 10 пар</button>
+      </div>
+    </div>
+
+    <div class="ku-menu-btns">
+      <button class="ku-btn big primary" id="btn-play">🎮 Играть<span class="best" id="best-line">Рекорд: —</span></button>
+    </div>
+    <div class="ku-menu-row"><button class="ku-btn ghost" id="btn-rules">📖 Правила</button></div>
+    <div class="ku-menu-stats" id="menu-stats"></div>
+    <div class="ku-menu-hint">Тап по карточке — открыть · P / Esc — пауза<br>Меньше попыток — выше рекорд</div>
+  </section>
+
+  <!-- ═══ ИГРА ═══ -->
+  <section id="screen-game" class="ku-screen fit">
+    <header class="ku-top">
+      <div class="ku-top-left"></div>
+      <div class="ku-top-title"><div class="t">НАЙДИ ПАРУ</div><div class="s" id="g-sub">ПОЛЕ 3×4</div></div>
+      <div class="ku-top-actions">
+        <button class="ku-btn icon" id="btn-restart" aria-label="Заново"><svg viewBox="0 0 24 24"><path d="M20 12a8 8 0 1 1-2.34-5.66"/><polyline points="20 4 20 9 15 9"/></svg></button>
+        <button class="ku-btn icon" id="btn-pause" aria-label="Пауза"><svg viewBox="0 0 24 24"><line x1="9" y1="5" x2="9" y2="19"/><line x1="15" y1="5" x2="15" y2="19"/></svg></button>
+      </div>
+    </header>
+    <div class="ku-hud">
+      <div class="ku-stat"><span>Попытки</span><b id="h-tries">0</b></div>
+      <div class="ku-stat c2"><span>Пары</span><b id="h-pairs">0/6</b></div>
+      <div class="ku-stat"><span>Время</span><b id="h-time">0:00</b></div>
+      <div class="ku-stat gold"><span>Рекорд</span><b id="h-best">—</b></div>
+    </div>
+    <div id="stage"><div class="ku-board" id="board"><div id="grid"></div></div></div>
+    <p class="ku-hint">Найди все пары за наименьшее число попыток</p>
+  </section>
+</main>
+
+<!-- ═══ ПРАВИЛА ═══ -->
+<div class="ku-overlay" id="rules">
+  <div class="ku-modal">
+    <header><h2>📖 Правила</h2><button class="ku-btn icon" id="btn-rules-x" aria-label="Закрыть">✕</button></header>
+    <div class="ku-body">
+      <h3>Цель</h3>
+      <ul class="ku-rules">
+        <li>Открыть <b>все пары</b> одинаковых карточек за наименьшее число попыток.</li>
+      </ul>
+      <h3>Как играть</h3>
+      <ul class="ku-rules">
+        <li><b>Тап</b> по карточке открывает её. Затем открой вторую.</li>
+        <li>Картинки <b>совпали</b> — пара остаётся открытой. <b>Нет</b> — обе карточки закроются через секунду: запомни, где что лежит.</li>
+        <li><b>Попытка</b> — каждые две открытые карточки. Точность = пары ÷ попытки (100% — без единой ошибки).</li>
+      </ul>
+      <h3>Рекорды</h3>
+      <ul class="ku-rules">
+        <li>Для каждого поля сохраняются лучшие <b>попытки</b> и лучшее <b>время</b>.</li>
+        <li>Время идёт с первой открытой карточки и стоит на паузе. P / Esc — пауза.</li>
+      </ul>
+    </div>
+    <footer><button class="ku-btn primary" id="btn-rules-ok">Понятно</button></footer>
   </div>
-  <div id="meta">🔄 <span id="tries">0</span> попыток</div>
 </div>
-<div id="grid"></div>
-<div id="msg"><h2>🎉 Все пары!</h2><p id="msub"></p><button id="mBtn">Ещё раз</button></div>
+
+<!-- ═══ ПАУЗА ═══ -->
+<div class="ku-overlay" id="pause">
+  <div class="ku-card">
+    <h2>⏸ ПАУЗА</h2>
+    <button class="ku-btn primary" id="btn-resume">Продолжить</button>
+    <button class="ku-btn" id="btn-pause-restart">Заново</button>
+    <button class="ku-btn" id="btn-pause-rules">📖 Правила</button>
+    <button class="ku-btn ghost" id="btn-pause-menu">В меню</button>
+  </div>
+</div>
+
+<!-- ═══ ПОБЕДА ═══ -->
+<div class="ku-overlay" id="over">
+  <div class="ku-card">
+    <h2 class="win">ПОБЕДА!</h2>
+    <div class="ku-new-best" id="new-best">🏆 НОВЫЙ РЕКОРД!</div>
+    <div class="ku-big-score" id="big">0</div>
+    <p id="big-sub"></p>
+    <div class="ku-over-stats" id="over-stats"></div>
+    <button class="ku-btn primary" id="btn-again">Играть снова</button>
+    <button class="ku-btn ghost" id="btn-over-menu">В меню</button>
+  </div>
+</div>
 
 <script>
-const SETS=[
-  ['🏋️','🧘','🚴','🏊','🤸','🏃','⛹️','🤼','🥊','🥋'],
-  ['💪','🦵','🦶','👊','🙌','🤲','🦾','🧠','❤️','🔥'],
-];
-let pairs=6,cards=[],flipped=[],matched=0,locked=false,tries=0,tid;
+'use strict';
+const $ = id => document.getElementById(id);
 
-function newGame(){
-  matched=0;tries=0;flipped=[];locked=false;
-  document.getElementById('tries').textContent=0;
-  document.getElementById('msg').style.display='none';
-  const pool=[...SETS[0],...SETS[1]].slice(0,pairs);
-  cards=[...pool,...pool].sort(()=>Math.random()-.5);
-  renderGrid();
+// Спорт-эмодзи (KuApp — фитнес-платформа): в каждой партии случайный набор из 20
+const EMOJI = ['🏋️', '🧘', '🚴', '🏊', '🤸', '🏃', '⛹️', '🤼', '🥊', '🥋',
+               '💪', '🦵', '🦶', '👊', '🙌', '🤲', '🦾', '🧠', '❤️', '🔥'];
+const SIZES = { 6: [3, 4], 8: [4, 4], 10: [4, 5] };      // пар → [столбцов, строк]
+const LS_BEST = 'memory_best', LS_SIZE = 'memory_size';
+const MISS_MS = 900;                                      // сколько видны несовпавшие карточки
+
+let pairs = 6, cards = [], openIdx = [], matched = 0, tries = 0, locked = false;
+let missTimer = 0, winTimer = 0;
+// время партии: копится в elapsed, пока идёт — отсчёт от t0 (пауза и фон останавливают)
+let elapsed = 0, t0 = 0, running = false, started = false, paused = false, over = true;
+
+/* ── Утилиты ── */
+function shuffle(a) {                                     // Фишер — Йетс (sort(random) даёт перекос)
+  for (let i = a.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [a[i], a[j]] = [a[j], a[i]]; }
+  return a;
 }
-
-function renderGrid(){
-  const g=document.getElementById('grid');
-  const cols=pairs<=6?3:4;
-  g.style.gridTemplateColumns=`repeat(${cols},1fr)`;
-  g.innerHTML='';
-  cards.forEach((em,i)=>{
-    const d=document.createElement('div');
-    d.className='card';d.dataset.i=i;d.dataset.em=em;
-    d.textContent='';
-    d.addEventListener('click',()=>flip(d,i));
-    g.appendChild(d);
-  });
+function plural(n, forms) {
+  const a = n % 10, b = n % 100;
+  return forms[a === 1 && b !== 11 ? 0 : a >= 2 && a <= 4 && (b < 10 || b >= 20) ? 1 : 2];
 }
+const triesWord = n => plural(n, ['попытка', 'попытки', 'попыток']);
+function fmtTime(ms) { const s = Math.floor(Math.max(0, ms) / 1000); return Math.floor(s / 60) + ':' + String(s % 60).padStart(2, '0'); }
+const sizeName = p => SIZES[p][0] + '×' + SIZES[p][1];
+function now() { return elapsed + (running ? performance.now() - t0 : 0); }
+function clock(on) {
+  if (on && !running) { t0 = performance.now(); running = true; }
+  else if (!on && running) { elapsed += performance.now() - t0; running = false; }
+}
+function pop(id) { const b = $(id); b.classList.remove('pop'); void b.offsetWidth; b.classList.add('pop'); }
+const cardEl = i => $('grid').children[i];
 
-function flip(d,i){
-  if(locked||d.classList.contains('matched')||flipped.includes(i)) return;
-  d.textContent=cards[i];d.classList.add('show');
-  flipped.push(i);
-  if(flipped.length===2){
-    locked=true;tries++;
-    document.getElementById('tries').textContent=tries;
-    const [a,b]=flipped;
-    const da=document.querySelector(`[data-i="${a}"]`),db=document.querySelector(`[data-i="${b}"]`);
-    if(cards[a]===cards[b]){
-      da.classList.add('matched');db.classList.add('matched');
-      matched+=2;flipped=[];locked=false;
-      if(matched===cards.length){
-        const eff=Math.round((pairs*2/tries)*100);
-        document.getElementById('msub').textContent=`${tries} попыток · КПД ${eff}%`;
-        document.getElementById('msg').style.display='flex';
-      }
-    } else {
-      setTimeout(()=>{
-        da.textContent='';da.classList.remove('show');
-        db.textContent='';db.classList.remove('show');
-        flipped=[];locked=false;
-      },900);
-    }
+/* ── Рекорды: { "6": { tries, time, wins }, … } ── */
+function loadBest() {
+  try { const o = JSON.parse(localStorage.getItem(LS_BEST) || '{}'); return o && typeof o === 'object' ? o : {}; }
+  catch (e) { return {}; }
+}
+function saveBest(o) { try { localStorage.setItem(LS_BEST, JSON.stringify(o)); } catch (e) {} }
+const bestOf = (all, p) => { const b = all[p]; return b && b.tries > 0 ? b : null; };
+
+/* ── Экраны и оверлеи ── */
+function showScreen(name) {
+  $('screen-menu').classList.toggle('active', name === 'menu');
+  $('screen-game').classList.toggle('active', name === 'game');
+  if (name === 'menu') refreshMenu(); else layout();
+}
+const show = id => $(id).classList.add('open');
+const hide = id => $(id).classList.remove('open');
+const inGame = () => $('screen-game').classList.contains('active');
+
+function refreshMenu() {
+  document.querySelectorAll('#size-seg button').forEach(b => b.classList.toggle('active', +b.dataset.p === pairs));
+  const all = loadBest(), b = bestOf(all, pairs);
+  $('best-line').textContent = 'Рекорд ' + sizeName(pairs) + ': ' + (b ? b.tries + ' ' + triesWord(b.tries) + ' · ' + fmtTime(b.time) : '—');
+  let wins = 0; const parts = [];
+  for (const p of [6, 8, 10]) {
+    const r = all[p];
+    if (r) wins += r.wins | 0;
+    const rb = bestOf(all, p);
+    if (rb) parts.push(sizeName(p) + ' — <b>' + (rb.tries | 0) + '</b>');
   }
+  $('menu-stats').innerHTML = wins
+    ? 'Пройдено полей: <b>' + wins + '</b>' + (parts.length ? '<br>Лучшие попытки: ' + parts.join(' • ') : '')
+    : 'Сыграйте первую партию';
 }
 
-document.querySelectorAll('.dbtn').forEach(b=>b.addEventListener('click',()=>{
-  pairs=+b.dataset.p;
-  document.querySelectorAll('.dbtn').forEach(x=>x.classList.remove('on'));b.classList.add('on');
-  newGame();
+/* ── Размер карточек под экран ── */
+function layout() {
+  if (!inGame()) return;
+  const st = $('stage'), [cols, rows] = SIZES[pairs], gap = 8, FRAME = 16;  // рамка .ku-board: padding 7 + border 1
+  const w = st.clientWidth - FRAME, h = st.clientHeight - FRAME;
+  const cs = Math.floor(Math.max(34, Math.min((w - gap * (cols - 1)) / cols, (h - gap * (rows - 1)) / rows, 118)));
+  const g = $('grid');
+  g.style.setProperty('--cols', cols); g.style.setProperty('--cs', cs + 'px'); g.style.setProperty('--gap', gap + 'px');
+}
+window.addEventListener('resize', layout);
+
+/* ── Партия ── */
+function updateHUD() {
+  $('h-tries').textContent = tries;
+  $('h-pairs').textContent = matched + '/' + pairs;
+  $('h-time').textContent = fmtTime(now());
+}
+
+function newGame() {
+  clearTimeout(missTimer); clearTimeout(winTimer);        // таймеры прошлой партии не должны трогать новую
+  const pool = shuffle(EMOJI.slice()).slice(0, pairs);
+  cards = shuffle(pool.concat(pool));
+  openIdx = []; matched = 0; tries = 0; locked = false;
+  elapsed = 0; running = false; started = false; paused = false; over = false;
+  hide('over'); hide('pause'); hide('rules');
+
+  const g = $('grid');
+  g.textContent = '';
+  cards.forEach((em, i) => {
+    const b = document.createElement('button');
+    b.type = 'button'; b.className = 'card'; b.setAttribute('aria-label', 'Карточка ' + (i + 1));
+    b.innerHTML = '<span class="in"><span class="side back"></span><span class="side face"></span></span>';
+    b.querySelector('.face').textContent = em;
+    b.addEventListener('click', () => flip(i));
+    g.appendChild(b);
+  });
+  $('g-sub').textContent = 'ПОЛЕ ' + sizeName(pairs);
+  const b = bestOf(loadBest(), pairs);
+  $('h-best').textContent = b ? b.tries : '—';
+  updateHUD();
+  layout();
+}
+
+function flip(i) {
+  if (over || paused || locked) return;                    // 3-я карта во время показа промаха — игнор
+  const el = cardEl(i);
+  if (!el || el.classList.contains('matched') || openIdx.includes(i)) return;   // двойной тап по той же карте
+  if (!started) { started = true; clock(true); }
+  el.classList.add('open');
+  openIdx.push(i);
+  if (openIdx.length < 2) return;
+
+  tries++;
+  const [a, b] = openIdx, ea = cardEl(a), eb = cardEl(b);
+  openIdx = [];
+  if (cards[a] === cards[b]) {
+    ea.classList.add('matched'); eb.classList.add('matched');
+    ea.setAttribute('aria-label', cards[a]); eb.setAttribute('aria-label', cards[b]);
+    matched++;
+    pop('h-pairs');
+    if (matched === pairs) win();
+  } else {
+    locked = true;
+    ea.classList.add('miss'); eb.classList.add('miss');
+    missTimer = setTimeout(() => {
+      ea.classList.remove('open', 'miss'); eb.classList.remove('open', 'miss');
+      locked = false;
+    }, MISS_MS);
+  }
+  pop('h-tries');
+  updateHUD();
+}
+
+function win() {
+  over = true; clock(false);
+  const ms = Math.round(now()), all = loadBest(), b = all[pairs] && typeof all[pairs] === 'object' ? all[pairs] : {};
+  const recTries = !(b.tries > 0) || tries < b.tries, recTime = !(b.time > 0) || ms < b.time;
+  if (recTries) b.tries = tries;
+  if (recTime) b.time = ms;
+  b.wins = (b.wins | 0) + 1;
+  all[pairs] = b; saveBest(all);
+
+  updateHUD();
+  $('h-best').textContent = b.tries;
+  $('new-best').style.display = recTries || recTime ? '' : 'none';
+  $('big').textContent = tries;
+  $('big-sub').textContent = triesWord(tries) + ' · поле ' + sizeName(pairs);
+  const row = (k, v) => '<div>' + k + '<b>' + v + '</b></div>';
+  $('over-stats').innerHTML = row('Время', fmtTime(ms)) + row('Точность', Math.round(pairs / tries * 100) + '%')
+    + row('Рекорд попыток', b.tries) + row('Лучшее время', fmtTime(b.time));
+  winTimer = setTimeout(() => show('over'), 650);          // дать доиграть анимацию последней пары
+}
+
+function pauseGame() {
+  if (!inGame() || over || paused) return;
+  paused = true; clock(false); updateHUD();
+  show('pause');
+}
+function resumeGame() {
+  if (!paused) return;
+  paused = false; hide('pause');
+  if (started && !over) clock(true);
+}
+function toMenu() {
+  clearTimeout(missTimer); clearTimeout(winTimer);
+  clock(false); over = true; paused = false; locked = false;
+  ['pause', 'over', 'rules'].forEach(hide);
+  showScreen('menu');
+}
+
+/* ── Кнопки ── */
+document.querySelectorAll('#size-seg button').forEach(b => b.addEventListener('click', () => {
+  pairs = +b.dataset.p;
+  try { localStorage.setItem(LS_SIZE, String(pairs)); } catch (e) {}
+  refreshMenu();
 }));
-document.getElementById('mBtn').addEventListener('click',newGame);
-newGame();
+$('btn-play').onclick = () => { showScreen('game'); newGame(); };
+$('btn-restart').onclick = () => newGame();
+$('btn-pause').onclick = () => pauseGame();
+$('btn-resume').onclick = () => resumeGame();
+$('btn-pause-restart').onclick = () => newGame();
+$('btn-pause-menu').onclick = toMenu;
+$('btn-again').onclick = () => newGame();
+$('btn-over-menu').onclick = toMenu;
+
+let rulesFromPause = false;
+$('btn-rules').onclick = () => { rulesFromPause = false; show('rules'); };
+$('btn-pause-rules').onclick = () => { rulesFromPause = true; hide('pause'); show('rules'); };
+function closeRules() { hide('rules'); if (rulesFromPause && paused) show('pause'); rulesFromPause = false; }
+$('btn-rules-x').onclick = closeRules;
+$('btn-rules-ok').onclick = closeRules;
+
+document.addEventListener('keydown', e => {
+  if ($('rules').classList.contains('open')) { if (e.code === 'Escape') closeRules(); return; }
+  if (!inGame() || e.repeat) return;
+  if (e.code === 'KeyP' || e.code === 'Escape') { e.preventDefault(); paused ? resumeGame() : pauseGame(); }
+});
+// свернули вкладку / ушли из приложения — ставим на паузу, чтобы время не шло
+document.addEventListener('visibilitychange', () => { if (document.hidden && started && !over) pauseGame(); });
+setInterval(() => { if (running) $('h-time').textContent = fmtTime(now()); }, 250);
+
+/* ── Старт ── */
+try { const p = +localStorage.getItem(LS_SIZE); if (SIZES[p]) pairs = p; } catch (e) {}
+refreshMenu();
 </script>
 </body>
 </html>
