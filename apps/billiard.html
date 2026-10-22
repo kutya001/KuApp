@@ -120,10 +120,12 @@
   #screen-game.compact{padding:0 6px 6px}
   #screen-game.compact .ku-top{display:none}
   #screen-game.compact #play{gap:6px}
-  #play.cv{grid-template-columns:auto minmax(0,1fr);grid-template-areas:"bar bar" "board board" "spin aim" "spin power";
+  #play.cv{grid-template-columns:auto 34px minmax(0,1fr) 34px auto;
+    grid-template-areas:"bar bar bar bar bar" "board board board board board" "spin aim aim aim shoot" "spin pminus power pplus shoot";
     justify-content:stretch;align-content:center}
-  #play.ch{grid-template-columns:58px auto 100px;grid-template-rows:auto auto minmax(0,1fr);
-    grid-template-areas:"power board bar" "power board spin" "power board aim";justify-content:center;align-content:center}
+  #play.cv:not(.btnmode){grid-template-columns:auto minmax(0,1fr);grid-template-areas:"bar bar" "board board" "spin aim" "spin power"}
+  #play.ch{grid-template-columns:58px auto 100px;grid-template-rows:auto auto minmax(0,1fr) auto auto;
+    grid-template-areas:"power board bar" "power board spin" "power board aim" "power board adj" "power board shoot";justify-content:center;align-content:center}
   #play.cv #dock,#play.ch #dock{display:contents}
   #screen-game.compact .ku-board{padding:0;border:0;border-radius:12px}
   #screen-game.compact .ku-board>canvas{border-radius:12px}
@@ -181,6 +183,103 @@
     background:linear-gradient(to right,var(--green),var(--gold) 55%,var(--red))}
   .power-track.h .power-handle{top:50%;left:0;width:8px;height:24px;transform:translate(-50%,-50%)}
   .power-track.h .power-ticks{background:repeating-linear-gradient(to right,transparent 0 9%,rgba(255,255,255,.07) 9% 10%)}
+
+  /* ── Сила в процентах, ±1 %, кнопка «Ударить» ── */
+  .power-val{position:absolute;left:0;right:0;bottom:7px;text-align:center;pointer-events:none;z-index:2;
+    font-family:var(--font-display);font-weight:400;font-size:11px;letter-spacing:.5px;color:#fff;text-shadow:0 1px 3px #000,0 0 6px #000}
+  .power-track.h .power-val{left:auto;right:9px;bottom:auto;top:50%;transform:translateY(-50%);font-size:12px}
+  .bl-power-adj{display:flex;gap:6px;flex:none}
+  .bl-power-adj .ku-btn{font-size:20px;line-height:1}
+  .bl-shoot{flex:none;letter-spacing:.5px}
+  .bl-shoot:disabled{opacity:.4;filter:saturate(.3);cursor:default}
+  #play:not(.btnmode) #power-adj,#play:not(.btnmode) #btn-shoot{display:none}
+  #power-minus{grid-area:pminus} #power-plus{grid-area:pplus} #btn-shoot{grid-area:shoot}
+  #play.vert #btn-shoot,#play.horz #btn-shoot{height:46px;padding:0 18px}
+  #play.horz #power-adj{width:100%;justify-content:center}
+  #play.horz #btn-shoot{width:100%}
+  #play.cv #power-adj{display:contents}
+  #play.cv #power-adj .ku-btn{width:34px;height:30px;border-radius:9px;align-self:center}
+  #play.cv #btn-shoot{width:78px;height:auto;align-self:stretch;padding:0 4px;font-size:13px;border-radius:12px}
+  #play.ch #power-adj{grid-area:adj;display:flex;gap:6px}
+  #play.ch #power-adj .ku-btn{flex:1 1 0;width:auto;height:32px}
+  #play.ch #btn-shoot{height:40px;padding:0;font-size:13px}
+  #play:not(.btnmode) #power-adj{display:none}
+
+  /* ── Вид стола 2D/3D ── */
+  .bl-view-btn{font-family:var(--font-display);font-weight:400;font-size:13px;letter-spacing:1px}
+  .bl-view-btn.on{color:var(--accent2);border-color:rgba(255,77,210,.6);box-shadow:0 0 12px rgba(255,77,210,.35)}
+  .bl-layer{position:absolute;left:7px;top:7px;display:block;touch-action:none;border-radius:11px}
+  #screen-game.compact .bl-layer{left:0;top:0;border-radius:12px}
+  #board-box.v3>#billiardCanvas{visibility:hidden}
+  .bl-cam-btn{position:absolute;right:14px;top:14px;z-index:3;height:32px;padding:0 12px;font-size:12px;border-radius:10px;
+    background:rgba(8,12,30,.55);backdrop-filter:blur(6px);-webkit-backdrop-filter:blur(6px)}
+  #screen-game.compact .bl-cam-btn{right:8px;top:8px}
+
+  /* ── Винт: значок наклона на маленьком шаре ── */
+  .bl-elev-badge{position:absolute;right:-8px;bottom:-6px;z-index:2;pointer-events:none;padding:3px 5px;border-radius:8px;
+    font:400 10px/1 var(--font-display);color:#fff;background:var(--accent2);box-shadow:0 0 8px rgba(255,77,210,.6)}
+
+  /* ── Настройки: заметки, глубина траектории ── */
+  .bl-opt-note{font-size:12px;color:var(--muted);line-height:1.45;margin:2px 2px 8px}
+  .bl-depth{margin-top:10px}
+  .bl-depth.off{opacity:.4;pointer-events:none}
+  .ku-seg[data-seg]{margin-bottom:4px;width:100%;max-width:420px;box-sizing:border-box}
+
+  /* ── Окно «Винт и наклон кия» ── */
+  .bl-spin-modal{width:min(660px,94vw)}
+  .bl-spinp{display:grid;grid-template-columns:auto minmax(0,1fr);gap:20px;align-items:start}
+  .bl-spinp-ball{display:flex;flex-direction:column;align-items:center;gap:12px}
+  .bl-bigball{position:relative;width:min(220px,62vw);aspect-ratio:1/1;border-radius:50%;touch-action:none;cursor:crosshair;flex:none;
+    background:radial-gradient(circle at 38% 32%,#fff,#e9ebf3 42%,#a7aec8 100%);border:2px solid rgba(0,229,255,.45);
+    box-shadow:inset -10px -12px 24px rgba(0,0,0,.28),0 0 22px rgba(0,229,255,.18)}
+  .bl-bigball::before,.bl-bigball::after{content:'';position:absolute;background:rgba(10,14,40,.22);pointer-events:none}
+  .bl-bigball::before{left:0;right:0;top:50%;height:1px}
+  .bl-bigball::after{top:0;bottom:0;left:50%;width:1px}
+  .bl-ring{position:absolute;left:50%;top:50%;border:1px dashed rgba(10,14,40,.28);border-radius:50%;transform:translate(-50%,-50%);pointer-events:none}
+  .bl-ring.r1{width:25%;height:25%} .bl-ring.r2{width:50%;height:50%} .bl-ring.r3{width:75%;height:75%}
+  .bl-bigdot{position:absolute;left:50%;top:50%;width:18px;height:18px;border-radius:50%;background:var(--red);border:3px solid #fff;
+    box-shadow:0 0 10px var(--red);transform:translate(-50%,-50%);pointer-events:none}
+  .bl-nudge{display:grid;grid-template-columns:repeat(3,42px);grid-template-rows:repeat(3,42px);gap:6px;
+    grid-template-areas:". up ." "left mid right" ". down ."}
+  .bl-nudge .n-up{grid-area:up} .bl-nudge .n-left{grid-area:left} .bl-nudge .n-mid{grid-area:mid} .bl-nudge .n-right{grid-area:right} .bl-nudge .n-down{grid-area:down}
+  .bl-nudge .ku-btn{font-size:14px}
+  .bl-read{display:flex;flex-wrap:wrap;align-items:baseline;gap:2px 14px;margin:0 0 6px}
+  .bl-read span{width:100%;font-size:11px;letter-spacing:1px;color:var(--muted);text-transform:uppercase}
+  .bl-read b{font-family:var(--font-display);font-weight:400;font-size:18px;color:var(--accent)}
+  .bl-elev-read{margin-top:14px}
+  #spin-control:focus,.bl-bigball:focus{outline:none}
+  #spin-control:focus-visible,.bl-bigball:focus-visible{outline:2px solid var(--accent);outline-offset:3px}
+  .bl-elev-svg{display:block;width:100%;max-width:250px;height:auto;margin:2px 0 6px}
+  .bl-elev-svg .cloth{stroke:#2c8a55;stroke-width:4}
+  .bl-elev-svg .ball{fill:#f1ead8;stroke:rgba(0,0,0,.35)}
+  .bl-elev-svg .cue{stroke:#e2c58e;stroke-width:6;stroke-linecap:round}
+  .bl-elev-row{display:flex;align-items:center;gap:10px;margin-bottom:6px}
+  @media (max-width:560px){
+    .bl-spinp{grid-template-columns:1fr;gap:10px}
+    .bl-spinp-ball{flex-direction:row;justify-content:center;gap:16px}
+    .bl-bigball{width:min(170px,44vw)}
+    .bl-elev-read{margin-top:8px}
+  }
+  @media (max-width:400px){
+    .bl-spinp-ball{gap:12px}
+    .bl-bigball{width:min(150px,40vw)}
+    .bl-nudge{grid-template-columns:repeat(3,36px);grid-template-rows:repeat(3,36px);gap:5px}
+    .bl-nudge .ku-btn{width:36px;height:36px}
+  }
+  @media (max-height:740px){#menu-spin .bl-opt-note{display:none} .bl-elev-svg{max-width:180px}}
+  @media (max-height:500px) and (orientation:landscape){
+    html.ku-embedded #menu-spin{padding:10px 10px 10px 72px}
+    #menu-spin .bl-spin-modal{max-height:calc(100dvh - 20px);width:min(700px,100%)}
+    .bl-spinp{gap:16px}
+    .bl-spinp-ball{flex-direction:row;align-items:center}
+    .bl-bigball{width:min(150px,38vh)}
+    .bl-nudge{grid-template-columns:repeat(3,34px);grid-template-rows:repeat(3,34px);gap:4px}
+    .bl-nudge .ku-btn{width:34px;height:34px}
+    .bl-spinp-info{display:grid;grid-template-columns:minmax(0,1fr) 140px;column-gap:12px;align-items:center}
+    .bl-spinp-info>*{grid-column:1}
+    .bl-spinp-info .bl-elev-svg{grid-column:2;grid-row:2 / span 2;max-width:140px;margin:0}
+    .bl-elev-read{margin-top:4px}
+  }
   @media (max-height:700px){
     .bl-player{padding:5px 9px 5px 11px;row-gap:3px}
     .bl-score{font-size:19px}
@@ -215,6 +314,7 @@
       <div class="ku-top-left"></div>
       <div class="ku-top-title"><div class="t" id="game-title">ВДВОЁМ</div><div class="s" id="game-status">Ход: Игрок 1</div></div>
       <div class="ku-top-actions">
+        <button class="ku-btn icon bl-view-btn" id="btn-view2" aria-label="Вид стола: 2D или 3D" title="Вид: 2D / 3D">3D</button>
         <button class="ku-btn icon" id="btn-settings2" aria-label="Настройки"><svg viewBox="0 0 24 24"><line x1="4" y1="7" x2="20" y2="7"/><line x1="4" y1="17" x2="20" y2="17"/><circle cx="9" cy="7" r="2.2"/><circle cx="15" cy="17" r="2.2"/></svg></button>
         <button class="ku-btn icon" id="btn-pause" aria-label="Пауза"><svg viewBox="0 0 24 24"><line x1="9" y1="5" x2="9" y2="19"/><line x1="15" y1="5" x2="15" y2="19"/></svg></button>
       </div>
@@ -244,6 +344,7 @@
           </div>
           <div class="bl-mini-status" id="mini-status">Ход: Игрок 1</div>
         </div>
+        <button class="ku-btn icon bl-view-btn" id="btn-view" aria-label="Вид стола: 2D или 3D" title="Вид: 2D / 3D">3D</button>
         <button class="ku-btn icon" id="btn-menu" aria-label="Меню партии: счёт, настройки, пауза"><svg viewBox="0 0 24 24"><line x1="4" y1="7" x2="20" y2="7"/><line x1="4" y1="12" x2="20" y2="12"/><line x1="4" y1="17" x2="20" y2="17"/></svg></button>
       </div>
       <!-- Сила удара -->
@@ -254,17 +355,23 @@
           <span class="power-hint">СИЛА · тяни →</span>
           <div id="power-fill" class="power-fill"></div>
           <div id="power-handle" class="power-handle"></div>
+          <b class="power-val" id="power-val">0%</b>
         </div>
         <span class="bl-cap">тяни ↓</span>
       </div>
       <!-- Стол -->
-      <div id="board-box" class="ku-board"><canvas id="billiardCanvas"></canvas></div>
+      <div id="board-box" class="ku-board">
+        <canvas id="billiardCanvas"></canvas>
+        <canvas id="gl-canvas" class="bl-layer" hidden></canvas>
+        <canvas id="ov-canvas" class="bl-layer" hidden></canvas>
+        <button class="ku-btn bl-cam-btn" id="btn-cam" hidden>👁 Обзор</button>
+      </div>
       <!-- Винт и микро-прицел -->
       <div id="dock">
         <div id="spin-box" class="bl-ctl">
           <div class="bl-spin-head"><span class="ku-label">Винт</span>
             <button class="ku-btn icon" id="btn-spin-reset" aria-label="Сбросить винт" title="Сбросить винт"><svg viewBox="0 0 24 24"><polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 1 0 2.13-9.36L1 10"/></svg></button></div>
-          <div id="spin-control"><div id="spin-dot"></div></div>
+          <div id="spin-control" tabindex="0" role="button" aria-label="Винт и наклон кия: точная настройка" title="Тап — точная настройка винта и наклона кия"><div id="spin-dot"></div><span class="bl-elev-badge" id="elev-badge" hidden>0°</span></div>
         </div>
         <div id="aim-box" class="bl-ctl">
           <span class="ku-label">Микро-прицел</span>
@@ -275,6 +382,11 @@
           </div>
           <span class="bl-cap">веди влево / вправо</span>
         </div>
+        <div id="power-adj" class="bl-power-adj">
+          <button class="ku-btn icon" id="power-minus" aria-label="Сила −1&nbsp;%">−</button>
+          <button class="ku-btn icon" id="power-plus" aria-label="Сила +1&nbsp;%">+</button>
+        </div>
+        <button class="ku-btn primary bl-shoot" id="btn-shoot" disabled>Ударить</button>
       </div>
     </div>
   </section>
@@ -293,9 +405,18 @@
         <h3>Сукно</h3>
         <div class="bl-swatches"></div>
         <div class="ku-muted bl-theme-label" style="font-size:13px"></div>
-        <h3>Стол</h3>
+        <h3>Удар</h3>
+        <label class="ku-switch-row">Бить кнопкой «Ударить»<input type="checkbox" data-opt="shootbtn"><span class="ku-switch"></span></label>
+        <div class="bl-opt-note">Вкл. — силу выставляешь заранее (видно в %, можно ±1&nbsp;%), поправляешь прицел и бьёшь кнопкой. Выкл. — удар сразу, когда отпускаешь шкалу силы.</div>
+        <h3>Траектория</h3>
+        <div class="ku-seg" data-seg="traj"><button data-v="short">Обычная</button><button data-v="full">Полная</button></div>
+        <div class="bl-depth" data-depth-row>
+          <div class="bl-opt-note">Полная — путь до самой остановки, с отскоками, соударениями и лузами. Глубина: 1 — биток и шары, которые он ударит; 2 — и шары, которые ударят они; … «Все» — вся цепочка.</div>
+          <div class="ku-seg" data-seg="depth"><button data-v="1">1</button><button data-v="2">2</button><button data-v="3">3</button><button data-v="4">4</button><button data-v="5">5</button><button data-v="99">Все</button></div>
+        </div>
+        <h3>Вид стола</h3>
+        <div class="ku-seg" data-seg="view"><button data-v="2d">2D — сверху</button><button data-v="3d">3D</button></div>
         <label class="ku-switch-row">Номера на шарах<input type="checkbox" data-opt="numbers"><span class="ku-switch"></span></label>
-        <label class="ku-switch-row">Полная траектория<input type="checkbox" data-opt="traj"><span class="ku-switch"></span></label>
       </div>
     </div>
     <footer class="bl-menu-actions" id="pause-actions">
@@ -337,15 +458,18 @@
       <ul class="ku-rules">
         <li><b>Тап по шару</b> — выбрать биток. <b>Тап или ведение по столу</b> — направление удара (вести можно и от самого битка).</li>
         <li><b>Микро-прицел</b> — ведите по линейке влево/вправо: медленно — доводка на доли миллиметра, быстро — крупнее. На клавиатуре ← →, с Shift — крупнее.</li>
-        <li><b>Винт</b> — точка удара по битку: выше центра — накат, ниже — оттяжка, в стороны — боковой винт.</li>
-        <li><b>Сила</b> — потяните ползунок вниз (кий отходит назад) и отпустите — кий бьёт по шару. Вернули ползунок наверх — удар отменён.</li>
-        <li>Линия прицельного шара <b>зелёная</b>, если он идёт в лузу (с учётом отброса и скорости). Пунктир — путь битка после удара, зелёный — биток тоже уйдёт в лузу (свояк). <b>Красная</b> линия — биток сам идёт в лузу, ни в кого не попав (фол). Крестик — шар остановится здесь.</li>
-        <li>Полная траектория, номера шаров и цвет сукна — в настройках и в меню партии (⏸ / ☰). На телефоне стол занимает почти весь экран: внизу (в альбомной ориентации — по бокам) только управление и счёт, остальное — в меню ☰.</li>
+        <li><b>Винт</b> — точка удара по битку: выше центра — накат, ниже — оттяжка, в стороны — боковой винт. Протяжка по маленькому шару — быстрая настройка, <b>тап по нему — точная</b>: большой шар, стрелки с шагом 1&nbsp;%, проценты наката/оттяжки и бокового, <b>наклон кия</b> 0–75° (удар сверху).</li>
+        <li><b>Сила</b> видна в процентах. Режим <b>«Бить кнопкой «Ударить»»</b> (включён сразу): потяните шкалу до нужной силы и отпустите — сила остаётся; поправьте прицел и силу (− / + по 1&nbsp;%, на клавиатуре ↑ ↓, с Shift — по 5&nbsp;%) и нажмите <b>«Ударить»</b> (или пробел). Если режим выключить в настройках, удар — сразу при отпускании шкалы; вернули шкалу в начало — удар отменён.</li>
+        <li><b>Траектория.</b> Обычная: линия прицельного шара <b>зелёная</b>, если он идёт в лузу (с учётом отброса и скорости); пунктир — путь битка, зелёный — биток тоже уйдёт в лузу (свояк); <b>красная</b> — биток сам идёт в лузу, ни в кого не попав (фол); крестик — шар остановится здесь.</li>
+        <li><b>Полная траектория</b> — весь путь до остановки, с отскоками, соударениями и лузами (тот же расчёт, что и сам удар). <b>Глубина</b> — сколько шаров по цепочке показывать: 1 — биток и шары, которые он ударит, 2 — и те, что ударят они, … «Все». Биток — жёлтый пунктир, задетые — белые линии, дальше по цепочке — бледнее; пунктирный круг — где шар встанет, кольцо у лузы — шар упадёт.</li>
+        <li><b>3D-вид</b> — кнопка 3D/2D. Камера стоит за битком по линии прицела: протяните по столу влево/вправо — поворот прицела, вверх/вниз — высота камеры; щипок или колесо мыши — ближе/дальше; тап по шару — выбрать биток, по сукну — прицел в эту точку. «Обзор» — весь стол; пока шары катятся, камера сама показывает весь стол.</li>
+        <li>Режим удара, траектория, вид 2D/3D, номера шаров и цвет сукна — в настройках и в меню партии (⏸ / ☰). На телефоне стол занимает почти весь экран: внизу (в альбомной ориентации — по бокам) только управление и счёт, остальное — в меню ☰.</li>
       </ul>
       <h3>Физика стола</h3>
       <ul class="ku-rules">
         <li><b>Стол 12 футов</b>: поле 3550 × 1775 мм, шары 68 мм. Лузы по стандарту: угловые 73 мм, средние 83 мм — всего на 5 мм шире шара. Шар, задевший губку, может «задребезжать» и выскочить; тихий шар заходит легче быстрого.</li>
         <li><b>Скольжение и качение.</b> После удара биток скользит, пока вращение не «догонит» его. <b>Накат</b> — после удара по шару биток идёт следом, <b>оттяжка</b> — возвращается назад, удар в центр с близкого расстояния — <b>стоп</b>.</li>
+        <li><b>Наклон кия.</b> Чем круче кий, тем меньше скорость вдоль стола. С боковым винтом шар идёт по дуге в сторону винта (<b>массе</b>), с оттяжкой — быстрее гасит ход и может вернуться.</li>
         <li><b>Боковой винт</b> меняет угол отскока от борта (по ходу — шире и быстрее, против хода — круче) и чуть отбрасывает прицельный шар.</li>
         <li><b>Отброс.</b> При резке трение шаров уводит прицельный шар на 1–3° от линии центров — прицел это учитывает.</li>
         <li>Резина бортов выше центра шара: при сильном ударе борт «мягче», накат и оттяжка частично гасятся.</li>
@@ -363,11 +487,56 @@
       <h3>Сукно</h3>
       <div class="bl-swatches"></div>
       <div class="ku-muted bl-theme-label" style="font-size:13px"></div>
-      <h3>Стол</h3>
+      <h3>Удар</h3>
+      <label class="ku-switch-row">Бить кнопкой «Ударить»<input type="checkbox" data-opt="shootbtn"><span class="ku-switch"></span></label>
+      <div class="bl-opt-note">Вкл. — силу выставляешь заранее (видно в %, можно ±1&nbsp;%), поправляешь прицел и бьёшь кнопкой. Выкл. — удар сразу, когда отпускаешь шкалу силы.</div>
+      <h3>Траектория</h3>
+      <div class="ku-seg" data-seg="traj"><button data-v="short">Обычная</button><button data-v="full">Полная</button></div>
+      <div class="bl-depth" data-depth-row>
+        <div class="bl-opt-note">Полная — путь до самой остановки, с отскоками, соударениями и лузами. Глубина: 1 — биток и шары, которые он ударит; 2 — и шары, которые ударят они; … «Все» — вся цепочка.</div>
+        <div class="ku-seg" data-seg="depth"><button data-v="1">1</button><button data-v="2">2</button><button data-v="3">3</button><button data-v="4">4</button><button data-v="5">5</button><button data-v="99">Все</button></div>
+      </div>
+      <h3>Вид стола</h3>
+      <div class="ku-seg" data-seg="view"><button data-v="2d">2D — сверху</button><button data-v="3d">3D</button></div>
       <label class="ku-switch-row">Номера на шарах<input type="checkbox" data-opt="numbers"><span class="ku-switch"></span></label>
-      <label class="ku-switch-row">Полная траектория<input type="checkbox" data-opt="traj"><span class="ku-switch"></span></label>
     </div>
     <footer><button class="ku-btn primary" id="btn-settings-close">Готово</button></footer>
+  </div>
+</div>
+
+<!-- ═══ ВИНТ И НАКЛОН КИЯ: точка удара с точностью до 1 %, наклон 0…75° ═══ -->
+<div class="ku-overlay" id="menu-spin">
+  <div class="ku-modal bl-spin-modal">
+    <header><h2>🎯 Винт и наклон кия</h2><button class="ku-btn icon" id="btn-spinp-x" aria-label="Готово">✕</button></header>
+    <div class="ku-body bl-spinp">
+      <div class="bl-spinp-ball">
+        <div id="big-ball" class="bl-bigball" tabindex="0" role="group" aria-label="Точка удара: стрелки — 1 %, с Shift — 5 %, Home — центр"><i class="bl-ring r1"></i><i class="bl-ring r2"></i><i class="bl-ring r3"></i><div id="big-dot" class="bl-bigdot"></div></div>
+        <div class="bl-nudge">
+          <button class="ku-btn icon n-up" data-nudge="0,-1" aria-label="Выше на 1&nbsp;%">▲</button>
+          <button class="ku-btn icon n-left" data-nudge="-1,0" aria-label="Левее на 1&nbsp;%">◀</button>
+          <button class="ku-btn icon n-mid" id="btn-spin-center" aria-label="В центр">●</button>
+          <button class="ku-btn icon n-right" data-nudge="1,0" aria-label="Правее на 1&nbsp;%">▶</button>
+          <button class="ku-btn icon n-down" data-nudge="0,1" aria-label="Ниже на 1&nbsp;%">▼</button>
+        </div>
+      </div>
+      <div class="bl-spinp-info">
+        <div class="bl-read"><span>Точка удара</span><b id="spin-read-v">По центру</b><b id="spin-read-h">Без бокового</b></div>
+        <div class="bl-opt-note">Выше центра — накат, ниже — оттяжка, вбок — боковой винт. Тяни точку по шару или жми стрелки (шаг 1&nbsp;%); 100&nbsp;% — край зоны без кикса.</div>
+        <div class="bl-read bl-elev-read"><span>Наклон кия</span><b id="elev-read">0° — кий горизонтально</b></div>
+        <svg class="bl-elev-svg" viewBox="0 0 220 100" aria-hidden="true">
+          <line x1="0" y1="92" x2="220" y2="92" class="cloth"/>
+          <circle cx="170" cy="70" r="22" class="ball"/>
+          <line id="elev-cue" x1="146" y1="70" x2="20" y2="70" class="cue"/>
+        </svg>
+        <div class="bl-elev-row">
+          <button class="ku-btn icon" id="elev-minus" aria-label="Наклон −1°">−</button>
+          <input type="range" id="elev-range" min="0" max="75" step="1" value="0" aria-label="Наклон кия, градусы">
+          <button class="ku-btn icon" id="elev-plus" aria-label="Наклон +1°">+</button>
+        </div>
+        <div class="bl-opt-note">Наклон с боковым винтом закручивает шар по дуге (массе), наклон с оттяжкой — «стоп» и разворот. Чем круче кий, тем меньше скорость вдоль стола.</div>
+      </div>
+    </div>
+    <footer><button class="ku-btn ghost" id="btn-spinp-reset">Сбросить</button><button class="ku-btn primary" id="btn-spinp-done">Готово</button></footer>
   </div>
 </div>
 
@@ -406,7 +575,7 @@ const hexRgb = h => { const n = parseInt(h.replace('#', ''), 16); return [n >> 1
 const mixRgb = (a, b, t) => [a[0] + (b[0] - a[0]) * t, a[1] + (b[1] - a[1]) * t, a[2] + (b[2] - a[2]) * t];
 const rgba = (c, a = 1) => `rgba(${c[0] | 0},${c[1] | 0},${c[2] | 0},${a})`;
 
-// === НАСТРОЙКИ: цвет сукна, номера, полная траектория ===
+// === НАСТРОЙКИ: сукно, номера, траектория (обычная / полная до остановки + глубина), удар кнопкой, 2D/3D ===
 const themes = [
   { name: 'Классика (зелёное)', cloth: '#0f6a38' },
   { name: 'Турнир (синее)',     cloth: '#1c4f8d' },
@@ -415,18 +584,28 @@ const themes = [
   { name: 'Графит',             cloth: '#3a424d' },
   { name: 'Шоколад',            cloth: '#5c3b25' }
 ];
-const prefs = { theme: 0, numbers: true, traj: false };
+const DEPTHS = [1, 2, 3, 4, 5, 99];        // глубина полной траектории: «поколений» шаров (99 — все)
+const prefs = { theme: 0, numbers: true, traj: 'short', depth: 2, shootBtn: true, view3d: false };
 try {
   const s = JSON.parse(store.get('billiard_prefs') || '{}') || {};
   if (s.numbers === false) prefs.numbers = false;
-  if (s.traj === true) prefs.traj = true;
   // v2 — реалистичные цвета сукна; выбор из старой неоновой палитры сбрасываем на зелёное
   if (s.v === 2 && s.theme >= 0 && s.theme < themes.length) prefs.theme = s.theme | 0;
+  if (s.traj === true || s.traj === 'full') prefs.traj = 'full';      // старое «Полная траектория: да»
+  if (DEPTHS.includes(s.depth)) prefs.depth = s.depth;
+  if (s.shootBtn === false) prefs.shootBtn = false;
+  if (s.view3d === true) prefs.view3d = true;
 } catch (e) {}
 let currentThemeIndex = prefs.theme;
 let showNumbers = prefs.numbers;
-let fullTrajectory = prefs.traj;
-function savePrefs() { store.set('billiard_prefs', JSON.stringify({ v: 2, theme: currentThemeIndex, numbers: showNumbers, traj: fullTrajectory })); }
+let trajMode = prefs.traj;                 // 'short' — линии прицела, 'full' — весь удар до остановки шаров
+let trajDepth = prefs.depth;
+let shootByButton = prefs.shootBtn;        // сила задаётся заранее, удар — кнопкой «Ударить»
+let view3d = prefs.view3d;
+function savePrefs() {
+  store.set('billiard_prefs', JSON.stringify({ v: 2, theme: currentThemeIndex, numbers: showNumbers, traj: trajMode, depth: trajDepth,
+                                               shootBtn: shootByButton, view3d }));
+}
 
 // === ВЕКТОР (для интерфейса) ===
 class Vec2 {
@@ -544,6 +723,7 @@ let gameState = {
   aimAngle: 0, aimPower: 0,             // aimPower — доля полной силы 0…1
   ballsMoving: false, turnValid: false,
   spin: new Vec2(0, 0),                 // точка удара: x — вправо, y — вниз (оттяжка), в долях от 0.5R
+  elev: 0,                              // наклон кия к сукну, рад (0…75°)
   ballInHand: false, hitOccurred: false, foul: false, pocketedThisTurn: 0,
   foulPotted: [],
   stroke: null                          // анимация кия: замах → удар → проводка
@@ -619,11 +799,11 @@ function startReplay(s) {
   gameState.aimAngle = Math.atan2(sh.vel.y, sh.vel.x);
   setStatus('Удар соперника…');
   // кий соперника: короткий замах и удар, затем шар получает ровно присланные скорость и вращение
-  beginStroke(b, gameState.aimAngle, Math.min(1, speed / V_MAX), () => {
+  beginStroke(b, gameState.aimAngle, Math.min(1, +sh.p || speed / V_MAX), () => {
     b.vx = +sh.vel.x; b.vy = +sh.vel.y; b.wx = +sh.w.x; b.wy = +sh.w.y; b.wz = +sh.w.z; b.sleep = false;
     gameState.ballsMoving = true;
     playSound('cue', speed);
-  });
+  }, +sh.el || 0);
 }
 function nextReplay() {
   if (replaying) return;
@@ -787,11 +967,19 @@ function buildTable() {
 // === ФИЗИКА ===
 // Скорость битка от доли силы: мягкие удары точнее (степень 1.7)
 const shotSpeed = p => V_MIN + (V_MAX - V_MIN) * Math.pow(Math.max(0, Math.min(1, p)), 1.7);
-// Вращение от точки удара кием: смещение вбок a и вверх b (до 0.5R), ω = r × J / I
-function applyCueSpin(b, dx, dy, v0, spin) {
+// Удар кием. Импульс P = m·v0 идёт вдоль кия, наклонённого вниз на elev; точка удара смещена
+// на a вправо и up вверх (до 0.5R, дальше — кикс). Шар получает горизонтальную часть импульса
+// (вертикальную принимает стол), вращение ω = r × J / I = (P/I)·(a·u − up·s), где s — вправо,
+// f — вдоль кия, u = s × f. Без наклона это накат/оттяжка и боковой винт; с наклоном боковой
+// винт закручивает шар вокруг наклонной оси — сукно уводит его по дуге (массе).
+function applyCue(b, dx, dy, v0, spin, elev) {
+  const ce = Math.cos(elev || 0), se = Math.sin(elev || 0);
   const a = spin.x * 0.5 * R, up = -spin.y * 0.5 * R;
+  const fx = dx * ce, fy = dy * ce, fz = se, sx = -dy, sy = dx;
+  const ux = sy * fz, uy = -sx * fz, uz = sx * fy - sy * fx;
   const k = 5 * v0 / (2 * R * R);
-  b.wx = k * up * dy; b.wy = -k * up * dx; b.wz = -k * a;
+  b.vx = dx * v0 * ce; b.vy = dy * v0 * ce;
+  b.wx = k * (a * ux - up * sx); b.wy = k * (a * uy - up * sy); b.wz = k * a * uz;
 }
 
 // Движение шара по сукну за время h: точное решение для скольжения и качения
@@ -849,12 +1037,12 @@ function impactBalls(a, b, nx, ny, vn) {
   b.wx -= kI * cx; b.wy -= kI * cy; b.wz -= kI * cz;
 }
 
-function collideBalls() {
-  const n = balls.length, D = 2 * R;
+function collideBalls(list, ev) {
+  const n = list.length, D = 2 * R;
   for (let i = 0; i < n; i++) {
-    const a = balls[i]; if (!a.active) continue;
+    const a = list[i]; if (!a.active) continue;
     for (let j = i + 1; j < n; j++) {
-      const b = balls[j]; if (!b.active || (a.sleep && b.sleep)) continue;
+      const b = list[j]; if (!b.active || (a.sleep && b.sleep)) continue;
       let dx = b.x - a.x, dy = b.y - a.y;
       const d2 = dx * dx + dy * dy;
       if (d2 >= D * D) continue;
@@ -870,10 +1058,9 @@ function collideBalls() {
         const d = Math.sqrt(dx * dx + dy * dy) || 1e-9, nx = dx / d, ny = dy / d;
         const vn = rvx * nx + rvy * ny;
         if (vn > 0) {
-          if (a === gameState.selectedBall || b === gameState.selectedBall) gameState.hitOccurred = true;
           impactBalls(a, b, nx, ny, vn);
           a.sleep = b.sleep = false;
-          playSound('hit', vn);
+          ev.hit(a, b, vn);
         }
         a.x += a.vx * tau; a.y += a.vy * tau; b.x += b.vx * tau; b.y += b.vy * tau;
         dx = b.x - a.x; dy = b.y - a.y;
@@ -889,7 +1076,7 @@ function collideBalls() {
 }
 
 // Удар о борт/губку: нормаль точки удара наклонена (нос резины выше центра шара)
-function cushionImpact(b, nx, ny, vn, isJaw, quiet) {
+function cushionImpact(b, nx, ny, vn, isJaw, ev) {
   const m = BALL_M, s = CUSH_S, c = CUSH_C;
   const e = Math.max(0.6, 0.83 - 0.02 * vn / 1000);           // сильный удар — резина «мягче»
   const Jn = (1 + e) * m * vn / c;
@@ -910,9 +1097,9 @@ function cushionImpact(b, nx, ny, vn, isJaw, quiet) {
   b.wx += (rcy * Jz - rcz * Jy) * INV_I;
   b.wy += (rcz * Jx - rcx * Jz) * INV_I;
   b.wz += (rcx * Jy - rcy * Jx) * INV_I;
-  if (!quiet) playSound(isJaw ? 'jaw' : 'cushion', vn);
+  ev.wall(b, vn, isJaw);
 }
-function collideWalls(b, quiet) {
+function collideWalls(b, ev) {
   for (const w of walls) {
     const px = b.x - w.ax, py = b.y - w.ay;
     let t = px * w.dx + py * w.dy; t = t < 0 ? 0 : (t > w.len ? w.len : t);
@@ -925,7 +1112,7 @@ function collideWalls(b, quiet) {
     if (vn > 0) {
       const tau = Math.min((D - d) / vn, SUBSTEP * 2);       // откат к моменту касания
       b.x -= b.vx * tau; b.y -= b.vy * tau;
-      cushionImpact(b, nx, ny, vn, w.jaw, quiet);
+      cushionImpact(b, nx, ny, vn, w.jaw, ev);
       b.sleep = false;
       b.x += b.vx * tau; b.y += b.vy * tau;
     }
@@ -939,14 +1126,16 @@ function inPocket(p, x, y) {
   const dx = x - p.mx, dy = y - p.my, depth = dx * p.ax + dy * p.ay, lat = dy * p.ax - dx * p.ay;
   return depth > SHELF && lat < p.halfw && lat > -p.halfw;
 }
-function checkPocket(b) {
-  for (const p of pockets) if (inPocket(p, b.x, b.y)) { pocketBall(b, p); return; }
+// Луза, в которую упал шар (или null)
+function pocketOf(b) {
+  for (const p of pockets) if (inPocket(p, b.x, b.y)) return p;
   // страховка: шар каким-то образом оказался за бортом — в ближайшую лузу
   if (b.x < -RAIL_W || b.x > TABLE_W + RAIL_W || b.y < -RAIL_W || b.y > TABLE_H + RAIL_W) {
     let best = pockets[0], bd = Infinity;
     for (const p of pockets) { const ex = b.x - p.hx, ey = b.y - p.hy, d = ex * ex + ey * ey; if (d < bd) { bd = d; best = p; } }
-    pocketBall(b, best);
+    return best;
   }
+  return null;
 }
 function pocketBall(b, p) {
   const speed = Math.sqrt(b.vx * b.vx + b.vy * b.vy);
@@ -955,16 +1144,29 @@ function pocketBall(b, p) {
   playSound('pocket', speed);
   handlePocketedBall(b);
 }
-// Один шаг физики; возвращает, есть ли движущиеся шары
-function stepPhysics(h) {
+// Один шаг физики над списком шаров; возвращает, есть ли движущиеся. Одно и то же ядро считает
+// и игру, и предпросмотр «полной траектории» (на копии стола) — поэтому предсказание точное.
+// ev — обработчики событий: hit(a, b, vn) — соударение шаров, wall(b, vn, jaw) — борт/губка, pocket(b, p) — луза
+function physStep(list, h, ev) {
   let awake = false;
-  for (const b of balls) { if (b.active && !b.sleep) { moveBall(b, h); awake = true; } }
+  for (const b of list) if (b.active && !b.sleep) { moveBall(b, h); awake = true; }
   if (!awake) return false;
-  collideBalls();
-  for (const b of balls) if (b.active && !b.sleep) collideWalls(b);
-  for (const b of balls) if (b.active && !b.sleep) checkPocket(b);
-  return balls.some(b => b.active && !b.sleep);
+  collideBalls(list, ev);
+  for (const b of list) if (b.active && !b.sleep) collideWalls(b, ev);
+  for (const b of list) if (b.active && !b.sleep) { const p = pocketOf(b); if (p) ev.pocket(b, p); }
+  for (const b of list) if (b.active && !b.sleep) return true;
+  return false;
 }
+const QUIET = { hit() {}, wall() {}, pocket() {} };
+const GAME_EV = {
+  hit(a, b, vn) {
+    if (a === gameState.selectedBall || b === gameState.selectedBall) gameState.hitOccurred = true;
+    playSound('hit', vn);
+  },
+  wall(b, vn, jaw) { playSound(jaw ? 'jaw' : 'cushion', vn); },
+  pocket(b, p) { pocketBall(b, p); }
+};
+function stepPhysics(h) { return physStep(balls, h, GAME_EV); }
 
 // === ПРАВИЛА: забитые шары, фол, смена хода ===
 function handlePocketedBall(ball) {
@@ -1123,7 +1325,7 @@ function simPocket(st, pk) {
   let near = -1;
   for (let i = 0; i < 4800 && !s.sleep; i++) {
     moveBall(s, SUBSTEP);
-    collideWalls(s, true);
+    collideWalls(s, QUIET);
     for (const p of pockets) if (inPocket(p, s.x, s.y)) return p === pk ? p : null;
     const dx = s.x - pk.mx, dy = s.y - pk.my;
     if (near < 0) { if (dx * dx + dy * dy < 160 * 160) near = i; }
@@ -1131,28 +1333,51 @@ function simPocket(st, pk) {
   }
   return null;
 }
+// наименьшая сила удара: кнопкой «Ударить» можно бить и на 1 %; при ударе отпусканием шкалы
+// первые 2 % — «отмена» (вернули шкалу к началу — удара нет)
+const minPower = () => shootByButton ? 0.005 : 0.02;
+const previewPower = () => gameState.aimPower >= minPower() ? gameState.aimPower : 0.4;
+// ключ прогноза — точные значения: прогноз всегда ровно для того удара, который будет сделан
+function previewKey(cb) {
+  return [balls.indexOf(cb), gameState.aimAngle, gameState.spin.x, gameState.spin.y, gameState.elev || 0, previewPower(), ballsVersion].join('|');
+}
 let previewCache = { key: '', data: null };
 function aimPreview() {
   const cb = gameState.selectedBall; if (!cb) return null;
-  const p = gameState.aimPower > 0.02 ? gameState.aimPower : 0.4;
-  const key = [balls.indexOf(cb), gameState.aimAngle.toFixed(5), gameState.spin.x.toFixed(2), gameState.spin.y.toFixed(2),
-               p.toFixed(2), ballsVersion, fullTrajectory ? 1 : 0].join('|');
+  const key = previewKey(cb);
   if (previewCache.key === key) return previewCache.data;
   const dx = Math.cos(gameState.aimAngle), dy = Math.sin(gameState.aimAngle);
-  const hit = castBall(cb.x, cb.y, dx, dy, cb);
-  const data = { dx, dy, hit, reaches: true };
-  // биток до точки касания: скорость и вращение в момент удара (без других шаров — путь прямой)
-  const v0 = shotSpeed(p);
-  const sim = { x: cb.x, y: cb.y, vx: dx * v0, vy: dy * v0, wx: 0, wy: 0, wz: 0, sleep: false };
-  applyCueSpin(sim, dx, dy, v0, gameState.spin);
-  let guard = 0;
-  while (guard++ < 30000) {
-    moveBall(sim, 1 / 600);
-    if ((sim.x - cb.x) * dx + (sim.y - cb.y) * dy >= hit.t) { sim.x = hit.x; sim.y = hit.y; break; }
-    if (sim.sleep) { data.reaches = false; data.stopX = sim.x; data.stopY = sim.y; break; }
+  // биток до первого касания — той же физикой: с наклоном кия и боковым винтом путь изгибается
+  const sim = { x: cb.x, y: cb.y, vx: 0, vy: 0, wx: 0, wy: 0, wz: 0, sleep: false };
+  applyCue(sim, dx, dy, shotSpeed(previewPower()), gameState.spin, gameState.elev);
+  const path = [[sim.x, sim.y]];
+  let hit = null, guard = 0;
+  while (!sim.sleep && guard++ < 20000) {
+    const st = { x: sim.x, y: sim.y, vx: sim.vx, vy: sim.vy, wx: sim.wx, wy: sim.wy, wz: sim.wz, sleep: false };
+    for (let i = 0; i < 4 && !sim.sleep; i++) moveBall(sim, SUBSTEP);
+    const sx = sim.x - st.x, sy = sim.y - st.y, sl = Math.sqrt(sx * sx + sy * sy);
+    if (sl < 1e-9) continue;
+    const h = castBall(st.x, st.y, sx / sl, sy / sl, cb);
+    if (h.type !== 'none' && h.t <= sl) {
+      // уточнить момент касания: от начала отрезка шагами физики
+      Object.assign(sim, st);
+      for (let i = 0; i < 4 && !hit; i++) {
+        const bx = sim.x, by = sim.y; moveBall(sim, SUBSTEP);
+        const ex = sim.x - bx, ey = sim.y - by, el = Math.sqrt(ex * ex + ey * ey);
+        if (el < 1e-9) continue;
+        const h2 = castBall(bx, by, ex / el, ey / el, cb);
+        if (h2.type !== 'none' && h2.t <= el) hit = h2;
+      }
+      if (!hit) hit = h;
+      sim.x = hit.x; sim.y = hit.y; path.push([hit.x, hit.y]);
+      break;
+    }
+    path.push([sim.x, sim.y]);
   }
-  const maxLen = fullTrajectory ? 2600 : 520;
-  if (data.reaches && hit.type === 'ball') {
+  const data = { dx, dy, path, reaches: !!hit, hit: hit || { type: 'none', x: sim.x, y: sim.y } };
+  if (!hit) { data.stopX = sim.x; data.stopY = sim.y; }
+  const maxLen = 520;
+  if (hit && hit.type === 'ball') {
     const o = hit.ball;
     const ob = { x: o.x, y: o.y, vx: 0, vy: 0, wx: 0, wy: 0, wz: 0, sleep: false };
     let nx = o.x - hit.x, ny = o.y - hit.y; const nd = Math.sqrt(nx * nx + ny * ny) || 1; nx /= nd; ny /= nd;
@@ -1167,23 +1392,89 @@ function aimPreview() {
     data.pot = data.obj.type === 'pocket' && !data.objStops;
     if (data.obj.type === 'cushion' && !data.objStops) {
       // упирается в губку у самой лузы — может «прокатиться по губке» и упасть
-      const pk = pockets.find(p => { const dx = data.obj.x - p.mx, dy = data.obj.y - p.my; return dx * dx + dy * dy < 110 * 110; });
+      const pk = pockets.find(p => { const ex = data.obj.x - p.mx, ey = data.obj.y - p.my; return ex * ex + ey * ey < 110 * 110; });
       const got = pk && simPocket(ob, pk);
       if (got) { data.pot = true; data.obj.pocket = got; }
     }
     sim.sleep = false;
     data.cue = cueAfterPath(sim, maxLen, cb, o);
     data.svoyak = !!(data.cue.end && data.cue.end.type === 'pocket');
-  } else if (data.reaches && hit.type === 'cushion') {
+  } else if (hit && hit.type === 'cushion') {
     const w = hit.wall;
     let t = (hit.x - w.ax) * w.dx + (hit.y - w.ay) * w.dy; t = Math.max(0, Math.min(w.len, t));
     let nx = hit.x - (w.ax + w.dx * t), ny = hit.y - (w.ay + w.dy * t); const nd = Math.sqrt(nx * nx + ny * ny) || 1; nx /= nd; ny /= nd;
-    const dn = dx * nx + dy * ny;
-    data.rdx = dx - 2 * dn * nx; data.rdy = dy - 2 * dn * ny;
+    const vs = Math.sqrt(sim.vx * sim.vx + sim.vy * sim.vy) || 1, ix = sim.vx / vs, iy = sim.vy / vs;   // направление прихода
+    const dn = ix * nx + iy * ny;
+    data.rdx = ix - 2 * dn * nx; data.rdy = iy - 2 * dn * ny;
     data.refl = castBall(hit.x + data.rdx * 0.5, hit.y + data.rdy * 0.5, data.rdx, data.rdy, cb);
   }
   previewCache = { key, data };
   return data;
+}
+
+// === ПОЛНАЯ ТРАЕКТОРИЯ: весь удар до остановки шаров на копии стола, тем же ядром физики ===
+// Глубина — сколько «поколений» шаров показывать: биток — 0, шар, сдвинутый шаром поколения g, — g + 1.
+// Расчёт идёт кусками (не больше ~6 мс за кадр), чтобы прицел не подтормаживал на телефоне: пока новый
+// прогноз не готов, виден прежний (бледнее) — если он для того же битка и той же расстановки.
+let fullCache = { key: '', data: null }, fullJob = null;
+function fullPreview() {
+  const cb = gameState.selectedBall; if (!cb) return null;
+  const key = previewKey(cb);
+  if (fullCache.key === key) return fullCache.data;
+  if (!fullJob || fullJob.key !== key) fullJob = shotJob(cb, key);
+  if (!fullJob) return null;
+  if (runShotJob(fullJob, 6)) { fullCache = { key, data: fullJob.result }; fullJob = null; return fullCache.data; }
+  const old = fullCache.data;
+  return old && old.cb === cb && old.ver === ballsVersion ? Object.assign({}, old, { stale: true }) : null;
+}
+// весь удар сразу (проверки, тесты)
+function simulateShot(cb) { const j = shotJob(cb, ''); if (!j) return null; runShotJob(j, Infinity); return j.result; }
+function shotJob(cb, key) {
+  const list = balls.map(b => ({ x: b.x, y: b.y, vx: 0, vy: 0, wx: 0, wy: 0, wz: 0, active: b.active, sleep: true,
+                                 src: b, gen: Infinity, pts: null, lock: 0, kink: false, pocket: null }));
+  const c = list[balls.indexOf(cb)];
+  if (!c) return null;
+  applyCue(c, Math.cos(gameState.aimAngle), Math.sin(gameState.aimAngle), shotSpeed(previewPower()), gameState.spin, gameState.elev);
+  c.sleep = false; c.gen = 0; c.pts = [[c.x, c.y]];
+  const ev = {
+    hit(a, b) {
+      if (a.gen + 1 < b.gen) { b.gen = a.gen + 1; if (!b.pts) b.pts = [[b.x, b.y]]; }
+      if (b.gen + 1 < a.gen) { a.gen = b.gen + 1; if (!a.pts) a.pts = [[a.x, a.y]]; }
+      if (a === c || b === c) c.touched = true;               // биток кого-то задел: его падение — «свояк», не фол
+      a.kink = b.kink = true;
+    },
+    wall(b) { b.kink = true; },
+    pocket(b, p) { b.pocket = p; b.active = false; stopBall(b); b.kink = true; }
+  };
+  return { key, cb, ver: ballsVersion, list, ev, steps: 0, moving: true, result: null };
+}
+// точка пути; почти прямые участки склеиваются, точки ударов сохраняются
+function addPathPt(b, keep) {
+  const p = b.pts, n = p.length, x = b.x, y = b.y;
+  if (n && Math.abs(p[n - 1][0] - x) < 0.05 && Math.abs(p[n - 1][1] - y) < 0.05) { if (keep) b.lock = n - 1; return; }
+  if (!keep && n >= 2 && n - 1 > b.lock) {
+    const ax = p[n - 1][0] - p[n - 2][0], ay = p[n - 1][1] - p[n - 2][1], bx = x - p[n - 1][0], by = y - p[n - 1][1];
+    if (ax * bx + ay * by > 0 && Math.abs(ax * by - ay * bx) < 0.002 * (ax * ax + ay * ay + bx * bx + by * by)) { p[n - 1] = [x, y]; return; }
+  }
+  p.push([x, y]);
+  if (keep) b.lock = p.length - 1;
+}
+// продвинуть расчёт не дольше budget мс; true — удар досчитан (до остановки шаров, не дольше 30 с игры)
+function runShotJob(j, budget) {
+  const t0 = performance.now(), list = j.list;
+  while (j.moving && j.steps < 30 * 1200) {
+    j.moving = physStep(list, SUBSTEP, j.ev); j.steps++;
+    for (const b of list) {
+      if (!b.pts) continue;
+      if (b.kink) { addPathPt(b, true); b.kink = false; }
+      else if (j.steps % 12 === 0 && b.active && !b.sleep) addPathPt(b, false);
+    }
+    if ((j.steps & 63) === 0 && performance.now() - t0 > budget) return false;
+  }
+  for (const b of list) if (b.pts) addPathPt(b, true);
+  j.result = { balls: list.filter(b => b.pts).map(b => ({ src: b.src, gen: b.gen, pts: b.pts, pocket: b.pocket, x: b.x, y: b.y, touched: !!b.touched })),
+               time: j.steps * SUBSTEP, cb: j.cb, ver: j.ver };
+  return true;
 }
 
 // === ГРАФИКА ===
@@ -1581,70 +1872,100 @@ function drawSelection() {
   ctx.restore();
 }
 
-// Линии прицела: путь битка, «призрачный» шар, путь прицельного (с учётом отброса), путь битка после удара
-function drawAim() {
+// Линии прицела рисуются через «перо»: в 2D — прямо в координатах стола, в 3D — с проекцией на экран.
+// Перо: path(точки, {dash, width, color, skip}), circle(x, y, r, {…}), cross(x, y, {…}), ring(луза, {…})
+const AIM = { GREEN: 'rgba(81,245,139,.95)', WHITE: 'rgba(255,255,255,.72)', RED: 'rgba(255,93,125,.9)',
+              YEL: 'rgba(255,214,10,.9)', DIM: 'rgba(255,255,255,.6)' };
+// отрезать начало ломаной на len мм (линия начинается от края шара, а не из центра)
+function trimPath(pts, len) {
+  if (!len || pts.length < 2) return pts;
+  for (let i = 1; i < pts.length; i++) {
+    const ax = pts[i - 1][0], ay = pts[i - 1][1], dx = pts[i][0] - ax, dy = pts[i][1] - ay, d = Math.sqrt(dx * dx + dy * dy);
+    if (d >= len) { const k = len / d; return [[ax + dx * k, ay + dy * k]].concat(pts.slice(i)); }
+    len -= d;
+  }
+  return [];
+}
+const pen2d = {
+  alpha(a) { ctx.globalAlpha = a; },
+  path(pts, o) {
+    pts = trimPath(pts, o.skip); if (pts.length < 2) return;
+    const px = 1 / scale;
+    ctx.save(); ctx.lineCap = 'round'; ctx.lineJoin = 'round';
+    ctx.setLineDash(o.dash ? o.dash.map(v => v * px) : []); ctx.lineWidth = (o.width || 1.5) * px; ctx.strokeStyle = o.color;
+    if (o.glow) { ctx.shadowColor = o.color; ctx.shadowBlur = 6 * dpr; }
+    ctx.beginPath(); ctx.moveTo(pts[0][0], pts[0][1]); for (let i = 1; i < pts.length; i++) ctx.lineTo(pts[i][0], pts[i][1]); ctx.stroke();
+    ctx.restore();
+  },
+  circle(x, y, r, o) {
+    const px = 1 / scale;
+    ctx.save(); ctx.setLineDash(o.dash ? o.dash.map(v => v * px) : []); ctx.lineWidth = (o.width || 1.4) * px; ctx.strokeStyle = o.color;
+    ctx.beginPath(); ctx.arc(x, y, r, 0, Math.PI * 2);
+    if (o.fill) { ctx.fillStyle = o.fill; ctx.fill(); }
+    ctx.stroke(); ctx.restore();
+  },
+  cross(x, y, o) {
+    const px = 1 / scale, s = 9;
+    ctx.save(); ctx.lineWidth = 1.4 * px; ctx.strokeStyle = o.color;
+    ctx.beginPath(); ctx.moveTo(x - s, y - s); ctx.lineTo(x + s, y + s); ctx.moveTo(x + s, y - s); ctx.lineTo(x - s, y + s); ctx.stroke();
+    ctx.restore();
+  },
+  ring(p, o) {
+    const px = 1 / scale;
+    ctx.save(); ctx.lineWidth = 2 * px; ctx.strokeStyle = o.color;
+    if (o.glow) { ctx.shadowColor = o.color; ctx.shadowBlur = 8 * dpr; }
+    ctx.beginPath(); ctx.arc(p.hx, p.hy, HOLE_R + 6, 0, Math.PI * 2); ctx.stroke(); ctx.restore();
+  }
+};
+// Прицел: путь битка (с наклоном кия — дугой), «призрачный» шар, путь прицельного с учётом отброса,
+// путь битка после удара; в режиме «полная траектория» — весь удар до остановки шаров на заданную глубину
+function drawAimWith(pen) {
   if (gameState.ballsMoving || gameState.stroke || !gameState.selectedBall || !canControl()) return;
   const pv = aimPreview(); if (!pv) return;
-  const px = 1 / scale, cb = gameState.selectedBall, hit = pv.hit;
-  const GREEN = 'rgba(81,245,139,.95)', WHITE = 'rgba(255,255,255,.72)', RED = 'rgba(255,93,125,.9)';
-  ctx.save(); ctx.lineCap = 'round';
-  const ex = pv.reaches ? hit.x : pv.stopX, ey = pv.reaches ? hit.y : pv.stopY;
-  if ((ex - cb.x) * pv.dx + (ey - cb.y) * pv.dy > R) {
-    ctx.setLineDash([7 * px, 6 * px]); ctx.lineWidth = 1.5 * px;
-    ctx.strokeStyle = hit.type === 'pocket' && pv.reaches ? RED : 'rgba(255,255,255,.6)';
-    ctx.beginPath(); ctx.moveTo(cb.x + pv.dx * R, cb.y + pv.dy * R); ctx.lineTo(ex, ey); ctx.stroke();
-    ctx.setLineDash([]);
-  }
-  if (!pv.reaches) {                                   // не докатится: крестик в точке остановки
-    ctx.strokeStyle = 'rgba(255,255,255,.55)'; ctx.lineWidth = 1.4 * px;
-    const s = 9;
-    ctx.beginPath(); ctx.moveTo(ex - s, ey - s); ctx.lineTo(ex + s, ey + s); ctx.moveTo(ex + s, ey - s); ctx.lineTo(ex - s, ey + s); ctx.stroke();
-  } else if (hit.type === 'ball' || hit.type === 'cushion') {
-    ctx.fillStyle = 'rgba(255,255,255,.07)'; ctx.strokeStyle = 'rgba(255,255,255,.78)'; ctx.lineWidth = 1.4 * px;
-    ctx.beginPath(); ctx.arc(hit.x, hit.y, R, 0, Math.PI * 2); ctx.fill(); ctx.stroke();
-  } else if (hit.type === 'pocket') {
-    ctx.strokeStyle = RED; ctx.lineWidth = 2 * px;
-    ctx.beginPath(); ctx.arc(hit.pocket.hx, hit.pocket.hy, HOLE_R + 6, 0, Math.PI * 2); ctx.stroke();
-  }
+  const hit = pv.hit, full = trajMode === 'full' ? fullPreview() : null;
+  if (!full) pen.path(pv.path, { dash: [7, 6], width: 1.5, color: hit.type === 'pocket' ? AIM.RED : AIM.DIM, skip: R });
+  if (!pv.reaches) { if (!full) pen.cross(pv.stopX, pv.stopY, { color: AIM.DIM }); }
+  else if (hit.type === 'ball' || hit.type === 'cushion') pen.circle(hit.x, hit.y, R, { color: 'rgba(255,255,255,.78)', fill: 'rgba(255,255,255,.07)' });
+  else if (hit.type === 'pocket') pen.ring(hit.pocket, { color: AIM.RED });
+  if (full) { pen.alpha(full.stale ? 0.4 : 1); drawFullWith(pen, full); pen.alpha(1); return; }
   if (pv.reaches && hit.type === 'ball' && pv.obj) {
-    const o = hit.ball, full = Math.min(pv.obj.t, pv.objLen), len = Math.max(R, (pv.pot || fullTrajectory) ? full : Math.min(full, 430));
-    ctx.strokeStyle = pv.pot ? GREEN : WHITE; ctx.lineWidth = 2 * px;
-    ctx.beginPath(); ctx.moveTo(o.x + pv.odx * R, o.y + pv.ody * R); ctx.lineTo(o.x + pv.odx * len, o.y + pv.ody * len); ctx.stroke();
-    if (pv.objStops && len >= full - 1) {                // прицельный не докатится: отметка, где встанет
-      const sx = o.x + pv.odx * full, sy = o.y + pv.ody * full, s = 8;
-      ctx.lineWidth = 1.4 * px; ctx.strokeStyle = WHITE;
-      ctx.beginPath(); ctx.moveTo(sx - s, sy - s); ctx.lineTo(sx + s, sy + s); ctx.moveTo(sx + s, sy - s); ctx.lineTo(sx - s, sy + s); ctx.stroke();
-    }
-    if (pv.pot) {
-      const p = pv.obj.pocket;
-      ctx.strokeStyle = GREEN; ctx.lineWidth = 2 * px; ctx.shadowColor = 'rgba(81,245,139,.9)'; ctx.shadowBlur = 8 * dpr;
-      ctx.beginPath(); ctx.arc(p.hx, p.hy, HOLE_R + 6, 0, Math.PI * 2); ctx.stroke(); ctx.shadowBlur = 0;
-    }
-    const pts = pv.cue.pts;
-    if (pts.length > 1) {
-      ctx.setLineDash([2 * px, 5 * px]); ctx.lineWidth = 1.8 * px;
-      ctx.strokeStyle = pv.svoyak ? 'rgba(81,245,139,.8)' : 'rgba(255,255,255,.5)';
-      ctx.beginPath(); ctx.moveTo(pts[0][0], pts[0][1]); for (let i = 1; i < pts.length; i++) ctx.lineTo(pts[i][0], pts[i][1]); ctx.stroke();
-      ctx.setLineDash([]);
-    }
+    const o = hit.ball, fullLen = Math.min(pv.obj.t, pv.objLen), len = Math.max(R, pv.pot ? fullLen : Math.min(fullLen, 430));
+    pen.path([[o.x, o.y], [o.x + pv.odx * len, o.y + pv.ody * len]], { width: 2, color: pv.pot ? AIM.GREEN : AIM.WHITE, skip: R });
+    if (pv.objStops && len >= fullLen - 1) pen.cross(o.x + pv.odx * fullLen, o.y + pv.ody * fullLen, { color: AIM.WHITE });
+    if (pv.pot) pen.ring(pv.obj.pocket, { color: AIM.GREEN, glow: true });
+    if (pv.cue.pts.length > 1) pen.path(pv.cue.pts, { dash: [2, 5], width: 1.8, color: pv.svoyak ? 'rgba(81,245,139,.8)' : 'rgba(255,255,255,.5)' });
   } else if (pv.reaches && hit.type === 'cushion' && pv.refl) {
-    const len = fullTrajectory ? pv.refl.t : Math.min(pv.refl.t, 360);
-    ctx.setLineDash([2 * px, 5 * px]); ctx.lineWidth = 1.8 * px; ctx.strokeStyle = 'rgba(255,255,255,.5)';
-    ctx.beginPath(); ctx.moveTo(hit.x, hit.y); ctx.lineTo(hit.x + pv.rdx * len, hit.y + pv.rdy * len); ctx.stroke();
-    ctx.setLineDash([]);
+    const len = Math.min(pv.refl.t, 360);
+    pen.path([[hit.x, hit.y], [hit.x + pv.rdx * len, hit.y + pv.rdy * len]], { dash: [2, 5], width: 1.8, color: 'rgba(255,255,255,.5)' });
   }
-  ctx.restore();
 }
+// Полная траектория: биток — жёлтым пунктиром, сбитые шары — белым (дальние поколения бледнее),
+// упавшие в лузу — зелёным с кольцом лузы, место остановки — пунктирный кружок
+function drawFullWith(pen, full) {
+  for (const b of full.balls) {
+    if (b.gen > trajDepth) continue;
+    const cue = b.gen === 0;
+    const color = b.pocket ? (cue && !b.touched ? AIM.RED : AIM.GREEN) : (cue ? AIM.YEL : (b.gen === 1 ? 'rgba(255,255,255,.85)' : 'rgba(255,255,255,.5)'));
+    pen.path(b.pts, { dash: cue ? [7, 6] : null, width: cue ? 1.7 : 2, color, skip: R });
+    if (b.pocket) pen.ring(b.pocket, { color: cue && !b.touched ? AIM.RED : AIM.GREEN, glow: true });
+    else if (b.pts.length > 1) pen.circle(b.x, b.y, R, { color: cue ? 'rgba(255,214,10,.8)' : 'rgba(255,255,255,.6)', dash: [4, 4] });
+  }
+}
+function drawAim() { drawAimWith(pen2d); }
 
 // === КИЙ: наклейка в мелу, костяное кольцо, клёновое древко, соединение, турняк с «пиками», обмотка ===
 const CUE_L = 1460, CUE_W0 = 6.3, CUE_W1 = 15.5, CUE_LIFT = 150;   // длина, полутолщина у наклейки и у торца, подъём торца, мм
 function cueState() {
   const s = gameState.stroke;
-  if (s) return { x: s.x0, y: s.y0, ang: s.ang, gap: s.gap, alpha: s.alpha };
+  if (s) return { x: s.x0, y: s.y0, ang: s.ang, gap: s.gap, alpha: s.alpha, elev: s.elev, spin: s.spin };
   const b = gameState.selectedBall;
   if (!b || !b.active || gameState.ballsMoving || !canControl()) return null;
-  return { x: b.x, y: b.y, ang: gameState.aimAngle, gap: R + 12 + gameState.aimPower * 300, alpha: 1 };
+  return { x: b.x, y: b.y, ang: gameState.aimAngle, gap: R + 12 + gameState.aimPower * 300, alpha: 1, elev: gameState.elev, spin: gameState.spin };
 }
+// наклон кия для картинки: не меньше пары градусов (кий лежит на мостике руки)
+const cueElevVis = cs => Math.max(cs.elev || 0, 2 * Math.PI / 180);
+// смещение кия вбок к точке удара (боковой винт) — в мм
+const cueSide = cs => (cs.spin ? cs.spin.x : 0) * 0.5 * R;
 function cuePath(c, u0) {
   const wAt = u => CUE_W0 + (CUE_W1 - CUE_W0) * (u / CUE_L), L = CUE_L, w1 = CUE_W1;
   c.beginPath();
@@ -1699,12 +2020,13 @@ function cueSprite() {
 }
 // Тень кия от каждой лампы: кончик у шара, торец приподнят — тень расходится к торцу
 function drawCueShadow(cs) {
-  const ux = Math.cos(cs.ang), uy = Math.sin(cs.ang);
-  const tx = cs.x - ux * cs.gap, ty = cs.y - uy * cs.gap, bx = tx - ux * CUE_L, by = ty - uy * CUE_L;
+  const ux = Math.cos(cs.ang), uy = Math.sin(cs.ang), el = cueElevVis(cs), side = cueSide(cs), L = CUE_L * Math.cos(el);
+  const lift = Math.max(CUE_LIFT, CUE_L * Math.sin(el));
+  const tx = cs.x - ux * cs.gap - uy * side, ty = cs.y - uy * cs.gap + ux * side, bx = tx - ux * L, by = ty - uy * L;
   const proj = (x, y, h, L) => { const k = h / (LAMP_H - h); return [x + (x - L.x) * k, y + (y - L.y) * k, LAMP_H / (LAMP_H - h)]; };
   ctx.save();
   for (const L of LAMPS) {
-    const T = proj(tx, ty, R, L), B = proj(bx, by, R + CUE_LIFT, L);
+    const T = proj(tx, ty, R, L), B = proj(bx, by, R + lift, L);
     let dx = B[0] - T[0], dy = B[1] - T[1]; const d = Math.sqrt(dx * dx + dy * dy) || 1; dx /= d; dy /= d;
     const px = -dy, py = dx, w0 = CUE_W0 * T[2] + 2, w1 = CUE_W1 * B[2] + 6;
     ctx.globalAlpha = 0.16 * cs.alpha * lampLight(L, (tx + bx) / 2, (ty + by) / 2); ctx.fillStyle = '#000';
@@ -1717,17 +2039,18 @@ function drawCue(cs) {
   const spr = cueSprite();
   ctx.save();
   ctx.globalAlpha = cs.alpha;
-  const ux = Math.cos(cs.ang), uy = Math.sin(cs.ang);
-  ctx.translate(cs.x - ux * cs.gap, cs.y - uy * cs.gap);
+  const ux = Math.cos(cs.ang), uy = Math.sin(cs.ang), side = cueSide(cs);
+  ctx.translate(cs.x - ux * cs.gap - uy * side, cs.y - uy * cs.gap + ux * side);
   ctx.rotate(cs.ang + Math.PI);                        // ось +X — от шара к торцу
+  ctx.scale(Math.cos(cueElevVis(cs)), 1);              // наклонённый кий сверху выглядит короче
   ctx.drawImage(spr.cv, -spr.pad / spr.k, -spr.hpx / 2 / spr.k, spr.wpx / spr.k, spr.hpx / spr.k);
   ctx.restore();
 }
 
 // Анимация удара кием: разгон к шару → касание (onHit) → проводка и исчезновение
-function beginStroke(ball, ang, power, onHit) {
+function beginStroke(ball, ang, power, onHit, elev, spin) {
   gameState.stroke = { ball, ang, power, onHit, x0: ball.x, y0: ball.y, gap0: R + 12 + power * 300, gap: R + 12 + power * 300,
-                       alpha: 1, t: 0, hit: false };
+                       alpha: 1, t: 0, hit: false, elev: elev || 0, spin: spin ? { x: spin.x, y: spin.y } : { x: 0, y: 0 } };
 }
 function updateStroke(dt) {
   const s = gameState.stroke; if (!s) return;
@@ -1781,8 +2104,689 @@ function loop(ts) {
     if (gameState.ballsMoving && !moving && falling.length === 0) { gameState.ballsMoving = false; ballsVersion++; onTurnEnd(); }
     else if (moving && !replaying) setStatus('Шары катятся…');
   }
-  render();
+  updateShootBtn();
+  if (view3d) V3.render(dt); else render();
 }
+
+// === 3D-ВИД (WebGL 1, без библиотек) ===
+// Тот же стол и та же физика. Сукно, дерево, метки и лузы — текстура из 2D-слоя стола (вид сверху);
+// поверх — объёмные борта и резина. Шары — сферы, освещённые тремя лампами, с номерами
+// (проекция наклейки на касательную плоскость, катятся вместе с шаром); тени — мягкие пятна;
+// кий — конус с наклоном и точкой удара. Камера: из-за битка по линии прицела; во время удара —
+// обзор всего стола. Протянуть по столу — поворот прицела (влево/вправо) и высота камеры (вверх/вниз),
+// тап по шару — выбрать биток, тап по сукну — прицел в эту точку, колесо/щипок — приближение.
+const V3 = (() => {
+  let gl = null, ok = null, glc = null, ovc = null, oc = null, aniso = null, lost = false, bound = false;
+  let progMesh, progBall, progBlob, progCue;
+  let texTable = null, texTableKey = '', texAtlas = null, texShadow = null, texCue = null, texFloor = null;
+  let tableBuf = null, tableTexCount = 0, tableColCount = 0, sphere = null, cueMesh = null, blobBuf = null, floorBuf = null;
+  let cssW = 0, cssH = 0, shown = false;
+  const H_RAIL = 46, H_NOSE = 0.64 * 2 * R, APRON = 230, FLOOR = 800, ROOM = 6500;   // мм: рама, царга, пол
+  // камера из-за битка: своя высота и дальность для портретного и альбомного экрана (их меняет игрок)
+  const cam = { eye: null, tgt: null, over: false, userOver: false,
+                port: { pitch: 0.8, dist: 1900 }, land: { pitch: 0.5, dist: 1500 } };
+  const camSet = () => cssW < cssH ? cam.port : cam.land;
+  let FOV = 0.92;                                              // в портрете шире: виден весь стол поперёк
+  const VIEW = new Float32Array(16), PROJ = new Float32Array(16), VP = new Float32Array(16);
+  let camF = [1, 0, 0], camS = [0, 1, 0], camU = [0, 0, -1], camEye = [0, 0, 0];
+
+  // ---- матрицы (по столбцам) ----
+  function persp(out, fovy, aspect, near, far) {
+    const f = 1 / Math.tan(fovy / 2), nf = 1 / (near - far);
+    out.fill(0); out[0] = f / aspect; out[5] = f; out[10] = (far + near) * nf; out[11] = -1; out[14] = 2 * far * near * nf;
+  }
+  function lookAt(out, e, t) {
+    let fx = t[0] - e[0], fy = t[1] - e[1], fz = t[2] - e[2], l = Math.hypot(fx, fy, fz); fx /= l; fy /= l; fz /= l;
+    const up = [0, 0, -1];                                     // ось z направлена вниз, в сукно
+    let sx = fy * up[2] - fz * up[1], sy = fz * up[0] - fx * up[2], sz = fx * up[1] - fy * up[0];
+    l = Math.hypot(sx, sy, sz) || 1; sx /= l; sy /= l; sz /= l;
+    const ux = sy * fz - sz * fy, uy = sz * fx - sx * fz, uz = sx * fy - sy * fx;
+    out[0] = sx; out[1] = ux; out[2] = -fx; out[3] = 0; out[4] = sy; out[5] = uy; out[6] = -fy; out[7] = 0;
+    out[8] = sz; out[9] = uz; out[10] = -fz; out[11] = 0;
+    out[12] = -(sx * e[0] + sy * e[1] + sz * e[2]); out[13] = -(ux * e[0] + uy * e[1] + uz * e[2]); out[14] = fx * e[0] + fy * e[1] + fz * e[2]; out[15] = 1;
+    camF = [fx, fy, fz]; camS = [sx, sy, sz]; camU = [ux, uy, uz]; camEye = e.slice();
+  }
+  function mul(out, a, b) {
+    for (let i = 0; i < 4; i++) for (let j = 0; j < 4; j++) {
+      let s = 0; for (let k = 0; k < 4; k++) s += a[k * 4 + j] * b[i * 4 + k];
+      out[i * 4 + j] = s;
+    }
+  }
+  // точка мира → экран (CSS px) и глубина w; null — за камерой
+  function project(x, y, z) {
+    const m = VP, w = m[3] * x + m[7] * y + m[11] * z + m[15];
+    if (w < 8) return null;
+    const cx = m[0] * x + m[4] * y + m[8] * z + m[12], cy = m[1] * x + m[5] * y + m[9] * z + m[13];
+    return [(cx / w * 0.5 + 0.5) * cssW, (0.5 - cy / w * 0.5) * cssH, w];
+  }
+  // луч из камеры через точку экрана
+  function ray(px, py) {
+    const t = Math.tan(FOV / 2), nx = (px / cssW) * 2 - 1, ny = 1 - (py / cssH) * 2, a = cssW / cssH;
+    let dx = camF[0] + camS[0] * nx * t * a + camU[0] * ny * t, dy = camF[1] + camS[1] * nx * t * a + camU[1] * ny * t,
+        dz = camF[2] + camS[2] * nx * t * a + camU[2] * ny * t;
+    const l = Math.hypot(dx, dy, dz); return [camEye, [dx / l, dy / l, dz / l]];
+  }
+
+  // ---- шейдеры ----
+  const VS_MESH = `attribute vec3 aP; attribute vec3 aN; attribute vec2 aT; uniform mat4 uVP;
+    varying vec2 vT; varying vec3 vN; void main(){ vT = aT; vN = aN; gl_Position = uVP * vec4(aP, 1.0); }`;
+  const FS_MESH = `precision mediump float; uniform sampler2D uTex; uniform float uUseTex; uniform vec3 uColor;
+    varying vec2 vT; varying vec3 vN;
+    void main(){
+      vec3 base = uUseTex > 0.5 ? texture2D(uTex, vT).rgb : uColor;
+      vec3 n = normalize(vN); float up = clamp(-n.z, 0.0, 1.0);
+      float side = clamp(dot(n, normalize(vec3(-0.35, -0.55, -0.75))), 0.0, 1.0);
+      float lit = mix(0.5 + 0.35 * side, 1.0, smoothstep(0.55, 0.95, up));
+      gl_FragColor = vec4(base * lit, 1.0);
+    }`;
+  const VS_BALL = `attribute vec3 aP; uniform mat4 uVP; uniform mat3 uRot; uniform vec3 uPos; uniform float uRad;
+    varying vec3 vL; varying vec3 vN; varying vec3 vW;
+    void main(){ vL = aP; vN = uRot * aP; vW = uPos + vN * uRad; gl_Position = uVP * vec4(vW, 1.0); }`;
+  const FS_BALL = `precision mediump float;
+    uniform vec3 uEye; uniform vec3 uL0; uniform vec3 uL1; uniform vec3 uL2; uniform vec3 uLW;
+    uniform vec3 uBase; uniform vec3 uCloth; uniform sampler2D uAtlas; uniform vec4 uCell; uniform float uCue; uniform float uDark;
+    varying vec3 vL; varying vec3 vN; varying vec3 vW;
+    vec2 lamp(vec3 p, vec3 n, vec3 v){ vec3 l = normalize(p - vW); vec3 h = normalize(l + v);
+      return vec2(max(dot(n, l), 0.0), pow(max(dot(n, h), 0.0), 140.0)); }
+    void main(){
+      vec3 n = normalize(vN), v = normalize(uEye - vW), loc = normalize(vL), col = uBase;
+      if (uCue > 0.5) {
+        float az = abs(loc.z);
+        if (az > 0.9) { float d = length(loc.xy / az); col = mix(col, vec3(0.77, 0.09, 0.11), 1.0 - smoothstep(0.15, 0.185, d)); }
+      } else if (uCell.z > 0.0) {
+        float ax = abs(loc.x);
+        if (ax > 0.45) {
+          vec2 uv = vec2(loc.y / loc.x, -loc.z / ax) / 1.2 + 0.5;
+          if (uv.x > 0.0 && uv.x < 1.0 && uv.y > 0.0 && uv.y < 1.0) { vec4 d = texture2D(uAtlas, uCell.xy + uv * uCell.zw); col = mix(col, d.rgb, d.a); }
+        }
+      }
+      vec2 a = lamp(uL0, n, v) * uLW.x + lamp(uL1, n, v) * uLW.y + lamp(uL2, n, v) * uLW.z;
+      float up = clamp(-n.z, 0.0, 1.0);
+      vec3 amb = mix(uCloth * 0.95, vec3(0.40), 0.25 + 0.75 * up);
+      float fres = pow(1.0 - max(dot(n, v), 0.0), 3.0);
+      vec3 c = col * (amb * 0.55 + a.x * 0.8) + vec3(a.y) * 0.9 + vec3(0.08, 0.09, 0.12) * fres;
+      gl_FragColor = vec4(c * (1.0 - uDark), 1.0);
+    }`;
+  const VS_BLOB = `attribute vec3 aP; attribute vec2 aT; attribute float aA; uniform mat4 uVP;
+    varying vec2 vT; varying float vA; void main(){ vT = aT; vA = aA; gl_Position = uVP * vec4(aP, 1.0); }`;
+  const FS_BLOB = `precision mediump float; uniform sampler2D uTex; varying vec2 vT; varying float vA;
+    void main(){ gl_FragColor = vec4(0.0, 0.0, 0.0, texture2D(uTex, vT).a * vA); }`;
+  const VS_CUE = `attribute vec3 aP; attribute vec3 aN; attribute vec2 aT; uniform mat4 uVP; uniform mat4 uM; uniform mat3 uR;
+    varying vec2 vT; varying vec3 vN; varying vec3 vW;
+    void main(){ vT = aT; vN = uR * aN; vec4 w = uM * vec4(aP, 1.0); vW = w.xyz; gl_Position = uVP * w; }`;
+  const FS_CUE = `precision mediump float; uniform sampler2D uTex; uniform vec3 uEye; uniform vec3 uLamp; uniform float uAlpha;
+    varying vec2 vT; varying vec3 vN; varying vec3 vW;
+    void main(){
+      vec3 base = texture2D(uTex, vec2(vT.x, 0.5)).rgb;
+      vec3 n = normalize(vN), l = normalize(uLamp - vW), v = normalize(uEye - vW), h = normalize(l + v);
+      float d = max(dot(n, l), 0.0), s = pow(max(dot(n, h), 0.0), 50.0);
+      gl_FragColor = vec4(base * (0.38 + 0.72 * d) + vec3(0.3) * s, uAlpha);
+    }`;
+  function program(vs, fs) {
+    const mk = (type, src) => { const s = gl.createShader(type); gl.shaderSource(s, src); gl.compileShader(s);
+      if (!gl.getShaderParameter(s, gl.COMPILE_STATUS)) throw new Error(gl.getShaderInfoLog(s)); return s; };
+    const p = gl.createProgram(); gl.attachShader(p, mk(gl.VERTEX_SHADER, vs)); gl.attachShader(p, mk(gl.FRAGMENT_SHADER, fs)); gl.linkProgram(p);
+    if (!gl.getProgramParameter(p, gl.LINK_STATUS)) throw new Error(gl.getProgramInfoLog(p));
+    const n = gl.getProgramParameter(p, gl.ACTIVE_UNIFORMS), u = {}, a = {};
+    for (let i = 0; i < n; i++) { const info = gl.getActiveUniform(p, i); u[info.name] = gl.getUniformLocation(p, info.name); }
+    const na = gl.getProgramParameter(p, gl.ACTIVE_ATTRIBUTES);
+    for (let i = 0; i < na; i++) { const info = gl.getActiveAttrib(p, i); a[info.name] = gl.getAttribLocation(p, info.name); }
+    return { p, u, a };
+  }
+  function texture(src, mip) {
+    const t = gl.createTexture(); gl.bindTexture(gl.TEXTURE_2D, t);
+    gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, src);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE); gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
+    if (mip) { gl.generateMipmap(gl.TEXTURE_2D); gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR_MIPMAP_LINEAR); }
+    else gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
+    if (mip && aniso) gl.texParameterf(gl.TEXTURE_2D, aniso.TEXTURE_MAX_ANISOTROPY_EXT, Math.min(8, gl.getParameter(aniso.MAX_TEXTURE_MAX_ANISOTROPY_EXT)));
+    return t;
+  }
+
+  // ---- текстуры ----
+  function tableTexture() {                                    // 2D-слой стола (вид сверху) → текстура 2048×1024
+    const key = String(currentThemeIndex);
+    if (texTable && texTableKey === key) return;
+    const c = document.createElement('canvas'); c.width = 2048; c.height = 1024;
+    const g = c.getContext('2d');
+    g.fillStyle = '#2a0e05'; g.fillRect(0, 0, 2048, 1024);
+    g.setTransform(2048 / FULL_W, 0, 0, 1024 / FULL_H, 0, 0); g.translate(RAIL_W, RAIL_W);
+    drawStaticTable(g);
+    if (texTable) gl.deleteTexture(texTable);
+    texTable = texture(c, true); texTableKey = key;
+  }
+  function atlasTexture() {                                    // номера 1…15 в сетке 4×4 (ячейки 128 px)
+    const c = document.createElement('canvas'); c.width = c.height = 512;
+    const g = c.getContext('2d'), fs = 128 / 1.5;
+    g.fillStyle = '#18120b'; g.textAlign = 'center'; g.textBaseline = 'middle';
+    g.font = `700 ${fs}px Rubik, Arial, sans-serif`;
+    for (let n = 1; n <= 15; n++) {
+      const cx = (n % 4) * 128 + 64, cy = Math.floor(n / 4) * 128 + 64;
+      g.fillText(String(n), cx, cy + fs * 0.04);
+      if (n === 6 || n === 9) g.fillRect(cx - fs * 0.24, cy + fs * 0.45, fs * 0.48, fs * 0.08);
+    }
+    if (texAtlas) gl.deleteTexture(texAtlas);
+    texAtlas = texture(c, true);
+  }
+  // пол: тёмный паркет, светлое пятно от ламп и тень стола; к краям уходит в цвет фона
+  function floorTexture() {
+    const N = 1024, c = document.createElement('canvas'); c.width = c.height = N;
+    const g = c.getContext('2d'), k = N / (2 * ROOM);           // px на мм
+    let seed = 7; const rnd = () => ((seed = (seed * 16807) % 2147483647) / 2147483647);
+    g.fillStyle = '#20150e'; g.fillRect(0, 0, N, N);
+    const PW = 150 * k;                                          // доски вдоль стола
+    for (let y = 0; y < N; y += PW) {
+      let x = -rnd() * 160;
+      while (x < N) {
+        const len = (1300 + rnd() * 900) * k, t = rnd();
+        g.fillStyle = `rgb(${46 + t * 18 | 0},${30 + t * 12 | 0},${20 + t * 8 | 0})`;
+        g.fillRect(x, y, len - 1, PW - 1); x += len;
+      }
+    }
+    g.globalCompositeOperation = 'multiply';                    // свет ламп над столом
+    g.save(); g.translate(N / 2, N / 2); g.scale(1.45, 1);
+    let gr = g.createRadialGradient(0, 0, 0, 0, 0, N * 0.36);
+    gr.addColorStop(0, '#ffffff'); gr.addColorStop(0.45, '#c9c2bb'); gr.addColorStop(1, '#262626');
+    g.fillStyle = gr; g.fillRect(-N, -N, 2 * N, 2 * N); g.restore();
+    g.globalCompositeOperation = 'source-over';
+    const tw = FULL_W * k, th = FULL_H * k;                     // тень стола (свет сверху), размытая
+    g.save(); g.shadowColor = 'rgba(0,0,0,0.85)'; g.shadowBlur = 26 * k * 10; g.shadowOffsetX = 4 * N;
+    g.fillStyle = '#000'; g.fillRect(N / 2 - tw * 0.47 - 4 * N, N / 2 - th * 0.45, tw * 0.94, th * 0.9); g.restore();
+    gr = g.createRadialGradient(N / 2, N / 2, N * 0.3, N / 2, N / 2, N * 0.5);   // край пола = фон
+    gr.addColorStop(0, 'rgba(14,15,23,0)'); gr.addColorStop(1, 'rgba(14,15,23,1)');
+    g.fillStyle = gr; g.fillRect(0, 0, N, N);
+    g.fillStyle = 'rgb(14,15,23)';                              // углы квадрата за кругом
+    g.beginPath(); g.rect(0, 0, N, N); g.arc(N / 2, N / 2, N * 0.5, 0, Math.PI * 2, true); g.fill();
+    texFloor = texture(c, true);
+  }
+  function cueTexture() {                                      // цвета кия вдоль длины (как у 2D-спрайта, без теней)
+    const c = document.createElement('canvas'); c.width = 512; c.height = 4;
+    const g = c.getContext('2d'), L = CUE_L, f = u => u / L, gr = g.createLinearGradient(0, 0, 512, 0);
+    [[0, '#4f7fb3'], [f(8), '#4a6f9c'], [f(8.5), '#f4efe3'], [f(29), '#e8e1d0'], [f(30), '#efdaa8'], [f(520), '#e3c690'], [f(735), '#d4b179'],
+     [f(736), '#dfe3e8'], [f(748), '#8d939b'], [f(749), '#4d1d0b'], [f(1060), '#3a1407'], [f(1061), '#171515'], [f(1300), '#1e1b1a'],
+     [f(1301), '#d0a94e'], [f(1308), '#b8902f'], [f(1309), '#401809'], [f(1450), '#2b1006'], [f(1451), '#0f0f0f'], [1, '#0f0f0f']]
+      .forEach(([o, col]) => gr.addColorStop(o, col));
+    g.fillStyle = gr; g.fillRect(0, 0, 512, 4);
+    texCue = texture(c, false);
+  }
+
+  // ---- геометрия стола: плоскость с текстурой, рама «на ус» с закруглёнными углами, резина с наклонным верхом ----
+  function buildTableMesh() {
+    const tex = [], col = [];
+    const uv = (x, y) => [(x + RAIL_W) / FULL_W, (y + RAIL_W) / FULL_H];
+    const v = (arr, x, y, z, nx, ny, nz, t) => { const q = t || uv(x, y); arr.push(x, y, z, nx, ny, nz, q[0], q[1]); };
+    const tri = (arr, a, b, c) => { v(arr, ...a); v(arr, ...b); v(arr, ...c); };
+    const W = TABLE_W, Hh = TABLE_H, RW = RAIL_W, CW = CUSHION_W;
+    // плоскость сукна (под всем столом)
+    const P = [[-RW, -RW], [W + RW, -RW], [W + RW, Hh + RW], [-RW, Hh + RW]];
+    tri(tex, [P[0][0], P[0][1], 0, 0, 0, -1], [P[1][0], P[1][1], 0, 0, 0, -1], [P[2][0], P[2][1], 0, 0, 0, -1]);
+    tri(tex, [P[0][0], P[0][1], 0, 0, 0, -1], [P[2][0], P[2][1], 0, 0, 0, -1], [P[3][0], P[3][1], 0, 0, 0, -1]);
+    // рама: внешний контур — прямоугольник со скруглёнными углами (как в 2D), внутренний — линия дерева
+    const rr = 64, outer = [], corners = [[-CW, -CW, -RW + rr, -RW + rr, Math.PI], [W + CW, -CW, W + RW - rr, -RW + rr, -Math.PI / 2],
+      [W + CW, Hh + CW, W + RW - rr, Hh + RW - rr, 0], [-CW, Hh + CW, -RW + rr, Hh + RW - rr, Math.PI / 2]];
+    const zt = -H_RAIL;
+    corners.forEach(([ix, iy, ox, oy, a0], k) => {
+      const pts = [];
+      for (let i = 0; i <= 6; i++) { const a = a0 + (Math.PI / 2) * i / 6; pts.push([ox + Math.cos(a) * rr, oy + Math.sin(a) * rr]); }
+      for (let i = 0; i < 6; i++) tri(tex, [ix, iy, zt, 0, 0, -1], [pts[i][0], pts[i][1], zt, 0, 0, -1], [pts[i + 1][0], pts[i + 1][1], zt, 0, 0, -1]);
+      outer.push({ inner: [ix, iy], pts });
+    });
+    for (let k = 0; k < 4; k++) {                              // прямые участки рамы между углами
+      const a = outer[k], b = outer[(k + 1) % 4], o1 = a.pts[6], o2 = b.pts[0];
+      tri(tex, [a.inner[0], a.inner[1], zt, 0, 0, -1], [o1[0], o1[1], zt, 0, 0, -1], [o2[0], o2[1], zt, 0, 0, -1]);
+      tri(tex, [a.inner[0], a.inner[1], zt, 0, 0, -1], [o2[0], o2[1], zt, 0, 0, -1], [b.inner[0], b.inner[1], zt, 0, 0, -1]);
+    }
+    // наружные стенки рамы (корпус стола) — сплошным цветом
+    const ring = []; outer.forEach(o => o.pts.forEach(p => ring.push(p)));
+    for (let i = 0; i < ring.length; i++) {
+      const a = ring[i], b = ring[(i + 1) % ring.length];
+      let nx = b[1] - a[1], ny = -(b[0] - a[0]); const l = Math.hypot(nx, ny) || 1; nx /= l; ny /= l;
+      tri(col, [a[0], a[1], zt, nx, ny, 0], [b[0], b[1], zt, nx, ny, 0], [b[0], b[1], APRON, nx, ny, 0]);
+      tri(col, [a[0], a[1], zt, nx, ny, 0], [b[0], b[1], APRON, nx, ny, 0], [a[0], a[1], APRON, nx, ny, 0]);
+    }
+    // резина: верх от носа (высота носа) к дереву (высота рамы), передние грани до сукна
+    for (const sec of cushionSections) {
+      const { pts, nose0 } = cushionPolygon(sec), n = sec.n;
+      const hz = p => { const dn = (p[0] - nose0[0]) * n[0] + (p[1] - nose0[1]) * n[1]; const k = Math.max(0, Math.min(1, -dn / CW));
+        return -(H_NOSE + (H_RAIL - H_NOSE) * k); };
+      for (let i = 1; i < pts.length - 1; i++) {
+        const a = pts[0], b = pts[i], c = pts[i + 1];
+        tri(tex, [a[0], a[1], hz(a), 0, 0, -1], [b[0], b[1], hz(b), 0, 0, -1], [c[0], c[1], hz(c), 0, 0, -1]);
+      }
+      let area = 0; for (let i = 0; i < pts.length; i++) { const p = pts[i], q = pts[(i + 1) % pts.length]; area += p[0] * q[1] - q[0] * p[1]; }
+      const sgn = area > 0 ? 1 : -1;
+      for (let i = 0; i < pts.length; i++) {
+        const a = pts[i], b = pts[(i + 1) % pts.length];
+        const da = -((a[0] - nose0[0]) * n[0] + (a[1] - nose0[1]) * n[1]), db = -((b[0] - nose0[0]) * n[0] + (b[1] - nose0[1]) * n[1]);
+        if (da > CW - 0.5 && db > CW - 0.5) continue;          // грань по линии дерева закрыта рамой
+        let nx = (b[1] - a[1]) * sgn, ny = -(b[0] - a[0]) * sgn; const l = Math.hypot(nx, ny); if (l < 1e-6) continue; nx /= l; ny /= l;
+        const ta = uv(a[0], a[1]), tb = uv(b[0], b[1]);
+        tri(tex, [a[0], a[1], hz(a), nx, ny, 0, ta], [b[0], b[1], hz(b), nx, ny, 0, tb], [b[0], b[1], 0, nx, ny, 0, tb]);
+        tri(tex, [a[0], a[1], hz(a), nx, ny, 0, ta], [b[0], b[1], 0, nx, ny, 0, tb], [a[0], a[1], 0, nx, ny, 0, ta]);
+      }
+    }
+    // ножки: шесть четырёхгранных, сужаются к полу
+    const leg = (cx, cy) => {
+      const t = 80, b = 56, ring0 = [[-t, -t], [t, -t], [t, t], [-t, t]], ring1 = [[-b, -b], [b, -b], [b, b], [-b, b]];
+      for (let i = 0; i < 4; i++) {
+        const j = (i + 1) % 4, a0 = ring0[i], a1 = ring0[j], b0 = ring1[i], b1 = ring1[j];
+        const mx = (a0[0] + a1[0]) / 2, my = (a0[1] + a1[1]) / 2, l = Math.hypot(mx, my), nx = mx / l, ny = my / l;
+        tri(col, [cx + a0[0], cy + a0[1], APRON, nx, ny, 0], [cx + a1[0], cy + a1[1], APRON, nx, ny, 0], [cx + b1[0], cy + b1[1], FLOOR, nx, ny, 0]);
+        tri(col, [cx + a0[0], cy + a0[1], APRON, nx, ny, 0], [cx + b1[0], cy + b1[1], FLOOR, nx, ny, 0], [cx + b0[0], cy + b0[1], FLOOR, nx, ny, 0]);
+      }
+    };
+    const li = 110;
+    [[-RW + li, -RW + li], [W / 2, -RW + li], [W + RW - li, -RW + li], [-RW + li, Hh + RW - li], [W / 2, Hh + RW - li], [W + RW - li, Hh + RW - li]]
+      .forEach(([x, y]) => leg(x, y));
+    const all = new Float32Array(tex.concat(col));
+    tableBuf = gl.createBuffer(); gl.bindBuffer(gl.ARRAY_BUFFER, tableBuf); gl.bufferData(gl.ARRAY_BUFFER, all, gl.STATIC_DRAW);
+    tableTexCount = tex.length / 8; tableColCount = col.length / 8;
+  }
+  function buildFloor() {
+    const x0 = TABLE_W / 2 - ROOM, x1 = TABLE_W / 2 + ROOM, y0 = TABLE_H / 2 - ROOM, y1 = TABLE_H / 2 + ROOM, z = FLOOR;
+    const d = [x0, y0, z, 0, 0, -1, 0, 0, x1, y0, z, 0, 0, -1, 1, 0, x1, y1, z, 0, 0, -1, 1, 1,
+               x0, y0, z, 0, 0, -1, 0, 0, x1, y1, z, 0, 0, -1, 1, 1, x0, y1, z, 0, 0, -1, 0, 1];
+    floorBuf = gl.createBuffer(); gl.bindBuffer(gl.ARRAY_BUFFER, floorBuf); gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(d), gl.STATIC_DRAW);
+  }
+  function buildSphere() {
+    const pos = [], idx = [], LAT = 20, LON = 32;
+    for (let i = 0; i <= LAT; i++) {
+      const th = Math.PI * i / LAT;
+      for (let j = 0; j <= LON; j++) { const ph = 2 * Math.PI * j / LON; pos.push(Math.sin(th) * Math.cos(ph), Math.sin(th) * Math.sin(ph), Math.cos(th)); }
+    }
+    for (let i = 0; i < LAT; i++) for (let j = 0; j < LON; j++) {
+      const a = i * (LON + 1) + j, b = a + LON + 1;
+      idx.push(a, b, a + 1, a + 1, b, b + 1);
+    }
+    const vb = gl.createBuffer(); gl.bindBuffer(gl.ARRAY_BUFFER, vb); gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(pos), gl.STATIC_DRAW);
+    const ib = gl.createBuffer(); gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, ib); gl.bufferData(gl.ELEMENT_ARRAY_BUFFER, new Uint16Array(idx), gl.STATIC_DRAW);
+    sphere = { vb, ib, n: idx.length };
+  }
+  function buildCue() {                                        // конус вдоль +X: 0 — наклейка, CUE_L — торец
+    const d = [], SEG = 18, r0 = CUE_W0, r1 = CUE_W1, L = CUE_L, k = (r1 - r0) / L;
+    const nl = 1 / Math.sqrt(1 + k * k);
+    for (let i = 0; i < SEG; i++) {
+      const a0 = 2 * Math.PI * i / SEG, a1 = 2 * Math.PI * (i + 1) / SEG;
+      const ring = (a, r, x) => [x, Math.cos(a) * r, Math.sin(a) * r];
+      const nrm = a => [-k * nl, Math.cos(a) * nl, Math.sin(a) * nl];
+      const p = [ring(a0, r0, 0), ring(a1, r0, 0), ring(a1, r1, L), ring(a0, r1, L)], nn = [nrm(a0), nrm(a1), nrm(a1), nrm(a0)], u = [0, 0, 1, 1];
+      [[0, 1, 2], [0, 2, 3]].forEach(t => t.forEach(j => d.push(...p[j], ...nn[j], u[j], 0.5)));
+      d.push(0, 0, 0, -1, 0, 0, 0.004, 0.5, ...ring(a0, r0, 0), -1, 0, 0, 0.004, 0.5, ...ring(a1, r0, 0), -1, 0, 0, 0.004, 0.5);   // наклейка
+      d.push(L, 0, 0, 1, 0, 0, 0.999, 0.5, ...ring(a1, r1, L), 1, 0, 0, 0.999, 0.5, ...ring(a0, r1, L), 1, 0, 0, 0.999, 0.5);   // торец
+    }
+    cueMesh = { b: gl.createBuffer(), n: d.length / 8 };
+    gl.bindBuffer(gl.ARRAY_BUFFER, cueMesh.b); gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(d), gl.STATIC_DRAW);
+  }
+
+  // ---- инициализация ----
+  // контекст WebGL может пропасть (свернули вкладку, сброс видеодрайвера): ждём восстановления
+  // и создаём шейдеры, буферы и текстуры заново
+  function init() {
+    if (ok !== null) return ok;
+    if (lost) return false;
+    try {
+      if (!glc) {
+        glc = $('gl-canvas'); ovc = $('ov-canvas'); oc = ovc.getContext('2d');
+        glc.addEventListener('webglcontextlost', e => { e.preventDefault(); lost = true; ok = null; });
+        glc.addEventListener('webglcontextrestored', () => { lost = false; ok = null; texTable = texAtlas = null; texTableKey = ''; });
+      }
+      gl = glc.getContext('webgl', { antialias: true, alpha: false }) || glc.getContext('experimental-webgl', { antialias: true, alpha: false });
+      if (!gl) return (ok = false);
+      aniso = gl.getExtension('EXT_texture_filter_anisotropic') || gl.getExtension('WEBKIT_EXT_texture_filter_anisotropic');
+      progMesh = program(VS_MESH, FS_MESH); progBall = program(VS_BALL, FS_BALL);
+      progBlob = program(VS_BLOB, FS_BLOB); progCue = program(VS_CUE, FS_CUE);
+      makeFxSprites();
+      texShadow = texture(shSprite, true); atlasTexture(); cueTexture(); floorTexture();
+      buildTableMesh(); buildFloor(); buildSphere(); buildCue();
+      blobBuf = gl.createBuffer(); texTable = null; texTableKey = '';
+      if (!bound) {
+        bound = true; bindInput();
+        if (document.fonts && document.fonts.ready) document.fonts.ready.then(() => { if (ok && !lost) atlasTexture(); });
+      }
+      return (ok = true);
+    } catch (e) {
+      console.warn('3D недоступен:', e && e.message);
+      return (ok = false);
+    }
+  }
+
+  // ---- камера ----
+  // обзор: со стороны «дома» (портрет) или длинного борта; расстояние подбирается так,
+  // чтобы весь стол с рамой поместился в кадр (пересчёт только при смене размера)
+  let overFit = { key: '', pose: null };
+  function overPose() {
+    const key = cssW + 'x' + cssH;
+    if (overFit.key === key) return overFit.pose;
+    const port = cssW < cssH, el = port ? 1.08 : 0.9, dir = port ? [-1, 0] : [0, 1], fov = port ? 1.12 : 0.92;
+    const pts = [];
+    for (const x of [-RAIL_W, TABLE_W + RAIL_W]) for (const y of [-RAIL_W, TABLE_H + RAIL_W]) pts.push([x, y, -H_RAIL], [x, y, APRON]);
+    const V = new Float32Array(16), P = new Float32Array(16), M = new Float32Array(16);
+    persp(P, fov, cssW / Math.max(1, cssH), 20, 14000);
+    const eyeAt = (t, d) => [t[0] + dir[0] * d * Math.cos(el), t[1] + dir[1] * d * Math.cos(el), -d * Math.sin(el)];
+    const ndc = (t, d) => {                                    // углы стола на экране (−1…1) при такой камере
+      lookAt(V, eyeAt(t, d), t); mul(M, P, V);
+      return pts.map(p => { const w = M[3] * p[0] + M[7] * p[1] + M[11] * p[2] + M[15];
+        return w < 10 ? null : [(M[0] * p[0] + M[4] * p[1] + M[8] * p[2] + M[12]) / w, (M[1] * p[0] + M[5] * p[1] + M[9] * p[2] + M[13]) / w]; });
+    };
+    const fits = (t, d) => ndc(t, d).every(q => q && Math.abs(q[0]) <= 0.95 && Math.abs(q[1]) <= 0.9);
+    let shift = 0, tgt = null, d = 0;
+    for (let it = 0; it < 3; it++) {                           // подобрать дальность, затем сдвинуть точку взгляда,
+      tgt = [TABLE_W / 2 + dir[0] * shift, TABLE_H / 2 + dir[1] * shift, 0];   // чтобы стол стоял по центру кадра
+      let lo = 1000, hi = 14000;
+      for (let i = 0; i < 24; i++) { const m = (lo + hi) / 2; if (fits(tgt, m)) hi = m; else lo = m; }
+      d = hi;
+      const ys = ndc(tgt, d).map(q => q[1]), c = (Math.min(...ys) + Math.max(...ys)) / 2;
+      shift -= c * d * Math.tan(fov / 2) / Math.sin(el);
+    }
+    overFit = { key, pose: [eyeAt(tgt, d), tgt] };
+    return overFit.pose;
+  }
+  // из-за битка по линии прицела; точка взгляда подбирается так, чтобы дальний борт был у верхнего
+  // края кадра, а биток с кием — в нижней половине (меньше пустоты над столом)
+  function aimPose() {
+    const cs = cueState(), b = gameState.selectedBall;
+    const x = cs ? cs.x : (b ? b.x : TABLE_W / 2), y = cs ? cs.y : (b ? b.y : TABLE_H / 2);
+    const a = cs ? cs.ang : gameState.aimAngle, dx = Math.cos(a), dy = Math.sin(a), c = camSet();
+    const Lc = c.dist * Math.cos(c.pitch), Hc = c.dist * Math.sin(c.pitch);
+    const eye = [x - dx * Lc, y - dy * Lc, -R - Hc];
+    let far = Infinity;                                          // до внешнего края рамы по линии прицела
+    if (dx > 1e-6) far = Math.min(far, (TABLE_W + RAIL_W - x) / dx); else if (dx < -1e-6) far = Math.min(far, (-RAIL_W - x) / dx);
+    if (dy > 1e-6) far = Math.min(far, (TABLE_H + RAIL_W - y) / dy); else if (dy < -1e-6) far = Math.min(far, (-RAIL_W - y) / dy);
+    const th = Math.tan(FOV / 2), dB = Math.atan2(Hc, Lc), dF = Math.atan2(Hc, Lc + Math.max(0, far));
+    const dC = Math.max(dB - Math.atan(0.58 * th), Math.min(dB - Math.atan(0.12 * th), dF + Math.atan(0.86 * th)));
+    const hd = Math.min(Hc / Math.tan(Math.max(0.02, dC)), Lc + 6000);
+    return [eye, [eye[0] + dx * hd, eye[1] + dy * hd, -R]];
+  }
+  function updateCamera(dt) {
+    FOV = cssW < cssH ? 1.12 : 0.92;
+    const aiming = !gameState.ballsMoving && canControl() && !!gameState.selectedBall || (gameState.stroke && !replaying);
+    cam.over = !aiming || cam.userOver;
+    const [e, t] = cam.over ? overPose() : aimPose();
+    if (!cam.eye) { cam.eye = e.slice(); cam.tgt = t.slice(); }
+    const k = 1 - Math.exp(-dt * 7);
+    for (let i = 0; i < 3; i++) { cam.eye[i] += (e[i] - cam.eye[i]) * k; cam.tgt[i] += (t[i] - cam.tgt[i]) * k; }
+    lookAt(VIEW, cam.eye, cam.tgt);
+    persp(PROJ, FOV, cssW / Math.max(1, cssH), 20, 14000);
+    mul(VP, PROJ, VIEW);
+    const btn = $('btn-cam'); const lbl = cam.userOver ? '🎯 Прицел' : '👁 Обзор';
+    if (btn.textContent !== lbl) btn.textContent = lbl;
+  }
+
+  // ---- кадр ----
+  function bindMesh(pr, stride) {
+    const a = pr.a; gl.enableVertexAttribArray(a.aP); gl.vertexAttribPointer(a.aP, 3, gl.FLOAT, false, stride * 4, 0);
+    if (a.aN !== undefined) { gl.enableVertexAttribArray(a.aN); gl.vertexAttribPointer(a.aN, 3, gl.FLOAT, false, stride * 4, 12); }
+    if (a.aT !== undefined) { gl.enableVertexAttribArray(a.aT); gl.vertexAttribPointer(a.aT, 2, gl.FLOAT, false, stride * 4, 24); }
+  }
+  function drawTable() {
+    tableTexture();
+    const pr = progMesh; gl.useProgram(pr.p);
+    gl.uniformMatrix4fv(pr.u.uVP, false, VP);
+    gl.bindBuffer(gl.ARRAY_BUFFER, floorBuf); bindMesh(pr, 8);
+    gl.activeTexture(gl.TEXTURE0); gl.bindTexture(gl.TEXTURE_2D, texFloor); gl.uniform1i(pr.u.uTex, 0);
+    gl.uniform1f(pr.u.uUseTex, 1); gl.drawArrays(gl.TRIANGLES, 0, 6);
+    gl.bindBuffer(gl.ARRAY_BUFFER, tableBuf); bindMesh(pr, 8);
+    gl.activeTexture(gl.TEXTURE0); gl.bindTexture(gl.TEXTURE_2D, texTable); gl.uniform1i(pr.u.uTex, 0);
+    gl.uniform1f(pr.u.uUseTex, 1); gl.drawArrays(gl.TRIANGLES, 0, tableTexCount);
+    gl.uniform1f(pr.u.uUseTex, 0); gl.uniform3f(pr.u.uColor, 0.21, 0.08, 0.03); gl.drawArrays(gl.TRIANGLES, tableTexCount, tableColCount);
+    gl.disableVertexAttribArray(pr.a.aN); gl.disableVertexAttribArray(pr.a.aT);
+  }
+  function rotMat(q) {                                         // кватернион → матрица 3×3 (по столбцам)
+    const [w, x, y, z] = q;
+    return new Float32Array([1 - 2 * (y * y + z * z), 2 * (x * y + w * z), 2 * (x * z - w * y),
+                             2 * (x * y - w * z), 1 - 2 * (x * x + z * z), 2 * (y * z + w * x),
+                             2 * (x * z + w * y), 2 * (y * z - w * x), 1 - 2 * (x * x + y * y)]);
+  }
+  function drawBalls(list) {
+    const pr = progBall; gl.useProgram(pr.p);
+    gl.uniformMatrix4fv(pr.u.uVP, false, VP);
+    gl.uniform3fv(pr.u.uEye, cam.eye);
+    gl.uniform3f(pr.u.uL0, LAMPS[0].x, LAMPS[0].y, -LAMP_H); gl.uniform3f(pr.u.uL1, LAMPS[1].x, LAMPS[1].y, -LAMP_H); gl.uniform3f(pr.u.uL2, LAMPS[2].x, LAMPS[2].y, -LAMP_H);
+    const cl = hexRgb(themes[currentThemeIndex].cloth); gl.uniform3f(pr.u.uCloth, cl[0] / 255, cl[1] / 255, cl[2] / 255);
+    gl.uniform1f(pr.u.uRad, R);
+    gl.activeTexture(gl.TEXTURE0); gl.bindTexture(gl.TEXTURE_2D, texAtlas); gl.uniform1i(pr.u.uAtlas, 0);
+    gl.bindBuffer(gl.ARRAY_BUFFER, sphere.vb); gl.enableVertexAttribArray(pr.a.aP); gl.vertexAttribPointer(pr.a.aP, 3, gl.FLOAT, false, 12, 0);
+    gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, sphere.ib);
+    for (const it of list) {
+      const b = it.b;
+      gl.uniformMatrix3fv(pr.u.uRot, false, rotMat(b.q));
+      gl.uniform3f(pr.u.uPos, it.x, it.y, it.z);
+      const w = LAMPS.map(L => lampLight(L, it.x, it.y));
+      gl.uniform3f(pr.u.uLW, w[0], w[1], w[2]);
+      if (b.number === 0) gl.uniform3f(pr.u.uBase, 0.98, 0.74, 0.12); else gl.uniform3f(pr.u.uBase, 0.95, 0.93, 0.87);
+      gl.uniform1f(pr.u.uCue, b.number === 0 ? 1 : 0);
+      if (b.number > 0 && showNumbers) gl.uniform4f(pr.u.uCell, (b.number % 4) / 4, Math.floor(b.number / 4) / 4, 0.25, 0.25);
+      else gl.uniform4f(pr.u.uCell, 0, 0, 0, 0);
+      gl.uniform1f(pr.u.uDark, it.dark || 0);
+      gl.drawElements(gl.TRIANGLES, sphere.n, gl.UNSIGNED_SHORT, 0);
+    }
+  }
+  function drawShadows(list) {                                  // мягкие тени: под шаром и от каждой лампы
+    const d = [];
+    const quad = (cx, cy, ax, ay, bx, by, a) => {               // центр и полуоси (a — вдоль, b — поперёк)
+      const p = [[cx - ax - bx, cy - ay - by, 0, 0], [cx + ax - bx, cy + ay - by, 1, 0], [cx + ax + bx, cy + ay + by, 1, 1], [cx - ax + bx, cy - ay + by, 0, 1]];
+      [0, 1, 2, 0, 2, 3].forEach(i => d.push(p[i][0], p[i][1], -0.4, p[i][2], p[i][3], a));
+    };
+    for (const it of list) {
+      if (it.z > -R * 0.6) continue;                           // шар уже в лузе
+      quad(it.x, it.y, R * 1.05, 0, 0, R * 1.05, 0.62);
+      for (const L of LAMPS) {
+        const w = lampLight(L, it.x, it.y); if (w < 0.05) continue;
+        const k = R / (LAMP_H - R), ox = (it.x - L.x) * k, oy = (it.y - L.y) * k, len = Math.hypot(ox, oy);
+        const ux = len > 0.1 ? ox / len : 1, uy = len > 0.1 ? oy / len : 0, s = 1 + len / (2.4 * R);
+        quad(it.x + ox, it.y + oy, ux * R * 1.2 * s, uy * R * 1.2 * s, -uy * R * 1.2, ux * R * 1.2, 0.3 * w);
+      }
+    }
+    if (!d.length) return;
+    const pr = progBlob; gl.useProgram(pr.p);
+    gl.uniformMatrix4fv(pr.u.uVP, false, VP);
+    gl.activeTexture(gl.TEXTURE0); gl.bindTexture(gl.TEXTURE_2D, texShadow); gl.uniform1i(pr.u.uTex, 0);
+    gl.bindBuffer(gl.ARRAY_BUFFER, blobBuf); gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(d), gl.DYNAMIC_DRAW);
+    gl.enableVertexAttribArray(pr.a.aP); gl.vertexAttribPointer(pr.a.aP, 3, gl.FLOAT, false, 24, 0);
+    gl.enableVertexAttribArray(pr.a.aT); gl.vertexAttribPointer(pr.a.aT, 2, gl.FLOAT, false, 24, 12);
+    gl.enableVertexAttribArray(pr.a.aA); gl.vertexAttribPointer(pr.a.aA, 1, gl.FLOAT, false, 24, 20);
+    gl.enable(gl.BLEND); gl.blendFunc(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA); gl.depthMask(false);
+    gl.drawArrays(gl.TRIANGLES, 0, d.length / 6);
+    gl.depthMask(true); gl.disable(gl.BLEND);
+    gl.disableVertexAttribArray(pr.a.aT); gl.disableVertexAttribArray(pr.a.aA);
+  }
+  // кий: наклейка у точки удара на шаре, ось уходит назад и вверх под углом наклона
+  function drawCue(cs) {
+    const ux = Math.cos(cs.ang), uy = Math.sin(cs.ang);
+    const sp = cs.spin || { x: 0, y: 0 }, a = sp.x * 0.5 * R, up = -sp.y * 0.5 * R;
+    const el = Math.max(cs.elev || 0, 2 * Math.PI / 180) + railLift(cs, ux, uy);
+    const ce = Math.cos(el), se = Math.sin(el);
+    const f = [ux * ce, uy * ce, se], s = [-uy, ux, 0], u = [s[1] * f[2], -s[0] * f[2], s[0] * f[1] - s[1] * f[0]];
+    const c = Math.sqrt(Math.max(0, R * R - a * a - up * up)), back = cs.gap - R;
+    const tip = [cs.x + a * s[0] + up * u[0] - (c + back) * f[0], cs.y + a * s[1] + up * u[1] - (c + back) * f[1], -R + a * s[2] + up * u[2] - (c + back) * f[2]];
+    const X = [-f[0], -f[1], -f[2]], Y = s, Z = [X[1] * Y[2] - X[2] * Y[1], X[2] * Y[0] - X[0] * Y[2], X[0] * Y[1] - X[1] * Y[0]];
+    const M = new Float32Array([X[0], X[1], X[2], 0, Y[0], Y[1], Y[2], 0, Z[0], Z[1], Z[2], 0, tip[0], tip[1], tip[2], 1]);
+    const Rm = new Float32Array([X[0], X[1], X[2], Y[0], Y[1], Y[2], Z[0], Z[1], Z[2]]);
+    const pr = progCue; gl.useProgram(pr.p);
+    gl.uniformMatrix4fv(pr.u.uVP, false, VP); gl.uniformMatrix4fv(pr.u.uM, false, M); gl.uniformMatrix3fv(pr.u.uR, false, Rm);
+    gl.uniform3fv(pr.u.uEye, cam.eye); gl.uniform3f(pr.u.uLamp, LAMPS[1].x, LAMPS[1].y, -LAMP_H); gl.uniform1f(pr.u.uAlpha, cs.alpha);
+    gl.activeTexture(gl.TEXTURE0); gl.bindTexture(gl.TEXTURE_2D, texCue); gl.uniform1i(pr.u.uTex, 0);
+    gl.bindBuffer(gl.ARRAY_BUFFER, cueMesh.b); bindMesh(pr, 8);
+    if (cs.alpha < 1) { gl.enable(gl.BLEND); gl.blendFunc(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA); }
+    gl.drawArrays(gl.TRIANGLES, 0, cueMesh.n);
+    gl.disable(gl.BLEND);
+    gl.disableVertexAttribArray(pr.a.aN); gl.disableVertexAttribArray(pr.a.aT);
+  }
+  // у самого борта кий приходится поднимать, чтобы он прошёл над рамой (только для картинки)
+  function railLift(cs, ux, uy) {
+    let d = Infinity;
+    if (ux > 1e-6) d = Math.min(d, (cs.x + CUSHION_W) / ux); else if (ux < -1e-6) d = Math.min(d, (TABLE_W + CUSHION_W - cs.x) / -ux);
+    if (uy > 1e-6) d = Math.min(d, (cs.y + CUSHION_W) / uy); else if (uy < -1e-6) d = Math.min(d, (TABLE_H + CUSHION_W - cs.y) / -uy);
+    const need = Math.atan2(H_RAIL + 14 - R, Math.max(40, d)), have = Math.max(cs.elev || 0, 2 * Math.PI / 180);
+    return Math.max(0, need - have);
+  }
+  function frame(dt) {
+    if (!init() || lost) return;
+    updateCamera(dt);
+    gl.viewport(0, 0, glc.width, glc.height);
+    gl.clearColor(14 / 255, 15 / 255, 23 / 255, 1); gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
+    gl.enable(gl.DEPTH_TEST); gl.depthFunc(gl.LEQUAL); gl.disable(gl.CULL_FACE);
+    drawTable();
+    const list = [];
+    for (const b of balls) if (b.active) list.push({ b, x: b.x, y: b.y, z: -R, dark: 0 });
+    for (const f of falling) {
+      const p = Math.min(1, f.t / FALL_T);
+      list.push({ b: f.b, x: f.x, y: f.y, z: -R + p * p * 2.4 * R, dark: 0.75 * p });
+    }
+    drawBalls(list);
+    drawShadows(list);
+    const cs = cueState();
+    if (cs) drawCue(cs);
+    drawOverlay();
+  }
+
+  // ---- оверлей: линии прицела и полной траектории с проекцией ----
+  const ZL = -R;                                               // линии — на высоте центров шаров
+  function clipSeg(a, b) {                                     // отрезок в мире → экран, с отсечением за камерой
+    const pa = project(a[0], a[1], a[2]), pb = project(b[0], b[1], b[2]);
+    if (pa && pb) return [pa, pb];
+    if (!pa && !pb) return null;
+    const ins = pa ? a : b, out = pa ? b : a;
+    let lo = 0, hi = 1, best = null;
+    for (let i = 0; i < 18; i++) {
+      const m = (lo + hi) / 2, q = [ins[0] + (out[0] - ins[0]) * m, ins[1] + (out[1] - ins[1]) * m, ins[2] + (out[2] - ins[2]) * m], pq = project(q[0], q[1], q[2]);
+      if (pq) { best = pq; lo = m; } else hi = m;
+    }
+    if (!best) return null;
+    return pa ? [pa, best] : [best, pb];
+  }
+  const pen3d = {
+    alpha(a) { oc.globalAlpha = a; },
+    path(pts, o) {
+      pts = trimPath(pts, o.skip); if (pts.length < 2) return;
+      oc.save(); oc.lineCap = 'round'; oc.lineJoin = 'round';
+      oc.setLineDash(o.dash || []); oc.lineWidth = o.width || 1.5; oc.strokeStyle = o.color;
+      if (o.glow) { oc.shadowColor = o.color; oc.shadowBlur = 6; }
+      oc.beginPath();
+      let last = null;
+      for (let i = 1; i < pts.length; i++) {
+        const sg = clipSeg([pts[i - 1][0], pts[i - 1][1], ZL], [pts[i][0], pts[i][1], ZL]);
+        if (!sg) { last = null; continue; }
+        if (!last || Math.abs(last[0] - sg[0][0]) > 0.5 || Math.abs(last[1] - sg[0][1]) > 0.5) oc.moveTo(sg[0][0], sg[0][1]);
+        oc.lineTo(sg[1][0], sg[1][1]); last = sg[1];
+      }
+      oc.stroke(); oc.restore();
+    },
+    circle(x, y, r, o) {
+      const p = project(x, y, ZL); if (!p) return;
+      const rp = r * (cssH / 2) / Math.tan(FOV / 2) / p[2];
+      oc.save(); oc.setLineDash(o.dash || []); oc.lineWidth = o.width || 1.4; oc.strokeStyle = o.color;
+      oc.beginPath(); oc.arc(p[0], p[1], rp, 0, Math.PI * 2); if (o.fill) { oc.fillStyle = o.fill; oc.fill(); } oc.stroke(); oc.restore();
+    },
+    cross(x, y, o) {
+      const p = project(x, y, ZL); if (!p) return;
+      oc.save(); oc.lineWidth = 1.4; oc.strokeStyle = o.color; oc.beginPath();
+      oc.moveTo(p[0] - 6, p[1] - 6); oc.lineTo(p[0] + 6, p[1] + 6); oc.moveTo(p[0] + 6, p[1] - 6); oc.lineTo(p[0] - 6, p[1] + 6); oc.stroke(); oc.restore();
+    },
+    ring(pk, o) { ellipseOnCloth(pk.hx, pk.hy, HOLE_R + 6, -H_RAIL - 1, o.color, 2, o.glow); }
+  };
+  function ellipseOnCloth(x, y, r, z, color, width, glow) {
+    oc.save(); oc.lineWidth = width; oc.strokeStyle = color; if (glow) { oc.shadowColor = color; oc.shadowBlur = 8; }
+    oc.beginPath(); let started = false;
+    for (let i = 0; i <= 40; i++) {
+      const a = 2 * Math.PI * i / 40, p = project(x + Math.cos(a) * r, y + Math.sin(a) * r, z);
+      if (!p) { started = false; continue; }
+      if (!started) { oc.moveTo(p[0], p[1]); started = true; } else oc.lineTo(p[0], p[1]);
+    }
+    oc.stroke(); oc.restore();
+  }
+  function drawOverlay() {
+    oc.setTransform(1, 0, 0, 1, 0, 0); oc.clearRect(0, 0, ovc.width, ovc.height);
+    oc.setTransform(dpr, 0, 0, dpr, 0, 0);
+    const b = gameState.selectedBall;
+    if (b && b.active && !gameState.ballsMoving && canControl()) ellipseOnCloth(b.x, b.y, R + 9, -0.5, 'rgba(140,235,255,.75)', 1.6, true);
+    drawAimWith(pen3d);
+  }
+
+  // ---- ввод: прицел, высота камеры, приближение, выбор битка ----
+  function bindInput() {
+    const pts = new Map(); let drag = false, x0 = 0, y0 = 0, lastX = 0, lastY = 0, pinch0 = 0, dist0 = 0;
+    const local = e => { const r = ovc.getBoundingClientRect(); return [e.clientX - r.left, e.clientY - r.top]; };
+    ovc.addEventListener('pointerdown', e => {
+      resumeAudio();
+      if (e.pointerType === 'mouse' && e.button !== 0) return;
+      e.preventDefault(); capture(ovc, e);
+      pts.set(e.pointerId, local(e));
+      if (pts.size === 2) { const [a, c] = [...pts.values()]; pinch0 = Math.hypot(a[0] - c[0], a[1] - c[1]); dist0 = camSet().dist; drag = true; return; }
+      [x0, y0] = local(e); lastX = x0; lastY = y0; drag = false;
+    });
+    ovc.addEventListener('pointermove', e => {
+      if (!pts.has(e.pointerId)) return;
+      const p = local(e); pts.set(e.pointerId, p);
+      if (pts.size >= 2) {
+        const [a, c] = [...pts.values()], d = Math.hypot(a[0] - c[0], a[1] - c[1]);
+        if (pinch0 > 10) camSet().dist = Math.max(420, Math.min(3400, dist0 * pinch0 / Math.max(10, d)));
+        return;
+      }
+      if (!drag && Math.abs(p[0] - x0) + Math.abs(p[1] - y0) > 6) drag = true;
+      if (!drag) return;
+      const dx = p[0] - lastX, dy = p[1] - lastY; lastX = p[0]; lastY = p[1];
+      if (!gameState.ballsMoving && canControl() && gameState.selectedBall) gameState.aimAngle += dx * 0.0045;
+      const c = camSet(); c.pitch = Math.max(0.06, Math.min(1.35, c.pitch + dy * 0.004));
+    });
+    // палец убрали: после щипка оставшийся палец продолжает от своего места (иначе прицел прыгнет)
+    const lift = e => {
+      const p = pts.get(e.pointerId); pts.delete(e.pointerId);
+      if (pts.size === 1) { const q = pts.values().next().value; lastX = q[0]; lastY = q[1]; pinch0 = 0; }
+      return p;
+    };
+    ovc.addEventListener('pointerup', e => {
+      if (!pts.has(e.pointerId)) return;
+      const p = lift(e);
+      if (pts.size > 0 || drag) return;
+      tap(p[0], p[1]);
+    });
+    ovc.addEventListener('pointercancel', e => { if (pts.has(e.pointerId)) lift(e); });
+    ovc.addEventListener('wheel', e => { e.preventDefault(); const c = camSet(); c.dist = Math.max(420, Math.min(3400, c.dist * Math.exp(e.deltaY * 0.0012))); }, { passive: false });
+    ovc.addEventListener('contextmenu', e => e.preventDefault());
+    $('btn-cam').onclick = e => { e.currentTarget.blur(); cam.userOver = !cam.userOver; };
+  }
+  // тап: по шару — выбрать биток, по сукну — направить прицел в эту точку
+  function tap(px, py) {
+    if (gameState.ballsMoving || !canControl()) return;
+    const [o, d] = ray(px, py);
+    // шар, в который луч попал первым (видимый); если мимо всех — ближайший к лучу в пределах допуска
+    let hit = null, ht = Infinity, near = null, nd = (R * 1.6) * (R * 1.6);
+    for (const b of balls) {
+      if (!b.active) continue;
+      const cx = b.x - o[0], cy = b.y - o[1], cz = -R - o[2], t = cx * d[0] + cy * d[1] + cz * d[2];
+      if (t <= 0) continue;
+      const qx = cx - d[0] * t, qy = cy - d[1] * t, qz = cz - d[2] * t, q2 = qx * qx + qy * qy + qz * qz;
+      if (q2 < R * R) { const te = t - Math.sqrt(R * R - q2); if (te < ht) { ht = te; hit = b; } }
+      else if (q2 < nd) { nd = q2; near = b; }
+    }
+    const best = hit || near;
+    if (best && best !== gameState.selectedBall) { gameState.selectedBall = best; setStatus('Цельтесь'); return; }
+    if (d[2] > 1e-6 && gameState.selectedBall) {
+      const t = (-R - o[2]) / d[2], x = o[0] + d[0] * t, y = o[1] + d[1] * t, sb = gameState.selectedBall;
+      if (Math.hypot(x - sb.x, y - sb.y) > R) gameState.aimAngle = Math.atan2(y - sb.y, x - sb.x);
+    }
+  }
+
+  return {
+    available: () => init() || lost,
+    show(on) {
+      shown = on && (init() || lost);                        // контекст потерян — покажем, когда вернётся
+      if (!glc) return;
+      glc.hidden = ovc.hidden = $('btn-cam').hidden = !shown;
+      cam.eye = null;                                          // камера встанет на место без «пролёта»
+    },
+    resize(w, h) {
+      cssW = w; cssH = h;
+      if (!glc) return;
+      for (const c of [glc, ovc]) { c.style.width = w + 'px'; c.style.height = h + 'px'; c.width = Math.round(w * dpr); c.height = Math.round(h * dpr); }
+    },
+    render(dt) { if (shown) frame(dt); },
+    project: (x, y, z) => project(x, y, z === undefined ? -R : z),   // мир → экран (для проверок)
+    get camera() { return cam; }
+  };
+})();
 
 // === РАЗМЕР И ОРИЕНТАЦИЯ ===
 // Холст = CSS-размер × devicePixelRatio. В портретном экране стол повёрнут вертикально (дом — внизу).
@@ -1799,6 +2803,17 @@ function setCanvasSize(cssW, cssH) {
   canvas.style.width = cssW + 'px'; canvas.style.height = cssH + 'px';
   canvas.width = Math.round(cssW * dpr); canvas.height = Math.round(cssH * dpr);
   scale = (vertical ? cssH : cssW) / FULL_W;
+  V3.resize(cssW, cssH);
+}
+// высота блока управления: элементы сетки стоят в разных строках
+function spanH(ids) {
+  let top = Infinity, bot = -Infinity;
+  for (const id of ids) {
+    const el = $(id); if (!el) continue;
+    const r = el.getBoundingClientRect(); if (!r.height) continue;
+    top = Math.min(top, r.top); bot = Math.max(bot, r.bottom);
+  }
+  return bot > top ? bot - top : 0;
 }
 function layout() {
   const play = $('play');
@@ -1812,13 +2827,14 @@ function layout() {
     const GAP = 6;
     vertical = vh >= vw;
     play.className = vertical ? 'cv' : 'ch';
+    play.classList.toggle('btnmode', shootByButton);
     powerHoriz = vertical;
     powerSlider.classList.toggle('h', powerHoriz);
     const W = play.clientWidth, H = play.clientHeight;
     let long;
     if (vertical) {          // сверху счёт и меню, снизу винт | прицел + сила, стол — всё остальное
       const barH = $('mini-bar').offsetHeight;
-      const dockH = Math.max($('spin-box').offsetHeight, $('aim-box').offsetHeight + GAP + $('power-box').offsetHeight);
+      const dockH = spanH(['spin-box', 'aim-box', 'power-box', 'power-minus', 'power-plus', 'btn-shoot']);
       long = Math.min(H - barH - dockH - 2 * GAP, W * FULL_W / FULL_H);
     } else {                 // слева сила (под кнопкой «←» платформы), справа счёт, меню, винт и прицел
       long = Math.min(W - 58 - 100 - 2 * GAP, H * FULL_W / FULL_H);
@@ -1834,14 +2850,14 @@ function layout() {
   const FRAME = 16, GAP = 10;                            // рамка .ku-board: padding 7 + border 1
   const pw = $('power-box').offsetWidth || 44;
   const W = play.clientWidth, H = play.clientHeight;
-  play.className = 'vert';
+  play.className = 'vert'; play.classList.toggle('btnmode', shootByButton);
   const dockH = $('dock').offsetHeight;
   const vLong = Math.min(H - dockH - GAP - FRAME, (W - pw - GAP - FRAME) * FULL_W / FULL_H);
-  play.className = 'horz';
+  play.className = 'horz'; play.classList.toggle('btnmode', shootByButton);
   const dockW = $('dock').offsetWidth;
   const hLong = Math.min(W - pw - dockW - 2 * GAP - FRAME, (H - FRAME) * FULL_W / FULL_H);
   vertical = vLong > hLong * 1.04;
-  play.className = vertical ? 'vert' : 'horz';
+  play.className = vertical ? 'vert' : 'horz'; play.classList.toggle('btnmode', shootByButton);
   const long = Math.max(200, Math.min(vertical ? vLong : hLong, 1500));
   const cssW = Math.round(vertical ? long * FULL_H / FULL_W : long);
   const cssH = Math.round(vertical ? long : long * FULL_H / FULL_W);
@@ -1955,7 +2971,7 @@ function closeModalSilent() {
 $('modal-ok').onclick = closeModal;
 $('modal-menu').onclick = () => { closeModalSilent(); toMenu(); };
 
-function closeOverlays() { ['menu-pause', 'menu-rules', 'menu-settings'].forEach(id => $(id).classList.remove('open')); }
+function closeOverlays() { ['menu-pause', 'menu-rules', 'menu-settings', 'menu-spin'].forEach(id => $(id).classList.remove('open')); }
 function anyOverlay() { return document.querySelector('.ku-overlay.open') !== null || !!document.querySelector('.kn-ov'); }
 function toMenu() {
   closeModalSilent(); closeOverlays();
@@ -2012,14 +3028,44 @@ function renderSettings() {
   });
   document.querySelectorAll('.bl-theme-label').forEach(el => { el.textContent = 'Сукно: ' + themes[currentThemeIndex].name; });
   document.querySelectorAll('input[data-opt="numbers"]').forEach(el => { el.checked = showNumbers; });
-  document.querySelectorAll('input[data-opt="traj"]').forEach(el => { el.checked = fullTrajectory; });
+  document.querySelectorAll('input[data-opt="shootbtn"]').forEach(el => { el.checked = shootByButton; });
+  const segVal = { traj: trajMode, depth: String(trajDepth), view: view3d ? '3d' : '2d' };
+  document.querySelectorAll('[data-seg]').forEach(seg => {
+    seg.querySelectorAll('button[data-v]').forEach(b => b.classList.toggle('active', b.dataset.v === segVal[seg.dataset.seg]));
+  });
+  document.querySelectorAll('[data-depth-row]').forEach(el => el.classList.toggle('off', trajMode !== 'full'));
+  document.querySelectorAll('.bl-view-btn').forEach(b => { b.textContent = view3d ? '2D' : '3D'; b.classList.toggle('on', view3d); });
 }
 document.querySelectorAll('input[data-opt]').forEach(el => {
   el.onchange = () => {
-    if (el.dataset.opt === 'numbers') showNumbers = el.checked; else fullTrajectory = el.checked;
+    if (el.dataset.opt === 'numbers') showNumbers = el.checked;
+    else if (el.dataset.opt === 'shootbtn') setShootMode(el.checked);
     savePrefs(); renderSettings();
   };
 });
+document.querySelectorAll('[data-seg]').forEach(seg => seg.addEventListener('click', e => {
+  const b = e.target.closest('button[data-v]'); if (!b) return;
+  const v = b.dataset.v;
+  if (seg.dataset.seg === 'traj') trajMode = v === 'full' ? 'full' : 'short';
+  else if (seg.dataset.seg === 'depth') trajDepth = +v;
+  else if (seg.dataset.seg === 'view') setView3d(v === '3d');
+  savePrefs(); renderSettings();
+}));
+// режим удара: кнопкой «Ударить» (сила остаётся, пока её не поменяют) или сразу при отпускании шкалы
+function setShootMode(on) {
+  shootByButton = !!on;
+  if (!shootByButton) { gameState.aimPower = 0; }
+  layout(); setPowerUI(gameState.aimPower);
+}
+// вид стола: 2D сверху или 3D
+function setView3d(on) {
+  if (on && !V3.available()) { toast('3D-вид недоступен: браузер не поддерживает WebGL', 'bad'); on = false; }
+  view3d = !!on;
+  $('board-box').classList.toggle('v3', view3d);
+  V3.show(view3d);
+  savePrefs(); renderSettings(); layout();
+}
+document.querySelectorAll('.bl-view-btn').forEach(b => { b.onclick = e => { e.currentTarget.blur(); setView3d(!view3d); }; });
 
 $('btn-local').onclick = () => { resumeAudio(); if (isNet()) leaveNet(); showScreen('game'); initGame(); };
 $('btn-net').onclick = openNetLobby;
@@ -2027,61 +3073,158 @@ $('btn-net').onclick = openNetLobby;
 // === УПРАВЛЕНИЕ (pointer-события: мышь, тач и перо) ===
 function capture(el, e) { try { el.setPointerCapture(e.pointerId); } catch (err) {} }
 
-// Винт: точка удара по битку
-const spinCtrl = $('spin-control'); const spinDot = $('spin-dot'); let spinPointer = null;
-function updateSpin(e) {
-  const rect = spinCtrl.getBoundingClientRect();
-  let x = e.clientX - rect.left - rect.width / 2, y = e.clientY - rect.top - rect.height / 2;
-  const r = rect.width / 2, dist = Math.sqrt(x * x + y * y);
-  if (dist > r) { x = x / dist * r; y = y / dist * r; }
-  spinDot.style.transform = `translate(calc(-50% + ${x}px), calc(-50% + ${y}px))`;
-  gameState.spin = new Vec2(x / r, y / r);
+// === ВИНТ И НАКЛОН КИЯ ===
+// spin.x — вправо, spin.y — вниз (оттяжка), в долях от 0.5R (дальше — кикс), шаг 1 %; elev — наклон кия 0…75°
+const spinCtrl = $('spin-control'), spinDot = $('spin-dot'), bigBall = $('big-ball'), bigDot = $('big-dot');
+const ELEV_MAX = 75;
+function spinChanged() {
+  const s = gameState.spin, deg = Math.round(gameState.elev * 180 / Math.PI);
+  const place = (dot, box) => { const r = box.clientWidth / 2; dot.style.transform = `translate(calc(-50% + ${s.x * r}px), calc(-50% + ${s.y * r}px))`; };
+  place(spinDot, spinCtrl); place(bigDot, bigBall);
+  const v = Math.round(-s.y * 100), h = Math.round(s.x * 100);
+  $('spin-read-v').textContent = v > 0 ? 'Накат ' + v + '\u00a0%' : v < 0 ? 'Оттяжка ' + (-v) + '\u00a0%' : 'По центру';
+  $('spin-read-h').textContent = h > 0 ? 'Вправо ' + h + '\u00a0%' : h < 0 ? 'Влево ' + (-h) + '\u00a0%' : 'Без бокового';
+  $('elev-range').value = deg;
+  $('elev-read').textContent = deg === 0 ? '0° — кий горизонтально' : deg + '°';
+  const a = deg * Math.PI / 180, cx = 170, cy = 70, rr = 22;   // кий касается шара слева и уходит вверх под углом
+  const tx = cx - rr * Math.cos(a) - 2, ty = cy - rr * Math.sin(a);
+  const cue = $('elev-cue'); cue.setAttribute('x1', tx); cue.setAttribute('y1', ty);
+  cue.setAttribute('x2', tx - 150 * Math.cos(a)); cue.setAttribute('y2', ty - 150 * Math.sin(a));
+  const badge = $('elev-badge'); badge.hidden = deg === 0; badge.textContent = deg + '°';
 }
-function resetSpin() { spinDot.style.transform = 'translate(-50%, -50%)'; gameState.spin = new Vec2(0, 0); }
-spinCtrl.addEventListener('pointerdown', e => { if (!canControl() || gameState.ballsMoving) return; e.preventDefault(); spinPointer = e.pointerId; capture(spinCtrl, e); updateSpin(e); });
-spinCtrl.addEventListener('pointermove', e => { if (e.pointerId === spinPointer) updateSpin(e); });
-const endSpin = e => { if (e.pointerId === spinPointer) spinPointer = null; };
-spinCtrl.addEventListener('pointerup', endSpin); spinCtrl.addEventListener('pointercancel', endSpin);
-$('btn-spin-reset').onclick = e => { e.currentTarget.blur(); resetSpin(); };
+function setSpin(x, y) {
+  x = Math.round(x * 100) / 100; y = Math.round(y * 100) / 100;
+  const d = Math.sqrt(x * x + y * y); if (d > 1) { x = Math.round(x / d * 100) / 100; y = Math.round(y / d * 100) / 100; }
+  gameState.spin = new Vec2(x, y); spinChanged();
+}
+function setElev(deg) { gameState.elev = Math.max(0, Math.min(ELEV_MAX, Math.round(deg))) * Math.PI / 180; spinChanged(); }
+function resetSpin() { gameState.spin = new Vec2(0, 0); gameState.elev = 0; spinChanged(); }
+function spinFromPointer(box, e) {
+  const r = box.getBoundingClientRect(), rad = r.width / 2;
+  setSpin((e.clientX - r.left - rad) / rad, (e.clientY - r.top - rad) / rad);
+}
+const canSpin = () => canControl() && !gameState.ballsMoving;
+// маленький шар: протянуть — сразу поменять точку удара, тап — открыть точную настройку
+let spinPointer = null, spinX0 = 0, spinY0 = 0, spinDrag = false;
+spinCtrl.addEventListener('pointerdown', e => {
+  if (!canSpin()) return;
+  e.preventDefault(); spinPointer = e.pointerId; capture(spinCtrl, e); spinX0 = e.clientX; spinY0 = e.clientY; spinDrag = false;
+});
+spinCtrl.addEventListener('pointermove', e => {
+  if (e.pointerId !== spinPointer) return;
+  if (!spinDrag && Math.abs(e.clientX - spinX0) + Math.abs(e.clientY - spinY0) > 5) spinDrag = true;
+  if (spinDrag) spinFromPointer(spinCtrl, e);
+});
+spinCtrl.addEventListener('pointerup', e => {
+  if (e.pointerId !== spinPointer) return;
+  spinPointer = null;
+  if (!spinDrag) openSpinPanel();
+});
+spinCtrl.addEventListener('pointercancel', e => { if (e.pointerId === spinPointer) spinPointer = null; });
+spinCtrl.addEventListener('keydown', e => {
+  if (e.code !== 'Enter' && e.code !== 'Space') return;
+  e.preventDefault(); e.stopPropagation(); openSpinPanel();
+});
+$('btn-spin-reset').onclick = e => { e.currentTarget.blur(); if (canSpin()) resetSpin(); };
+let spinFocusBack = null;
+function openSpinPanel() {
+  if (anyOverlay() || !canSpin()) return;
+  spinFocusBack = document.activeElement;
+  $('menu-spin').classList.add('open'); spinChanged();
+  bigBall.focus({ preventScroll: true });                    // клавиатура: стрелки сразу двигают точку удара
+}
+function closeSpinPanel() {
+  const was = $('menu-spin').classList.contains('open');
+  $('menu-spin').classList.remove('open');
+  if (was && $('menu-spin').contains(document.activeElement)) {   // фокус — туда, откуда открыли (клавиатурой — на шар винта)
+    if (spinFocusBack === spinCtrl) spinCtrl.focus({ preventScroll: true }); else document.activeElement.blur();
+  }
+  spinFocusBack = null;
+}
+$('btn-spinp-x').onclick = $('btn-spinp-done').onclick = closeSpinPanel;
+$('btn-spinp-reset').onclick = () => resetSpin();
+$('btn-spin-center').onclick = () => setSpin(0, 0);
+let bigPointer = null;
+bigBall.addEventListener('pointerdown', e => { e.preventDefault(); bigPointer = e.pointerId; capture(bigBall, e); spinFromPointer(bigBall, e); });
+bigBall.addEventListener('pointermove', e => { if (e.pointerId === bigPointer) spinFromPointer(bigBall, e); });
+bigBall.addEventListener('pointerup', e => { if (e.pointerId === bigPointer) bigPointer = null; });
+bigBall.addEventListener('pointercancel', e => { if (e.pointerId === bigPointer) bigPointer = null; });
+bigBall.addEventListener('keydown', e => {                   // стрелки — ±1 % (с Shift — 5 %), Home — центр
+  const k = e.shiftKey ? 0.05 : 0.01, s = gameState.spin;
+  const d = { ArrowLeft: [-k, 0], ArrowRight: [k, 0], ArrowUp: [0, -k], ArrowDown: [0, k] }[e.code];
+  if (d) setSpin(s.x + d[0], s.y + d[1]); else if (e.code === 'Home') setSpin(0, 0); else return;
+  e.preventDefault(); e.stopPropagation();
+});
+// кнопка с автоповтором при удержании (шаг 1 % / 1°)
+function holdRepeat(btn, fn) {
+  let t1 = null, t2 = null;
+  const stop = () => { clearTimeout(t1); clearInterval(t2); t1 = t2 = null; };
+  btn.addEventListener('pointerdown', e => { e.preventDefault(); stop(); fn(); t1 = setTimeout(() => { t2 = setInterval(fn, 55); }, 380); });
+  ['pointerup', 'pointercancel', 'pointerleave'].forEach(ev => btn.addEventListener(ev, stop));
+  btn.addEventListener('click', e => { if (e.detail === 0) fn(); });   // Enter/пробел на кнопке
+}
+document.querySelectorAll('[data-nudge]').forEach(b => {
+  const [nx, ny] = b.dataset.nudge.split(',').map(Number);
+  holdRepeat(b, () => setSpin(gameState.spin.x + nx * 0.01, gameState.spin.y + ny * 0.01));
+});
+holdRepeat($('elev-minus'), () => setElev(gameState.elev * 180 / Math.PI - 1));
+holdRepeat($('elev-plus'), () => setElev(gameState.elev * 180 / Math.PI + 1));
+$('elev-range').addEventListener('input', e => setElev(+e.target.value));
 
 // Сила: тянуть вниз (кий отходит назад), отпустить — удар
 // Сила: тянуть вниз (в компактном портретном режиме — вправо), отпустить — удар.
 // Касание без протяжки удар не делает: случайный тап по шкале не должен бить.
 const powerSlider = $('power-slider'); const powerFill = $('power-fill'); const powerHandle = $('power-handle');
 let powerPointer = null, powerX0 = 0, powerY0 = 0, powerMoved = false;
+const powerVal = $('power-val'), shootBtn = $('btn-shoot');
 function setPowerUI(percent) {
   const v = (percent * 100) + '%';
   if (powerHoriz) { powerFill.style.width = v; powerFill.style.height = ''; powerHandle.style.left = v; powerHandle.style.top = ''; }
   else { powerFill.style.height = v; powerFill.style.width = ''; powerHandle.style.top = v; powerHandle.style.left = ''; }
+  powerVal.textContent = Math.round(percent * 100) + '%';
+  updateShootBtn();
 }
+function updateShootBtn() {
+  const off = !(gameState.aimPower >= minPower()) || gameState.ballsMoving || !gameState.selectedBall || !canControl();
+  if (shootBtn.disabled !== off) shootBtn.disabled = off;
+}
+function adjustPower(d) {
+  if (gameState.ballsMoving || !canControl()) return;
+  gameState.aimPower = Math.max(0, Math.min(1, Math.round((gameState.aimPower + d) * 100) / 100));
+  setPowerUI(gameState.aimPower);
+}
+holdRepeat($('power-minus'), () => adjustPower(-0.01));
+holdRepeat($('power-plus'), () => adjustPower(0.01));
+shootBtn.onclick = () => { resumeAudio(); releaseShot(); };
 function updatePowerFromSlider(e) {
   const rect = powerSlider.getBoundingClientRect();
   const f = powerHoriz ? (e.clientX - rect.left) / rect.width : (e.clientY - rect.top) / rect.height;
-  gameState.aimPower = Math.max(0, Math.min(1, f));
+  gameState.aimPower = Math.max(0, Math.min(100, Math.round(f * 100))) / 100;   // шаг 1 %: сила на экране = сила удара
   setPowerUI(gameState.aimPower);
 }
 // Отпустили ползунок: кий разгоняется к шару; в момент касания шар получает скорость и вращение
+// В режиме «кнопкой» сила после удара остаётся — следующий удар можно сделать с той же силой.
 function releaseShot() {
   const p = gameState.aimPower, b = gameState.selectedBall;
-  gameState.aimPower = 0; setPowerUI(0);
-  if (p <= 0.02 || gameState.ballsMoving || !b || !b.active || !canControl()) return;
-  const ang = gameState.aimAngle, spin = new Vec2(gameState.spin.x, gameState.spin.y);
-  beginStroke(b, ang, p, () => fireShot(b, ang, p, spin));
+  if (!shootByButton) { gameState.aimPower = 0; setPowerUI(0); }
+  if (p < minPower() || gameState.ballsMoving || !b || !b.active || !canControl()) return;
+  const ang = gameState.aimAngle, spin = new Vec2(gameState.spin.x, gameState.spin.y), elev = gameState.elev;
+  beginStroke(b, ang, p, () => fireShot(b, ang, p, spin, elev), elev, spin);
+  updateShootBtn();
 }
-function fireShot(b, ang, p, spin) {
+function fireShot(b, ang, p, spin, elev) {
   if (!b.active) return;
   gameState.hitOccurred = false; gameState.foul = false; gameState.pocketedThisTurn = 0; gameState.foulPotted = [];
   gameState.selectedBall = b;
   const dx = Math.cos(ang), dy = Math.sin(ang), v0 = shotSpeed(p);
   // старт удара — с полной точностью: разбой хаотичен, округление дало бы у соперника другой разлёт
   const start = isNet() ? balls.map(o => ({ x: o.x, y: o.y, a: o.active ? 1 : 0 })) : null;
-  b.vx = dx * v0; b.vy = dy * v0;
-  applyCueSpin(b, dx, dy, v0, spin);
+  applyCue(b, dx, dy, v0, spin, elev);
   b.sleep = false;
   // spin/side — для соперника со старой версией игры (до обновления кэша): он не упадёт,
   // проиграет удар своей физикой и встанет по снимку
   if (start) pendingShot = { v: SHOT_VERSION, idx: balls.indexOf(b), start, vel: { x: b.vx, y: b.vy }, w: { x: b.wx, y: b.wy, z: b.wz },
-                             spin: { x: 0, y: 0 }, side: 0 };
+                             el: elev || 0, p, spin: { x: 0, y: 0 }, side: 0 };
   gameState.ballsMoving = true;
   playSound('cue', v0);
 }
@@ -2099,9 +3242,14 @@ powerSlider.addEventListener('pointermove', e => {
 powerSlider.addEventListener('pointerup', e => {
   if (e.pointerId !== powerPointer) return;
   powerPointer = null;
+  if (shootByButton) return;                              // сила выставлена — удар кнопкой «Ударить»
   if (powerMoved) releaseShot(); else { gameState.aimPower = 0; setPowerUI(0); }
 });
-powerSlider.addEventListener('pointercancel', e => { if (e.pointerId === powerPointer) { powerPointer = null; gameState.aimPower = 0; setPowerUI(0); } });
+powerSlider.addEventListener('pointercancel', e => {
+  if (e.pointerId !== powerPointer) return;
+  powerPointer = null;
+  if (!shootByButton) { gameState.aimPower = 0; setPowerUI(0); }
+});
 
 // Микро-прицел (линейка)
 const microAimArea = $('micro-aim-area'); const microAimRuler = $('micro-aim-ruler');
@@ -2189,9 +3337,19 @@ canvas.addEventListener('contextmenu', e => e.preventDefault());
 // Клавиатура: ← → — точный прицел (Shift — крупнее), P / Esc — пауза
 document.addEventListener('keydown', e => {
   if (e.ctrlKey || e.metaKey || e.altKey || !gameScreen.classList.contains('active')) return;
+  if (e.code === 'Escape' && $('menu-spin').classList.contains('open')) { e.preventDefault(); closeSpinPanel(); return; }
   if (e.code === 'KeyP' || e.code === 'Escape') {
     if ($('menu-pause').classList.contains('open')) { e.preventDefault(); $('menu-pause').classList.remove('open'); }
     else if (!anyOverlay()) { e.preventDefault(); openPause(); }
+    return;
+  }
+  if ((e.code === 'ArrowUp' || e.code === 'ArrowDown') && !anyOverlay() && shootByButton) {
+    e.preventDefault();
+    adjustPower((e.code === 'ArrowUp' ? 1 : -1) * (e.shiftKey ? 0.05 : 0.01));
+    return;
+  }
+  if ((e.code === 'Space' || e.code === 'Enter') && !anyOverlay() && shootByButton && !(e.target && e.target.closest && e.target.closest('button,input,[tabindex]'))) {
+    e.preventDefault(); resumeAudio(); releaseShot();
     return;
   }
   if ((e.code === 'ArrowLeft' || e.code === 'ArrowRight') && !anyOverlay()) {
@@ -2206,6 +3364,8 @@ window.addEventListener('resize', resize);
 
 buildTable();
 initGame();
+if (view3d) setView3d(true);
+renderSettings();
 requestAnimationFrame(loop);
 </script>
 </body>
