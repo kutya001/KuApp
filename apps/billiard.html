@@ -86,6 +86,101 @@
     background:radial-gradient(circle at 40% 35%,var(--hi),var(--cl));box-shadow:inset 0 1px 0 rgba(255,255,255,.2);transition:.2s}
   .bl-swatch.active{border-color:var(--accent);box-shadow:0 0 0 2px rgba(0,229,255,.45),0 0 14px rgba(0,229,255,.35)}
   #modal-desc{white-space:pre-line}
+  #spin-box{grid-area:spin} #aim-box{grid-area:aim}   /* действует, только когда #dock «растворён» (компактный режим) */
+  .power-hint,.aim-hint{display:none}
+
+  /* ── Меню партии (пауза): счёт, сукно, настройки стола, действия ── */
+  .bl-menu .bl-menu-head{min-width:0}
+  .bl-menu-sub{font-size:12px;letter-spacing:.5px;color:var(--accent);margin-top:3px;text-transform:uppercase;
+    white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .bl-menu .bl-hud{margin:0 0 4px}
+  .bl-menu-actions{display:grid!important;grid-template-columns:1fr 1fr}
+  .bl-menu-actions .ku-btn{width:100%}
+  .bl-menu-actions.net #btn-resume{grid-column:1/-1}
+  #hud-slot:empty{display:none}
+  .bl-menu-set h3:first-child{margin-top:4px}
+  #hud-slot+.bl-menu-set{margin-top:14px}
+  #hud-slot:empty+.bl-menu-set{margin-top:0}
+  /* низкий экран (телефон боком): меню шире и в две колонки, кнопки в один ряд, окно не уходит под «←» по вертикали */
+  @media (max-height:500px) and (orientation:landscape){
+    html.ku-embedded #menu-pause{padding:10px 10px 10px 72px}
+    #menu-pause .bl-menu{width:min(760px,100%);max-height:calc(100dvh - 20px)}
+    #menu-pause .bl-menu>header{padding:10px 18px}
+    .bl-menu-body{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:0 20px;align-items:start;padding:12px 18px}
+    .bl-menu .bl-hud{flex-direction:column}
+    #hud-slot+.bl-menu-set{margin-top:0}
+    .bl-menu .bl-swatch{width:34px;height:34px}
+    .bl-menu-actions{grid-template-columns:repeat(4,minmax(0,1fr));padding:10px 18px!important}
+    .bl-menu-actions.net #btn-resume{grid-column:auto}
+  }
+
+  /* ── Компактный режим (телефон): стол почти на весь экран; на экране только управление,
+        счёт одной строкой и кнопка меню — остальное в меню партии ── */
+  .bl-mini{display:none}
+  #screen-game.compact{padding:0 6px 6px}
+  #screen-game.compact .ku-top{display:none}
+  #screen-game.compact #play{gap:6px}
+  #play.cv{grid-template-columns:auto minmax(0,1fr);grid-template-areas:"bar bar" "board board" "spin aim" "spin power";
+    justify-content:stretch;align-content:center}
+  #play.ch{grid-template-columns:58px auto 100px;grid-template-rows:auto auto minmax(0,1fr);
+    grid-template-areas:"power board bar" "power board spin" "power board aim";justify-content:center;align-content:center}
+  #play.cv #dock,#play.ch #dock{display:contents}
+  #screen-game.compact .ku-board{padding:0;border:0;border-radius:12px}
+  #screen-game.compact .ku-board>canvas{border-radius:12px}
+  #play.ch #board-box{align-self:center}
+
+  /* строка счёта и кнопка меню */
+  #play.cv .bl-mini,#play.ch .bl-mini{display:flex}
+  .bl-mini{grid-area:bar;align-items:center;gap:8px;min-width:0}
+  #play.cv .bl-mini{height:58px;padding:4px 0 0 var(--ku-safe-left)}
+  .bl-mini-score{flex:1 1 auto;min-width:0;display:flex;flex-direction:column;align-items:center;gap:3px}
+  .bl-mini-row{display:flex;align-items:center;justify-content:center;gap:10px;max-width:100%;min-width:0}
+  .bl-mini-p{--pc:var(--accent);display:flex;align-items:center;gap:6px;min-width:0;opacity:.45;transition:opacity .25s}
+  #mini-p2{--pc:var(--accent2)}
+  .bl-mini-p.on{opacity:1}
+  .bl-mini-p b{font-family:var(--font-display);font-weight:400;font-size:11px;letter-spacing:1px;text-transform:uppercase;
+    white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:96px;color:var(--text)}
+  .bl-mini-p em{font-style:normal;font-family:var(--font-display);font-size:20px;line-height:1;color:var(--pc);font-variant-numeric:tabular-nums}
+  .bl-mini-p i{flex:none;width:7px;height:7px;border-radius:50%;background:var(--pc);box-shadow:0 0 8px var(--pc);visibility:hidden}
+  .bl-mini-p.on i{visibility:visible}
+  .bl-mini-p em.pop{animation:kuScorePop .35s ease}
+  .bl-mini-sep{font-family:var(--font-display);color:var(--muted);font-size:16px}
+  .bl-mini-status{font-family:var(--font-display);font-size:11px;letter-spacing:.5px;color:var(--accent);text-transform:uppercase;
+    white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:100%}
+  #btn-menu{flex:none}
+  #play.ch .bl-mini{flex-direction:column;align-items:stretch;gap:8px}
+  #play.ch #btn-menu{align-self:flex-end;order:-1}
+  #play.ch .bl-mini-row{flex-direction:column;align-items:stretch;gap:5px}
+  #play.ch .bl-mini-sep{display:none}
+  #play.ch .bl-mini-p{justify-content:flex-start}
+  #play.ch .bl-mini-p em{margin-left:auto;font-size:18px}
+  #play.ch #mini-p2 i{order:-2} #play.ch #mini-p2 b{order:-1}
+  #play.ch .bl-mini-p b{max-width:62px;font-size:10px}
+  #play.ch .bl-mini-status{white-space:normal;text-align:center;font-size:10px;line-height:1.3}
+
+  /* управление в компактном режиме: без подписей, винт с кнопкой сброса на краю */
+  #screen-game.compact .bl-ctl>.ku-label,#screen-game.compact .bl-ctl>.bl-cap,#screen-game.compact .bl-spin-head .ku-label{display:none}
+  #screen-game.compact #spin-box{position:relative;gap:0}
+  #screen-game.compact .bl-spin-head{position:absolute;top:-6px;right:-10px;z-index:2;height:auto}
+  #screen-game.compact #spin-control{width:58px;height:58px}
+  #play.cv #spin-box{align-self:center;margin:0 8px 0 2px}
+  #play.ch #spin-box{justify-self:center;margin-top:6px}
+  #screen-game.compact #aim-box{gap:0;min-width:0;width:100%}
+  #screen-game.compact .micro-aim-track{height:30px;min-width:0}
+  #play.ch #aim-box{align-self:end}
+  #play.ch .micro-aim-track{height:40px}
+  #screen-game.compact .aim-hint,.power-track.h .power-hint{display:block;position:absolute;left:10px;top:50%;transform:translateY(-50%);
+    font-family:var(--font-display);font-size:9.5px;letter-spacing:1.5px;color:var(--muted);opacity:.75;pointer-events:none;white-space:nowrap}
+  #play.ch .aim-hint{left:50%;top:auto;bottom:3px;transform:translateX(-50%);font-size:8px;letter-spacing:1px}
+  #play.ch .power-hint{display:block;position:absolute;left:50%;top:50%;transform:translate(-50%,-50%) rotate(90deg);
+    font-family:var(--font-display);font-size:9.5px;letter-spacing:1.5px;color:var(--muted);opacity:.75;pointer-events:none;white-space:nowrap}
+  #play.cv #power-box{grid-area:power;width:100%}
+  #play.ch #power-box{align-self:end;justify-self:center}
+  .power-track.h{width:100%;height:30px;border-radius:12px;cursor:ew-resize}
+  .power-track.h .power-fill{top:0;bottom:0;left:0;right:auto;width:0;height:auto;
+    background:linear-gradient(to right,var(--green),var(--gold) 55%,var(--red))}
+  .power-track.h .power-handle{top:50%;left:0;width:8px;height:24px;transform:translate(-50%,-50%)}
+  .power-track.h .power-ticks{background:repeating-linear-gradient(to right,transparent 0 9%,rgba(255,255,255,.07) 9% 10%)}
   @media (max-height:700px){
     .bl-player{padding:5px 9px 5px 11px;row-gap:3px}
     .bl-score{font-size:19px}
@@ -139,11 +234,24 @@
     </div>
 
     <div id="play" class="vert">
+      <!-- Компактный режим (телефон): счёт одной строкой и кнопка меню партии -->
+      <div id="mini-bar" class="bl-mini">
+        <div class="bl-mini-score">
+          <div class="bl-mini-row">
+            <span class="bl-mini-p on" id="mini-p1"><i></i><b id="mini-name1">Игрок 1</b><em id="mini-score1">0</em></span>
+            <span class="bl-mini-sep">:</span>
+            <span class="bl-mini-p" id="mini-p2"><em id="mini-score2">0</em><b id="mini-name2">Игрок 2</b><i></i></span>
+          </div>
+          <div class="bl-mini-status" id="mini-status">Ход: Игрок 1</div>
+        </div>
+        <button class="ku-btn icon" id="btn-menu" aria-label="Меню партии: счёт, настройки, пауза"><svg viewBox="0 0 24 24"><line x1="4" y1="7" x2="20" y2="7"/><line x1="4" y1="12" x2="20" y2="12"/><line x1="4" y1="17" x2="20" y2="17"/></svg></button>
+      </div>
       <!-- Сила удара -->
       <div id="power-box" class="bl-ctl">
         <span class="ku-label">Сила</span>
         <div id="power-slider" class="power-track">
           <div class="power-ticks"></div>
+          <span class="power-hint">СИЛА · тяни →</span>
           <div id="power-fill" class="power-fill"></div>
           <div id="power-handle" class="power-handle"></div>
         </div>
@@ -162,6 +270,7 @@
           <span class="ku-label">Микро-прицел</span>
           <div id="micro-aim-area" class="micro-aim-track">
             <div id="micro-aim-ruler" class="micro-aim-ruler"></div>
+            <span class="aim-hint">ТОЧНЫЙ ПРИЦЕЛ</span>
             <div class="micro-aim-center"></div>
           </div>
           <span class="bl-cap">веди влево / вправо</span>
@@ -171,15 +280,30 @@
   </section>
 </main>
 
-<!-- ═══ ПАУЗА ═══ -->
+<!-- ═══ МЕНЮ ПАРТИИ (пауза): счёт, сукно, настройки стола, действия ═══ -->
 <div class="ku-overlay" id="menu-pause">
-  <div class="ku-card">
-    <h2>⏸ ПАУЗА</h2>
-    <button class="ku-btn primary" id="btn-resume">Продолжить</button>
-    <button class="ku-btn" id="btn-restart">Начать заново</button>
-    <button class="ku-btn" id="btn-settings3">⚙️ Настройки</button>
-    <button class="ku-btn" id="btn-rules2">📖 Правила</button>
-    <button class="ku-btn ghost" id="btn-quit">В меню</button>
+  <div class="ku-modal bl-menu">
+    <header>
+      <div class="bl-menu-head"><h2>⏸ Пауза</h2><div class="bl-menu-sub" id="pause-sub">Вдвоём</div></div>
+      <button class="ku-btn icon" id="btn-pause-x" aria-label="Продолжить">✕</button>
+    </header>
+    <div class="ku-body bl-menu-body">
+      <div id="hud-slot"></div>
+      <div class="bl-menu-set">
+        <h3>Сукно</h3>
+        <div class="bl-swatches"></div>
+        <div class="ku-muted bl-theme-label" style="font-size:13px"></div>
+        <h3>Стол</h3>
+        <label class="ku-switch-row">Номера на шарах<input type="checkbox" data-opt="numbers"><span class="ku-switch"></span></label>
+        <label class="ku-switch-row">Полная траектория<input type="checkbox" data-opt="traj"><span class="ku-switch"></span></label>
+      </div>
+    </div>
+    <footer class="bl-menu-actions" id="pause-actions">
+      <button class="ku-btn" id="btn-rules2">📖 Правила</button>
+      <button class="ku-btn ghost" id="btn-quit">В меню</button>
+      <button class="ku-btn" id="btn-restart" title="Начать партию заново">↺ Заново</button>
+      <button class="ku-btn primary" id="btn-resume">Продолжить</button>
+    </footer>
   </div>
 </div>
 
@@ -216,7 +340,7 @@
         <li><b>Винт</b> — точка удара по битку: выше центра — накат, ниже — оттяжка, в стороны — боковой винт.</li>
         <li><b>Сила</b> — потяните ползунок вниз (кий отходит назад) и отпустите — кий бьёт по шару. Вернули ползунок наверх — удар отменён.</li>
         <li>Линия прицельного шара <b>зелёная</b>, если он идёт в лузу (с учётом отброса и скорости). Пунктир — путь битка после удара, зелёный — биток тоже уйдёт в лузу (свояк). <b>Красная</b> линия — биток сам идёт в лузу, ни в кого не попав (фол). Крестик — шар остановится здесь.</li>
-        <li>Полная траектория, номера шаров и цвет сукна — в настройках.</li>
+        <li>Полная траектория, номера шаров и цвет сукна — в настройках и в меню партии (⏸ / ☰). На телефоне стол занимает почти весь экран: внизу (в альбомной ориентации — по бокам) только управление и счёт, остальное — в меню ☰.</li>
       </ul>
       <h3>Физика стола</h3>
       <ul class="ku-rules">
@@ -237,11 +361,11 @@
     <header><h2>⚙️ Настройки</h2><button class="ku-btn icon" id="btn-settings-x" aria-label="Закрыть">✕</button></header>
     <div class="ku-body">
       <h3>Сукно</h3>
-      <div class="bl-swatches" id="swatches"></div>
-      <div class="ku-muted" id="theme-label" style="font-size:13px"></div>
+      <div class="bl-swatches"></div>
+      <div class="ku-muted bl-theme-label" style="font-size:13px"></div>
       <h3>Стол</h3>
-      <label class="ku-switch-row">Номера на шарах<input type="checkbox" id="opt-numbers"><span class="ku-switch"></span></label>
-      <label class="ku-switch-row">Полная траектория<input type="checkbox" id="opt-traj"><span class="ku-switch"></span></label>
+      <label class="ku-switch-row">Номера на шарах<input type="checkbox" data-opt="numbers"><span class="ku-switch"></span></label>
+      <label class="ku-switch-row">Полная траектория<input type="checkbox" data-opt="traj"><span class="ku-switch"></span></label>
     </div>
     <footer><button class="ku-btn primary" id="btn-settings-close">Готово</button></footer>
   </div>
@@ -1662,9 +1786,51 @@ function loop(ts) {
 
 // === РАЗМЕР И ОРИЕНТАЦИЯ ===
 // Холст = CSS-размер × devicePixelRatio. В портретном экране стол повёрнут вертикально (дом — внизу).
+// На телефоне (короткая сторона экрана ≤ 560 px) — компактный режим: стол почти на весь экран,
+// на экране только управление, счёт одной строкой и кнопка меню; панели игроков и настройки — в меню партии.
+let compact = false, powerHoriz = false;
+function placeHud(inMenu) {
+  const hud = document.querySelector('.bl-hud'), slot = $('hud-slot');
+  if (inMenu) { if (hud.parentNode !== slot) slot.appendChild(hud); }
+  else if (hud.parentNode !== gameScreen) gameScreen.insertBefore(hud, $('play'));
+}
+function setCanvasSize(cssW, cssH) {
+  dpr = Math.min(window.devicePixelRatio || 1, 2);
+  canvas.style.width = cssW + 'px'; canvas.style.height = cssH + 'px';
+  canvas.width = Math.round(cssW * dpr); canvas.height = Math.round(cssH * dpr);
+  scale = (vertical ? cssH : cssW) / FULL_W;
+}
 function layout() {
   const play = $('play');
-  if (!play.clientHeight) return;                       // экран игры скрыт
+  if (!gameScreen.classList.contains('active')) return;    // экран игры скрыт
+  const vw = window.innerWidth, vh = window.innerHeight;
+  compact = Math.min(vw, vh) <= 560;
+  gameScreen.classList.toggle('compact', compact);
+  placeHud(compact);
+  powerSlider.style.height = '';
+  if (compact) {
+    const GAP = 6;
+    vertical = vh >= vw;
+    play.className = vertical ? 'cv' : 'ch';
+    powerHoriz = vertical;
+    powerSlider.classList.toggle('h', powerHoriz);
+    const W = play.clientWidth, H = play.clientHeight;
+    let long;
+    if (vertical) {          // сверху счёт и меню, снизу винт | прицел + сила, стол — всё остальное
+      const barH = $('mini-bar').offsetHeight;
+      const dockH = Math.max($('spin-box').offsetHeight, $('aim-box').offsetHeight + GAP + $('power-box').offsetHeight);
+      long = Math.min(H - barH - dockH - 2 * GAP, W * FULL_W / FULL_H);
+    } else {                 // слева сила (под кнопкой «←» платформы), справа счёт, меню, винт и прицел
+      long = Math.min(W - 58 - 100 - 2 * GAP, H * FULL_W / FULL_H);
+    }
+    long = Math.floor(Math.max(200, long));
+    const cssW = vertical ? Math.floor(long * FULL_H / FULL_W) : long, cssH = vertical ? long : Math.floor(long * FULL_H / FULL_W);
+    setCanvasSize(cssW, cssH);
+    if (!vertical) powerSlider.style.height = Math.max(90, cssH - 70) + 'px';
+    setPowerUI(gameState.aimPower || 0);
+    return;
+  }
+  powerHoriz = false; powerSlider.classList.remove('h');
   const FRAME = 16, GAP = 10;                            // рамка .ku-board: padding 7 + border 1
   const pw = $('power-box').offsetWidth || 44;
   const W = play.clientWidth, H = play.clientHeight;
@@ -1679,11 +1845,9 @@ function layout() {
   const long = Math.max(200, Math.min(vertical ? vLong : hLong, 1500));
   const cssW = Math.round(vertical ? long * FULL_H / FULL_W : long);
   const cssH = Math.round(vertical ? long : long * FULL_H / FULL_W);
-  dpr = Math.min(window.devicePixelRatio || 1, 2);
-  canvas.style.width = cssW + 'px'; canvas.style.height = cssH + 'px';
-  canvas.width = Math.round(cssW * dpr); canvas.height = Math.round(cssH * dpr);
-  scale = (vertical ? cssH : cssW) / FULL_W;
-  $('power-slider').style.height = Math.max(90, Math.min(cssH + FRAME - 46, 320)) + 'px';
+  setCanvasSize(cssW, cssH);
+  powerSlider.style.height = Math.max(90, Math.min(cssH + FRAME - 46, 320)) + 'px';
+  setPowerUI(gameState.aimPower || 0);
 }
 function resize() { layout(); }
 
@@ -1744,15 +1908,23 @@ function updateHUD() {
   };
   $('pocketed1').innerHTML = renderBalls(gameState.pocketed1);
   $('pocketed2').innerHTML = renderBalls(gameState.pocketed2);
+  // компактный режим: счёт одной строкой; чей ход — ещё и цветом свечения рамки стола
+  $('mini-name1').textContent = $('name1').textContent; $('mini-name2').textContent = $('name2').textContent;
+  $('mini-score1').textContent = gameState.score1; $('mini-score2').textContent = gameState.score2;
+  $('mini-p1').classList.toggle('on', gameState.currentPlayer === 1);
+  $('mini-p2').classList.toggle('on', gameState.currentPlayer === 2);
+  $('board-box').classList.toggle('c2', gameState.currentPlayer === 2);
 }
 function popScore(p) {
-  const el = $('score' + p + '-box'); if (!el) return;
-  el.classList.remove('pop'); void el.offsetWidth; el.classList.add('pop');
+  for (const el of [$('score' + p + '-box'), $('mini-score' + p)]) {
+    if (!el) continue;
+    el.classList.remove('pop'); void el.offsetWidth; el.classList.add('pop');
+  }
 }
 let statusText = '';
 function setStatus(text) {
   if (!text || text === statusText) return;
-  statusText = text; $('game-status').textContent = text;
+  statusText = text; $('game-status').textContent = text; $('mini-status').textContent = text;
 }
 
 let modalCallback = null;
@@ -1796,11 +1968,16 @@ function toMenu() {
 let returnTo = null;
 function openPause() {
   if (anyOverlay()) return;
-  $('btn-restart').style.display = isNet() ? 'none' : '';   // по сети новая партия — через «Играть снова»
+  const online = isNet();
+  $('btn-restart').style.display = online ? 'none' : '';   // по сети новая партия — через «Играть снова»
+  $('pause-actions').classList.toggle('net', online);
+  $('pause-sub').textContent = $('game-title').textContent + (statusText ? ' · ' + statusText : '');
+  renderSettings();
   $('menu-pause').classList.add('open');
 }
 $('btn-pause').onclick = e => { e.currentTarget.blur(); openPause(); };
-$('btn-resume').onclick = () => $('menu-pause').classList.remove('open');
+$('btn-menu').onclick = e => { e.currentTarget.blur(); openPause(); };
+$('btn-resume').onclick = $('btn-pause-x').onclick = () => $('menu-pause').classList.remove('open');
 $('btn-restart').onclick = () => { $('menu-pause').classList.remove('open'); if (!isNet()) initGame(); };
 $('btn-quit').onclick = toMenu;
 function openSub(id, from) {
@@ -1818,25 +1995,31 @@ $('btn-rules2').onclick = () => openSub('menu-rules', 'menu-pause');
 $('btn-rules-close').onclick = $('btn-rules-x').onclick = () => closeSub('menu-rules');
 $('btn-settings').onclick = () => { renderSettings(); openSub('menu-settings'); };
 $('btn-settings2').onclick = e => { e.currentTarget.blur(); if (anyOverlay()) return; renderSettings(); openSub('menu-settings'); };
-$('btn-settings3').onclick = () => { renderSettings(); openSub('menu-settings', 'menu-pause'); };
 $('btn-settings-close').onclick = $('btn-settings-x').onclick = () => closeSub('menu-settings');
 
+// Настройки стола есть в двух местах — в окне «Настройки» (из главного меню) и в меню партии
 function renderSettings() {
-  const box = $('swatches'); box.innerHTML = '';
-  themes.forEach((t, i) => {
-    const b = document.createElement('button');
-    b.className = 'bl-swatch' + (i === currentThemeIndex ? ' active' : '');
-    b.style.setProperty('--cl', t.cloth); b.style.setProperty('--hi', rgba(mixRgb(hexRgb(t.cloth), [255, 255, 255], 0.18)));
-    b.title = t.name; b.setAttribute('aria-label', 'Сукно: ' + t.name);
-    b.onclick = () => { currentThemeIndex = i; savePrefs(); renderSettings(); };
-    box.appendChild(b);
+  document.querySelectorAll('.bl-swatches').forEach(box => {
+    box.innerHTML = '';
+    themes.forEach((t, i) => {
+      const b = document.createElement('button');
+      b.className = 'bl-swatch' + (i === currentThemeIndex ? ' active' : '');
+      b.style.setProperty('--cl', t.cloth); b.style.setProperty('--hi', rgba(mixRgb(hexRgb(t.cloth), [255, 255, 255], 0.18)));
+      b.title = t.name; b.setAttribute('aria-label', 'Сукно: ' + t.name);
+      b.onclick = () => { currentThemeIndex = i; savePrefs(); renderSettings(); };
+      box.appendChild(b);
+    });
   });
-  $('theme-label').textContent = 'Сукно: ' + themes[currentThemeIndex].name;
-  $('opt-numbers').checked = showNumbers;
-  $('opt-traj').checked = fullTrajectory;
+  document.querySelectorAll('.bl-theme-label').forEach(el => { el.textContent = 'Сукно: ' + themes[currentThemeIndex].name; });
+  document.querySelectorAll('input[data-opt="numbers"]').forEach(el => { el.checked = showNumbers; });
+  document.querySelectorAll('input[data-opt="traj"]').forEach(el => { el.checked = fullTrajectory; });
 }
-$('opt-numbers').onchange = e => { showNumbers = e.target.checked; savePrefs(); };
-$('opt-traj').onchange = e => { fullTrajectory = e.target.checked; savePrefs(); };
+document.querySelectorAll('input[data-opt]').forEach(el => {
+  el.onchange = () => {
+    if (el.dataset.opt === 'numbers') showNumbers = el.checked; else fullTrajectory = el.checked;
+    savePrefs(); renderSettings();
+  };
+});
 
 $('btn-local').onclick = () => { resumeAudio(); if (isNet()) leaveNet(); showScreen('game'); initGame(); };
 $('btn-net').onclick = openNetLobby;
@@ -1862,13 +2045,20 @@ spinCtrl.addEventListener('pointerup', endSpin); spinCtrl.addEventListener('poin
 $('btn-spin-reset').onclick = e => { e.currentTarget.blur(); resetSpin(); };
 
 // Сила: тянуть вниз (кий отходит назад), отпустить — удар
-const powerSlider = $('power-slider'); const powerFill = $('power-fill'); const powerHandle = $('power-handle'); let powerPointer = null;
-function setPowerUI(percent) { powerFill.style.height = (percent * 100) + '%'; powerHandle.style.top = (percent * 100) + '%'; }
+// Сила: тянуть вниз (в компактном портретном режиме — вправо), отпустить — удар.
+// Касание без протяжки удар не делает: случайный тап по шкале не должен бить.
+const powerSlider = $('power-slider'); const powerFill = $('power-fill'); const powerHandle = $('power-handle');
+let powerPointer = null, powerX0 = 0, powerY0 = 0, powerMoved = false;
+function setPowerUI(percent) {
+  const v = (percent * 100) + '%';
+  if (powerHoriz) { powerFill.style.width = v; powerFill.style.height = ''; powerHandle.style.left = v; powerHandle.style.top = ''; }
+  else { powerFill.style.height = v; powerFill.style.width = ''; powerHandle.style.top = v; powerHandle.style.left = ''; }
+}
 function updatePowerFromSlider(e) {
   const rect = powerSlider.getBoundingClientRect();
-  const percent = Math.max(0, Math.min(1, (e.clientY - rect.top) / rect.height));
-  gameState.aimPower = percent;
-  setPowerUI(percent);
+  const f = powerHoriz ? (e.clientX - rect.left) / rect.width : (e.clientY - rect.top) / rect.height;
+  gameState.aimPower = Math.max(0, Math.min(1, f));
+  setPowerUI(gameState.aimPower);
 }
 // Отпустили ползунок: кий разгоняется к шару; в момент касания шар получает скорость и вращение
 function releaseShot() {
@@ -1898,10 +2088,19 @@ function fireShot(b, ang, p, spin) {
 powerSlider.addEventListener('pointerdown', e => {
   resumeAudio();
   if (gameState.ballsMoving || !gameState.selectedBall || !canControl()) return;
-  e.preventDefault(); powerPointer = e.pointerId; capture(powerSlider, e); updatePowerFromSlider(e);
+  e.preventDefault(); powerPointer = e.pointerId; capture(powerSlider, e);
+  powerX0 = e.clientX; powerY0 = e.clientY; powerMoved = false; updatePowerFromSlider(e);
 });
-powerSlider.addEventListener('pointermove', e => { if (e.pointerId === powerPointer) updatePowerFromSlider(e); });
-powerSlider.addEventListener('pointerup', e => { if (e.pointerId === powerPointer) { powerPointer = null; releaseShot(); } });
+powerSlider.addEventListener('pointermove', e => {
+  if (e.pointerId !== powerPointer) return;
+  if (Math.abs(e.clientX - powerX0) + Math.abs(e.clientY - powerY0) > 4) powerMoved = true;
+  updatePowerFromSlider(e);
+});
+powerSlider.addEventListener('pointerup', e => {
+  if (e.pointerId !== powerPointer) return;
+  powerPointer = null;
+  if (powerMoved) releaseShot(); else { gameState.aimPower = 0; setPowerUI(0); }
+});
 powerSlider.addEventListener('pointercancel', e => { if (e.pointerId === powerPointer) { powerPointer = null; gameState.aimPower = 0; setPowerUI(0); } });
 
 // Микро-прицел (линейка)
