@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
-<title>Русский бильярд — Свободная пирамида</title>
+<title>Русский бильярд — пирамида</title>
 <link rel="stylesheet" href="ku-arcade.css">
 <script src="ku-arcade.js"></script>
 <style>
@@ -31,7 +31,9 @@
     font:700 8px/1 var(--font-body);color:#16181f;background:radial-gradient(circle at 35% 30%,#fff,#f3efd9 55%,#b7b196);
     box-shadow:inset -1px -1px 2px rgba(0,0,0,.35)}
   .bl-ball.cue{background:radial-gradient(circle at 35% 30%,#fff6bf,#facc15 55%,#9a7400)}
-  .bl-ball.pen{background:radial-gradient(circle at 35% 30%,#ffc6d2,#ff5d7d 55%,#9c1834);color:#fff}
+  /* штрафной шар (снят за фол соперника) — красное кольцо; снятый за свояк — зелёное */
+  .bl-ball.pen{box-shadow:0 0 0 1.5px var(--red),0 0 6px rgba(255,93,125,.7),inset -1px -1px 2px rgba(0,0,0,.35)}
+  .bl-ball.svk{box-shadow:0 0 0 1.5px var(--green),0 0 6px rgba(81,245,139,.6),inset -1px -1px 2px rgba(0,0,0,.35)}
   .bl-ball.empty{background:rgba(255,255,255,.04);border:1px dashed rgba(255,255,255,.16);box-shadow:none}
   .bl-more{font-size:10px;color:var(--muted);align-self:center}
 
@@ -215,6 +217,35 @@
     background:rgba(8,12,30,.55);backdrop-filter:blur(6px);-webkit-backdrop-filter:blur(6px)}
   #screen-game.compact .bl-cam-btn{right:8px;top:8px}
 
+  /* ── Подсказка над столом: биток с руки («Готово» / «Переставить»), выбор шара на полку («Снять») ── */
+  #board-box{position:relative}
+  .bl-chip{position:absolute;left:50%;top:10px;transform:translateX(-50%);z-index:4;display:flex;align-items:center;gap:8px;
+    width:max-content;max-width:calc(100% - 20px);box-sizing:border-box;padding:5px 5px 5px 12px;border-radius:14px;line-height:1.25;
+    background:rgba(8,12,30,.78);border:1px solid rgba(0,229,255,.4);backdrop-filter:blur(6px);-webkit-backdrop-filter:blur(6px);
+    box-shadow:0 4px 18px rgba(0,0,0,.45);font:500 12px/1.25 var(--font-body);color:var(--text);animation:kuFade .2s ease}
+  .bl-chip[hidden]{display:none!important}
+  .bl-chip{pointer-events:none} .bl-chip .ku-btn{pointer-events:auto}   /* тап по тексту проходит на стол */
+  .bl-chip.low{top:auto!important;bottom:10px}
+  .bl-chip-txt{min-width:0;overflow:hidden;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical}
+  .bl-chip.bad{border-color:rgba(255,93,125,.75)} .bl-chip.bad .bl-chip-txt{color:#ffb3c2}
+  .bl-chip .ku-btn{flex:none;height:32px;min-height:32px;padding:0 12px;font-size:12px;border-radius:10px;width:auto}
+  .bl-chip .bl-chip-x{width:32px;padding:0}
+  .bl-chip-txt[hidden]+.ku-btn{margin-left:-7px}
+  #board-box.v3 .bl-chip{left:10px;transform:none;max-width:calc(100% - 130px)}
+  #screen-game.compact #board-box.v3 .bl-chip{left:8px;top:8px}
+  #screen-game.compact .bl-chip{top:8px}
+
+  /* ── Окно выбора после фола ── */
+  .bl-choice-btns{display:flex;flex-direction:column;gap:9px;width:100%}
+  .bl-choice-btns .ku-btn{width:100%;flex-direction:column;gap:2px;padding:10px 14px;line-height:1.2}
+  #choice-desc{white-space:pre-line}
+
+  /* ── Меню: вид пирамиды ── */
+  .bl-kind{width:100%;max-width:340px}
+  .bl-kind .ku-seg{width:100%}
+  .bl-kind .ku-seg button{flex:1 1 0}
+  .bl-kind-note{font-size:12px;line-height:1.4;color:var(--muted);margin-top:7px;min-height:2.8em;text-align:center}
+
   /* ── Винт: значок наклона на маленьком шаре ── */
   .bl-elev-badge{position:absolute;right:-8px;bottom:-6px;z-index:2;pointer-events:none;padding:3px 5px;border-radius:8px;
     font:400 10px/1 var(--font-display);color:#fff;background:var(--accent2);box-shadow:0 0 8px rgba(255,77,210,.6)}
@@ -293,8 +324,11 @@
   <!-- ═══ МЕНЮ ═══ -->
   <section id="screen-menu" class="ku-screen menu active">
     <h1 class="ku-logo">БИЛЬЯРД</h1>
-    <p class="ku-tagline">Свободная пирамида • 16 шаров • До 8 очков</p>
-    <div class="ku-pills"><span>🎱 Реалистичная физика</span><span>🌀 Винт</span><span>🎯 Траектория</span><span>👥 Вдвоём</span><span>🌐 По сети</span></div>
+    <p class="ku-tagline">Пирамида • 16 шаров • До 8 очков</p>
+    <div class="ku-pills"><span>🎱 Реалистичная физика</span><span>✋ Биток с руки</span><span>🌀 Винт</span><span>🎯 Траектория</span><span>👥 Вдвоём</span><span>🌐 По сети</span></div>
+    <div class="ku-field bl-kind"><div class="ku-label">Вид пирамиды</div>
+      <div class="ku-seg" id="kind-seg"><button data-k="free">Свободная</button><button data-k="moscow">Московская</button></div>
+      <div class="bl-kind-note" id="kind-note"></div></div>
     <div class="ku-menu-btns">
       <button class="ku-btn big primary" id="btn-local">👥 Вдвоём<span class="best">на одном устройстве</span></button>
       <button class="ku-btn big green" id="btn-net">🌐 По сети<span class="best">с другом по коду комнаты</span></button>
@@ -303,9 +337,10 @@
       <button class="ku-btn ghost" id="btn-rules">📖 Правила</button>
       <button class="ku-btn ghost" id="btn-settings">⚙️ Настройки</button>
     </div>
-    <div class="ku-menu-stats">Биток — любой шар • Забил — бьёшь ещё • Промах — штраф</div>
-    <div class="ku-menu-hint">Тап по шару — выбрать биток · тап и ведение по столу — прицел · «Сила»: потяни вниз и отпусти<br>
-      Клавиши: ← → — точный прицел (Shift — крупнее) · P / Esc — пауза</div>
+    <div class="ku-menu-stats" id="menu-stats">Разбой с руки • Биток — любой шар • Фол — штрафной шар</div>
+    <div class="ku-menu-hint">Разбой: поставь биток в доме — тяни шар пальцем или тапни в доме, «Готово» — к прицелу<br>
+      Тап по шару — выбрать биток · ведение по столу — прицел · «Сила» — потяни и «Ударить»<br>
+      Клавиши: ← → — точный прицел · стрелки — двигать биток с руки · P / Esc — пауза</div>
   </section>
 
   <!-- ═══ ИГРА ═══ -->
@@ -365,6 +400,11 @@
         <canvas id="gl-canvas" class="bl-layer" hidden></canvas>
         <canvas id="ov-canvas" class="bl-layer" hidden></canvas>
         <button class="ku-btn bl-cam-btn" id="btn-cam" hidden>👁 Обзор</button>
+        <div class="bl-chip" id="act-chip" hidden role="status" aria-live="polite">
+          <span class="bl-chip-txt" id="act-chip-txt"></span>
+          <button class="ku-btn primary" id="act-chip-ok">Готово</button>
+          <button class="ku-btn ghost bl-chip-x" id="act-chip-x" aria-label="Отменить выбор" hidden>✕</button>
+        </div>
       </div>
       <!-- Винт и микро-прицел -->
       <div id="dock">
@@ -442,27 +482,55 @@
   </div>
 </div>
 
+<!-- ═══ ВЫБОР ПОСЛЕ ФОЛА / НЕПРАВИЛЬНОГО РАЗБОЯ ═══ -->
+<div class="ku-overlay" id="modal-choice">
+  <div class="ku-card">
+    <h2 id="choice-title">ПОСЛЕ ФОЛА</h2>
+    <p id="choice-desc"></p>
+    <div class="bl-choice-btns" id="choice-btns"></div>
+  </div>
+</div>
+
 <!-- ═══ ПРАВИЛА ═══ -->
 <div class="ku-overlay" id="menu-rules">
   <div class="ku-modal">
     <header><h2>📖 Правила</h2><button class="ku-btn icon" id="btn-rules-x" aria-label="Закрыть">✕</button></header>
     <div class="ku-body">
+      <h3>Общие правила (оба вида)</h3>
+      <ul class="ku-rules">
+        <li><b>Шары и цель:</b> 15 белых с номерами и жёлтый без номера. Побеждает тот, кто первым наберёт <b>8 очков</b>. Забил — бьёте ещё, не забил — ход соперника.</li>
+        <li><b>Разбой</b> — только <b>жёлтым битком «с руки» из дома</b>: биток ставится в любую точку дома (часть стола между линией дома и коротким бортом), но не на линию — положение шара считается по центру, шар на линии — вне дома. В следующей партии разбивает соперник.</li>
+        <li><b>Правильный разбой:</b> после соударения битка с прицельным шаром забит любой шар, или бортов коснулись <b>3 разных</b> прицельных шара, или <b>2</b> — и хотя бы один прицельный <b>пересёк среднюю линию</b>. Иначе — фол.</li>
+        <li><b>После неправильного разбоя</b> соперник снимает штрафной шар и выбирает: принять позицию и <b>бить самому</b> или <b>передать удар</b>; либо <b>перестановка</b> пирамиды (неполной — без снятых шаров) и новый разбой с руки — <b>сам</b> или <b>нарушитель</b>.</li>
+        <li><b>Правильно завершённый удар</b> (кроме разбоя): после соударения битка с прицельным шаром забит шар, или шары «отыграли»: шар отразился от борта и затем коснулся <b>другого борта</b> (шара у другого борта, довёл до другого борта шар); или шар <b>пересёк среднюю линию</b> и затем коснулся борта (шара у борта, довёл шар до борта); или шар отразился от борта и затем пересёк среднюю линию (перекатил через неё шар, коснулся шара за ней). Иначе — фол.</li>
+        <li><b>Фол:</b> биток не коснулся ни одного шара; удар завершён неправильно; неправильный разбой; в московской — нарушение удара с руки.</li>
+        <li><b>Штраф за фол:</b> шары, забитые при фоле, ставятся на заднюю отметку (несколько — по линии к заднему борту). Затем соперник снимает со стола <b>любой шар себе на полку</b> — это <b>штрафной шар</b>, +1 очко (на полке — с красным кольцом). Дальше он решает: <b>бить самому</b> или <b>передать удар</b> нарушителю.</li>
+      </ul>
       <h3>Свободная пирамида</h3>
       <ul class="ku-rules">
-        <li><b>16 шаров:</b> 15 белых с номерами и жёлтый. <b>Битком может быть любой шар</b> — выберите его тапом.</li>
-        <li><b>Цель:</b> первым набрать <b>8 очков</b>. Каждый забитый шар — очко, в том числе биток, ушедший в лузу после удара по другому шару («свояк»).</li>
-        <li><b>Забили</b> — бьёте ещё раз. <b>Не забили</b> — ход переходит сопернику.</li>
-        <li><b>Фол «промах»:</b> биток не коснулся ни одного шара. Сопернику — штрафное очко (<b>Ш</b>), ход переходит. Если биток при этом упал в лузу, он не засчитывается и возвращается на заднюю отметку.</li>
+        <li><b>Битком может быть любой шар</b> (кроме разбоя) — выберите его тапом.</li>
+        <li>Каждый забитый шар — очко, в том числе биток, ушедший в лузу после удара по другому шару («свояк»).</li>
+        <li>Штрафным можно снять любой шар, даже жёлтый (тогда после неправильного разбоя перестановка невозможна).</li>
+      </ul>
+      <h3>Московская (комбинированная) пирамида</h3>
+      <ul class="ku-rules">
+        <li><b>Биток — только жёлтый</b>, во всех ударах.</li>
+        <li><b>Свояк</b> (биток ушёл в лузу после удара по прицельному) — правильно: забивший сам снимает любой прицельный шар себе на полку (+1 очко, зелёное кольцо), продолжает и бьёт <b>с руки из дома</b>.</li>
+        <li><b>Удар с руки:</b> биток — в любую точку дома, не на линию и не вплотную к шарам. Бить можно только так, чтобы биток, выйдя из дома, коснулся шара <b>вне дома</b> (они подсвечены зелёным, шары в доме — красным). Фол, если биток до выхода из дома задел шар в доме, не коснулся ни одного шара вне дома или шар упал в лузу раньше этого касания.</li>
+        <li>Если <b>все прицельные шары в доме</b>, удар с руки делается из <b>временного дома</b> — части стола за задней линией (через заднюю отметку), и тогда первым нужен шар вне временного дома.</li>
+        <li>Штрафной шар — только прицельный. Если при фоле биток упал в лузу, после штрафного шара его ставит с руки в доме тот, кто будет бить.</li>
       </ul>
       <h3>Управление</h3>
       <ul class="ku-rules">
-        <li><b>Тап по шару</b> — выбрать биток. <b>Тап или ведение по столу</b> — направление удара (вести можно и от самого битка).</li>
+        <li><b>Биток с руки</b> (разбой, московская): дом подсвечен, биток — бегущим пунктиром. Тяните шар пальцем или мышью, или тапните в доме. Туда, где нельзя (за линией и на линии дома, вплотную к шару, у лузы), шар не встаёт — красный «призрак» и подсказка. <b>«Готово»</b> (Enter) — к прицелу, <b>«✋ Переставить»</b> (H) — снова двигать; тап или ведение вне дома — сразу прицел. Пока двигаете шар, прицел остаётся на цели, траектория пересчитывается. Стрелки — сдвиг на 2 мм (Shift — 2 см). В 3D камера встаёт над домом, протяжка по столу двигает шар.</li>
+        <li><b>Штрафной шар / шар за свояк:</b> тапните шар (подсвечены жёлтым) и нажмите «Снять» (или тапните его ещё раз). Клавиши: стрелки — выбор, Enter — снять. Затем — окно выбора: бить самому, передать удар (после неправильного разбоя — и перестановка).</li>
+        <li><b>Тап по шару</b> — выбрать биток (в свободной пирамиде). <b>Тап или ведение по столу</b> — направление удара (вести можно и от самого битка).</li>
         <li><b>Микро-прицел</b> — ведите по линейке влево/вправо: медленно — доводка на доли миллиметра, быстро — крупнее. На клавиатуре ← →, с Shift — крупнее.</li>
         <li><b>Винт</b> — точка удара по битку: выше центра — накат, ниже — оттяжка, в стороны — боковой винт. Протяжка по маленькому шару — быстрая настройка, <b>тап по нему — точная</b>: большой шар, стрелки с шагом 1&nbsp;%, проценты наката/оттяжки и бокового, <b>наклон кия</b> 0–75° (удар сверху).</li>
         <li><b>Сила</b> видна в процентах. Режим <b>«Бить кнопкой «Ударить»»</b> (включён сразу): потяните шкалу до нужной силы и отпустите — сила остаётся; поправьте прицел и силу (− / + по 1&nbsp;%, на клавиатуре ↑ ↓, с Shift — по 5&nbsp;%) и нажмите <b>«Ударить»</b> (или пробел). Если режим выключить в настройках, удар — сразу при отпускании шкалы; вернули шкалу в начало — удар отменён.</li>
         <li><b>Траектория.</b> Обычная: линия прицельного шара <b>зелёная</b>, если он идёт в лузу (с учётом отброса и скорости); пунктир — путь битка, зелёный — биток тоже уйдёт в лузу (свояк); <b>красная</b> — биток сам идёт в лузу, ни в кого не попав (фол); крестик — шар остановится здесь.</li>
         <li><b>Полная траектория</b> — весь путь до остановки, с отскоками, соударениями и лузами (тот же расчёт, что и сам удар). <b>Глубина</b> — сколько шаров по цепочке показывать: 1 — биток и шары, которые он ударит, 2 — и те, что ударят они, … «Все». Биток — жёлтый пунктир, задетые — белые линии, дальше по цепочке — бледнее; пунктирный круг — где шар встанет, кольцо у лузы — шар упадёт.</li>
-        <li><b>3D-вид</b> — кнопка 3D/2D. Камера стоит за битком по линии прицела: протяните по столу влево/вправо — поворот прицела, вверх/вниз — высота камеры; щипок или колесо мыши — ближе/дальше; тап по шару — выбрать биток, по сукну — прицел в эту точку. «Обзор» — весь стол; пока шары катятся, камера сама показывает весь стол.</li>
+        <li><b>3D-вид</b> — кнопка 3D/2D. Камера стоит за битком по линии прицела: протяните по столу влево/вправо — поворот прицела, вверх/вниз — высота камеры; щипок или колесо мыши — ближе/дальше; тап по шару — выбрать биток (или шар на полку), по сукну — прицел в эту точку. «Обзор» — весь стол; пока шары катятся, камера сама показывает весь стол.</li>
         <li>Режим удара, траектория, вид 2D/3D, номера шаров и цвет сукна — в настройках и в меню партии (⏸ / ☰). На телефоне стол занимает почти весь экран: внизу (в альбомной ориентации — по бокам) только управление и счёт, остальное — в меню ☰.</li>
       </ul>
       <h3>Физика стола</h3>
@@ -546,7 +614,7 @@
 <script>
 'use strict';
 /* ═══════════════════════════════════════════════════════════════════════════
- * РУССКИЙ БИЛЬЯРД — свободная пирамида
+ * РУССКИЙ БИЛЬЯРД — свободная и московская (комбинированная) пирамида
  *
  * Физика: шар — твёрдое тело (скорость v и вектор угловой скорости ω, мм/с и рад/с).
  *  • Сукно: пока точка касания проскальзывает — трение скольжения μ=0.2 (оно и делает
@@ -585,7 +653,10 @@ const themes = [
   { name: 'Шоколад',            cloth: '#5c3b25' }
 ];
 const DEPTHS = [1, 2, 3, 4, 5, 99];        // глубина полной траектории: «поколений» шаров (99 — все)
-const prefs = { theme: 0, numbers: true, traj: 'short', depth: 2, shootBtn: true, view3d: false };
+// Виды пирамиды: «Свободная» — битком может быть любой шар; «Московская» (официально «Комбинированная») —
+// биток только жёлтый, после свояка — шар себе на полку и удар с руки из дома
+const KINDS = { free: 'Свободная', moscow: 'Московская' };
+const prefs = { theme: 0, numbers: true, traj: 'short', depth: 2, shootBtn: true, view3d: false, kind: 'free' };
 try {
   const s = JSON.parse(store.get('billiard_prefs') || '{}') || {};
   if (s.numbers === false) prefs.numbers = false;
@@ -595,6 +666,7 @@ try {
   if (DEPTHS.includes(s.depth)) prefs.depth = s.depth;
   if (s.shootBtn === false) prefs.shootBtn = false;
   if (s.view3d === true) prefs.view3d = true;
+  if (s.kind === 'moscow') prefs.kind = 'moscow';
 } catch (e) {}
 let currentThemeIndex = prefs.theme;
 let showNumbers = prefs.numbers;
@@ -602,9 +674,10 @@ let trajMode = prefs.traj;                 // 'short' — линии прице�
 let trajDepth = prefs.depth;
 let shootByButton = prefs.shootBtn;        // сила задаётся заранее, удар — кнопкой «Ударить»
 let view3d = prefs.view3d;
+let menuKind = prefs.kind;                 // вид пирамиды, выбранный в меню (для новой партии)
 function savePrefs() {
   store.set('billiard_prefs', JSON.stringify({ v: 2, theme: currentThemeIndex, numbers: showNumbers, traj: trajMode, depth: trajDepth,
-                                               shootBtn: shootByButton, view3d }));
+                                               shootBtn: shootByButton, view3d, kind: menuKind }));
 }
 
 // === ВЕКТОР (для интерфейса) ===
@@ -702,12 +775,13 @@ const CUSH_S = (0.64 * 2 * R - R) / R;     // синус угла точки у�
 const CUSH_C = Math.sqrt(1 - CUSH_S * CUSH_S);
 const SUBSTEP = 1 / 1200;                  // шаг физики, с
 const V_MAX = 8500, V_MIN = 150;           // скорость битка при полной и минимальной силе, мм/с
-const HOUSE_X = TABLE_W * 0.25, BACK_SPOT_X = TABLE_W * 0.75;
+const HOUSE_X = TABLE_W * 0.25, BACK_SPOT_X = TABLE_W * 0.75;   // линия дома; задняя отметка (и задняя линия)
+const CENTER_X = TABLE_W / 2;              // средняя (центральная) линия стола
 const FULL_W = TABLE_W + RAIL_W * 2, FULL_H = TABLE_H + RAIL_W * 2;
 const LAMPS = [0.2, 0.5, 0.8].map(f => ({ x: TABLE_W * f, y: TABLE_H / 2 }));   // три лампы над столом
 const LAMP_H = 1000;                       // высота ламп над сукном, мм
 
-const canvas = $('billiardCanvas');
+const canvas = $('billiardCanvas'), gameScreen = $('screen-game');
 const ctx = canvas.getContext('2d', { alpha: false });
 let scale = 1;              // CSS px на 1 мм (для перевода касаний)
 let vertical = false;       // стол повёрнут вертикально (портретный экран)
@@ -717,120 +791,392 @@ let balls = [], walls = [], pockets = [], falling = [];
 let ballsVersion = 0;       // меняется, когда шары встали по-новому (кэш прицела)
 
 let gameState = {
-  currentPlayer: 1, score1: 0, score2: 0,
-  pocketed1: [], pocketed2: [],
+  kind: 'free',                         // вид пирамиды этой партии: 'free' | 'moscow'
+  currentPlayer: 1,                     // чей сейчас ход — бить, ставить биток или выбирать
+  score1: 0, score2: 0,
+  pocketed1: [], pocketed2: [],         // полки: '7' — забит, 'Б' — жёлтый, 'Ш7' — штрафной, 'С7' — снят за свояк
   selectedBall: null,
   aimAngle: 0, aimPower: 0,             // aimPower — доля полной силы 0…1
-  ballsMoving: false, turnValid: false,
+  ballsMoving: false, hitOccurred: false,
   spin: new Vec2(0, 0),                 // точка удара: x — вправо, y — вниз (оттяжка), в долях от 0.5R
   elev: 0,                              // наклон кия к сукну, рад (0…75°)
-  ballInHand: false, hitOccurred: false, foul: false, pocketedThisTurn: 0,
-  foulPotted: [],
+  // фаза: 'place' — биток с руки, 'aim' — удар, 'pick' — снять шар себе на полку, 'choose' — выбор после фола, 'over'
+  phase: 'place',
+  hand: null,                           // биток в руке: { zone: 'house'|'temp'|'table', brk: разбой, rule: 'outside'|null }
+  breakShot: false,                     // следующий удар — разбой
+  pick: null,                           // { why: 'pen' (штрафной) | 'svk' (за свояк), brk: после разбоя }
+  choice: null,                         // { opts: ['shoot','pass','rerack','rerack_pass'], brk }
+  offender: 0,                          // кто нарушил (для выбора «передать удар»)
+  breaker: 1,                           // кто разбивал в этой партии (в следующей — соперник)
+  cueOff: false,                        // московская: биток в лузе — следующий удар с руки из дома
+  verdict: null,                        // итог последнего удара (для сообщений и сети)
+  shotSeq: 0, seq: 0, hist: [],         // счётчик ударов; журнал решений (для соперника по сети)
   stroke: null                          // анимация кия: замах → удар → проводка
 };
 
+// === СУДЬЯ И ЗОНЫ: чистая логика правил (без DOM) — её же гоняют тесты в Node ===
+// Зоны удара с руки. dir < 0: внутри — x < линии; dir > 0: x > линии; 0 — весь стол (на будущее — «динамичная»).
+// Линия зоны в неё не входит: шар, центр которого точно на линии, — вне зоны (п. 10/11).
+const ZONES = {
+  house: { dir: -1, x: HOUSE_X, x0: 0, x1: HOUSE_X, name: 'дом', in: 'в доме' },
+  temp:  { dir: 1, x: BACK_SPOT_X, x0: BACK_SPOT_X, x1: TABLE_W, name: 'временный дом', in: 'во временном доме' },
+  table: { dir: 0, x: 0, x0: 0, x1: TABLE_W, name: 'стол', in: 'на столе' }
+};
+const inZone = (z, x) => z.dir < 0 ? x < z.x : (z.dir > 0 ? x > z.x : true);
+const sideOf = x => x < CENTER_X ? -1 : (x > CENTER_X ? 1 : 0);
+const AT_CUSHION = 1.0;                // мм: шар «у борта» (вплотную), если зазор до резины не больше
+// борта, у которых стоит шар (битовая маска номеров бортов)
+function cushionsNear(b) {
+  let m = 0;
+  for (const w of walls) {
+    const px = b.x - w.ax, py = b.y - w.ay;
+    let t = px * w.dx + py * w.dy; t = t < 0 ? 0 : (t > w.len ? w.len : t);
+    const dx = b.x - (w.ax + w.dx * t), dy = b.y - (w.ay + w.dy * t), D = R + w.r + AT_CUSHION;
+    if (dx * dx + dy * dy <= D * D) m |= 1 << w.sec;
+  }
+  return m;
+}
+const bitCount = m => { let n = 0; while (m) { m &= m - 1; n++; } return n; };
+// есть ли борт k из маски a и другой борт k' ≠ k из маски b
+const otherCushion = (a, b) => !!a && !!b && (bitCount(a) > 1 || bitCount(b) > 1 || a !== b);
+
+// === СУДЬЯ: события удара → правильный ли удар ===
+// Получает события физики (соударения, борта, лузы) и после каждого шага — положения шаров. Все решения —
+// по тем же числам, что и физика, поэтому у соперника по сети при повторе удара итог тот же.
+class Referee {
+  // opts: brk — разбой; zone — 'house' | 'temp' для удара с руки по правилу «первым — шар вне зоны»
+  constructor(list, cue, opts) {
+    const n = list.length;
+    this.list = list; this.cue = cue; this.brk = !!opts.brk;
+    this.zoneKey = opts.zone && ZONES[opts.zone] ? opts.zone : null; this.zone = this.zoneKey ? ZONES[this.zoneKey] : null;
+    this.after = false;                      // было ли соударение битка с прицельным шаром
+    this.ownC = new Array(n).fill(0);        // от каких бортов отразился сам шар (после соударения)
+    this.inhC = new Array(n).fill(0);        // … шар, который его «довёл» (толкнул)
+    this.ownX = new Array(n).fill(false);    // сам пересёк среднюю линию
+    this.inhX = new Array(n).fill(false);    // его довёл шар, пересёкший среднюю линию
+    this.lastSide = list.map(b => sideOf(b.x));
+    this.ok20 = false; this.how = '';        // п. 20 выполнен (и каким условием — для проверок)
+    this.cushObj = new Set(); this.crossObj = false;   // для разбоя: прицельные у бортов, пересечение средней линии
+    this.potted = [];
+    this.cueLeft = !this.zone || !inZone(this.zone, list[cue].x);
+    this.zoneHitEarly = false; this.outsideHit = false; this.potBeforeOut = false;   // удар с руки (московская)
+  }
+  idx(b) { return this.list.indexOf(b); }
+  pass(how) { if (!this.ok20) { this.ok20 = true; this.how = how; } }
+  hit(a, b, vn) {
+    const i = this.idx(a), j = this.idx(b), c = this.cue;
+    if (i < 0 || j < 0) return;
+    if (i === c || j === c) {
+      const o = i === c ? j : i, ob = this.list[o];
+      this.after = true;
+      if (this.zone) {
+        if (!this.cueLeft && !inZone(this.zone, this.list[c].x)) this.cueLeft = true;
+        if (inZone(this.zone, ob.x)) { if (!this.cueLeft) this.zoneHitEarly = true; }
+        else this.outsideHit = true;
+      }
+    }
+    if (!this.after) return;
+    // кто кого «довёл»: шар, который двигался навстречу другому (скорости по линии центров до удара)
+    const dx = b.x - a.x, dy = b.y - a.y, d = Math.sqrt(dx * dx + dy * dy) || 1, nx = dx / d, ny = dy / d;
+    const k = (1 + E_BALL) * 0.5 * vn, ua = a.vx * nx + a.vy * ny + k, ub = b.vx * nx + b.vy * ny - k;
+    const drv = [];
+    if (ua > 1e-6) drv.push([i, j]);
+    if (ub < -1e-6) drv.push([j, i]);
+    for (const [p, q] of drv) this.touch(p, q);
+    for (const [p, q] of drv) { this.inhC[q] |= this.ownC[p]; if (this.ownX[p]) this.inhX[q] = true; }
+  }
+  // шар p коснулся шара q
+  touch(p, q) {
+    const P = this.list[p], Q = this.list[q], qc = cushionsNear(Q);
+    if (qc) {
+      if (otherCushion(this.ownC[p], qc)) this.pass('2: от борта — в шар у другого борта');
+      if (otherCushion(this.inhC[p], qc)) this.pass('2: довёл шар до шара у другого борта');
+      if (this.ownX[p] || this.inhX[p]) this.pass('3: через среднюю линию — в шар у борта');
+    }
+    if (this.ownC[p] || this.inhC[p]) {
+      const sp = sideOf(P.x), sq = sideOf(Q.x);
+      if (sq === 0 || sq !== sp) this.pass('4: от борта — в шар за средней линией');
+    }
+  }
+  wall(b, w) {
+    if (!this.after || !w) return;           // касания бортов до соударения не считаются
+    const i = this.idx(b); if (i < 0) return;
+    const bit = 1 << w.sec;
+    if (otherCushion(this.ownC[i], bit)) this.pass('2: от борта — в другой борт');
+    if (otherCushion(this.inhC[i], bit)) this.pass('2: довёл шар до другого борта');
+    if (this.ownX[i] || this.inhX[i]) this.pass('3: через среднюю линию — в борт');
+    this.ownC[i] |= bit;
+    if (i !== this.cue) this.cushObj.add(i);
+    if (w.mid) this.cross(i);                // отскок от носа губки средней лузы — пересёк среднюю линию
+  }
+  cross(i) {
+    if (this.ownC[i] || this.inhC[i]) this.pass('4: от борта — через среднюю линию');
+    this.ownX[i] = true;
+    if (i !== this.cue) this.crossObj = true;
+  }
+  pocket(b) {
+    const i = this.idx(b); if (i < 0) return;
+    this.potted.push(i);
+    if (this.zone && !this.outsideHit) this.potBeforeOut = true;
+  }
+  // после каждого шага физики: пересечения средней линии, выход битка из дома
+  step() {
+    const L = this.list;
+    if (!this.cueLeft && L[this.cue].active && !inZone(this.zone, L[this.cue].x)) this.cueLeft = true;
+    for (let i = 0; i < L.length; i++) {
+      const b = L[i]; if (!b.active) continue;
+      const s = sideOf(b.x); if (s === 0) continue;
+      if (s !== this.lastSide[i]) { if (this.lastSide[i] !== 0 && this.after) this.cross(i); this.lastSide[i] = s; }
+    }
+  }
+  verdict() {
+    const potted = this.potted.slice(), cuePotted = potted.includes(this.cue);
+    const v = { foul: false, code: 'ok', potted, cuePotted, brk: this.brk, zone: this.zoneKey, cush: this.cushObj.size, crossed: this.crossObj, how: this.how };
+    const foul = code => Object.assign(v, { foul: true, code });
+    if (!this.after) return foul(cuePotted ? 'miss_pot' : 'miss');
+    if (this.brk) {
+      const n = this.cushObj.size;
+      return potted.length > 0 || n >= 3 || (n >= 2 && this.crossObj) ? Object.assign(v, { code: 'break_ok' }) : foul('break');
+    }
+    if (this.zone) {
+      if (this.zoneHitEarly) return foul('hand_in');
+      if (!this.outsideHit) return foul('hand_out');
+      if (this.potBeforeOut) return foul('hand_pot');
+    }
+    if (!potted.length && !this.ok20) return foul('p20');
+    return v;
+  }
+}
+let referee = null;
+
+// Почему удар — фол (для сообщений; v — итог судьи или его копия из сети)
+const ruNum = (n, a, b, c) => { const m = n % 100, k = n % 10; return m > 10 && m < 20 ? c : k === 1 ? a : k > 1 && k < 5 ? b : c; };
+function foulText(v) {
+  const zn = v.zone === 'temp' ? 'временного дома' : 'дома';
+  switch (v.code) {
+    case 'miss': return 'Биток не коснулся ни одного шара.';
+    case 'miss_pot': return 'Биток упал в лузу, не коснувшись других шаров.';
+    case 'break': {
+      const n = v.cush | 0;
+      return 'После соударения ' + (n ? 'бортов коснулись только ' + n + ' ' + ruNum(n, 'прицельный шар', 'прицельных шара', 'прицельных шаров') : 'ни один прицельный шар не коснулся борта') +
+             (n === 2 && !v.crossed ? ', и ни один не пересёк среднюю линию' : '') +
+             ', ничего не забито. Нужно: забить шар, или чтобы бортов коснулись 3 шара, или 2 — и хотя бы один пересёк среднюю линию.';
+    }
+    case 'p20': return 'Удар завершён неправильно: после соударения ничего не забито и шары не «отыграли» — нужен шар, который после борта коснулся другого борта, или пересёк среднюю линию и коснулся борта, или после борта пересёк среднюю линию.';
+    case 'hand_in': return 'Удар с руки: биток, не выйдя из ' + zn + ', задел шар в ' + (v.zone === 'temp' ? 'нём' : 'доме') + '.';
+    case 'hand_out': return 'Удар с руки: биток не коснулся ни одного шара вне ' + zn + '.';
+    case 'hand_pot': return 'Удар с руки: шар упал в лузу раньше, чем биток коснулся шара вне ' + zn + '.';
+  }
+  return 'Нарушение правил.';
+}
+
+const FOUL_SHORT = { miss: 'фол: мимо всех шаров', miss_pot: 'фол: биток в лузу мимо шаров', p20: 'фол: нет отыгрыша (п. 20)',
+                     break: 'разбой будет неправильным', hand_in: 'фол: первым шар в доме', hand_out: 'фол: нет шара вне дома',
+                     hand_pot: 'фол: забит до шара вне дома' };
+
 // === СЕТЕВАЯ ИГРА (KuNet): seat 0 = Игрок 1, seat 1 = Игрок 2 ===
-// Ударивший игрок после остановки шаров шлёт снимок стола + параметры удара;
-// соперник проигрывает удар у себя (та же детерминированная физика) и затем ставит шары по снимку.
-const SHOT_VERSION = 2;     // формат удара: скорость + вектор вращения; удар другой версии — сразу итог
+// Каждое действие того, чей ход (удар, снятый шар, выбор после фола), отправляется ходом KuNet: полный снимок
+// партии + последний удар (стартовая расстановка, скорость и вращение битка). Соперник проигрывает удар у себя
+// (та же детерминированная физика и тот же судья), затем ставит всё по снимку. Удар, пропущенный между опросами,
+// проигрывается по номеру shotSeq; решения, которые соперник не застал, показываются из журнала hist.
+// Формат партии изменился (разбой с руки, штрафной шар, выбор, московская пирамида), поэтому у новой версии
+// свой идентификатор игры и номер протокола: старая версия из кэша не «смешается» с новой молча.
+const NET_GAME = 'billiard2', NET_PROTO = 3;
+const SHOT_VERSION = 3;     // формат удара: старт, скорость, вращение, условия удара для судьи
 let net = null, mySeat = 0, netRound = 0, replaying = false, replayState = null, pendingShot = null, netFinished = false;
+let netOut = null, netSending = false, netTries = 0, histSeen = 0, lastShot = null;
 const replayQueue = [];
 const isNet = () => !!(net && net.room);
+// можно ли сейчас действовать с этого устройства (по сети — только в свой ход, когда ничего не проигрывается)
 function canControl() {
   if (gameState.stroke) return false;
-  return !isNet() || (net.room.status === 'playing' && net.isMyTurn() && !replaying && !net.busy && replayQueue.length === 0);
+  return !isNet() || (net.room.status === 'playing' && net.isMyTurn() && gameState.currentPlayer === mySeat + 1 &&
+                      !replaying && !net.busy && !netSending && replayQueue.length === 0);
+}
+// моё действие по ходу партии (прицел, установка битка, выбор шара, выбор после фола): по сети — мой ход по состоянию
+// партии; предыдущее моё действие может ещё отправляться — следующее встанет в очередь. Удар — только canControl().
+function myAction() {
+  if (gameState.stroke) return false;
+  return !isNet() || (net.room.status === 'playing' && gameState.currentPlayer === mySeat + 1 && !replaying && replayQueue.length === 0);
 }
 function ballsSnapshot() { return balls.map(b => ({ x: +b.x.toFixed(2), y: +b.y.toFixed(2), a: b.active ? 1 : 0 })); }
 function snapshot(shot) {
-  return { balls: ballsSnapshot(), score1: gameState.score1, score2: gameState.score2,
-           pocketed1: gameState.pocketed1.slice(), pocketed2: gameState.pocketed2.slice(),
-           currentPlayer: gameState.currentPlayer, selected: balls.indexOf(gameState.selectedBall),
-           ballInHand: !!gameState.ballInHand, shot: shot || null };
+  const g = gameState;
+  return { pv: NET_PROTO, kind: g.kind, balls: ballsSnapshot(), score1: g.score1, score2: g.score2,
+           pocketed1: g.pocketed1.slice(), pocketed2: g.pocketed2.slice(),
+           currentPlayer: g.currentPlayer, selected: balls.indexOf(g.selectedBall),
+           phase: g.phase, hand: g.hand ? Object.assign({}, g.hand) : null, pick: g.pick ? Object.assign({}, g.pick) : null,
+           choice: g.choice ? { opts: g.choice.opts.slice(), brk: !!g.choice.brk } : null,
+           offender: g.offender, breaker: g.breaker, cueOff: !!g.cueOff,
+           verdict: g.verdict, shotSeq: g.shotSeq, seq: g.seq, hist: g.hist.slice(-6), shot: shot || null };
 }
 function placeBalls(list) {
-  list.forEach((o, i) => { const b = balls[i]; if (!b) return; b.x = +o.x; b.y = +o.y; b.active = !!o.a; stopBall(b); });
+  list.forEach((o, i) => { const b = balls[i]; if (!b || !o) return; b.x = +o.x || 0; b.y = +o.y || 0; b.active = !!o.a; stopBall(b); });
   falling = []; ballsVersion++;
 }
+const PHASES = ['place', 'aim', 'pick', 'choose', 'over'], CHOICES = ['shoot', 'pass', 'rerack', 'rerack_pass'];
+// Снимок партии (свой или соперника) → состояние игры. Данные из сети проверяются: мусор не должен ломать игру.
 function applySnapshot(s) {
-  if (!s || !s.balls) return;
+  if (!s || !Array.isArray(s.balls)) return;
+  const g = gameState;
   placeBalls(s.balls);
-  gameState.score1 = s.score1 | 0; gameState.score2 = s.score2 | 0;
-  gameState.pocketed1 = (s.pocketed1 || []).slice(); gameState.pocketed2 = (s.pocketed2 || []).slice();
-  gameState.currentPlayer = s.currentPlayer === 2 ? 2 : 1;
-  gameState.ballInHand = !!s.ballInHand; gameState.ballsMoving = false;
-  gameState.hitOccurred = false; gameState.turnValid = false; gameState.foul = false; gameState.pocketedThisTurn = 0; gameState.foulPotted = [];
-  const sel = balls[s.selected]; gameState.selectedBall = sel && sel.active ? sel : (balls.find(b => b.active) || null);
+  g.kind = s.kind === 'moscow' ? 'moscow' : 'free';
+  g.score1 = s.score1 | 0; g.score2 = s.score2 | 0;
+  const shelf = a => Array.isArray(a) ? a.slice(0, 20).map(v => String(v).slice(0, 4)) : [];
+  g.pocketed1 = shelf(s.pocketed1); g.pocketed2 = shelf(s.pocketed2);
+  g.currentPlayer = s.currentPlayer === 2 ? 2 : 1;
+  g.phase = PHASES.includes(s.phase) ? s.phase : 'aim';
+  const h = s.hand;
+  g.hand = h && typeof h === 'object' ? { zone: ZONES[h.zone] ? h.zone : 'house', brk: !!h.brk, rule: h.rule === 'outside' ? 'outside' : null } : null;
+  g.pick = s.pick && typeof s.pick === 'object' ? { why: s.pick.why === 'svk' ? 'svk' : 'pen', brk: !!s.pick.brk } : null;
+  g.choice = s.choice && Array.isArray(s.choice.opts) ? { opts: s.choice.opts.filter(o => CHOICES.includes(o)), brk: !!s.choice.brk } : null;
+  if (g.phase === 'place' && !g.hand) g.phase = 'aim';
+  if (g.phase === 'pick' && !g.pick) g.phase = 'aim';
+  if (g.phase === 'choose' && !(g.choice && g.choice.opts.length)) g.phase = 'aim';
+  if (g.phase !== 'place') g.hand = null;
+  g.breakShot = !!(g.hand && g.hand.brk);
+  g.offender = s.offender === 1 || s.offender === 2 ? s.offender : 0;
+  g.breaker = s.breaker === 2 ? 2 : 1;
+  g.cueOff = !!s.cueOff;
+  g.verdict = s.verdict && typeof s.verdict === 'object' ? s.verdict : null;
+  g.shotSeq = s.shotSeq | 0; g.seq = s.seq | 0;
+  g.hist = Array.isArray(s.hist) ? s.hist.filter(e => e && typeof e === 'object').slice(-8) : [];
+  g.ballsMoving = false; g.hitOccurred = false;
+  lastShot = s.shot && typeof s.shot === 'object' ? s.shot : null;
+  const sel = balls[s.selected];
+  if (g.kind === 'moscow' || g.hand) g.selectedBall = balls[0].active ? balls[0] : null;
+  else g.selectedBall = sel && sel.active ? sel : (balls.find(b => b.active) || null);
+  resetHandUI();
   updateHUD(); resetSpin(); netStatus();
 }
-function afterApply() {
-  if (isNet() && net.room.status === 'finished' && !netFinished) netShowWinner();
+// после снимка соперника: сообщения о его ударе и решениях, конец партии
+function afterApply(s, replayed) {
+  if (isNet() && net.room.status === 'finished' && !netFinished) { netShowWinner(); return; }
+  if (s) announceRemote(s, replayed);
 }
 function netName(p) { return isNet() ? (net.room.players[p - 1] || ('Игрок ' + p)) : ('Игрок ' + p); }
 function netStatus() {
   if (!isNet()) return;
   if (net.room.status === 'closed') { setStatus('Соперник вышел'); return; }
-  if (net.room.status === 'finished') return;
-  setStatus(gameState.currentPlayer === mySeat + 1 ? 'Ваш ход' : 'Ход: ' + netName(gameState.currentPlayer) + '…');
+  if (net.room.status === 'finished' || gameState.phase === 'over') return;
+  setStatus(phaseStatus());
 }
 function netShowWinner() {
   netFinished = true;
   const winner = gameState.score1 >= 8 ? 1 : (gameState.score2 >= 8 ? 2 : (gameState.score1 >= gameState.score2 ? 1 : 2));
   const mine = winner === mySeat + 1;
+  gameState.phase = 'over';
   setStatus(mine ? 'Победа!' : 'Поражение');
   showModal(mine ? 'ПОБЕДА!' : 'ПОРАЖЕНИЕ', mine ? 'Вы первыми набрали 8 очков!' : 'Соперник (' + netName(winner) + ') первым набрал 8 очков.', netRematch,
             { cls: mine ? 'win' : 'lose', ok: 'Играть снова', menu: true, stats: true });
 }
 function netRematch() {
-  if (!isNet()) { initGame(); return; }
-  if (net.room.status === 'closed') { leaveNet(); initGame(); return; }
+  if (!isNet()) { initGame(gameState.kind, 3 - gameState.breaker); return; }
+  if (net.room.status === 'closed') { leaveNet(); initGame(gameState.kind, 3 - gameState.breaker); return; }
   setStatus('Новая партия…');
-  const snap = (() => { initGame(); return snapshot(null); })();
-  net.reset(snap, 0).then(r => netApply(r)).catch(e => { setStatus('Нет связи'); toast('Ошибка: ' + e.message, 'bad'); });
+  // в следующей партии разбивает соперник того, кто разбивал (п. 13/14 правил)
+  const brk = 3 - gameState.breaker, snap = (() => { initGame(gameState.kind, brk); return snapshot(null); })();
+  net.reset(snap, brk - 1).then(r => netApply(r)).catch(e => { setStatus('Нет связи'); toast('Ошибка: ' + e.message, 'bad'); });
+}
+// Отправить своё действие. Ходы уходят по одному (версия комнаты меняется после каждого); если пока шёл
+// запрос появилось новое действие — отправится самое свежее состояние (оно полное). Сбой сети — повтор.
+// В каждом состоянии — последний удар: соперник, пропустивший его между опросами, проиграет удар по shotSeq.
+function netCommit(shot) {
+  if (!isNet()) return;
+  if (shot) lastShot = shot;
+  netOut = { st: snapshot(lastShot), turn: gameState.currentPlayer - 1, fin: gameState.phase === 'over' };
+  netTries = 0;
+  netFlush();
+}
+function netFlush() {
+  if (netSending || !netOut || !isNet()) return;
+  const m = netOut; netOut = null; netSending = true;
+  net.move(m.st, m.turn, null, m.fin).then(() => {
+    netSending = false; netTries = 0;
+    if (netOut) netFlush(); else netStatus();
+  }).catch(e => {
+    netSending = false;
+    if (!isNet() || net.room.status === 'closed') return;
+    const msg = (e && e.message) || '';
+    if (/устарело/.test(msg) && !(net.room.lastMove && net.room.lastMove.by === mySeat)) { setStatus('Синхронизация…'); return; }
+    // прошлый ход дошёл, а ответ потерялся (версия устарела), или нет связи — отправляем текущее состояние ещё раз
+    if (!netOut) netOut = m;
+    if (++netTries > 6) { setStatus('Нет связи'); toast('Нет связи: ' + msg, 'bad'); netTries = 0; return; }
+    setStatus('Нет связи — повтор…');
+    setTimeout(netFlush, /устарело/.test(msg) ? 200 : 1500 * netTries);
+  });
 }
 function startReplay(s) {
   const sh = s.shot;
-  if (sh.v !== SHOT_VERSION || !sh.vel || !sh.w) { applySnapshot(s); afterApply(); return nextReplay(); }
-  placeBalls(sh.start || s.balls);
+  if (!sh || sh.v !== SHOT_VERSION || !sh.vel || !sh.w || !Array.isArray(sh.start)) { applySnapshot(s); afterApply(s, false); return nextReplay(); }
+  placeBalls(sh.start);
   const b = balls[sh.idx];
-  if (!b || !b.active) { applySnapshot(s); afterApply(); return nextReplay(); }
+  if (!b || !b.active) { applySnapshot(s); afterApply(s, false); return nextReplay(); }
   replayState = s; replaying = true;
-  gameState.selectedBall = b; gameState.hitOccurred = false; gameState.pocketedThisTurn = 0; gameState.foulPotted = [];
+  const g = gameState;
+  g.phase = 'aim'; g.hand = null; g.pick = g.choice = null; resetHandUI();
+  g.selectedBall = b; g.hitOccurred = false;
+  if (s.kind === 'moscow' || s.kind === 'free') g.kind = s.kind;
+  // тот же судья, что у ударившего: итог сверяется со снимком (для проверки детерминизма)
+  const r = sh.ref || {};
+  referee = new Referee(balls, sh.idx, { brk: !!r.brk, zone: r.zone });
   const speed = Math.sqrt(sh.vel.x * sh.vel.x + sh.vel.y * sh.vel.y);
-  gameState.aimAngle = Math.atan2(sh.vel.y, sh.vel.x);
+  g.aimAngle = Math.atan2(sh.vel.y, sh.vel.x);
   setStatus('Удар соперника…');
   // кий соперника: короткий замах и удар, затем шар получает ровно присланные скорость и вращение
-  beginStroke(b, gameState.aimAngle, Math.min(1, +sh.p || speed / V_MAX), () => {
+  beginStroke(b, g.aimAngle, Math.min(1, +sh.p || speed / V_MAX), () => {
     b.vx = +sh.vel.x; b.vy = +sh.vel.y; b.wx = +sh.w.x; b.wy = +sh.w.y; b.wz = +sh.w.z; b.sleep = false;
-    gameState.ballsMoving = true;
+    g.ballsMoving = true;
     playSound('cue', speed);
   }, +sh.el || 0);
 }
 function nextReplay() {
   if (replaying) return;
   const s = replayQueue.shift();
-  if (!s) return;
-  if (s.shot && s.shot.start) startReplay(s); else { applySnapshot(s); afterApply(); nextReplay(); }
+  if (!s) { updateHUD(); return; }
+  if (s.shot && (s.shotSeq | 0) > gameState.shotSeq && (s.shot.seq | 0) === (s.shotSeq | 0)) startReplay(s); else { applySnapshot(s); afterApply(s, false); nextReplay(); }
 }
+// состояние от сервера: своё (уже применено) — пропускаем; чужое — в очередь на проигрывание
 function netApply(room) {
   if (!isNet() || !room || !room.state) return;
-  if (room.round !== netRound) { netRound = room.round; replayQueue.length = 0; replaying = false; replayState = null; gameState.stroke = null; netFinished = false; closeModalSilent(); initGame(); }
+  if (room.round !== netRound) {
+    netRound = room.round; replayQueue.length = 0; replaying = false; replayState = null; referee = null; gameState.stroke = null;
+    netFinished = false; netOut = null; closeModalSilent(); closeChoice();
+    initGame(room.state && room.state.kind, room.state && room.state.breaker);
+  }
   if (room.lastMove && room.lastMove.by === mySeat) { netStatus(); return; }   // это моё же состояние
   const s = room.state;
+  if (s.pv !== NET_PROTO) { netIncompatible(false); return; }
   replayQueue.push(room.lastMove ? s : Object.assign({}, s, { shot: null }));
   nextReplay();
 }
+// У соперника другая версия игры (старая из кэша или новее): играть нельзя — сообщаем и выходим из комнаты
+function netIncompatible(atJoin) {
+  replayQueue.length = 0; replaying = false; replayState = null; referee = null; netOut = null; gameState.stroke = null;
+  closeOverlays(); closeChoice();
+  leaveNet();
+  initGame(menuKind, 1);
+  setStatus('Разные версии игры');
+  showModal('РАЗНЫЕ ВЕРСИИ', (atJoin ? 'Эта комната создана в другой версии игры.' : 'Соперник играет в другой (старой) версии игры — партия остановлена.') +
+            ' Обновите игру у обоих (закройте и откройте её заново) и создайте новую комнату.',
+            () => toMenu(), { ok: 'В меню' });
+}
 function startNet(sess) {
-  net = sess; mySeat = sess.seat; netRound = sess.room.round; netFinished = false; pendingShot = null;
-  replayQueue.length = 0; replaying = false; replayState = null;
-  initGame();
-  applySnapshot(sess.room.state);
+  net = sess; mySeat = sess.seat; netRound = sess.room.round; netFinished = false; pendingShot = null; netOut = null; netSending = false;
+  replayQueue.length = 0; replaying = false; replayState = null; histSeen = 0;
+  const st = sess.room.state;
+  if (sess.room.game !== NET_GAME || !st || st.pv !== NET_PROTO) { netIncompatible(true); return; }
+  initGame(st.kind, st.breaker);
+  applySnapshot(st);
+  histSeen = gameState.seq;
+  if (mySeat === 1) toast('Пирамида: ' + KINDS[gameState.kind] + ' (выбрал создатель комнаты)');
   sess.onUpdate = room => netApply(room);
   sess.onClosed = () => {
     // удар соперника недоигран / мой ещё катится — итог уже не важен: кий убираем, ход не засчитываем
-    replayQueue.length = 0; replaying = false; replayState = null; pendingShot = null; gameState.stroke = null;
+    replayQueue.length = 0; replaying = false; replayState = null; pendingShot = null; netOut = null; referee = null; gameState.stroke = null;
     updateHUD(); setStatus('Соперник вышел');
-    closeOverlays();   // пауза/правила/настройки не должны оставаться под окном (и после него — поверх новой партии)
-    showModal('СОПЕРНИК ВЫШЕЛ', 'Комната закрыта. Можно сыграть вдвоём на этом устройстве.', () => { leaveNet(); initGame(); },
+    closeOverlays(); closeChoice();   // пауза/правила/настройки не должны оставаться под окном (и после него — поверх новой партии)
+    showModal('СОПЕРНИК ВЫШЕЛ', 'Комната закрыта. Можно сыграть вдвоём на этом устройстве.', () => { const k = gameState.kind; leaveNet(); initGame(k, 1); },
               { ok: 'Играть вдвоём', menu: true });
   };
   sess.onError = () => { if (!gameState.ballsMoving) setStatus('Нет связи…'); };
@@ -840,15 +1186,17 @@ function startNet(sess) {
 }
 function leaveNet() {
   if (net) { net.onUpdate = net.onClosed = net.onError = null; net.leave(); }
-  net = null; replaying = false; replayQueue.length = 0; replayState = null; pendingShot = null; netFinished = false;
+  net = null; replaying = false; replayQueue.length = 0; replayState = null; pendingShot = null; netFinished = false; netOut = null; netSending = false;
   updateTitle();
 }
 function openNetLobby() {
   resumeAudio();
   if (isNet()) leaveNet();
+  const kind = menuKind;
   KuNet.openLobby({
-    game: 'billiard', title: 'БИЛЬЯРД · ПО СЕТИ',
-    initialState: () => { initGame(); return snapshot(null); },
+    game: NET_GAME, title: 'БИЛЬЯРД · ' + KINDS[kind].toUpperCase(),
+    meta: { proto: NET_PROTO, kind, label: KINDS[kind] + ' пирамида' },
+    initialState: () => { initGame(kind, 1); return snapshot(null); },
     onStart: sess => { showScreen('game'); startNet(sess); }
   });
 }
@@ -921,7 +1269,7 @@ function jawFacing(j, f0, c0, div, back) {
   const depth = -(f[0] * back[0] + f[1] * back[1]);          // скорость ухода к дереву вдоль «вглубь борта»
   const L = (CUSHION_W - NOSE_R) / depth;
   addWall(j[0], j[1], j[0] + f[0] * L, j[1] + f[1] * L, true);
-  return { j, f, c, L };
+  return { j, f, c, L, w: walls[walls.length - 1] };
 }
 function buildTable() {
   walls = []; pockets = []; cushionSections = [];
@@ -948,15 +1296,18 @@ function buildTable() {
     const A = [cx - MH, cy - sy * rw], B = [cx + MH, cy - sy * rw];
     jaw[id + 'A'] = jawFacing(A, [0, -sy], [1, 0], JAW_DIV_M, [0, sy]);
     jaw[id + 'B'] = jawFacing(B, [0, -sy], [-1, 0], JAW_DIV_M, [0, sy]);
+    jaw[id + 'A'].w.mid = jaw[id + 'B'].w.mid = true;      // губки средней лузы (для правила средней линии)
     const a = jaw[id + 'A'], b = jaw[id + 'B'], k = SHELF + HOLE_R;
     const mouth = [[A[0], A[1] + sy * rw], [A[0] + a.f[0] * a.L, A[1] + a.f[1] * a.L],
                    [B[0] + b.f[0] * b.L, B[1] + b.f[1] * b.L], [B[0], B[1] + sy * rw]];
     pockets.push({ hx: cx, hy: cy - sy * (rw + k), hr: HOLE_R, corner: false, ax: 0, ay: -sy, id, mouth,
                    mx: cx, my: cy - sy * rw, halfw: MIDDLE_OP / 2 + 30 });
   });
-  // борта между лузами: [губка 1, губка 2, нормаль внутрь стола]
+  // борта между лузами: [губка 1, губка 2, нормаль внутрь стола]; sec — номер борта (губки — часть своего борта):
+  // 0, 1 — верхний длинный (левая и правая половины), 2, 3 — нижний, 4 — короткий у дома, 5 — дальний короткий
   const sec = (a, b, n) => {
     addWall(a.j[0], a.j[1], b.j[0], b.j[1], false);
+    walls[walls.length - 1].sec = a.w.sec = b.w.sec = cushionSections.length;
     cushionSections.push({ a, b, n });
   };
   sec(jaw.tlA, jaw.tmA, [0, 1]); sec(jaw.tmB, jaw.trA, [0, 1]);
@@ -1076,7 +1427,7 @@ function collideBalls(list, ev) {
 }
 
 // Удар о борт/губку: нормаль точки удара наклонена (нос резины выше центра шара)
-function cushionImpact(b, nx, ny, vn, isJaw, ev) {
+function cushionImpact(b, nx, ny, vn, w, ev) {
   const m = BALL_M, s = CUSH_S, c = CUSH_C;
   const e = Math.max(0.6, 0.83 - 0.02 * vn / 1000);           // сильный удар — резина «мягче»
   const Jn = (1 + e) * m * vn / c;
@@ -1097,7 +1448,7 @@ function cushionImpact(b, nx, ny, vn, isJaw, ev) {
   b.wx += (rcy * Jz - rcz * Jy) * INV_I;
   b.wy += (rcz * Jx - rcx * Jz) * INV_I;
   b.wz += (rcx * Jy - rcy * Jx) * INV_I;
-  ev.wall(b, vn, isJaw);
+  ev.wall(b, vn, w.jaw, w);
 }
 function collideWalls(b, ev) {
   for (const w of walls) {
@@ -1112,7 +1463,7 @@ function collideWalls(b, ev) {
     if (vn > 0) {
       const tau = Math.min((D - d) / vn, SUBSTEP * 2);       // откат к моменту касания
       b.x -= b.vx * tau; b.y -= b.vy * tau;
-      cushionImpact(b, nx, ny, vn, w.jaw, ev);
+      cushionImpact(b, nx, ny, vn, w, ev);
       b.sleep = false;
       b.x += b.vx * tau; b.y += b.vy * tau;
     }
@@ -1158,96 +1509,285 @@ function physStep(list, h, ev) {
   return false;
 }
 const QUIET = { hit() {}, wall() {}, pocket() {} };
+// события настоящего удара: звук + судья (он решает, правильный ли удар)
 const GAME_EV = {
   hit(a, b, vn) {
     if (a === gameState.selectedBall || b === gameState.selectedBall) gameState.hitOccurred = true;
+    if (referee) referee.hit(a, b, vn);
     playSound('hit', vn);
   },
-  wall(b, vn, jaw) { playSound(jaw ? 'jaw' : 'cushion', vn); },
-  pocket(b, p) { pocketBall(b, p); }
+  wall(b, vn, jaw, w) { if (referee) referee.wall(b, w); playSound(jaw ? 'jaw' : 'cushion', vn); },
+  pocket(b, p) { if (referee) referee.pocket(b); pocketBall(b, p); }
 };
-function stepPhysics(h) { return physStep(balls, h, GAME_EV); }
+function stepPhysics(h) { const r = physStep(balls, h, GAME_EV); if (referee) referee.step(); return r; }
 
-// === ПРАВИЛА: забитые шары, фол, смена хода ===
+// === ПРАВИЛА ===
+// Правила Международной конфедерации пирамиды и Лиги любителей бильярда (общие правила пирамиды + «Свободная»
+// и «Комбинированная» = московская пирамида):
+//  • разбой — жёлтым битком с руки из дома (центр шара в доме, не на линии); правильный (п. 13.1), если после
+//    соударения битка с прицельным шаром забит шар, или ≥ 3 разных прицельных шара коснулись бортов, или 2 коснулись
+//    и хотя бы один прицельный пересёк среднюю линию;
+//  • любой другой удар правильный (п. 20), если после соударения забит шар или шары «отыграли»: шар после борта
+//    коснулся другого борта (шара у другого борта; довёл до другого борта шар …), или пересёк среднюю линию и затем
+//    коснулся борта (…), или после борта пересёк среднюю линию (перекатил через неё шар, коснулся шара за ней …);
+//  • фол: биток никого не задел; удар завершён неправильно; неправильный разбой; в московской при ударе с руки —
+//    биток до выхода из дома задел шар в доме, не коснулся ни одного шара вне дома или забил шар раньше этого;
+//  • штраф: неправильно забитые шары — на заднюю отметку (в московской биток — «в руку» тому, кто будет бить),
+//    соперник снимает любой шар себе на полку (+1 очко) и решает: бить самому или передать удар; после
+//    неправильного разбоя — ещё перестановка пирамиды и разбой (самому или нарушителю);
+//  • московская: биток только жёлтый; правильный свояк — забивший снимает прицельный шар себе (+1) и бьёт с руки
+//    из дома: первым из шаров вне дома; если все прицельные в доме — из «временного дома» за задней линией.
+// Победа — первым набрать 8 очков.
+
+const ballLabel = b => b.number > 0 ? String(b.number) : 'Б';
+const ballName = b => b.number > 0 ? 'шар ' + b.number : 'жёлтый шар';
+function award(p, label) {
+  if (p === 1) { gameState.score1++; gameState.pocketed1.push(label); } else { gameState.score2++; gameState.pocketed2.push(label); }
+  popScore(p);
+}
+const winnerNow = () => gameState.score1 >= 8 ? 1 : (gameState.score2 >= 8 ? 2 : 0);
+function logHist(text) {
+  const g = gameState; g.seq++;
+  g.hist.push({ n: g.seq, by: g.currentPlayer, t: text }); if (g.hist.length > 8) g.hist.shift();
+}
 function handlePocketedBall(ball) {
   if (ball === gameState.selectedBall) gameState.selectedBall = null;
-  if (replaying) return;   // итог придёт снимком
-  // Биток упал в лузу, ни разу не коснувшись другого шара (другие шары до первого соударения не движутся) —
-  // это фол «промах»: шар не засчитывается и вернётся на стол.
-  if (!gameState.hitOccurred) { gameState.foulPotted.push(ball); return; }
-  gameState.turnValid = true; gameState.pocketedThisTurn++;
-  const symbol = ball.number > 0 ? ball.number : 'Б';
-  if (gameState.currentPlayer === 1) { gameState.score1++; gameState.pocketed1.push(symbol); }
-  else { gameState.score2++; gameState.pocketed2.push(symbol); }
-  updateHUD(); popScore(gameState.currentPlayer);
 }
 
-// Шар, забитый при фоле, ставится на заднюю отметку (или ближайшее свободное место на продольной линии)
-function respotBall(ball) {
-  const y = TABLE_H / 2, x0 = BACK_SPOT_X, step = R * 2 + 2;
-  const free = x => balls.every(o => o === ball || !o.active || (o.x - x) * (o.x - x) + (o.y - y) * (o.y - y) >= (R * 2 + 1) * (R * 2 + 1));
-  let x = null;
-  for (let xx = x0; xx <= TABLE_W - R; xx += step) if (free(xx)) { x = xx; break; }
-  if (x === null) for (let xx = x0 - step; xx >= R; xx -= step) if (free(xx)) { x = xx; break; }
-  if (x === null) x = x0;
-  ball.x = x; ball.y = y; stopBall(ball); ball.active = true;
-  falling = falling.filter(f => f.b !== ball);
+// Неправильно забитые шары — на заднюю отметку (п. 25): один — на отметку, несколько — по линии от отметки
+// к заднему борту вплотную друг к другу; мешают шары — как можно ближе к отметке, не вплотную к мешающим;
+// не хватает места — на продолжение линии к центру стола.
+function respotBalls(list) {
+  const y = TABLE_H / 2, x0 = BACK_SPOT_X, GAP = 1, placed = [];
+  list.slice().sort((a, b) => a.number - b.number).forEach(b => {
+    b.active = false;
+    const others = balls.filter(o => o !== b && o.active);
+    const need = o => placed.includes(o) ? 2 * R : 2 * R + GAP;
+    const okAt = x => x >= R && x <= TABLE_W - R && others.every(o => { const dx = o.x - x, dy = o.y - y, n = need(o); return dx * dx + dy * dy >= n * n - 1e-6; });
+    const cands = [x0];
+    for (const o of others) {
+      const dy = o.y - y, n = need(o);
+      if (Math.abs(dy) < n) { const dx = Math.sqrt(n * n - dy * dy) + 1e-6; cands.push(o.x + dx, o.x - dx); }
+    }
+    let x = cands.filter(c => c >= x0).sort((p, q) => p - q).find(okAt);
+    if (x === undefined) x = cands.filter(c => c < x0).sort((p, q) => q - p).find(okAt);
+    if (x === undefined) x = x0;
+    b.x = x; b.y = y; stopBall(b); b.active = true; placed.push(b);
+    falling = falling.filter(f => f.b !== b);
+  });
+  if (list.length) ballsVersion++;
+}
+
+// Пирамида: вершина на задней отметке, основание к заднему борту. Неполная (после штрафных шаров) — ряды сверху
+// вниз, неполный последний ряд — симметрично от середины к краям.
+function rackPositions(n) {
+  const dxr = R * Math.sqrt(3) + 0.05, dyr = 2 * R + 0.05, out = [];
+  let left = n;
+  for (let row = 0; left > 0 && row < 5; row++) {
+    const s = row + 1, k = Math.min(s, left), mid = (s - 1) / 2;
+    let slots = [...Array(s).keys()];
+    if (k < s) {
+      const byMid = slots.slice().sort((a, b) => Math.abs(a - mid) - Math.abs(b - mid) || a - b);
+      slots = (k % 2) !== (s % 2) && s % 2 === 1 ? byMid.filter(c => c !== mid).slice(0, k) : byMid.slice(0, k);
+    }
+    slots.sort((a, b) => a - b).forEach(c => out.push([BACK_SPOT_X + row * dxr, TABLE_H / 2 + (c - row / 2) * dyr]));
+    left -= k;
+  }
+  return out;
+}
+function rackBalls(list) {
+  const pos = rackPositions(list.length);
+  list.forEach((b, i) => { b.x = pos[i][0]; b.y = pos[i][1]; b.active = true; stopBall(b); b.q = rackQuat(); });
+  falling = []; ballsVersion++;
+}
+
+// === БИТОК С РУКИ: куда можно поставить ===
+// Центр шара — в зоне (не на линии), шар целиком на сукне, не над лузой, не вплотную к другим шарам.
+const HAND_GAP = 1;                     // мм: минимальный зазор до других шаров («не вплотную»)
+const POCKET_CLEAR = HOLE_R + R - 10;   // центр шара не ближе к центру провала лузы
+function handWhy(x, y, zone, cue) {
+  const z = ZONES[zone] || ZONES.house;
+  if (!inZone(z, x)) return Math.abs(x - z.x) < R ? 'line' : 'zone';
+  if (x < R || x > TABLE_W - R || y < R || y > TABLE_H - R) return 'cushion';
+  for (const p of pockets) { const dx = x - p.hx, dy = y - p.hy; if (dx * dx + dy * dy < POCKET_CLEAR * POCKET_CLEAR) return 'pocket'; }
+  for (const w of walls) {
+    let t = (x - w.ax) * w.dx + (y - w.ay) * w.dy; t = t < 0 ? 0 : (t > w.len ? w.len : t);
+    const dx = x - (w.ax + w.dx * t), dy = y - (w.ay + w.dy * t), D = R + w.r;
+    if (dx * dx + dy * dy < D * D) return 'cushion';
+  }
+  for (const o of balls) {
+    if (o === cue || !o.active) continue;
+    const dx = x - o.x, dy = y - o.y, D = 2 * R + HAND_GAP;
+    if (dx * dx + dy * dy < D * D) return 'ball';
+  }
+  return null;
+}
+const HAND_HINT = { line: 'На линию нельзя — центр шара должен быть {in}', zone: 'Биток ставится только {in}',
+                    cushion: 'Слишком близко к борту', pocket: 'Слишком близко к лузе', ball: 'Мешает шар — нельзя вплотную' };
+function handHint(why, zone) { return (HAND_HINT[why] || '').replace('{in}', (ZONES[zone] || ZONES.house).in); }
+// ближайшая допустимая точка к желаемой (или null)
+function handFit(x, y, zone, cue) {
+  const z = ZONES[zone] || ZONES.house;
+  const lo = Math.max(R, z.dir > 0 ? z.x + 1 : R), hi = Math.min(TABLE_W - R, z.dir < 0 ? z.x - 1 : TABLE_W - R);
+  const clamp = () => { x = Math.max(lo, Math.min(hi, x)); y = Math.max(R, Math.min(TABLE_H - R, y)); };
+  clamp();
+  for (let it = 0; it < 8; it++) {
+    if (!handWhy(x, y, zone, cue)) return { x, y };
+    let moved = false;
+    for (const p of pockets) {
+      const dx = x - p.hx, dy = y - p.hy, d = Math.sqrt(dx * dx + dy * dy);
+      if (d < POCKET_CLEAR) { const k = (POCKET_CLEAR + 0.5) / (d || 1); x = p.hx + (d ? dx : -p.ax) * k; y = p.hy + (d ? dy : -p.ay) * k; moved = true; }
+    }
+    for (const o of balls) {
+      if (o === cue || !o.active) continue;
+      const dx = x - o.x, dy = y - o.y, d = Math.sqrt(dx * dx + dy * dy), D = 2 * R + HAND_GAP + 0.05;
+      if (d < D) { const k = D / (d || 1); x = o.x + (d ? dx : 1) * k; y = o.y + (d ? dy : 0) * k; moved = true; }
+    }
+    clamp();
+    if (!moved) break;
+  }
+  return handWhy(x, y, zone, cue) ? null : { x, y };
+}
+// место для битка по умолчанию: у передней отметки дома (во временном доме — зеркально), иначе ближайшее свободное
+function handDefault(zone, cue) {
+  const z = ZONES[zone] || ZONES.house;
+  const x0 = z.dir > 0 ? TABLE_W - HOUSE_X * 0.8 : (z.dir < 0 ? HOUSE_X * 0.8 : HOUSE_X * 0.8), y0 = TABLE_H / 2;
+  for (let r = 0; r <= 1400; r += 17) {
+    const n = r ? Math.max(8, Math.round(r / 12)) : 1;
+    for (let k = 0; k < n; k++) {
+      const a = k * 2 * Math.PI / n, x = x0 + r * Math.cos(a), y = y0 + r * Math.sin(a);
+      if (!handWhy(x, y, zone, cue)) return { x, y };
+    }
+  }
+  return { x: x0, y: y0 };
+}
+// московская: удар с руки — из дома, если хоть один прицельный шар вне дома, иначе из временного дома
+function handZoneAuto() {
+  return balls.some(b => b.number > 0 && b.active && !inZone(ZONES.house, b.x)) ? 'house' : 'temp';
+}
+
+// === ХОД ПАРТИИ: фазы и решения ===
+function setPhase(phase, actor) {
+  const g = gameState;
+  g.phase = phase; if (actor) g.currentPlayer = actor;
+  if (phase !== 'place') g.hand = null;
+  if (phase !== 'pick') g.pick = null;
+  if (phase !== 'choose') g.choice = null;
+  resetHandUI();
+}
+// удар (выбор битка: в московской и на разбое — только жёлтый)
+function enterAim(actor) {
+  const g = gameState;
+  setPhase('aim', actor);
+  g.breakShot = false;
+  if (g.kind === 'moscow') g.selectedBall = balls[0].active ? balls[0] : null;
+  else if (!g.selectedBall || !g.selectedBall.active) g.selectedBall = balls.find(b => b.active) || null;
+}
+// биток с руки: зона, разбой ли, правило «первым — шар вне зоны»
+function enterPlace(actor, hand) {
+  const g = gameState, cue = balls[0];
+  setPhase('place', actor);
+  g.hand = { zone: hand.zone, brk: !!hand.brk, rule: hand.rule || null };
+  g.breakShot = !!hand.brk; g.cueOff = false;
+  cue.active = true; stopBall(cue);
+  falling = falling.filter(f => f.b !== cue);
+  const p = handDefault(hand.zone, cue); cue.x = p.x; cue.y = p.y;
+  g.selectedBall = cue; ballsVersion++;
+  aimAtTarget();
+}
+function enterBreak(actor) { enterPlace(actor, { zone: 'house', brk: true }); }
+function enterPick(actor, why, brk) { setPhase('pick', actor); gameState.pick = { why, brk: !!brk }; }
+function enterChoose(brk) {
+  const g = gameState;
+  setPhase('choose');
+  // перестановка — только если жёлтый есть (в свободной его могли снять штрафным шаром)
+  const rerack = brk && (g.kind === 'moscow' || balls[0].active);
+  g.choice = { opts: rerack ? ['shoot', 'pass', 'rerack', 'rerack_pass'] : ['shoot', 'pass'], brk: !!brk };
+}
+// конец удара ударившего: судья → очки, фол, следующая фаза
+function resolveShot(v) {
+  const g = gameState, S = g.currentPlayer, O = 3 - S, k = g.kind, brk = !!v.brk;
+  g.breakShot = false; g.hand = null;
+  g.verdict = { n: g.shotSeq, by: S, code: v.code, foul: v.foul, brk, cush: v.cush, crossed: v.crossed, zone: v.zone || null,
+                potted: v.potted.map(i => balls[i].number), svk: false };
+  if (!v.foul) {
+    let svoyak = false;
+    for (const i of v.potted) {
+      if (k === 'moscow' && i === 0) { svoyak = true; continue; }   // свояк в московской — очко за снятый шар
+      award(S, ballLabel(balls[i]));
+    }
+    g.verdict.svk = svoyak;
+    if (winnerNow()) return finishGame();
+    if (svoyak) { g.cueOff = true; return enterPick(S, 'svk'); }
+    return enterAim(v.potted.length ? S : O);
+  }
+  // фол: неправильно забитые — на место; соперник снимает штрафной шар и решает, кто бьёт
+  const back = [];
+  for (const i of v.potted) { if (k === 'moscow' && i === 0) g.cueOff = true; else back.push(balls[i]); }
+  respotBalls(back);
+  g.offender = S;
+  enterPick(O, 'pen', brk);
+}
+function finishGame() { setPhase('over'); }
+// можно ли снять шар себе на полку
+function canPickBall(b) {
+  const g = gameState;
+  return !!b && b.active && g.phase === 'pick' && (g.kind === 'free' && g.pick.why === 'pen' || b.number > 0);
+}
+// снять шар (штрафной — за фол соперника, или за свояк в московской)
+function applyPick(b) {
+  const g = gameState;
+  if (!canPickBall(b)) return false;
+  const P = g.currentPlayer, why = g.pick.why, brk = g.pick.brk;
+  b.active = false; stopBall(b); ballsVersion++;
+  if (b === g.selectedBall) g.selectedBall = null;
+  award(P, (why === 'pen' ? 'Ш' : 'С') + ballLabel(b));
+  logHist(netName(P) + (why === 'pen' ? ' снял штрафной ' : ' снял за свояк ') + ballName(b));
+  if (winnerNow()) { finishGame(); return true; }
+  if (why === 'svk') enterPlace(P, { zone: handZoneAuto(), rule: 'outside' });
+  else enterChoose(brk);
+  return true;
+}
+// выбор после фола / неправильного разбоя
+function applyChoice(opt) {
+  const g = gameState;
+  if (g.phase !== 'choose' || !g.choice || !g.choice.opts.includes(opt)) return false;
+  const C = g.currentPlayer, Off = g.offender || 3 - C;
+  const txt = { shoot: ' бьёт сам', pass: ' передал удар', rerack: ': перестановка, разбивает сам', rerack_pass: ': перестановка, разбой — сопернику' }[opt];
+  logHist(netName(C) + txt);
+  if (opt === 'rerack' || opt === 'rerack_pass') {
+    rackBalls(balls.filter(b => b.number > 0 && b.active).sort((a, b) => a.number - b.number));
+    enterBreak(opt === 'rerack' ? C : Off);
+    return true;
+  }
+  const P = opt === 'shoot' ? C : Off;
+  if (g.cueOff) enterPlace(P, { zone: handZoneAuto(), rule: 'outside' });   // московская: биток был в лузе
+  else enterAim(P);
+  return true;
 }
 
 function onTurnEnd() {
-  if (replaying) {   // проигрывание чужого удара закончилось — ставим шары по снимку
+  if (replaying) {   // проигрывание чужого удара закончилось — ставим всё по снимку
     replaying = false; const s = replayState; replayState = null;
-    applySnapshot(s); afterApply(); nextReplay();
+    const ref = referee; referee = null;
+    if (ref && s && s.verdict) {   // судья у соперника должен прийти к тому же итогу
+      const v = ref.verdict();
+      if (v.code !== s.verdict.code) { window.__refMismatch = (window.__refMismatch || 0) + 1; console.warn('Итог удара не совпал:', v.code, s.verdict.code); }
+    }
+    applySnapshot(s); afterApply(s, true); nextReplay();
     return;
   }
+  const ref = referee; referee = null;
   if (isNet() && net.room.status === 'closed') {
     // соперник вышел, пока катились шары: окно «Соперник вышел» уже открыто — фол/победу поверх не показываем
-    gameState.foulPotted = []; gameState.turnValid = gameState.foul = gameState.hitOccurred = false; gameState.pocketedThisTurn = 0;
     pendingShot = null; updateHUD(); setStatus('Соперник вышел'); return;
   }
-  const shooter = gameState.currentPlayer;
-  let foulMsg = null;
-  // Фол «промах»: биток не коснулся ни одного шара (даже если сам упал в лузу)
-  if (!gameState.hitOccurred) {
-    gameState.foul = true;
-    if (shooter === 1) { gameState.score2++; gameState.pocketed2.push('Ш'); }
-    else { gameState.score1++; gameState.pocketed1.push('Ш'); }
-    popScore(shooter === 1 ? 2 : 1);
-    const back = gameState.foulPotted.length > 0;
-    gameState.foulPotted.forEach(respotBall);
-    foulMsg = back ? 'Биток упал в лузу, не коснувшись других шаров. Он не засчитан и вернулся на стол, сопернику — штрафное очко.'
-                   : 'Ваш шар никого не коснулся. Соперник получает штрафное очко.';
-  }
-  gameState.foulPotted = [];
-  if (!gameState.turnValid || gameState.foul) gameState.currentPlayer = gameState.currentPlayer === 1 ? 2 : 1;
-  gameState.turnValid = false; gameState.foul = false; gameState.hitOccurred = false; gameState.pocketedThisTurn = 0;
-
-  const activeBalls = balls.filter(b => b.active);
-  if (!gameState.selectedBall || !gameState.selectedBall.active) gameState.selectedBall = activeBalls.length > 0 ? activeBalls[0] : null;
+  const v = ref ? ref.verdict() : { foul: false, code: 'ok', potted: [], cuePotted: false, brk: false, zone: null, cush: 0, crossed: false };
+  resolveShot(v);
   updateHUD(); resetSpin();
-
-  // Победа проверяется после удара: и за забитые шары, и за штрафное очко
-  const winner = gameState.score1 >= 8 ? 1 : (gameState.score2 >= 8 ? 2 : 0);
-  if (winner) {
-    if (isNet()) netShowWinner();
-    else {
-      setStatus('Победа: Игрок ' + winner);
-      showModal('ПОБЕДА!', `Игрок ${winner} первым набрал 8 очков!` + (foulMsg ? '\nПоследнее очко — штраф за промах соперника.' : ''),
-                initGame, { cls: 'win', ok: 'Играть снова', menu: true, stats: true });
-    }
-  } else {
-    setStatus(isNet() ? '' : `Ход: Игрок ${gameState.currentPlayer}`);
-    if (foulMsg) showModal('ФОЛ: ПРОМАХ!', foulMsg, null, { cls: 'lose' });
-  }
-  if (isNet() && pendingShot) {
-    const shot = pendingShot; pendingShot = null;
-    net.move(snapshot(shot), gameState.currentPlayer - 1, null, netFinished)
-      .then(() => netStatus())
-      .catch(e => {
-        if (/устарело/.test(e.message)) setStatus('Синхронизация…');
-        else { setStatus('Нет связи'); toast('Нет связи: ' + e.message, 'bad'); }
-      });
-  } else netStatus();
+  const shot = pendingShot; pendingShot = null;
+  netCommit(shot);
+  announceShot();
 }
 
 // === ПРИЦЕЛ: аналитический «луч-шар» до первого касания + короткая симуляция удара ===
@@ -1339,7 +1879,9 @@ const minPower = () => shootByButton ? 0.005 : 0.02;
 const previewPower = () => gameState.aimPower >= minPower() ? gameState.aimPower : 0.4;
 // ключ прогноза — точные значения: прогноз всегда ровно для того удара, который будет сделан
 function previewKey(cb) {
-  return [balls.indexOf(cb), gameState.aimAngle, gameState.spin.x, gameState.spin.y, gameState.elev || 0, previewPower(), ballsVersion].join('|');
+  const h = gameState.phase === 'place' && gameState.hand;
+  return [balls.indexOf(cb), gameState.aimAngle, gameState.spin.x, gameState.spin.y, gameState.elev || 0, previewPower(), ballsVersion,
+          gameState.breakShot ? 'b' : '', h && h.rule ? h.zone : ''].join('|');
 }
 let previewCache = { key: '', data: null };
 function aimPreview() {
@@ -1436,17 +1978,21 @@ function shotJob(cb, key) {
   if (!c) return null;
   applyCue(c, Math.cos(gameState.aimAngle), Math.sin(gameState.aimAngle), shotSpeed(previewPower()), gameState.spin, gameState.elev);
   c.sleep = false; c.gen = 0; c.pts = [[c.x, c.y]];
+  // тот же судья, что и в игре: прогноз заранее показывает, будет ли удар фолом
+  const h = gameState.phase === 'place' && gameState.hand;
+  const ref = new Referee(list, balls.indexOf(cb), { brk: gameState.breakShot, zone: h && h.rule ? h.zone : null });
   const ev = {
-    hit(a, b) {
+    hit(a, b, vn) {
       if (a.gen + 1 < b.gen) { b.gen = a.gen + 1; if (!b.pts) b.pts = [[b.x, b.y]]; }
       if (b.gen + 1 < a.gen) { a.gen = b.gen + 1; if (!a.pts) a.pts = [[a.x, a.y]]; }
       if (a === c || b === c) c.touched = true;               // биток кого-то задел: его падение — «свояк», не фол
       a.kink = b.kink = true;
+      ref.hit(a, b, vn);
     },
-    wall(b) { b.kink = true; },
-    pocket(b, p) { b.pocket = p; b.active = false; stopBall(b); b.kink = true; }
+    wall(b, vn, jaw, w) { b.kink = true; ref.wall(b, w); },
+    pocket(b, p) { ref.pocket(b); b.pocket = p; b.active = false; stopBall(b); b.kink = true; }
   };
-  return { key, cb, ver: ballsVersion, list, ev, steps: 0, moving: true, result: null };
+  return { key, cb, ver: ballsVersion, list, ev, ref, steps: 0, moving: true, result: null };
 }
 // точка пути; почти прямые участки склеиваются, точки ударов сохраняются
 function addPathPt(b, keep) {
@@ -1463,7 +2009,7 @@ function addPathPt(b, keep) {
 function runShotJob(j, budget) {
   const t0 = performance.now(), list = j.list;
   while (j.moving && j.steps < 30 * 1200) {
-    j.moving = physStep(list, SUBSTEP, j.ev); j.steps++;
+    j.moving = physStep(list, SUBSTEP, j.ev); j.steps++; j.ref.step();
     for (const b of list) {
       if (!b.pts) continue;
       if (b.kink) { addPathPt(b, true); b.kink = false; }
@@ -1473,9 +2019,238 @@ function runShotJob(j, budget) {
   }
   for (const b of list) if (b.pts) addPathPt(b, true);
   j.result = { balls: list.filter(b => b.pts).map(b => ({ src: b.src, gen: b.gen, pts: b.pts, pocket: b.pocket, x: b.x, y: b.y, touched: !!b.touched })),
-               time: j.steps * SUBSTEP, cb: j.cb, ver: j.ver };
+               time: j.steps * SUBSTEP, cb: j.cb, ver: j.ver, verdict: j.ref.verdict() };
   return true;
 }
+
+// === БИТОК С РУКИ (2D и 3D) ===
+// Режим 'place' — касания по зоне двигают биток; 'aim' — биток ещё в руке, но касания уже целятся (переставить —
+// кнопкой «✋ Переставить» или потянув сам биток). Переход к прицелу — кнопка «Готово», Enter или первый жест
+// прицела вне зоны. Прицел держится на точке, куда целились: двигаем биток — линия остаётся на той же цели.
+let handMode = 'place', handDrag = null, handGhost = null, aimPt = null, pickSel = null;
+function resetHandUI() { handMode = 'place'; handDrag = null; handGhost = null; aimPt = null; pickSel = null; }
+function handPlacing() { return gameState.phase === 'place' && !!gameState.hand && handMode === 'place' && myAction() && !gameState.ballsMoving; }
+// этим шаром можно бить: свободная пирамида, не разбой
+function canChooseCue(b) { return gameState.kind === 'free' && gameState.phase === 'aim' && !gameState.breakShot && !!b && b.active; }
+function aimAtPoint(x, y) {
+  const cb = gameState.selectedBall; if (!cb) return;
+  if (Math.hypot(x - cb.x, y - cb.y) < 1) return;
+  gameState.aimAngle = Math.atan2(y - cb.y, x - cb.x);
+  aimPt = gameState.phase === 'place' ? { x, y } : null;
+}
+// прицел повернули (протяжкой, микро-прицелом, клавишами): точка прицела — по новому направлению, на прежнем расстоянии
+function aimChanged() {
+  if (gameState.phase !== 'place' || !aimPt || !gameState.selectedBall) return;
+  const cb = gameState.selectedBall, d = Math.max(4 * R, Math.hypot(aimPt.x - cb.x, aimPt.y - cb.y));
+  aimPt = { x: cb.x + Math.cos(gameState.aimAngle) * d, y: cb.y + Math.sin(gameState.aimAngle) * d };
+}
+// прицел по умолчанию при ударе с руки: на разбое — в вершину пирамиды, иначе — в ближайший шар, по которому можно бить
+function aimAtTarget() {
+  const g = gameState, cb = g.selectedBall, h = g.hand, z = h && ZONES[h.zone];
+  if (!cb) return;
+  let best = null, bd = Infinity;
+  for (const b of balls) {
+    if (!b.active || b === cb || (h && h.rule && inZone(z, b.x))) continue;
+    const d = h && h.brk ? Math.hypot(b.x - BACK_SPOT_X, b.y - TABLE_H / 2) : Math.hypot(b.x - cb.x, b.y - cb.y);
+    if (d < bd) { bd = d; best = b; }
+  }
+  if (best) aimAtPoint(best.x, best.y);
+}
+function setCue(x, y) {
+  const cb = balls[0]; if (cb.x === x && cb.y === y) return;
+  cb.x = x; cb.y = y; ballsVersion++;
+  if (aimPt && Math.hypot(aimPt.x - x, aimPt.y - y) > 2 * R) gameState.aimAngle = Math.atan2(aimPt.y - y, aimPt.x - x);
+}
+// поставить биток в точку; туда нельзя — встаёт в ближайшую допустимую, а «призрак» показывает, почему
+function moveCue(x, y) {
+  const g = gameState; if (g.phase !== 'place' || !g.hand) return null;
+  const cb = balls[0], zone = g.hand.zone, why = handWhy(x, y, zone, cb);
+  if (!why) { setCue(x, y); handGhost = null; return null; }
+  handGhost = { x, y, why };
+  const f = handFit(x, y, zone, cb);
+  if (f) setCue(f.x, f.y);
+  return why;
+}
+function handStart(t, onCue) {
+  const g = gameState, cb = balls[0], z = ZONES[g.hand.zone];
+  if (onCue) { handMode = 'place'; handDrag = { dx: cb.x - t.x, dy: cb.y - t.y }; return true; }
+  if (handMode === 'place' && (inZone(z, t.x) || Math.abs(t.x - z.x) < 1.5 * R)) { handDrag = { dx: 0, dy: 0 }; handMove(t); return true; }
+  if (handMode === 'place') handMode = 'aim';               // жест вне зоны — переходим к прицелу
+  return false;
+}
+function handMove(t) { if (handDrag) moveCue(t.x + handDrag.dx, t.y + handDrag.dy); }
+function handEnd() {
+  handDrag = null;
+  if (handGhost && gameState.hand) { flashHint(handHint(handGhost.why, gameState.hand.zone)); handGhost = null; }
+}
+function handDone() { if (gameState.phase === 'place') { handMode = 'aim'; handGhost = null; } }
+// сдвиг битка клавишами: направление — как на экране (стол может быть повёрнут, в 3D — по камере)
+function handNudge(sx, sy, step) {
+  let d;
+  if (view3d) { const a = V3.screenAxes(); d = [a.r[0] * sx - a.u[0] * sy, a.r[1] * sx - a.u[1] * sy]; }
+  else d = vertical ? [-sy, sx] : [sx, sy];
+  const cb = balls[0];
+  if (moveCue(cb.x + d[0] * step, cb.y + d[1] * step)) flashHint(handHint(handGhost.why, gameState.hand.zone));
+  handGhost = null;
+}
+
+// === ВЫБОР ШАРА НА ПОЛКУ: штрафной (за фол соперника) или за свояк (московская) ===
+function pickTap(b) {
+  if (!canPickBall(b) || !myAction()) return;
+  if (pickSel === b) pickConfirm(); else pickSel = b;        // второй тап по тому же шару — снять
+}
+function pickConfirm() {
+  const b = pickSel;
+  if (!b || !myAction() || gameState.phase !== 'pick') return;
+  pickSel = null;
+  if (applyPick(b)) afterDecision();
+}
+function pickCycle(d) {                                     // клавиатура: следующий / предыдущий шар по номеру
+  const list = balls.filter(canPickBall).sort((a, b) => a.number - b.number);
+  if (!list.length) return;
+  const i = list.indexOf(pickSel), n = list.length;
+  pickSel = list[i < 0 ? (d > 0 ? 0 : n - 1) : (i + d + n) % n];
+}
+// после решения (снят шар / выбор): счёт, сеть, следующее окно
+function afterDecision() {
+  updateHUD(); resetSpin(); netCommit(null);
+  setStatus(phaseStatus());
+  showPhaseUI();
+}
+function showPhaseUI() {
+  const g = gameState;
+  if (g.phase === 'over') { showWin(); return; }
+  if (g.phase === 'choose' && myAction()) openChoice();
+}
+
+// === ВЫБОР ПОСЛЕ ФОЛА: бить самому / передать удар; после неправильного разбоя — ещё перестановка ===
+function openChoice() {
+  const g = gameState; if (g.phase !== 'choose' || !g.choice) return;
+  const me = g.currentPlayer, off = g.offender || 3 - me;
+  $('choice-title').textContent = g.choice.brk ? 'НЕПРАВИЛЬНЫЙ РАЗБОЙ' : 'ПОСЛЕ ФОЛА';
+  $('choice-desc').textContent = (isNet() ? 'Ваш выбор' : netName(me) + ', ваш выбор') + ': как продолжим?' +
+    (g.choice.brk && !g.choice.opts.includes('rerack') ? '\nПерестановка невозможна: жёлтый шар снят штрафным.' : '') +
+    (g.cueOff ? '\nБиток в лузе — кто бьёт, тот ставит его с руки ' + ZONES[handZoneAuto()].in + '.' : '');
+  const offWho = isNet() ? 'соперник' : netName(off);
+  const LBL = { shoot: ['🎯 Бить самому', g.choice.brk ? 'принять позицию' : 'с этой позиции', 'primary'],
+                pass: ['↪ Передать удар', 'бьёт ' + offWho, ''],
+                rerack: ['🔺 Перестановка', 'новый разбой — сам', 'accent2'],
+                rerack_pass: ['🔺 Перестановка', 'новый разбой — ' + offWho, 'ghost'] };
+  const box = $('choice-btns'); box.innerHTML = '';
+  for (const o of g.choice.opts) {
+    const b = document.createElement('button'), sub = document.createElement('span');
+    b.className = 'ku-btn ' + LBL[o][2]; b.textContent = LBL[o][0]; b.dataset.opt = o;
+    sub.className = 'best'; sub.textContent = LBL[o][1]; b.appendChild(sub);
+    b.onclick = () => { if (!myAction()) return; closeChoice(); if (applyChoice(o)) afterDecision(); };
+    box.appendChild(b);
+  }
+  $('modal-choice').classList.add('open');
+}
+function closeChoice() { $('modal-choice').classList.remove('open'); }
+
+// === СООБЩЕНИЯ: итог удара, решения соперника ===
+let shownShot = 0, hintUntil = 0, hintMsg = '';
+function flashHint(msg) { if (!msg) return; hintMsg = msg; hintUntil = performance.now() + 1800; }
+// строка состояния: что сейчас происходит и кто действует
+function phaseStatus() {
+  const g = gameState, p = g.currentPlayer, me = !isNet() || p === mySeat + 1, name = netName(p);
+  switch (g.phase) {
+    case 'place':
+      if (g.hand && g.hand.brk) return isNet() ? (me ? 'Ваш разбой: биток с руки' : 'Разбой соперника…') : 'Разбой: ' + name;
+      return isNet() ? (me ? 'Ваш удар с руки' : 'Соперник бьёт с руки…') : 'С руки: ' + name;
+    case 'aim': return isNet() ? (me ? 'Ваш ход' : 'Ход соперника…') : 'Ход: ' + name;
+    case 'pick': {
+      const what = g.pick && g.pick.why === 'svk' ? 'шар за свояк' : 'штрафной шар';
+      return isNet() ? (me ? 'Ваш ' + what : 'Соперник: ' + what + '…') : name + ': ' + what;
+    }
+    case 'choose': return isNet() ? (me ? 'Ваш выбор после фола' : 'Соперник выбирает…') : name + ': выбор';
+    case 'over': { const w = winnerNow() || (g.score1 >= g.score2 ? 1 : 2); return isNet() ? (w === mySeat + 1 ? 'Победа!' : 'Поражение') : 'Победа: ' + netName(w); }
+  }
+  return '';
+}
+function showWin() {
+  if (isNet()) { if (!netFinished) netShowWinner(); return; }
+  const g = gameState, w = winnerNow() || (g.score1 >= g.score2 ? 1 : 2);
+  const last = g.hist.length && g.hist[g.hist.length - 1].n === g.seq && / штрафной /.test(g.hist[g.hist.length - 1].t) ? '\nПоследнее очко — штрафной шар за фол соперника.' : '';
+  setStatus('Победа: ' + netName(w));
+  showModal('ПОБЕДА!', `${netName(w)} первым набрал 8 очков!` + last, () => initGame(g.kind, 3 - g.breaker),
+            { cls: 'win', ok: 'Играть снова', menu: true, stats: true });
+}
+// итог удара: фол — окно с причиной (дальше выбор штрафного шара), свояк и правильный разбой — подсказка
+function announceShot() {
+  const g = gameState, v = g.verdict;
+  if (g.phase === 'over') { showWin(); return; }
+  setStatus(phaseStatus());
+  if (!v || v.n <= shownShot) return;
+  shownShot = v.n;
+  const mine = !isNet() || g.currentPlayer === mySeat + 1;
+  if (v.foul) {
+    const C = g.currentPlayer, back = (v.potted || []).filter(n => !(g.kind === 'moscow' && n === 0));
+    let desc = foulText(v);
+    if (back.length) desc += '\nЗабитые при фоле шары выставлены на заднюю отметку.';
+    if (g.cueOff) desc += '\nБиток в лузе — следующий удар с руки из дома.';
+    desc += '\n\n' + (isNet() ? (mine ? 'Вы снимаете' : 'Соперник снимает') : netName(C) + ' снимает') +
+            ' со стола любой ' + (g.kind === 'moscow' ? 'прицельный ' : '') + 'шар — штрафной (+1 очко), затем ' +
+            (v.brk ? 'выбор: бить самому, передать удар или перестановка и новый разбой.' : 'выбор: бить самому или передать удар.');
+    const title = v.brk ? 'НЕПРАВИЛЬНЫЙ РАЗБОЙ' : (isNet() && !mine ? 'ФОЛ' : (isNet() ? 'ФОЛ СОПЕРНИКА' : 'ФОЛ'));
+    showModal(title, desc, null, { cls: 'lose', ok: mine ? 'Выбрать штрафной шар' : 'Понятно' });
+  } else if (v.svk) toast('Свояк! ' + (isNet() ? (mine ? 'Снимите шар себе на полку' : 'Соперник снимает шар') : netName(g.currentPlayer) + ' снимает шар себе на полку'), 'gold');
+  else if (v.brk) toast('Правильный разбой', 'good');
+}
+// после снимка соперника: его решения (снял шар, выбрал…) и итог его удара
+function announceRemote(s, replayed) {
+  const g = gameState;
+  for (const e of g.hist) if (e && (e.n | 0) > histSeen) { histSeen = e.n | 0; if (e.by !== mySeat + 1 && typeof e.t === 'string') toast(e.t.slice(0, 80)); }
+  announceShot();
+  if (g.phase === 'choose' && myAction()) openChoice();
+}
+
+// === ПОДСКАЗКА НАД СТОЛОМ: «биток с руки · Готово», «выберите шар · Снять» ===
+const chip = $('act-chip'), chipTxt = $('act-chip-txt'), chipOk = $('act-chip-ok'), chipX = $('act-chip-x');
+let chipKey = '';
+function updateChip() {
+  const g = gameState, my = myAction() && !g.ballsMoving && !anyOverlay() && gameScreen.classList.contains('active');
+  let txt = '', ok = '', x = false, bad = false;
+  if (my && performance.now() < hintUntil) { txt = hintMsg; bad = true; }
+  const who = isNet() ? '' : netName(g.currentPlayer) + ': ';
+  if (my && g.phase === 'place' && g.hand) {
+    const z = ZONES[g.hand.zone];
+    if (handMode === 'place') {
+      if (!txt) txt = who + (g.hand.brk ? 'разбой — поставьте биток ' : 'биток с руки — поставьте ') + z.in +
+                      (g.hand.rule ? '; бить — по зелёным шарам' : '');
+      ok = 'Готово';
+    } else ok = '✋ Переставить';
+  } else if (my && g.phase === 'pick' && g.pick) {
+    if (pickSel) { txt = (g.pick.why === 'pen' ? 'Штрафной: ' : 'За свояк: ') + ballName(pickSel); ok = 'Снять'; x = true; bad = false; }
+    else if (!txt) txt = who + (g.pick.why === 'pen' ? 'выберите штрафной шар — он уйдёт на вашу полку' : 'свояк! Выберите шар себе на полку');
+  }
+  // подсказка не должна закрывать то, с чем сейчас работают: шары на выбор или временный дом у верхнего края —
+  // тогда она уходит вниз стола
+  let low = false;
+  if (txt || ok) {
+    const top = (px, py) => { if (view3d) { const q = V3.project(px, py); return q ? q[1] : 1e9; }
+                              return vertical ? (FULL_W - px - RAIL_W) * scale : (py + RAIL_W) * scale; };
+    if (g.phase === 'pick') low = balls.some(b => canPickBall(b) && top(b.x, b.y) < 72);
+    else if (g.phase === 'place' && g.hand) low = top(balls[0].x, balls[0].y) < 90 || (!view3d && vertical && g.hand.zone === 'temp');
+  }
+  const key = txt + '|' + ok + '|' + x + '|' + bad + '|' + low;
+  if (key === chipKey) return;
+  chipKey = key;
+  chip.classList.toggle('low', low);
+  chip.hidden = !txt && !ok;
+  chipTxt.textContent = txt; chipTxt.hidden = !txt;
+  chipOk.textContent = ok; chipOk.hidden = !ok;
+  chipX.hidden = !x;
+  chip.classList.toggle('bad', bad);
+}
+chipOk.onclick = e => {
+  e.currentTarget.blur();
+  const g = gameState; if (!myAction()) return;
+  if (g.phase === 'place') { if (handMode === 'place') handDone(); else handMode = 'place'; }
+  else if (g.phase === 'pick') pickConfirm();
+};
+chipX.onclick = e => { e.currentTarget.blur(); pickSel = null; };
+
 
 // === ГРАФИКА ===
 // Статичный стол (дерево, резина, сукно, лузы, свет ламп) рисуется один раз в буфер;
@@ -1861,13 +2636,16 @@ function drawFalling() {
     ctx.globalAlpha = 1;
   }
 }
+// фаза удара: биток выбран, можно целиться и бить (в т. ч. с руки)
+const aimPhase = () => gameState.phase === 'aim' || gameState.phase === 'place';
 function drawSelection() {
   const b = gameState.selectedBall;
-  if (!b || !b.active || gameState.ballsMoving || !canControl()) return;
-  const px = 1 / scale;
+  if (!b || !b.active || gameState.ballsMoving || !myAction() || !aimPhase()) return;
+  const px = 1 / scale, inHand = gameState.phase === 'place';
   ctx.save();
-  ctx.strokeStyle = 'rgba(140,235,255,.75)'; ctx.lineWidth = 1.6 * px;
+  ctx.strokeStyle = 'rgba(140,235,255,.75)'; ctx.lineWidth = (inHand ? 2 : 1.6) * px;
   ctx.shadowColor = 'rgba(0,229,255,.8)'; ctx.shadowBlur = 6 * dpr;
+  if (inHand) { ctx.setLineDash([5 * px, 4 * px]); ctx.lineDashOffset = -performance.now() / 60 * px; }   // биток «в руке» — бегущий пунктир
   ctx.beginPath(); ctx.arc(b.x, b.y, R + 3.5 * px + 2, 0, Math.PI * 2); ctx.stroke();
   ctx.restore();
 }
@@ -1915,19 +2693,77 @@ const pen2d = {
     ctx.save(); ctx.lineWidth = 2 * px; ctx.strokeStyle = o.color;
     if (o.glow) { ctx.shadowColor = o.color; ctx.shadowBlur = 8 * dpr; }
     ctx.beginPath(); ctx.arc(p.hx, p.hy, HOLE_R + 6, 0, Math.PI * 2); ctx.stroke(); ctx.restore();
+  },
+  poly(pts, o) {
+    ctx.save(); polyPath(ctx, pts);
+    if (o.fill) { ctx.fillStyle = o.fill; ctx.fill(); }
+    if (o.color) { ctx.lineWidth = (o.width || 1.5) / scale; ctx.strokeStyle = o.color; ctx.stroke(); }
+    ctx.restore();
+  },
+  // надпись в экранных координатах (стол может быть повёрнут — текст всегда горизонтально)
+  label(x, y, text, o) {
+    const X = x + RAIL_W, Y = y + RAIL_W, sx = vertical ? Y * scale : X * scale, sy = vertical ? (FULL_W - X) * scale : Y * scale;
+    ctx.save(); ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    ctx.font = `400 ${o.size || 11}px 'Russo One', sans-serif`; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+    ctx.fillStyle = o.color; ctx.shadowColor = 'rgba(0,0,0,.8)'; ctx.shadowBlur = 4;
+    if (o.spacing) ctx.letterSpacing = o.spacing + 'px';
+    const hw = ctx.measureText(text).width / 2 + 6, W = canvas.width / dpr;   // не вылезать за край стола
+    ctx.fillText(text, Math.max(hw, Math.min(W - hw, sx)), sy + (o.dy || 0)); ctx.restore();
   }
 };
+// Подсветка правил на столе. Под шарами: зона удара с руки (дом / временный дом) и её линия.
+// Над шарами: шары, по которым можно бить первыми с руки (зелёные) и нельзя (красные), шары на выбор
+// (штрафной / за свояк), «призрак» битка там, куда его тянут, если туда нельзя.
+function drawZoneWith(pen) {
+  const g = gameState;
+  if (g.phase !== 'place' || !g.hand || g.ballsMoving || g.stroke) return;
+  const z = ZONES[g.hand.zone]; if (!z || !z.dir) return;
+  const pulse = 0.5 + 0.5 * Math.sin(performance.now() / 260);
+  pen.poly([[z.x0, 0], [z.x1, 0], [z.x1, TABLE_H], [z.x0, TABLE_H]], { fill: `rgba(0,229,255,${(0.08 + 0.06 * pulse).toFixed(3)})` });
+  pen.path([[z.x, 0], [z.x, TABLE_H]], { dash: [9, 6], width: 2, color: 'rgba(0,229,255,.9)', glow: true });
+  pen.label((z.x0 + z.x1) / 2, TABLE_H * 0.1, z.name.toUpperCase(), { color: 'rgba(160,240,255,.85)', size: 11, spacing: 2 });
+}
+function drawRulesWith(pen) {
+  const g = gameState;
+  if (g.ballsMoving || g.stroke) return;
+  const pulse = 0.5 + 0.5 * Math.sin(performance.now() / 260);
+  if (g.phase === 'place' && g.hand) {
+    const z = ZONES[g.hand.zone];
+    if (g.hand.rule && z) for (const b of balls) {
+      if (!b.active || b.number === 0) continue;
+      if (inZone(z, b.x)) pen.circle(b.x, b.y, R + 4, { color: 'rgba(255,93,125,.85)', dash: [3, 3], width: 1.6 });
+      else pen.circle(b.x, b.y, R + 4, { color: 'rgba(81,245,139,.8)', width: 1.5 });
+    }
+    if (handGhost && myAction()) {
+      pen.circle(handGhost.x, handGhost.y, R, { color: 'rgba(255,93,125,.95)', fill: 'rgba(255,93,125,.22)', dash: [4, 3], width: 1.6 });
+      pen.cross(handGhost.x, handGhost.y, { color: 'rgba(255,93,125,.95)' });
+    }
+  }
+  if (g.phase === 'pick' && g.pick) {
+    for (const b of balls) {
+      if (!canPickBall(b)) continue;
+      const sel = b === pickSel;
+      pen.circle(b.x, b.y, R + 5 + (sel ? 2 : 2 * pulse), { color: sel ? 'rgba(255,214,10,1)' : `rgba(255,214,10,${(0.4 + 0.4 * pulse).toFixed(3)})`, width: sel ? 3 : 1.6 });
+    }
+  }
+}
 // Прицел: путь битка (с наклоном кия — дугой), «призрачный» шар, путь прицельного с учётом отброса,
 // путь битка после удара; в режиме «полная траектория» — весь удар до остановки шаров на заданную глубину
 function drawAimWith(pen) {
-  if (gameState.ballsMoving || gameState.stroke || !gameState.selectedBall || !canControl()) return;
+  if (gameState.ballsMoving || gameState.stroke || !gameState.selectedBall || !myAction() || !aimPhase()) return;
   const pv = aimPreview(); if (!pv) return;
   const hit = pv.hit, full = trajMode === 'full' ? fullPreview() : null;
   if (!full) pen.path(pv.path, { dash: [7, 6], width: 1.5, color: hit.type === 'pocket' ? AIM.RED : AIM.DIM, skip: R });
   if (!pv.reaches) { if (!full) pen.cross(pv.stopX, pv.stopY, { color: AIM.DIM }); }
   else if (hit.type === 'ball' || hit.type === 'cushion') pen.circle(hit.x, hit.y, R, { color: 'rgba(255,255,255,.78)', fill: 'rgba(255,255,255,.07)' });
   else if (hit.type === 'pocket') pen.ring(hit.pocket, { color: AIM.RED });
-  if (full) { pen.alpha(full.stale ? 0.4 : 1); drawFullWith(pen, full); pen.alpha(1); return; }
+  if (full) {
+    pen.alpha(full.stale ? 0.4 : 1); drawFullWith(pen, full); pen.alpha(1);
+    // прогноз судьи: удар будет фолом — предупреждение у битка
+    const v = !full.stale && full.verdict, cb = gameState.selectedBall;
+    if (v && v.foul) pen.label(cb.x, cb.y, '⚠ ' + (FOUL_SHORT[v.code] || 'фол'), { color: 'rgba(255,140,160,.98)', size: 12, dy: -26 });
+    return;
+  }
   if (pv.reaches && hit.type === 'ball' && pv.obj) {
     const o = hit.ball, fullLen = Math.min(pv.obj.t, pv.objLen), len = Math.max(R, pv.pot ? fullLen : Math.min(fullLen, 430));
     pen.path([[o.x, o.y], [o.x + pv.odx * len, o.y + pv.ody * len]], { width: 2, color: pv.pot ? AIM.GREEN : AIM.WHITE, skip: R });
@@ -1959,7 +2795,7 @@ function cueState() {
   const s = gameState.stroke;
   if (s) return { x: s.x0, y: s.y0, ang: s.ang, gap: s.gap, alpha: s.alpha, elev: s.elev, spin: s.spin };
   const b = gameState.selectedBall;
-  if (!b || !b.active || gameState.ballsMoving || !canControl()) return null;
+  if (!b || !b.active || gameState.ballsMoving || !myAction() || !aimPhase()) return null;
   return { x: b.x, y: b.y, ang: gameState.aimAngle, gap: R + 12 + gameState.aimPower * 300, alpha: 1, elev: gameState.elev, spin: gameState.spin };
 }
 // наклон кия для картинки: не меньше пары градусов (кий лежит на мостике руки)
@@ -2074,18 +2910,19 @@ function render() {
   ctx.drawImage(tableLayer, 0, 0);
   tableTransform(ctx);
   drawFalling();
+  drawZoneWith(pen2d);
   drawShadows();
   const cs = cueState();
   if (cs) drawCueShadow(cs);
   drawBalls();
   drawSelection();
+  drawRulesWith(pen2d);
   drawAim();
   if (cs) drawCue(cs);
 }
 
 // === ЦИКЛ: физика фиксированными шагами по времени ===
 let lastTs = 0, physAcc = 0;
-const gameScreen = $('screen-game');
 function physicsPaused() {
   return $('menu-pause').classList.contains('open') || $('menu-rules').classList.contains('open') || $('menu-settings').classList.contains('open');
 }
@@ -2104,7 +2941,7 @@ function loop(ts) {
     if (gameState.ballsMoving && !moving && falling.length === 0) { gameState.ballsMoving = false; ballsVersion++; onTurnEnd(); }
     else if (moving && !replaying) setStatus('Шары катятся…');
   }
-  updateShootBtn();
+  updateShootBtn(); updateChip();
   if (view3d) V3.render(dt); else render();
 }
 
@@ -2461,7 +3298,28 @@ const V3 = (() => {
     const port = cssW < cssH, el = port ? 1.08 : 0.9, dir = port ? [-1, 0] : [0, 1], fov = port ? 1.12 : 0.92;
     const pts = [];
     for (const x of [-RAIL_W, TABLE_W + RAIL_W]) for (const y of [-RAIL_W, TABLE_H + RAIL_W]) pts.push([x, y, -H_RAIL], [x, y, APRON]);
+    overFit = { key, pose: fitPose(pts, dir, el, fov, 0.95, 0.9) };
+    return overFit.pose;
+  }
+  // установка битка с руки: неподвижная камера над зоной (дом / временный дом) со стороны её короткого борта —
+  // протяжка по столу двигает шар точно под пальцем (камера не «плывёт» вслед за шаром)
+  let placeFit = { key: '', pose: null };
+  function placePose() {
+    const zk = gameState.hand ? gameState.hand.zone : 'house', z = ZONES[zk] || ZONES.house;
+    if (!z.dir) return overPose();
+    const key = cssW + 'x' + cssH + zk;
+    if (placeFit.key === key) return placeFit.pose;
+    const port = cssW < cssH, x0 = z.dir > 0 ? z.x - 90 : -RAIL_W * 0.4, x1 = z.dir > 0 ? TABLE_W + RAIL_W * 0.4 : z.x + 90, pts = [];
+    for (const x of [x0, x1]) for (const y of [-RAIL_W * 0.35, TABLE_H + RAIL_W * 0.35]) pts.push([x, y, -H_RAIL]);
+    placeFit = { key, pose: fitPose(pts, [z.dir > 0 ? 1 : -1, 0], port ? 1.12 : 1.0, port ? 1.12 : 0.92, 0.92, 0.8) };
+    return placeFit.pose;
+  }
+  // камера смотрит из направления dir (от точки взгляда к глазу) под углом el; дальность — чтобы точки pts
+  // поместились в кадр (|x| ≤ mx, |y| ≤ my в нормированных координатах), затем стол сдвигается в центр кадра
+  function fitPose(pts, dir, el, fov, mx, my) {
     const V = new Float32Array(16), P = new Float32Array(16), M = new Float32Array(16);
+    let c0 = [0, 0];
+    for (const p of pts) { c0[0] += p[0] / pts.length; c0[1] += p[1] / pts.length; }
     persp(P, fov, cssW / Math.max(1, cssH), 20, 14000);
     const eyeAt = (t, d) => [t[0] + dir[0] * d * Math.cos(el), t[1] + dir[1] * d * Math.cos(el), -d * Math.sin(el)];
     const ndc = (t, d) => {                                    // углы стола на экране (−1…1) при такой камере
@@ -2469,18 +3327,17 @@ const V3 = (() => {
       return pts.map(p => { const w = M[3] * p[0] + M[7] * p[1] + M[11] * p[2] + M[15];
         return w < 10 ? null : [(M[0] * p[0] + M[4] * p[1] + M[8] * p[2] + M[12]) / w, (M[1] * p[0] + M[5] * p[1] + M[9] * p[2] + M[13]) / w]; });
     };
-    const fits = (t, d) => ndc(t, d).every(q => q && Math.abs(q[0]) <= 0.95 && Math.abs(q[1]) <= 0.9);
+    const fits = (t, d) => ndc(t, d).every(q => q && Math.abs(q[0]) <= mx && Math.abs(q[1]) <= my);
     let shift = 0, tgt = null, d = 0;
     for (let it = 0; it < 3; it++) {                           // подобрать дальность, затем сдвинуть точку взгляда,
-      tgt = [TABLE_W / 2 + dir[0] * shift, TABLE_H / 2 + dir[1] * shift, 0];   // чтобы стол стоял по центру кадра
-      let lo = 1000, hi = 14000;
+      tgt = [c0[0] + dir[0] * shift, c0[1] + dir[1] * shift, 0];   // чтобы стол стоял по центру кадра
+      let lo = 300, hi = 14000;
       for (let i = 0; i < 24; i++) { const m = (lo + hi) / 2; if (fits(tgt, m)) hi = m; else lo = m; }
       d = hi;
-      const ys = ndc(tgt, d).map(q => q[1]), c = (Math.min(...ys) + Math.max(...ys)) / 2;
+      const ys = ndc(tgt, d).map(q => q ? q[1] : 0), c = (Math.min(...ys) + Math.max(...ys)) / 2;
       shift -= c * d * Math.tan(fov / 2) / Math.sin(el);
     }
-    overFit = { key, pose: [eyeAt(tgt, d), tgt] };
-    return overFit.pose;
+    return [eyeAt(tgt, d), tgt];
   }
   // из-за битка по линии прицела; точка взгляда подбирается так, чтобы дальний борт был у верхнего
   // края кадра, а биток с кием — в нижней половине (меньше пустоты над столом)
@@ -2500,9 +3357,10 @@ const V3 = (() => {
   }
   function updateCamera(dt) {
     FOV = cssW < cssH ? 1.12 : 0.92;
-    const aiming = !gameState.ballsMoving && canControl() && !!gameState.selectedBall || (gameState.stroke && !replaying);
+    const aiming = !gameState.ballsMoving && myAction() && !!gameState.selectedBall && aimPhase() || (gameState.stroke && !replaying);
     cam.over = !aiming || cam.userOver;
-    const [e, t] = cam.over ? overPose() : aimPose();
+    const placing = handPlacing() && !cam.userOver;
+    const [e, t] = placing ? placePose() : (cam.over ? overPose() : aimPose());
     if (!cam.eye) { cam.eye = e.slice(); cam.tgt = t.slice(); }
     const k = 1 - Math.exp(-dt * 7);
     for (let i = 0; i < 3; i++) { cam.eye[i] += (e[i] - cam.eye[i]) * k; cam.tgt[i] += (t[i] - cam.tgt[i]) * k; }
@@ -2684,7 +3542,22 @@ const V3 = (() => {
       oc.save(); oc.lineWidth = 1.4; oc.strokeStyle = o.color; oc.beginPath();
       oc.moveTo(p[0] - 6, p[1] - 6); oc.lineTo(p[0] + 6, p[1] + 6); oc.moveTo(p[0] + 6, p[1] - 6); oc.lineTo(p[0] - 6, p[1] + 6); oc.stroke(); oc.restore();
     },
-    ring(pk, o) { ellipseOnCloth(pk.hx, pk.hy, HOLE_R + 6, -H_RAIL - 1, o.color, 2, o.glow); }
+    ring(pk, o) { ellipseOnCloth(pk.hx, pk.hy, HOLE_R + 6, -H_RAIL - 1, o.color, 2, o.glow); },
+    poly(pts, o) {                                             // многоугольник на сукне (если весь перед камерой)
+      const sp = pts.map(p => project(p[0], p[1], -0.5)); if (sp.some(q => !q)) return;
+      oc.save(); oc.beginPath(); sp.forEach((q, i) => i ? oc.lineTo(q[0], q[1]) : oc.moveTo(q[0], q[1])); oc.closePath();
+      if (o.fill) { oc.fillStyle = o.fill; oc.fill(); }
+      if (o.color) { oc.lineWidth = o.width || 1.5; oc.strokeStyle = o.color; oc.stroke(); }
+      oc.restore();
+    },
+    label(x, y, text, o) {
+      const p = project(x, y, -0.5); if (!p) return;
+      oc.save(); oc.font = `400 ${o.size || 11}px 'Russo One', sans-serif`; oc.textAlign = 'center'; oc.textBaseline = 'middle';
+      oc.fillStyle = o.color; oc.shadowColor = 'rgba(0,0,0,.8)'; oc.shadowBlur = 4;
+      if (o.spacing) oc.letterSpacing = o.spacing + 'px';
+      const hw = oc.measureText(text).width / 2 + 6;          // не вылезать за край кадра
+      oc.fillText(text, Math.max(hw, Math.min(cssW - hw, p[0])), p[1] + (o.dy || 0)); oc.restore();
+    }
   };
   function ellipseOnCloth(x, y, r, z, color, width, glow) {
     oc.save(); oc.lineWidth = width; oc.strokeStyle = color; if (glow) { oc.shadowColor = color; oc.shadowBlur = 8; }
@@ -2699,22 +3572,41 @@ const V3 = (() => {
   function drawOverlay() {
     oc.setTransform(1, 0, 0, 1, 0, 0); oc.clearRect(0, 0, ovc.width, ovc.height);
     oc.setTransform(dpr, 0, 0, dpr, 0, 0);
+    drawZoneWith(pen3d);
     const b = gameState.selectedBall;
-    if (b && b.active && !gameState.ballsMoving && canControl()) ellipseOnCloth(b.x, b.y, R + 9, -0.5, 'rgba(140,235,255,.75)', 1.6, true);
+    if (b && b.active && !gameState.ballsMoving && myAction() && aimPhase()) {
+      if (gameState.phase === 'place') { oc.save(); oc.setLineDash([6, 5]); oc.lineDashOffset = -performance.now() / 50; ellipseOnCloth(b.x, b.y, R + 9, -0.5, 'rgba(140,235,255,.9)', 2, true); oc.restore(); }
+      else ellipseOnCloth(b.x, b.y, R + 9, -0.5, 'rgba(140,235,255,.75)', 1.6, true);
+    }
+    drawRulesWith(pen3d);
     drawAimWith(pen3d);
   }
 
   // ---- ввод: прицел, высота камеры, приближение, выбор битка ----
+  // точка на плоскости центров шаров под точкой экрана
+  function rayTable(px, py) {
+    const [o, d] = ray(px, py);
+    if (!(d[2] > 1e-6)) return null;
+    const t = (-R - o[2]) / d[2];
+    return { x: o[0] + d[0] * t, y: o[1] + d[1] * t };
+  }
   function bindInput() {
-    const pts = new Map(); let drag = false, x0 = 0, y0 = 0, lastX = 0, lastY = 0, pinch0 = 0, dist0 = 0;
+    const pts = new Map(); let drag = false, x0 = 0, y0 = 0, lastX = 0, lastY = 0, pinch0 = 0, dist0 = 0, hand = null;
     const local = e => { const r = ovc.getBoundingClientRect(); return [e.clientX - r.left, e.clientY - r.top]; };
     ovc.addEventListener('pointerdown', e => {
       resumeAudio();
       if (e.pointerType === 'mouse' && e.button !== 0) return;
       e.preventDefault(); capture(ovc, e);
       pts.set(e.pointerId, local(e));
-      if (pts.size === 2) { const [a, c] = [...pts.values()]; pinch0 = Math.hypot(a[0] - c[0], a[1] - c[1]); dist0 = camSet().dist; drag = true; return; }
-      [x0, y0] = local(e); lastX = x0; lastY = y0; drag = false;
+      if (pts.size === 2) { const [a, c] = [...pts.values()]; pinch0 = Math.hypot(a[0] - c[0], a[1] - c[1]); dist0 = camSet().dist; drag = true; hand = null; handDrag = null; return; }
+      [x0, y0] = local(e); lastX = x0; lastY = y0; drag = false; hand = null;
+      // установка битка: от шара — тянем его, по зоне — ставим в точку касания; вне зоны — это уже прицел
+      if (handPlacing() && !cam.userOver) {
+        const t = rayTable(x0, y0), cb = gameState.selectedBall, sp = cb && project(cb.x, cb.y, -R);
+        const rp = sp ? R * (cssH / 2) / Math.tan(FOV / 2) / sp[2] : 0;
+        const onCue = !!sp && Math.hypot(sp[0] - x0, sp[1] - y0) < Math.max(rp * 1.6, 22);
+        if (t && handStart(t, onCue)) hand = { moved: false };
+      }
     });
     ovc.addEventListener('pointermove', e => {
       if (!pts.has(e.pointerId)) return;
@@ -2725,9 +3617,13 @@ const V3 = (() => {
         return;
       }
       if (!drag && Math.abs(p[0] - x0) + Math.abs(p[1] - y0) > 6) drag = true;
+      if (hand) {                                              // биток едет по столу за пальцем; камера стоит
+        if (drag) { const t = rayTable(p[0], p[1]); if (t) handMove(t); }
+        return;
+      }
       if (!drag) return;
       const dx = p[0] - lastX, dy = p[1] - lastY; lastX = p[0]; lastY = p[1];
-      if (!gameState.ballsMoving && canControl() && gameState.selectedBall) gameState.aimAngle += dx * 0.0045;
+      if (!gameState.ballsMoving && myAction() && gameState.selectedBall && aimPhase()) { gameState.aimAngle += dx * 0.0045; aimChanged(); }
       const c = camSet(); c.pitch = Math.max(0.06, Math.min(1.35, c.pitch + dy * 0.004));
     });
     // палец убрали: после щипка оставшийся палец продолжает от своего места (иначе прицел прыгнет)
@@ -2739,34 +3635,43 @@ const V3 = (() => {
     ovc.addEventListener('pointerup', e => {
       if (!pts.has(e.pointerId)) return;
       const p = lift(e);
+      if (hand) { hand = null; handEnd(); return; }
       if (pts.size > 0 || drag) return;
       tap(p[0], p[1]);
     });
-    ovc.addEventListener('pointercancel', e => { if (pts.has(e.pointerId)) lift(e); });
+    ovc.addEventListener('pointercancel', e => { if (pts.has(e.pointerId)) lift(e); if (hand) { hand = null; handEnd(); } });
     ovc.addEventListener('wheel', e => { e.preventDefault(); const c = camSet(); c.dist = Math.max(420, Math.min(3400, c.dist * Math.exp(e.deltaY * 0.0012))); }, { passive: false });
     ovc.addEventListener('contextmenu', e => e.preventDefault());
     $('btn-cam').onclick = e => { e.currentTarget.blur(); cam.userOver = !cam.userOver; };
   }
-  // тап: по шару — выбрать биток, по сукну — направить прицел в эту точку
-  function tap(px, py) {
-    if (gameState.ballsMoving || !canControl()) return;
+  // шар, в который луч попал первым (видимый); если мимо всех — ближайший к лучу в пределах допуска
+  function rayBall(px, py, ok) {
     const [o, d] = ray(px, py);
-    // шар, в который луч попал первым (видимый); если мимо всех — ближайший к лучу в пределах допуска
     let hit = null, ht = Infinity, near = null, nd = (R * 1.6) * (R * 1.6);
     for (const b of balls) {
-      if (!b.active) continue;
+      if (!b.active || (ok && !ok(b))) continue;
       const cx = b.x - o[0], cy = b.y - o[1], cz = -R - o[2], t = cx * d[0] + cy * d[1] + cz * d[2];
       if (t <= 0) continue;
       const qx = cx - d[0] * t, qy = cy - d[1] * t, qz = cz - d[2] * t, q2 = qx * qx + qy * qy + qz * qz;
       if (q2 < R * R) { const te = t - Math.sqrt(R * R - q2); if (te < ht) { ht = te; hit = b; } }
       else if (q2 < nd) { nd = q2; near = b; }
     }
-    const best = hit || near;
-    if (best && best !== gameState.selectedBall) { gameState.selectedBall = best; setStatus('Цельтесь'); return; }
-    if (d[2] > 1e-6 && gameState.selectedBall) {
-      const t = (-R - o[2]) / d[2], x = o[0] + d[0] * t, y = o[1] + d[1] * t, sb = gameState.selectedBall;
-      if (Math.hypot(x - sb.x, y - sb.y) > R) gameState.aimAngle = Math.atan2(y - sb.y, x - sb.x);
+    return hit || near;
+  }
+  // тап: по шару — выбрать биток (или шар на полку), по сукну — направить прицел в эту точку
+  function tap(px, py) {
+    if (gameState.ballsMoving || !myAction()) return;
+    if (gameState.phase === 'pick') { const b = rayBall(px, py, canPickBall); if (b) pickTap(b); return; }
+    if (!aimPhase()) return;
+    const best = rayBall(px, py), sb = gameState.selectedBall;
+    if (best && best === sb && gameState.phase === 'place') { handMode = 'place'; return; }   // тап по битку в руке — переставить
+    if (best && best !== sb) {
+      if (canChooseCue(best)) { gameState.selectedBall = best; setStatus('Цельтесь'); return; }
+      if (sb) aimAtPoint(best.x, best.y, true);              // этим шаром бить нельзя — просто целимся в него
+      return;
     }
+    const t = rayTable(px, py);
+    if (t && sb && Math.hypot(t.x - sb.x, t.y - sb.y) > R) aimAtPoint(t.x, t.y, false);
   }
 
   return {
@@ -2784,6 +3689,11 @@ const V3 = (() => {
     },
     render(dt) { if (shown) frame(dt); },
     project: (x, y, z) => project(x, y, z === undefined ? -R : z),   // мир → экран (для проверок)
+    // направления «вправо» и «вверх» экрана на плоскости стола (для стрелок при установке битка)
+    screenAxes() {
+      const n = (x, y) => { const l = Math.hypot(x, y) || 1; return [x / l, y / l]; };
+      return { r: n(camS[0], camS[1]), u: n(camF[0], camF[1]) };
+    },
     get camera() { return cam; }
   };
 })();
@@ -2867,30 +3777,27 @@ function layout() {
 }
 function resize() { layout(); }
 
-function initGame() {
+// Новая партия: kind — вид пирамиды ('free' | 'moscow'), breaker — кто разбивает (1 | 2).
+// Разбой — жёлтым битком с руки из дома.
+function initGame(kind, breaker) {
   layout(); balls = []; falling = [];
-  Object.assign(gameState, {
+  const g = gameState;
+  Object.assign(g, {
+    kind: kind === 'moscow' || kind === 'free' ? kind : menuKind,
     score1: 0, score2: 0, pocketed1: [], pocketed2: [], currentPlayer: 1,
-    ballInHand: false, aimAngle: 0, aimPower: 0, ballsMoving: false,
-    hitOccurred: false, turnValid: false, foul: false, pocketedThisTurn: 0, foulPotted: [],
-    isPlacingCue: false, isAimingOnCanvas: false, stroke: null
+    aimAngle: 0, aimPower: 0, ballsMoving: false, hitOccurred: false,
+    phase: 'place', hand: null, breakShot: false, pick: null, choice: null, offender: 0,
+    breaker: breaker === 2 ? 2 : 1, cueOff: false, verdict: null, shotSeq: 0, seq: 0, hist: [], stroke: null
   });
-  physAcc = 0;
-  const cue = new Ball(HOUSE_X * 0.8, TABLE_H / 2, 0);
-  balls.push(cue);
+  physAcc = 0; referee = null; pendingShot = null; lastShot = null; shownShot = 0; histSeen = 0;
+  balls.push(new Ball(HOUSE_X * 0.8, TABLE_H / 2, 0));
+  for (let n = 1; n <= 15; n++) balls.push(new Ball(0, 0, n));
   // пирамида: вершина на задней отметке, основание — к короткому борту; шары почти вплотную
-  const dxr = R * Math.sqrt(3) + 0.05, dyr = 2 * R + 0.05;
-  let n = 1;
-  for (let row = 0; row < 5; row++) {
-    for (let col = 0; col <= row; col++) {
-      const b = new Ball(BACK_SPOT_X + row * dxr, TABLE_H / 2 + (col - row / 2) * dyr, n++);
-      b.q = rackQuat(); balls.push(b);
-    }
-  }
-  gameState.selectedBall = cue;
-  ballsVersion++; previewCache.key = '';
-  resetSpin(); setPowerUI(0);
-  updateTitle(); updateHUD(); setStatus('Ход: Игрок 1'); netStatus();
+  rackBalls(balls.slice(1));
+  previewCache.key = '';
+  enterBreak(g.breaker);
+  resetSpin(); setPowerUI(0); closeChoice();
+  updateTitle(); updateHUD(); setStatus(phaseStatus()); netStatus();
 }
 
 // === UI ===
@@ -2900,7 +3807,8 @@ function showScreen(name) {
   if (name === 'game') layout();
 }
 function updateTitle() {
-  $('game-title').textContent = isNet() ? 'ПО СЕТИ · ' + net.room.id : 'ВДВОЁМ';
+  const k = (KINDS[gameState.kind] || KINDS.free).toUpperCase();
+  $('game-title').textContent = k + ' · ' + (isNet() ? 'СЕТЬ ' + net.room.id : 'ВДВОЁМ');
 }
 function updateHUD() {
   const p1 = $('player1-panel'); const p2 = $('player2-panel');
@@ -2910,13 +3818,18 @@ function updateHUD() {
   p2.classList.toggle('on', gameState.currentPlayer === 2);
   $('score1').textContent = gameState.score1;
   $('score2').textContent = gameState.score2;
+  // полка: '7' — забит, 'Б' — жёлтый, 'Ш7' — штрафной шар (за фол соперника), 'С7' — снят за свояк
   const renderBalls = pocketed => {
     let html = '';
     for (let i = 0; i < 8; i++) {
       if (i < pocketed.length) {
-        const v = pocketed[i];
-        const cls = v === 'Ш' ? 'pen' : (v === 'Б' ? 'cue' : '');
-        html += `<div class="bl-ball ${cls}">${v}</div>`;
+        const t = String(pocketed[i]);
+        let cls = '', lab = t, tip = 'забит';
+        if (t[0] === 'Ш') { cls = 'pen'; lab = t.slice(1) || 'Ш'; tip = 'штрафной шар'; }
+        else if (t[0] === 'С') { cls = 'svk'; lab = t.slice(1); tip = 'за свояк'; }
+        if (lab === 'Б') cls += ' cue';
+        const esc = lab.replace(/[<>&"]/g, '');
+        html += `<div class="bl-ball ${cls}" title="${esc === 'Б' ? 'жёлтый' : esc}: ${tip}">${esc}</div>`;
       } else html += `<div class="bl-ball empty"></div>`;
     }
     if (pocketed.length > 8) html += `<span class="bl-more">+${pocketed.length - 8}</span>`;
@@ -2974,10 +3887,10 @@ $('modal-menu').onclick = () => { closeModalSilent(); toMenu(); };
 function closeOverlays() { ['menu-pause', 'menu-rules', 'menu-settings', 'menu-spin'].forEach(id => $(id).classList.remove('open')); }
 function anyOverlay() { return document.querySelector('.ku-overlay.open') !== null || !!document.querySelector('.kn-ov'); }
 function toMenu() {
-  closeModalSilent(); closeOverlays();
+  closeModalSilent(); closeOverlays(); closeChoice();
   if (isNet()) leaveNet();
   showScreen('menu');
-  initGame();
+  initGame(menuKind, 1);
 }
 
 // Пауза / правила / настройки
@@ -2994,7 +3907,7 @@ function openPause() {
 $('btn-pause').onclick = e => { e.currentTarget.blur(); openPause(); };
 $('btn-menu').onclick = e => { e.currentTarget.blur(); openPause(); };
 $('btn-resume').onclick = $('btn-pause-x').onclick = () => $('menu-pause').classList.remove('open');
-$('btn-restart').onclick = () => { $('menu-pause').classList.remove('open'); if (!isNet()) initGame(); };
+$('btn-restart').onclick = () => { $('menu-pause').classList.remove('open'); if (!isNet()) initGame(gameState.kind, gameState.breaker); };
 $('btn-quit').onclick = toMenu;
 function openSub(id, from) {
   returnTo = from || null;
@@ -3067,8 +3980,26 @@ function setView3d(on) {
 }
 document.querySelectorAll('.bl-view-btn').forEach(b => { b.onclick = e => { e.currentTarget.blur(); setView3d(!view3d); }; });
 
-$('btn-local').onclick = () => { resumeAudio(); if (isNet()) leaveNet(); showScreen('game'); initGame(); };
+$('btn-local').onclick = () => { resumeAudio(); if (isNet()) leaveNet(); showScreen('game'); initGame(menuKind, 1); };
 $('btn-net').onclick = openNetLobby;
+// Вид пирамиды в меню
+const KIND_NOTE = {
+  free: 'Битком может быть любой шар. Фол — сопернику штрафной шар и выбор: бить или передать удар.',
+  moscow: 'Биток — только жёлтый. Свояк — снимаешь шар себе и бьёшь с руки из дома (первым — по шару вне дома).'
+};
+const KIND_STATS = {
+  free: 'Разбой с руки • Биток — любой шар • Фол — штрафной шар',
+  moscow: 'Разбой с руки • Биток — жёлтый • Свояк — удар с руки'
+};
+function renderKind() {
+  document.querySelectorAll('#kind-seg button[data-k]').forEach(b => b.classList.toggle('active', b.dataset.k === menuKind));
+  $('kind-note').textContent = KIND_NOTE[menuKind];
+  $('menu-stats').textContent = KIND_STATS[menuKind];
+}
+$('kind-seg').addEventListener('click', e => {
+  const b = e.target.closest('button[data-k]'); if (!b) return;
+  menuKind = b.dataset.k === 'moscow' ? 'moscow' : 'free'; savePrefs(); renderKind();
+});
 
 // === УПРАВЛЕНИЕ (pointer-события: мышь, тач и перо) ===
 function capture(el, e) { try { el.setPointerCapture(e.pointerId); } catch (err) {} }
@@ -3103,7 +4034,7 @@ function spinFromPointer(box, e) {
   const r = box.getBoundingClientRect(), rad = r.width / 2;
   setSpin((e.clientX - r.left - rad) / rad, (e.clientY - r.top - rad) / rad);
 }
-const canSpin = () => canControl() && !gameState.ballsMoving;
+const canSpin = () => myAction() && !gameState.ballsMoving;
 // маленький шар: протянуть — сразу поменять точку удара, тап — открыть точную настройку
 let spinPointer = null, spinX0 = 0, spinY0 = 0, spinDrag = false;
 spinCtrl.addEventListener('pointerdown', e => {
@@ -3185,11 +4116,11 @@ function setPowerUI(percent) {
   updateShootBtn();
 }
 function updateShootBtn() {
-  const off = !(gameState.aimPower >= minPower()) || gameState.ballsMoving || !gameState.selectedBall || !canControl();
+  const off = !(gameState.aimPower >= minPower()) || gameState.ballsMoving || !gameState.selectedBall || !canControl() || !aimPhase();
   if (shootBtn.disabled !== off) shootBtn.disabled = off;
 }
 function adjustPower(d) {
-  if (gameState.ballsMoving || !canControl()) return;
+  if (gameState.ballsMoving || !myAction() || !aimPhase()) return;
   gameState.aimPower = Math.max(0, Math.min(1, Math.round((gameState.aimPower + d) * 100) / 100));
   setPowerUI(gameState.aimPower);
 }
@@ -3207,30 +4138,32 @@ function updatePowerFromSlider(e) {
 function releaseShot() {
   const p = gameState.aimPower, b = gameState.selectedBall;
   if (!shootByButton) { gameState.aimPower = 0; setPowerUI(0); }
-  if (p < minPower() || gameState.ballsMoving || !b || !b.active || !canControl()) return;
+  if (p < minPower() || gameState.ballsMoving || !b || !b.active || !canControl() || !aimPhase()) return;
   const ang = gameState.aimAngle, spin = new Vec2(gameState.spin.x, gameState.spin.y), elev = gameState.elev;
   beginStroke(b, ang, p, () => fireShot(b, ang, p, spin, elev), elev, spin);
   updateShootBtn();
 }
+// Кий коснулся шара: биток «в игре» (с руки — больше не переставить), судья следит за ударом
 function fireShot(b, ang, p, spin, elev) {
   if (!b.active) return;
-  gameState.hitOccurred = false; gameState.foul = false; gameState.pocketedThisTurn = 0; gameState.foulPotted = [];
-  gameState.selectedBall = b;
+  const g = gameState, h = g.phase === 'place' ? g.hand : null;
+  const ref = { brk: !!g.breakShot, zone: h && h.rule ? h.zone : null };
+  g.hitOccurred = false; g.selectedBall = b; g.shotSeq++;
+  g.phase = 'aim'; g.hand = null; resetHandUI();
+  referee = new Referee(balls, balls.indexOf(b), ref);
   const dx = Math.cos(ang), dy = Math.sin(ang), v0 = shotSpeed(p);
   // старт удара — с полной точностью: разбой хаотичен, округление дало бы у соперника другой разлёт
   const start = isNet() ? balls.map(o => ({ x: o.x, y: o.y, a: o.active ? 1 : 0 })) : null;
   applyCue(b, dx, dy, v0, spin, elev);
   b.sleep = false;
-  // spin/side — для соперника со старой версией игры (до обновления кэша): он не упадёт,
-  // проиграет удар своей физикой и встанет по снимку
-  if (start) pendingShot = { v: SHOT_VERSION, idx: balls.indexOf(b), start, vel: { x: b.vx, y: b.vy }, w: { x: b.wx, y: b.wy, z: b.wz },
-                             el: elev || 0, p, spin: { x: 0, y: 0 }, side: 0 };
-  gameState.ballsMoving = true;
+  if (start) pendingShot = { v: SHOT_VERSION, seq: g.shotSeq, idx: balls.indexOf(b), start, vel: { x: b.vx, y: b.vy }, w: { x: b.wx, y: b.wy, z: b.wz },
+                             el: elev || 0, p, ref };
+  g.ballsMoving = true;
   playSound('cue', v0);
 }
 powerSlider.addEventListener('pointerdown', e => {
   resumeAudio();
-  if (gameState.ballsMoving || !gameState.selectedBall || !canControl()) return;
+  if (gameState.ballsMoving || !gameState.selectedBall || !myAction() || !aimPhase()) return;
   e.preventDefault(); powerPointer = e.pointerId; capture(powerSlider, e);
   powerX0 = e.clientX; powerY0 = e.clientY; powerMoved = false; updatePowerFromSlider(e);
 });
@@ -3255,13 +4188,13 @@ powerSlider.addEventListener('pointercancel', e => {
 const microAimArea = $('micro-aim-area'); const microAimRuler = $('micro-aim-ruler');
 let microPointer = null, lastMicroAimX = 0, lastMicroT = 0, rulerOffset = 0;
 function nudgeAim(delta, px) {
-  gameState.aimAngle += delta;
+  gameState.aimAngle += delta; aimChanged();
   rulerOffset += px;
   if (rulerOffset > 40) rulerOffset -= 40; if (rulerOffset < -40) rulerOffset += 40;
   microAimRuler.style.transform = `translateX(${rulerOffset}px)`;
 }
 microAimArea.addEventListener('pointerdown', e => {
-  if (gameState.ballsMoving || !gameState.selectedBall || !canControl()) return;
+  if (gameState.ballsMoving || !gameState.selectedBall || !myAction() || !aimPhase()) return;
   e.preventDefault(); microPointer = e.pointerId; capture(microAimArea, e); lastMicroAimX = e.clientX; lastMicroT = e.timeStamp || performance.now();
 });
 microAimArea.addEventListener('pointermove', e => {
@@ -3276,7 +4209,7 @@ microAimArea.addEventListener('pointermove', e => {
 const endMicro = e => { if (e.pointerId === microPointer) microPointer = null; };
 microAimArea.addEventListener('pointerup', endMicro); microAimArea.addEventListener('pointercancel', endMicro);
 
-// Стол: выбор битка и грубый прицел
+// Стол (2D): выбор битка, грубый прицел, установка битка с руки, выбор шара на полку
 function getMousePosInMM(e) {
   const rect = canvas.getBoundingClientRect();
   const px = e.clientX - rect.left, py = e.clientY - rect.top;
@@ -3284,49 +4217,57 @@ function getMousePosInMM(e) {
   const Y = vertical ? px / scale : py / scale;
   return new Vec2(X - RAIL_W, Y - RAIL_W);
 }
-let canvasPointer = null;
+let canvasPointer = null, aimDrag = null;
 function handleCanvasStart(e) {
   resumeAudio();
   if (e.pointerType === 'mouse' && e.button !== 0) return;
-  if (gameState.ballsMoving || !canControl()) return;
+  if (gameState.ballsMoving || !myAction()) return;
+  const g = gameState;
   e.preventDefault(); canvasPointer = e.pointerId; capture(canvas, e);
   const t = getMousePosInMM(e);
   // на тач-экране шар мелкий — допуск не меньше ~14 CSS px, выбирается ближайший шар
   const tol = e.pointerType === 'mouse' ? R * 2 : Math.max(R * 2, 14 / scale);
-  let clicked = null, bestD = Infinity;
-  for (const b of balls) {
-    if (!b.active) continue;
-    const d = Math.sqrt((t.x - b.x) * (t.x - b.x) + (t.y - b.y) * (t.y - b.y));
-    if (d < tol && d < bestD) { bestD = d; clicked = b; }
-  }
-  if (clicked) {
-    gameState.selectedBall = clicked; setStatus('Цельтесь');
-    gameState.isAimingOnCanvas = 'pending'; gameState.aimTol = tol;   // потянули от шара — прицел за пальцем
-  } else if (gameState.selectedBall) {
-    if (gameState.ballInHand) { gameState.isPlacingCue = true; return; }
-    gameState.aimAngle = Math.atan2(t.y - gameState.selectedBall.y, t.x - gameState.selectedBall.x);
-    gameState.isAimingOnCanvas = true;
+  const nearest = ok => {
+    let best = null, bd = Infinity;
+    for (const b of balls) {
+      if (!b.active || (ok && !ok(b))) continue;
+      const d = Math.sqrt((t.x - b.x) * (t.x - b.x) + (t.y - b.y) * (t.y - b.y));
+      if (d < tol && d < bd) { bd = d; best = b; }
+    }
+    return best;
+  };
+  aimDrag = null;
+  if (g.phase === 'pick') { const b = nearest(canPickBall); if (b) pickTap(b); return; }
+  if (!aimPhase()) return;
+  const sb = g.selectedBall;
+  // биток с руки: от шара — перетаскиваем, тап/протяжка по зоне — ставим туда; вне зоны — это прицел
+  if (g.phase === 'place' && sb && handStart(t, Math.hypot(t.x - sb.x, t.y - sb.y) < tol)) return;
+  const clicked = nearest();
+  if (clicked && clicked !== sb && canChooseCue(clicked)) {
+    g.selectedBall = clicked; setStatus('Цельтесь');
+    aimDrag = 'pending'; g.aimTol = tol;                     // потянули от шара — прицел за пальцем
+  } else if (clicked && clicked === sb) {
+    aimDrag = 'pending'; g.aimTol = tol;
+  } else if (sb) {
+    if (clicked) aimAtPoint(clicked.x, clicked.y);          // этим шаром бить нельзя — целимся в него
+    else aimAtPoint(t.x, t.y);
+    aimDrag = true;
   }
 }
 function handleCanvasMove(e) {
-  if (e.pointerId !== canvasPointer || !gameState.selectedBall) return;
+  if (e.pointerId !== canvasPointer) return;
   const t = getMousePosInMM(e), sb = gameState.selectedBall;
-  if (gameState.isPlacingCue) {
-    const x = Math.max(R, Math.min(t.x, HOUSE_X)), y = Math.max(R, Math.min(t.y, TABLE_H - R));
-    const ok = balls.every(b => b === sb || !b.active || (x - b.x) * (x - b.x) + (y - b.y) * (y - b.y) >= 4 * R * R);
-    if (ok) { sb.x = x; sb.y = y; ballsVersion++; }
-    return;
-  }
-  if (!gameState.isAimingOnCanvas || gameState.ballsMoving || !canControl()) return;
+  if (handDrag) { handMove(t); return; }
+  if (!aimDrag || !sb || gameState.ballsMoving || !myAction() || !aimPhase()) return;
   const dx = t.x - sb.x, dy = t.y - sb.y;
-  if (gameState.isAimingOnCanvas === 'pending') { if (Math.sqrt(dx * dx + dy * dy) < gameState.aimTol) return; gameState.isAimingOnCanvas = true; }
-  gameState.aimAngle = Math.atan2(dy, dx);
+  if (aimDrag === 'pending') { if (Math.sqrt(dx * dx + dy * dy) < gameState.aimTol) return; aimDrag = true; }
+  aimAtPoint(t.x, t.y);
 }
 function handleCanvasEnd(e) {
   if (e.pointerId !== canvasPointer) return;
   canvasPointer = null;
-  if (gameState.isPlacingCue) { gameState.isPlacingCue = false; gameState.ballInHand = false; setStatus('Цельтесь'); }
-  gameState.isAimingOnCanvas = false;
+  if (handDrag) handEnd();
+  aimDrag = null;
 }
 canvas.addEventListener('pointerdown', handleCanvasStart);
 canvas.addEventListener('pointermove', handleCanvasMove);
@@ -3334,15 +4275,30 @@ canvas.addEventListener('pointerup', handleCanvasEnd);
 canvas.addEventListener('pointercancel', handleCanvasEnd);
 canvas.addEventListener('contextmenu', e => e.preventDefault());
 
-// Клавиатура: ← → — точный прицел (Shift — крупнее), P / Esc — пауза
+// Клавиатура: ← → — точный прицел (Shift — крупнее), P / Esc — пауза; биток с руки — стрелки двигают шар,
+// Enter / пробел — «Готово», H — переставить снова; выбор шара на полку — стрелки и Enter
 document.addEventListener('keydown', e => {
   if (e.ctrlKey || e.metaKey || e.altKey || !gameScreen.classList.contains('active')) return;
   if (e.code === 'Escape' && $('menu-spin').classList.contains('open')) { e.preventDefault(); closeSpinPanel(); return; }
   if (e.code === 'KeyP' || e.code === 'Escape') {
     if ($('menu-pause').classList.contains('open')) { e.preventDefault(); $('menu-pause').classList.remove('open'); }
+    else if (e.code === 'Escape' && pickSel && !anyOverlay()) { e.preventDefault(); pickSel = null; }
     else if (!anyOverlay()) { e.preventDefault(); openPause(); }
     return;
   }
+  const g = gameState, free = !anyOverlay() && myAction() && !g.ballsMoving;
+  const onCtl = e.target && e.target.closest && e.target.closest('button,input,[tabindex]');
+  const arrow = { ArrowLeft: [-1, 0], ArrowRight: [1, 0], ArrowUp: [0, -1], ArrowDown: [0, 1] }[e.code];
+  if (free && g.phase === 'pick') {
+    if (arrow) { e.preventDefault(); pickCycle(arrow[0] + arrow[1] > 0 ? 1 : -1); }
+    else if ((e.code === 'Enter' || e.code === 'Space') && !onCtl) { e.preventDefault(); pickConfirm(); }
+    return;
+  }
+  if (free && g.phase === 'place' && handMode === 'place') {
+    if (arrow) { e.preventDefault(); handNudge(arrow[0], arrow[1], e.shiftKey ? 20 : 2); return; }
+    if ((e.code === 'Enter' || e.code === 'Space') && !onCtl) { e.preventDefault(); handDone(); return; }
+  }
+  if (free && g.phase === 'place' && handMode === 'aim' && e.code === 'KeyH') { e.preventDefault(); handMode = 'place'; return; }
   if ((e.code === 'ArrowUp' || e.code === 'ArrowDown') && !anyOverlay() && shootByButton) {
     e.preventDefault();
     adjustPower((e.code === 'ArrowUp' ? 1 : -1) * (e.shiftKey ? 0.05 : 0.01));
@@ -3353,7 +4309,7 @@ document.addEventListener('keydown', e => {
     return;
   }
   if ((e.code === 'ArrowLeft' || e.code === 'ArrowRight') && !anyOverlay()) {
-    if (gameState.ballsMoving || !gameState.selectedBall || !canControl()) return;
+    if (gameState.ballsMoving || !gameState.selectedBall || !myAction() || !aimPhase()) return;
     e.preventDefault();
     const s = (e.code === 'ArrowLeft' ? -1 : 1) * (e.shiftKey ? 5 : 1);
     nudgeAim(e.shiftKey ? s * 0.002 : s * 0.0002, s * 2);   // 0,0002 рад за нажатие, с Shift — 0,01 (s уже ×5)
@@ -3363,9 +4319,9 @@ document.addEventListener('keydown', e => {
 window.addEventListener('resize', resize);
 
 buildTable();
-initGame();
+initGame(menuKind, 1);
 if (view3d) setView3d(true);
-renderSettings();
+renderSettings(); renderKind();
 requestAnimationFrame(loop);
 </script>
 </body>
