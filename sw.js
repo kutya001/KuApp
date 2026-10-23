@@ -3,7 +3,7 @@
 // Cache First для оболочки, Network First для внешних API
 // ═══════════════════════════════════════════════════════════════════════════════
 
-const CACHE_NAME = 'app-v16';
+const CACHE_NAME = 'app-v17';
 
 const SHELL = [
   './',
