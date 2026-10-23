@@ -3,51 +3,90 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
-<title>Сапёр PRO — Неоновая Аркада</title>
+<title>Сапёр</title>
 <link rel="stylesheet" href="ku-arcade.css">
 <script src="ku-arcade.js"></script>
 <style>
   html,body{height:100%;overflow:hidden}
 
-  /* ── Игровой экран ── */
-  #screen-game{padding-left:8px;padding-right:8px;touch-action:none}
-  #screen-game .ku-hud{align-items:stretch;margin-bottom:8px}
-  .mode-btn{min-width:124px;padding:6px 12px;border-radius:12px;font-size:13px;letter-spacing:.6px;gap:6px}
-  .mode-btn .mi{font-size:16px;line-height:1}
-  .mode-btn.flag{border-color:var(--accent2);color:var(--accent2);
-    background:rgba(255,77,210,.14);background:color-mix(in srgb,var(--accent2) 14%,transparent);
-    box-shadow:0 0 16px rgba(255,77,210,.35);box-shadow:0 0 16px color-mix(in srgb,var(--accent2) 35%,transparent)}
-  #boardArea{flex:1 1 auto;min-height:0;min-width:0;width:100%;display:flex;align-items:center;justify-content:center}
-  #boardWrap{line-height:0}
-  #playCv{-webkit-touch-callout:none;cursor:pointer}
-  #btnSmiley{font-size:20px}
-  #gameHint{margin-top:8px;flex:none}
-  @media (max-height:700px){ #gameHint{display:none} }
+  /* ═══ МЕНЮ ═══ */
+  #screen-menu .ku-field{width:100%;max-width:340px;margin:4px auto 12px}
+  #mode-seg button{font-size:12.5px}
+  .ms-note{font-size:11.5px;color:var(--muted);text-align:center;margin:6px auto 0;max-width:340px;line-height:1.35}
+  #btn-continue .best{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:100%}
 
-  /* ── Модальные окна: статистика, достижения, история, настройки ── */
-  .stats-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(118px,1fr));gap:10px}
-  .st-card{background:var(--glass-panel);border:1px solid var(--panel-border);border-radius:14px;padding:12px 8px;text-align:center}
-  .st-card .si{font-size:20px;line-height:1.2}
-  .st-card .sv{font-family:var(--font-display);font-size:18px;color:var(--accent);margin-top:2px}
-  .st-card .sl{font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:1px;margin-top:2px}
+  /* ═══ ИГРА ═══ */
+  #screen-game{padding-left:8px;padding-right:8px}
+  #screen-game .ku-hud{align-items:stretch;margin-bottom:8px;flex-wrap:nowrap}
+  #screen-game .ku-stat{min-width:0}
+  .mode-btn{min-width:118px;padding:6px 12px;border-radius:12px;font-size:13px;letter-spacing:.6px;gap:6px}
+  .mode-btn .mi{font-size:16px;line-height:1}
+  .mode-btn.flag{border-color:var(--accent2);color:var(--accent2);background:rgba(255,77,210,.14);
+    background:color-mix(in srgb,var(--accent2) 14%,transparent);box-shadow:0 0 16px rgba(255,77,210,.35)}
+  #hud-mines.neg{color:var(--bad)}
+  #board-area{flex:1 1 auto;min-height:0;min-width:0;width:100%;position:relative;display:flex;align-items:center;justify-content:center;touch-action:none}
+  #board-wrap{line-height:0;position:relative}
+  #cv{display:block;-webkit-touch-callout:none;touch-action:none;cursor:pointer;border-radius:8px}
+  #cv.pan{cursor:grab}
+  #cv:focus{outline:none}
+  /* масштаб (большие поля на телефоне) */
+  .ms-zoom{position:absolute;display:flex;gap:6px;z-index:3}
+  .ms-zoom.side{flex-direction:column}
+  .ms-zoom .ku-btn.icon{width:38px;height:38px;background:rgba(4,6,22,.72);font-size:18px}
+  .ms-gen{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;pointer-events:none;z-index:3}
+  .ms-gen span{font:400 12px/1 var(--font-display);letter-spacing:1px;padding:9px 14px;border-radius:999px;background:rgba(4,6,22,.82);
+    border:1px solid var(--panel-border);color:var(--accent);animation:kuPulse 1.2s ease-in-out infinite}
+  /* подсказка */
+  #hint-bar{flex:none;width:100%;max-width:560px;margin:8px auto 0;display:flex;align-items:flex-start;gap:10px;padding:10px 12px;border-radius:14px;
+    background:var(--glass-panel,rgba(255,255,255,.06));border:1px solid rgba(255,214,10,.45);box-shadow:0 0 16px rgba(255,214,10,.18)}
+  #hint-bar p{margin:0;flex:1;font-size:12.5px;line-height:1.4}
+  #hint-bar p b{color:var(--gold)}
+  #hint-bar .ku-btn{flex:none}
+  #game-hint{margin-top:8px;flex:none;text-align:center}
+  @media (max-height:700px){ #game-hint{display:none} }
+
+  /* ═══ ОКНА ═══ */
+  .stats-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(96px,1fr));gap:8px}
+  .st-card{background:var(--glass-panel,rgba(255,255,255,.06));border:1px solid var(--panel-border);border-radius:14px;padding:10px 6px;text-align:center}
+  .st-card .sv{font-family:var(--font-display);font-size:17px;color:var(--accent);margin-top:2px}
+  .st-card .sl{font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:.8px;margin-top:3px}
+  .ms-tabs{margin-bottom:10px;flex-wrap:wrap}
+  .ms-tabs button{flex:1 1 30%;font-size:12px}
+  .ms-times{margin-top:12px;display:flex;flex-direction:column;gap:6px}
+  .ms-times div{display:flex;justify-content:space-between;gap:10px;font-size:12.5px;padding:7px 10px;border-radius:10px;background:var(--panel);border:1px solid var(--panel-border)}
+  .ms-times b{font-family:var(--font-display);font-weight:400;color:var(--gold)}
+  .ms-times span{color:var(--muted)}
   .list{display:flex;flex-direction:column;gap:8px}
   .ach-item{display:flex;align-items:center;gap:12px;padding:10px 12px;border-radius:14px;background:var(--panel);border:1px solid var(--panel-border)}
   .ach-item.unlocked{border-color:rgba(255,214,10,.45);background:rgba(255,214,10,.07)}
   .ach-item.unlocked h4{color:var(--gold)}
-  .ach-icon{font-size:24px;width:42px;height:42px;flex:none;display:flex;align-items:center;justify-content:center;background:rgba(255,255,255,.05);border-radius:12px}
+  .ach-icon{font-size:22px;width:40px;height:40px;flex:none;display:flex;align-items:center;justify-content:center;background:rgba(255,255,255,.05);border-radius:12px}
   .ach-info{min-width:0}
   .ach-info h4{margin:0 0 2px;font-family:var(--font-display);font-weight:400;font-size:13px;letter-spacing:.5px}
   .ach-info p{margin:0;font-size:11.5px;color:var(--muted);line-height:1.4}
   .empty{text-align:center;color:var(--muted);padding:20px}
-  .theme-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(96px,1fr));gap:8px}
-  .theme-card{font:600 12px var(--font-body);color:var(--text);padding:10px 6px;border-radius:12px;border:1px solid var(--panel-border);
-    background:var(--panel);cursor:pointer;text-align:center;transition:border-color .2s,box-shadow .2s}
-  .theme-card.active{border-color:var(--accent);box-shadow:0 0 12px rgba(0,229,255,.4);box-shadow:0 0 12px color-mix(in srgb,var(--accent) 40%,transparent)}
+  .theme-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(92px,1fr));gap:8px}
+  .theme-card{font:600 12px var(--font-body);color:var(--text);padding:10px 6px;border-radius:12px;border:1px solid var(--panel-border);background:var(--panel);cursor:pointer;text-align:center}
+  .theme-card.active{border-color:var(--accent);box-shadow:0 0 12px rgba(0,229,255,.4)}
   .theme-swatches{display:flex;gap:4px;justify-content:center;margin-top:6px}
   .theme-swatches span{width:10px;height:10px;border-radius:50%;border:1px solid rgba(255,255,255,.2)}
   .set-btns{display:flex;gap:8px;flex-wrap:wrap}
-  #exportText{width:100%;height:min(46vh,260px);resize:none;background:rgba(0,0,0,.3);color:var(--text);border:1px solid var(--panel-border);
+  .ku-set-row{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:8px 0}
+  .ku-set-row .ku-stepper b{min-width:44px}
+  .cu-presets{display:flex;flex-wrap:wrap;gap:6px;margin:4px 0 8px}
+  .cu-presets .ku-btn{flex:1 1 40%}
+  #cu-info{font-size:12px;color:var(--muted);margin-top:6px;line-height:1.4}
+  #export-text{width:100%;height:min(46vh,260px);resize:none;background:rgba(0,0,0,.3);color:var(--text);border:1px solid var(--panel-border);
     border-radius:12px;padding:10px;font:12px/1.45 ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;user-select:text;-webkit-user-select:text}
+  .ku-over-stats{max-width:300px}
+  @media (max-height:560px){
+    .ku-overlay .ku-card{max-height:calc(100vh - 16px);max-height:calc(100dvh - 16px);overflow-y:auto;padding:14px 18px;gap:6px}
+    .ku-overlay .ku-card h2{font-size:20px;margin:0}
+    .ku-overlay .ku-big-score{font-size:28px}
+    .ku-overlay .ku-over-stats{display:grid;grid-template-columns:1fr 1fr;column-gap:14px;max-width:460px}
+    .ku-overlay .ku-card .ku-btn{min-height:36px;padding-top:7px;padding-bottom:7px}
+    #ov-over .ku-card{max-width:520px}
+  }
 </style>
 </head>
 <body class="ku">
@@ -56,1101 +95,1986 @@
   <!-- ═══ МЕНЮ ═══ -->
   <section id="screen-menu" class="ku-screen menu active">
     <h1 class="ku-logo">САПЁР</h1>
-    <p class="ku-tagline">Неоновая аркада • Минное поле • Рекорды</p>
-    <div class="ku-pills"><span>💣 Безопасный 1-й клик</span><span>⚡ Аккорды</span><span>🏆 Достижения</span><span>⏱️ Спринт</span></div>
+    <p class="ku-tagline">Классика • Без угадывания</p>
+    <div class="ku-pills"><span>🧠 Без угадывания</span><span>📅 Сапёр дня</span><span>💡 Подсказки</span><span>⚡ Забег</span></div>
 
+    <div class="ku-field">
+      <div class="ku-seg" id="mode-seg" aria-label="Поля"><button data-ng="0">🎲 Классика</button><button data-ng="1">🧠 Без угадывания</button></div>
+    </div>
     <div class="ku-menu-btns">
-      <button class="ku-btn big primary" id="btnPlayEasy">🌱 Новичок · 9×9<span class="best" id="menuBestEasy">Рекорд: —</span></button>
+      <button class="ku-btn big primary" id="btn-continue" hidden>▶ Продолжить<span class="best" id="continue-sub">—</span></button>
+      <button class="ku-btn big primary" id="btn-easy">🌱 Новичок · 9×9<span class="best" id="best-easy">10 мин</span></button>
       <div class="ku-menu-duo">
-        <button class="ku-btn duo gold" id="btnPlayMedium">🌿 Любитель<span class="best" id="menuBestMedium">16×16 · 40 мин</span></button>
-        <button class="ku-btn duo red" id="btnPlayHard">🔥 Профи<span class="best" id="menuBestHard">16×30 · 99 мин</span></button>
+        <button class="ku-btn duo gold" id="btn-medium">🌿 Любитель<span class="best" id="best-medium">16×16 · 40 мин</span></button>
+        <button class="ku-btn duo red" id="btn-hard">🔥 Профи<span class="best" id="best-hard">30×16 · 99 мин</span></button>
       </div>
-      <button class="ku-btn big accent2" id="btnPlaySprint">⚡ Забег на время<span class="best" id="menuBestSprint">3 поля подряд</span></button>
+      <button class="ku-btn big blue" id="btn-custom">🛠 Своё поле<span class="best" id="best-custom">Ширина, высота, мины</span></button>
+      <div class="ku-menu-duo">
+        <button class="ku-btn duo accent2" id="btn-daily">📅 Сапёр дня<span class="best" id="best-daily">16×16 · одно на день</span></button>
+        <button class="ku-btn duo green" id="btn-sprint">⚡ Забег<span class="best" id="best-sprint">3 поля подряд</span></button>
+      </div>
     </div>
-
     <div class="ku-menu-row">
-      <button class="ku-btn ghost" id="btnHistory">📜 История</button>
-      <button class="ku-btn ghost" id="btnAch">🏅 Достижения</button>
-      <button class="ku-btn ghost" id="btnStats">📊 Статистика</button>
-      <button class="ku-btn ghost" id="btnSettings">⚙️ Настройки</button>
+      <button class="ku-btn ghost" id="btn-rules">📖 Правила</button>
+      <button class="ku-btn ghost" id="btn-stats">📊 Статистика</button>
+      <button class="ku-btn ghost" id="btn-ach">🏅 Достижения</button>
+      <button class="ku-btn ghost" id="btn-history">📜 История</button>
+      <button class="ku-btn ghost" id="btn-settings">⚙️ Настройки</button>
     </div>
-
-    <div class="ku-menu-stats" id="menuStatsSummary">Сыграно игр: 0 • Обезврежено мин: 0</div>
-    <div class="ku-menu-hint">Клик / тап — открыть ячейку · долгое нажатие или ПКМ — флаг · клик по числу — открыть соседние ячейки (аккорд)<br>Клавиши: P — пауза · R — заново · F — режим флага</div>
+    <div class="ku-menu-stats" id="menu-stats">Сыграно игр: 0</div>
+    <div class="ku-menu-hint" id="menu-hint">Клик — открыть · ПКМ — флаг · клик по числу — открыть соседей · H — подсказка · P — пауза</div>
   </section>
 
   <!-- ═══ ИГРА ═══ -->
   <section id="screen-game" class="ku-screen fit">
     <header class="ku-top">
       <div class="ku-top-left"></div>
-      <div class="ku-top-title"><div class="t" id="gameTitle">НОВИЧОК</div><div class="s" id="gameSub">РЕКОРД: —</div></div>
+      <div class="ku-top-title"><div class="t" id="g-title">НОВИЧОК</div><div class="s" id="g-sub">РЕКОРД: —</div></div>
       <div class="ku-top-actions">
-        <button class="ku-btn icon" id="btnSmiley" aria-label="Начать заново" title="Заново (R)">😄</button>
-        <button class="ku-btn icon" id="btnGamePause" aria-label="Пауза" title="Пауза (P)"><svg viewBox="0 0 24 24"><line x1="9" y1="5" x2="9" y2="19"/><line x1="15" y1="5" x2="15" y2="19"/></svg></button>
+        <button class="ku-btn icon" id="btn-hint" aria-label="Подсказка (H)" title="Подсказка (H)">💡</button>
+        <button class="ku-btn icon" id="btn-new" aria-label="Новое поле (R)" title="Новое поле (R)">😄</button>
+        <button class="ku-btn icon" id="btn-pause" aria-label="Пауза (P)" title="Пауза (P)"><svg viewBox="0 0 24 24"><line x1="9" y1="5" x2="9" y2="19"/><line x1="15" y1="5" x2="15" y2="19"/></svg></button>
       </div>
     </header>
-
     <div class="ku-hud">
-      <div class="ku-stat c2"><span>💣 Мины</span><b id="hudMines">010</b></div>
-      <button class="ku-btn mode-btn" id="btnModeToggle" aria-pressed="false"><span class="mi" id="modeIcon">🔨</span><span id="modeText">ОТКРЫТЬ</span></button>
-      <div class="ku-stat"><span>⏱ Время</span><b id="hudTimer">0:00</b></div>
+      <div class="ku-stat c2"><span>💣 Мины</span><b id="hud-mines">010</b></div>
+      <button class="ku-btn mode-btn" id="btn-mode" aria-pressed="false" title="Режим касания: открыть или флаг (M)"><span class="mi" id="mode-icon">⛏</span><span id="mode-text">ОТКРЫТЬ</span></button>
+      <div class="ku-stat"><span>⏱ Время</span><b id="hud-time">0:00</b></div>
     </div>
-
-    <div id="boardArea"><div class="ku-board" id="boardWrap"><canvas id="playCv" aria-label="Минное поле"></canvas></div></div>
-    <div class="ku-hint" id="gameHint">Тап — открыть · удержание — флаг · тап по числу — аккорд</div>
+    <div id="board-area">
+      <div class="ku-board" id="board-wrap"><canvas id="cv" aria-label="Минное поле" tabindex="0"></canvas></div>
+      <div class="ms-zoom" id="zoom" hidden>
+        <button class="ku-btn icon" id="z-out" aria-label="Уменьшить">−</button>
+        <button class="ku-btn icon" id="z-fit" aria-label="Всё поле">⤢</button>
+        <button class="ku-btn icon" id="z-in" aria-label="Увеличить">+</button>
+      </div>
+      <div class="ms-gen" id="gen" hidden><span>Создаю поле без угадывания…</span></div>
+    </div>
+    <div id="hint-bar" hidden><p id="hint-text"></p><button class="ku-btn sm gold" id="hint-do">Открыть</button><button class="ku-btn icon" id="hint-x" aria-label="Закрыть подсказку">✕</button></div>
+    <div class="ku-hint" id="game-hint">Тап — открыть · удержание — флаг · тап по числу — открыть соседей</div>
   </section>
 </main>
 
 <!-- ═══ ПАУЗА ═══ -->
-<div class="ku-overlay" id="pauseOverlay"><div class="ku-card">
+<div class="ku-overlay" id="ov-pause"><div class="ku-card" role="dialog" aria-modal="true">
   <h2>⏸ ПАУЗА</h2>
-  <p id="pauseInfo">Игра приостановлена</p>
-  <button class="ku-btn primary" id="btnPauseResume">Продолжить</button>
-  <button class="ku-btn" id="btnPauseRestart">Заново</button>
-  <button class="ku-btn ghost" id="btnPauseQuit">В меню</button>
+  <p id="pause-info">—</p>
+  <button class="ku-btn primary" id="p-resume">Продолжить</button>
+  <button class="ku-btn" id="p-new">🔄 Новое поле</button>
+  <button class="ku-btn" id="p-rules">📖 Правила</button>
+  <button class="ku-btn" id="p-settings">⚙️ Настройки</button>
+  <button class="ku-btn ghost" id="p-menu">В меню</button>
 </div></div>
 
-<!-- ═══ КОНЕЦ ИГРЫ ═══ -->
-<div class="ku-overlay" id="overOverlay"><div class="ku-card">
-  <h2 id="overTitle" class="lose">ИГРА ОКОНЧЕНА</h2>
-  <div class="ku-new-best" id="overNewBest" hidden>🏆 НОВЫЙ РЕКОРД!</div>
-  <div class="ku-big-score" id="overTime">0:00.0</div>
-  <p id="overSubtitle">Вы подорвались на мине</p>
-  <div class="ku-over-stats" id="overStats"></div>
-  <button class="ku-btn primary" id="btnOverRetry">Играть снова</button>
-  <button class="ku-btn ghost" id="btnOverMenu">В меню</button>
+<!-- ═══ КОНЕЦ ═══ -->
+<div class="ku-overlay" id="ov-over"><div class="ku-card" role="dialog" aria-modal="true">
+  <h2 id="over-title" class="lose">МИНА!</h2>
+  <div class="ku-new-best" id="over-best" hidden>🏆 НОВЫЙ РЕКОРД!</div>
+  <div class="ku-big-score" id="over-time">0:00.0</div>
+  <p id="over-sub">—</p>
+  <div class="ku-over-stats" id="over-stats"></div>
+  <button class="ku-btn primary" id="o-again">🔄 Новое поле</button>
+  <button class="ku-btn" id="o-undo" hidden>↶ Отменить ход</button>
+  <button class="ku-btn" id="o-replay">♻ Это поле ещё раз</button>
+  <button class="ku-btn" id="o-view">👁 Посмотреть поле</button>
+  <button class="ku-btn ghost" id="o-menu">В меню</button>
 </div></div>
 
-<!-- ═══ ИСТОРИЯ ═══ -->
-<div class="ku-overlay" id="modalHistory"><div class="ku-modal">
-  <header><h2>📜 История игр</h2><button class="ku-btn icon" data-close aria-label="Закрыть">✕</button></header>
-  <div class="ku-body"><div class="list" id="historyList"></div></div>
-</div></div>
-
-<!-- ═══ ДОСТИЖЕНИЯ ═══ -->
-<div class="ku-overlay" id="modalAch"><div class="ku-modal">
-  <header><h2>🏅 Достижения <span class="ku-muted" id="achCount"></span></h2><button class="ku-btn icon" data-close aria-label="Закрыть">✕</button></header>
-  <div class="ku-body"><div class="list" id="achList"></div></div>
+<!-- ═══ СВОЁ ПОЛЕ ═══ -->
+<div class="ku-overlay" id="ov-custom"><div class="ku-modal" role="dialog" aria-modal="true">
+  <header><h2>🛠 Своё поле</h2><button class="ku-btn icon" data-close aria-label="Закрыть">✕</button></header>
+  <div class="ku-body">
+    <div class="cu-presets">
+      <button class="ku-btn sm ghost" data-preset="9,9,10">Новичок</button>
+      <button class="ku-btn sm ghost" data-preset="16,16,40">Любитель</button>
+      <button class="ku-btn sm ghost" data-preset="30,16,99">Профи</button>
+      <button class="ku-btn sm ghost" data-preset="24,24,99">24×24</button>
+      <button class="ku-btn sm ghost" data-preset="40,30,240">Огромное</button>
+      <button class="ku-btn sm ghost" data-preset="10,10,25">Плотное</button>
+    </div>
+    <div class="ku-set-row">Ширина<div class="ku-stepper"><button data-cu="w" data-d="-1" aria-label="Уже">−</button><b id="cu-w">20</b><button data-cu="w" data-d="1" aria-label="Шире">+</button></div></div>
+    <div class="ku-set-row">Высота<div class="ku-stepper"><button data-cu="h" data-d="-1" aria-label="Ниже">−</button><b id="cu-h">12</b><button data-cu="h" data-d="1" aria-label="Выше">+</button></div></div>
+    <div class="ku-set-row">Мины<div class="ku-stepper"><button data-cu="n" data-d="-5" aria-label="Минус 5">−5</button><button data-cu="n" data-d="-1" aria-label="Меньше">−</button><b id="cu-n">40</b><button data-cu="n" data-d="1" aria-label="Больше">+</button><button data-cu="n" data-d="5" aria-label="Плюс 5">+5</button></div></div>
+    <div id="cu-info">—</div>
+  </div>
+  <footer><button class="ku-btn primary" id="cu-play">▶ Играть</button></footer>
 </div></div>
 
 <!-- ═══ СТАТИСТИКА ═══ -->
-<div class="ku-overlay" id="modalStats"><div class="ku-modal">
+<div class="ku-overlay" id="ov-stats"><div class="ku-modal" role="dialog" aria-modal="true">
   <header><h2>📊 Статистика</h2><button class="ku-btn icon" data-close aria-label="Закрыть">✕</button></header>
-  <div class="ku-body"><div class="stats-grid" id="statsGrid"></div></div>
+  <div class="ku-body">
+    <div class="ku-seg ms-tabs" id="st-tabs">
+      <button data-k="easy">Новичок</button><button data-k="medium">Любитель</button><button data-k="hard">Профи</button>
+      <button data-k="custom">Своё</button><button data-k="daily">Дня</button><button data-k="sprint">Забег</button>
+    </div>
+    <div class="ku-seg" id="st-mode" style="margin-bottom:10px"><button data-ng="0">🎲 Классика</button><button data-ng="1">🧠 Без угадывания</button></div>
+    <div class="stats-grid" id="st-grid"></div>
+    <div class="ms-times" id="st-times"></div>
+    <h3>Всего</h3>
+    <div class="stats-grid" id="st-total"></div>
+  </div>
+  <footer><button class="ku-btn primary" data-close>Готово</button></footer>
+</div></div>
+
+<!-- ═══ ДОСТИЖЕНИЯ ═══ -->
+<div class="ku-overlay" id="ov-ach"><div class="ku-modal" role="dialog" aria-modal="true">
+  <header><h2>🏅 Достижения <span class="ku-muted" id="ach-count"></span></h2><button class="ku-btn icon" data-close aria-label="Закрыть">✕</button></header>
+  <div class="ku-body"><div class="list" id="ach-list"></div></div>
+</div></div>
+
+<!-- ═══ ИСТОРИЯ ═══ -->
+<div class="ku-overlay" id="ov-history"><div class="ku-modal" role="dialog" aria-modal="true">
+  <header><h2>📜 История</h2><button class="ku-btn icon" data-close aria-label="Закрыть">✕</button></header>
+  <div class="ku-body"><div class="list" id="history-list"></div></div>
+</div></div>
+
+<!-- ═══ ПРАВИЛА ═══ -->
+<div class="ku-overlay" id="ov-rules"><div class="ku-modal" role="dialog" aria-modal="true">
+  <header><h2>📖 Правила</h2><button class="ku-btn icon" data-close aria-label="Закрыть">✕</button></header>
+  <div class="ku-body">
+    <h3>Цель</h3>
+    <ul class="ku-rules">
+      <li>Открыть <b>все клетки без мин</b>. Открыл мину — партия проиграна. Мины ставить флагами не обязательно: когда открыты все пустые клетки, оставшиеся помечаются сами.</li>
+      <li><b>Число</b> в открытой клетке — сколько мин среди 8 соседних клеток. Пустая клетка (0) открывает соседей сама — открывается целая область.</li>
+      <li><b>Первый ход безопасен</b>: мины расставляются после первого щелчка (в настройках: первый ход открывает область или просто не попадает на мину).</li>
+    </ul>
+    <h3>Ходы</h3>
+    <ul class="ku-rules">
+      <li><b>Открыть</b> — щелчок / тап по закрытой клетке.</li>
+      <li><b>Флаг 🚩</b> — правая кнопка мыши или удержание пальцем. Кнопка «ОТКРЫТЬ / ФЛАГ» над полем меняет местами тап и удержание. Счётчик мин = мины − флаги (может уйти в минус, если флагов лишние).</li>
+      <li><b>Знак «?»</b> (включается в настройках) — пометка «не уверен»: флаг → ? → пусто. Клетку с «?» можно открыть.</li>
+      <li><b>Открыть соседей (аккорд)</b> — щелчок по открытому числу, рядом с которым стоит столько же флагов: открываются все остальные соседи. Также — средняя кнопка или обе кнопки мыши. Если флаг стоит неверно — откроется мина.</li>
+    </ul>
+    <h3>Уровни</h3>
+    <ul class="ku-rules">
+      <li><b>Новичок</b> 9×9, 10 мин · <b>Любитель</b> 16×16, 40 мин · <b>Профи</b> 30×16, 99 мин (на узком экране — поле стоя, 16×30; большие поля можно приближать: щипок, колесо мыши или кнопки − ⤢ +).</li>
+      <li><b>Своё поле</b> — ширина и высота 5–40, мин — до «клетки минус 10».</li>
+      <li><b>Классика</b> — мины случайные: иногда без угадывания не обойтись (например, 50/50 в углу). <b>Без угадывания</b> — каждое поле проверено решателем: от первого хода всё выводится логикой.</li>
+      <li><b>Сапёр дня</b> — одно поле в день, одинаковое для всех (16×16, 40 мин, без угадывания); начните с отмеченной клетки ✦. <b>Забег</b> — три поля «Новичка» подряд на общее время.</li>
+    </ul>
+    <h3>Подсказка 💡</h3>
+    <ul class="ku-rules">
+      <li>Показывает следующий логический шаг и объясняет его: какие числа смотреть и почему клетка безопасна или заминирована. Кнопка в подсказке («Открыть», «Поставить», «Снять флаг») выполняет шаг; второе нажатие 💡 — тоже.</li>
+      <li>Если флаг стоит неверно и это можно вывести — подсказка скажет. Если логикой дальше не пройти (бывает в классике) — предложит открыть безопасную клетку.</li>
+      <li>С подсказками партия засчитывается, но без рекорда, а очки меньше.</li>
+    </ul>
+    <h3>Очки и рекорды</h3>
+    <ul class="ku-rules">
+      <li><b>3BV</b> — сколько щелчков минимум нужно, чтобы открыть это поле; <b>3BV/с</b> — скорость; <b>эффективность</b> — 3BV ÷ ваши щелчки.</li>
+      <li>Очки за победу: база уровня (Новичок 60, Любитель 250, Профи 700, своё — по числу и плотности мин) × скорость относительно норматива поля (3BV × 1,6 с + 10 с), от ×0,4 до ×2; каждая подсказка −30 %; Сапёр дня — ×1,5 (первая победа за день).</li>
+      <li>Повтор того же поля и «отменить ход» — тренировка: без рекорда и очков.</li>
+    </ul>
+    <h3>Клавиши</h3>
+    <ul class="ku-rules">
+      <li>Стрелки / WASD — курсор, пробел / Enter — открыть (или соседей у числа), F — флаг, H — подсказка, M — режим касания (открыть / флаг), + / − / 0 — масштаб, R — новое поле, P / Esc — пауза.</li>
+    </ul>
+  </div>
+  <footer><button class="ku-btn primary" data-close>Понятно</button></footer>
 </div></div>
 
 <!-- ═══ НАСТРОЙКИ ═══ -->
-<div class="ku-overlay" id="modalSettings"><div class="ku-modal">
+<div class="ku-overlay" id="ov-settings"><div class="ku-modal" role="dialog" aria-modal="true">
   <header><h2>⚙️ Настройки</h2><button class="ku-btn icon" data-close aria-label="Закрыть">✕</button></header>
   <div class="ku-body">
-    <h3>Тема оформления</h3>
-    <div class="theme-grid" id="themeGrid"></div>
-    <h3>Звук и вибрация</h3>
-    <label class="ku-switch-row">Звуковые эффекты<input type="checkbox" id="setSfx"><span class="ku-switch"></span></label>
-    <label class="ku-switch-row">Вибрация<input type="checkbox" id="setVib"><span class="ku-switch"></span></label>
     <h3>Игра</h3>
-    <label class="ku-switch-row">Безопасный 1-й клик (вокруг первой ячейки нет мин)<input type="checkbox" id="setSafeFirst"><span class="ku-switch"></span></label>
+    <div class="ku-field"><div class="ku-label">Первый ход</div>
+      <div class="ku-seg" id="set-first"><button data-v="open">Открывает область</button><button data-v="cell">Только не мина</button></div></div>
+    <label class="ku-switch-row">Знаки «?» (флаг → ? → пусто)<input type="checkbox" data-opt="marks"><span class="ku-switch"></span></label>
+    <label class="ku-switch-row">Открывать соседей щелчком по числу<input type="checkbox" data-opt="chordClick"><span class="ku-switch"></span></label>
+    <label class="ku-switch-row">Подсвечивать соседей при нажатии на число<input type="checkbox" data-opt="chordPreview"><span class="ku-switch"></span></label>
+    <h3>Звук и вибрация</h3>
+    <label class="ku-switch-row">Звуки<input type="checkbox" data-opt="sound"><span class="ku-switch"></span></label>
+    <label class="ku-switch-row">Вибрация<input type="checkbox" data-opt="vibration"><span class="ku-switch"></span></label>
+    <h3>Тема</h3>
+    <div class="theme-grid" id="theme-grid"></div>
     <h3>Данные</h3>
     <div class="set-btns">
-      <button class="ku-btn sm ghost" id="btnExport">📥 Экспорт (JSON)</button>
-      <button class="ku-btn sm danger" id="btnResetAll">💣 Сбросить прогресс</button>
+      <button class="ku-btn sm ghost" id="btn-export">📥 Экспорт (JSON)</button>
+      <button class="ku-btn sm danger" id="btn-reset">💣 Сбросить прогресс</button>
     </div>
   </div>
   <footer><button class="ku-btn primary" data-close>Готово</button></footer>
 </div></div>
 
 <!-- ═══ ЭКСПОРТ ═══ -->
-<div class="ku-overlay" id="modalExport"><div class="ku-modal">
+<div class="ku-overlay" id="ov-export"><div class="ku-modal" role="dialog" aria-modal="true">
   <header><h2>📥 Экспорт данных</h2><button class="ku-btn icon" data-close aria-label="Закрыть">✕</button></header>
   <div class="ku-body">
     <p class="ku-muted" style="margin:0 0 8px">Рекорды, статистика, история и достижения Сапёра в формате JSON.</p>
-    <textarea id="exportText" readonly spellcheck="false"></textarea>
+    <textarea id="export-text" readonly spellcheck="false"></textarea>
   </div>
-  <footer><button class="ku-btn ghost" id="btnExportFile">💾 Скачать файл</button><button class="ku-btn primary" id="btnExportCopy">📋 Скопировать</button></footer>
+  <footer><button class="ku-btn ghost" id="export-file">💾 Скачать файл</button><button class="ku-btn primary" id="export-copy">📋 Скопировать</button></footer>
 </div></div>
 
 <div class="ku-toast" id="toast"></div>
-
 <script>
 'use strict';
 
-/* ==================== 1. УТИЛИТЫ ==================== */
-const $ = s => document.querySelector(s);
-const $$ = s => document.querySelectorAll(s);
-function clamp(v, min, max) { return Math.min(Math.max(v, min), max); }
-function fmt(n) { return (n || 0).toLocaleString('ru-RU'); }
-function uid() { return Date.now().toString(36) + Math.random().toString(36).slice(2, 7); }
-function fmtTime(ms) {
-  ms = Math.max(0, ms | 0);
-  const m = Math.floor(ms / 60000), s = Math.floor((ms % 60000) / 1000);
-  return m + ':' + String(s).padStart(2, '0');
-}
-function fmtTimeMs(ms) {
-  ms = Math.max(0, ms | 0);
-  const m = Math.floor(ms / 60000), s = Math.floor((ms % 60000) / 1000), d = Math.floor((ms % 1000) / 100);
-  return m + ':' + String(s).padStart(2, '0') + '.' + d;
-}
+/* ═══ engine.js ═══ */
+/* ═══════════════════════════════════════════════════════════════
+ * САПЁР — движок: поле, открытие, 3BV, логический решатель
+ * (поля «без угадывания» и подсказки с объяснением), зерно для поля дня.
+ * Клетки — индексы i = y * w + x.
+ * ═════════════════════════════════════════════════════════════ */
+const MSE = (function () {
+  'use strict';
 
-function setupCanvas(cv, w, h) {
-  const dpr = window.devicePixelRatio || 1;
-  cv.width = Math.max(1, Math.round(w * dpr));
-  cv.height = Math.max(1, Math.round(h * dpr));
-  cv.style.width = w + 'px';
-  cv.style.height = h + 'px';
-  cv._w = w; cv._h = h;
-  const ctx = cv.getContext('2d');
-  ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
-  return ctx;
-}
+  const LEVELS = {
+    easy:   { name: 'Новичок',  w: 9,  h: 9,  n: 10 },
+    medium: { name: 'Любитель', w: 16, h: 16, n: 40 },
+    hard:   { name: 'Профи',    w: 30, h: 16, n: 99 }
+  };
+  const LIMITS = { wMin: 5, wMax: 40, hMin: 5, hMax: 40 };
+  const maxMines = (w, h) => Math.max(1, w * h - 10);
 
-function roundRect(ctx, x, y, w, h, r) {
-  r = Math.min(r, w / 2, h / 2);
-  ctx.beginPath();
-  ctx.moveTo(x + r, y);
-  ctx.arcTo(x + w, y, x + w, y + h, r);
-  ctx.arcTo(x + w, y + h, x, y + h, r);
-  ctx.arcTo(x, y + h, x, y, r);
-  ctx.arcTo(x, y, x + w, y, r);
-  ctx.closePath();
-}
-
-// Тост — общий из набора (KuArcade.toast). Достижения показываем по очереди, чтобы не перекрывали друг друга.
-function toast(msg, kind, dur) { if (window.KuArcade) KuArcade.toast(msg, kind, dur); }
-const achQueue = []; let achTimer = 0;
-function queueAchToast(msg) { achQueue.push(msg); if (!achTimer) nextAchToast(); }
-function nextAchToast() {
-  const m = achQueue.shift();
-  if (!m) { achTimer = 0; return; }
-  toast(m, 'gold', 2600);
-  achTimer = setTimeout(nextAchToast, 2800);
-}
-
-function vib(p) {
-  if (settings.vibration && navigator.vibrate) {
-    try { navigator.vibrate(p); } catch (e) {}
+  /* ── Случайные числа с зерном (mulberry32) и хеш строки ── */
+  function rng(seed) {
+    let a = seed >>> 0;
+    return function () {
+      a = (a + 0x6D2B79F5) >>> 0;
+      let t = a;
+      t = Math.imul(t ^ (t >>> 15), t | 1);
+      t ^= t + Math.imul(t ^ (t >>> 7), t | 61);
+      return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+    };
   }
-}
+  function hashStr(s) {
+    let h = 2166136261 >>> 0;
+    for (let i = 0; i < s.length; i++) { h ^= s.charCodeAt(i); h = Math.imul(h, 16777619) >>> 0; }
+    return h >>> 0;
+  }
 
-/* ==================== 2. ХРАНИЛИЩЕ ==================== */
+  /* ── Соседи (кэш по размеру поля) ── */
+  const NB = new Map();
+  function nbs(w, h) {
+    const key = w + 'x' + h;
+    let a = NB.get(key);
+    if (a) return a;
+    a = new Array(w * h);
+    for (let y = 0; y < h; y++) for (let x = 0; x < w; x++) {
+      const l = [];
+      for (let dy = -1; dy <= 1; dy++) for (let dx = -1; dx <= 1; dx++) {
+        if (!dx && !dy) continue;
+        const xx = x + dx, yy = y + dy;
+        if (xx >= 0 && yy >= 0 && xx < w && yy < h) l.push(yy * w + xx);
+      }
+      a[y * w + x] = Int32Array.from(l);
+    }
+    NB.set(key, a);
+    return a;
+  }
+
+  /* ── Поле ── */
+  function makeBoard(w, h, mine) {
+    const N = w * h, nb = nbs(w, h), num = new Int8Array(N);
+    let n = 0;
+    for (let i = 0; i < N; i++) {
+      if (mine[i]) { n++; num[i] = -1; continue; }
+      let c = 0;
+      for (const j of nb[i]) c += mine[j];
+      num[i] = c;
+    }
+    return { w, h, n, mine, num, nb };
+  }
+  // мины равномерно среди разрешённых клеток; safe: 'open' — первый ход открывает область (3×3 без мин),
+  // 'cell' — только сама клетка, 'none' — без защиты. Если для 'open' мало места — как 'cell'.
+  function generate(w, h, n, rnd, first, safe) {
+    const N = w * h, nb = nbs(w, h), banned = new Uint8Array(N);
+    if (first >= 0 && safe !== 'none') {
+      banned[first] = 1;
+      if (safe === 'open' && N - 1 - nb[first].length >= n) for (const j of nb[first]) banned[j] = 1;
+    }
+    const pool = [];
+    for (let i = 0; i < N; i++) if (!banned[i]) pool.push(i);
+    n = Math.min(n, pool.length);
+    const mine = new Uint8Array(N);
+    for (let k = 0; k < n; k++) {
+      const j = k + Math.floor(rnd() * (pool.length - k));
+      const t = pool[k]; pool[k] = pool[j]; pool[j] = t;
+      mine[pool[k]] = 1;
+    }
+    return makeBoard(w, h, mine);
+  }
+
+  // 3BV — наименьшее число щелчков, чтобы открыть поле без флагов: области нулей + числа вне их
+  function bbbv(B) {
+    const N = B.w * B.h, seen = new Uint8Array(N), st = [];
+    let v = 0;
+    for (let i = 0; i < N; i++) {
+      if (B.mine[i] || B.num[i] !== 0 || seen[i]) continue;
+      v++; seen[i] = 1; st.push(i);
+      while (st.length) {
+        const c = st.pop();
+        for (const j of B.nb[c]) {
+          if (seen[j] || B.mine[j]) continue;
+          seen[j] = 1;
+          if (B.num[j] === 0) st.push(j);
+        }
+      }
+    }
+    for (let i = 0; i < N; i++) if (!B.mine[i] && !seen[i]) v++;
+    return v;
+  }
+
+  // открыть клетку i (с разливом по нулям). Флаги (mark 1) не открываются разливом. Возвращает открытые индексы.
+  function reveal(B, open, mark, i) {
+    const out = [];
+    if (open[i] || (mark && mark[i] === 1)) return out;
+    const st = [i];
+    open[i] = 1; out.push(i);
+    if (B.mine[i]) return out;
+    while (st.length) {
+      const c = st.pop();
+      if (B.num[c] !== 0) continue;
+      for (const j of B.nb[c]) {
+        if (open[j] || B.mine[j] || (mark && mark[j] === 1)) continue;
+        open[j] = 1; out.push(j);
+        if (B.num[j] === 0) st.push(j);
+      }
+    }
+    return out;
+  }
+
+  /* ═══ Логический решатель ═══
+   * Знание: kn[i] = -1 неизвестно, 0 — безопасна (открыта или выведена), 1 — мина (выведена).
+   * Ограничение — открытое число: среди неизвестных соседей ровно (число − известные мины) мин.
+   * Приёмы по порядку: «число закрыто» (все мины найдены — остальное безопасно), «все закрытые — мины»,
+   * пара чисел (разность множеств), перебор вариантов по связным участкам границы с учётом общего числа мин. */
+  function Solver(B, open) {
+    const N = B.w * B.h, kn = new Int8Array(N).fill(-1);
+    for (let i = 0; i < N; i++) if (open[i]) kn[i] = 0;
+    return { B, open, kn, N };
+  }
+  // неизвестные соседи и остаток мин у открытого числа i
+  function cons(S, i) {
+    const { B, kn } = S;
+    const U = [];
+    let m = 0;
+    for (const j of B.nb[i]) { if (kn[j] < 0) U.push(j); else if (kn[j] === 1) m++; }
+    return { U, v: B.num[i] - m };
+  }
+  const isCons = (S, i) => S.open[i] && S.B.num[i] > 0;
+
+  // 1) одиночные правила
+  function stepSingle(S, cand, safeFirst) {
+    if (safeFirst) for (const i of cand) {
+      if (!isCons(S, i)) continue;
+      const c = cons(S, i);
+      if (c.U.length && c.v === 0 && c.U.some(u => !S.open[u])) return { safe: c.U, mine: [], src: [i], rule: 'zero' };
+    }
+    for (const i of cand) {
+      if (!isCons(S, i)) continue;
+      const c = cons(S, i);
+      if (!c.U.length) continue;
+      if (c.v === 0) return { safe: c.U, mine: [], src: [i], rule: 'zero' };
+      if (c.v === c.U.length) return { safe: [], mine: c.U, src: [i], rule: 'full' };
+    }
+    return null;
+  }
+  // 2) пара чисел: если у A на |A\B| мин больше, чем у B, — A\B мины, B\A безопасны
+  function stepPair(S, frontier) {
+    const { B } = S, w = B.w, h = B.h;
+    for (const i of frontier) {
+      const A = cons(S, i);
+      if (!A.U.length) continue;
+      const xi = i % w, yi = (i / w) | 0;
+      for (let dy = -2; dy <= 2; dy++) for (let dx = -2; dx <= 2; dx++) {
+        if (!dx && !dy) continue;
+        const x = xi + dx, y = yi + dy;
+        if (x < 0 || y < 0 || x >= w || y >= h) continue;
+        const j = y * w + x;
+        if (!isCons(S, j)) continue;
+        const C = cons(S, j);
+        if (!C.U.length) continue;
+        const onlyA = A.U.filter(u => !C.U.includes(u)), onlyC = C.U.filter(u => !A.U.includes(u));
+        if (onlyA.length + onlyC.length === 0 || onlyA.length === A.U.length) continue;   // нет пересечения — не пара
+        if (A.v - C.v === onlyA.length && (onlyA.length || onlyC.length)) return { safe: onlyC, mine: onlyA, src: [i, j], rule: 'pair' };
+      }
+    }
+    return null;
+  }
+  // 3) перебор: участки границы (неизвестные клетки рядом с числами), связанные общими числами
+  function stepEnum(S, frontierCons, opts) {
+    const { B, kn, N } = S;
+    const LIM = (opts && opts.enumLimit) || 30, NODE = (opts && opts.nodeLimit) || 150000;
+    // клетки границы
+    const fIdx = new Int32Array(N).fill(-1), F = [];
+    for (const i of frontierCons) for (const j of B.nb[i]) if (kn[j] < 0 && fIdx[j] < 0) { fIdx[j] = F.length; F.push(j); }
+    if (!F.length) return countOnly(S);
+    let known = 0, unknown = 0;
+    for (let i = 0; i < N; i++) { if (kn[i] === 1) known++; else if (kn[i] < 0) unknown++; }
+    const R = B.n - known, I = unknown - F.length;
+    // компоненты (union-find по общим числам)
+    const par = F.map((_, k) => k);
+    const find = k => { while (par[k] !== k) { par[k] = par[par[k]]; k = par[k]; } return k; };
+    for (const i of frontierCons) {
+      let first = -1;
+      for (const j of B.nb[i]) if (kn[j] < 0) { const k = fIdx[j]; if (first < 0) first = k; else { const a = find(first), b = find(k); if (a !== b) par[a] = b; } }
+    }
+    const groups = new Map();
+    F.forEach((c, k) => { const r = find(k); if (!groups.has(r)) groups.set(r, []); groups.get(r).push(c); });
+    const comps = [];
+    for (const cells of groups.values()) {
+      const comp = { cells, ok: false, ks: null, mineAt: null, safeAt: null, src: [] };
+      if (cells.length <= LIM) enumComp(S, comp, frontierCons, NODE);
+      comps.push(comp);
+    }
+    // возможные числа мин у каждого участка (неперебранный — любое от 0 до размера)
+    const kset = comps.map(c => c.ok ? c.ks : rangeSet(0, c.cells.length));
+    // для каждого участка — какие суммы дают остальные (свёртка), и проверка общего числа мин
+    const sums = (skip) => {
+      let cur = new Uint8Array(R + 1); cur[0] = 1;
+      comps.forEach((c, k) => {
+        if (k === skip) return;
+        const nx = new Uint8Array(R + 1);
+        for (let t = 0; t <= R; t++) if (cur[t]) for (const m of kset[k]) if (t + m <= R) nx[t + m] = 1;
+        cur = nx;
+      });
+      return cur;
+    };
+    const feasibleK = (k, others) => { for (let t = 0; t <= R - k; t++) if (others[t] && R - k - t >= 0 && R - k - t <= I) return true; return false; };
+    for (let k = 0; k < comps.length; k++) {
+      const c = comps[k];
+      if (!c.ok) continue;
+      const others = sums(k);
+      const feas = c.ks.filter(m => feasibleK(m, others));
+      if (!feas.length) continue;                       // противоречие (не бывает при верном знании)
+      const safe = [], mine = [];
+      c.cells.forEach((cell, q) => {
+        let canMine = false, canSafe = false;
+        for (const m of feas) { if (c.mineAt[m] && c.mineAt[m][q]) canMine = true; if (c.safeAt[m] && c.safeAt[m][q]) canSafe = true; }
+        if (!canMine) safe.push(cell); else if (!canSafe) mine.push(cell);
+      });
+      const usedCount = feas.length < c.ks.length;
+      if (safe.length || mine.length) return { safe, mine, src: c.src, rule: usedCount ? 'count' : 'enum' };
+    }
+    // внутренние клетки (не рядом с числами): все безопасны или все мины по общему счёту
+    if (I > 0) {
+      const all = sums(-1);
+      let minT = Infinity, maxT = -Infinity;
+      for (let t = 0; t <= R; t++) if (all[t] && R - t >= 0 && R - t <= I) { minT = Math.min(minT, t); maxT = Math.max(maxT, t); }
+      if (minT <= maxT) {
+        const inner = [];
+        for (let i = 0; i < N; i++) if (kn[i] < 0 && fIdx[i] < 0) inner.push(i);
+        if (R - minT === 0 && R - maxT === 0) return { safe: inner, mine: [], src: [], rule: 'count' };
+        if (R - minT === I && R - maxT === I) return { safe: [], mine: inner, src: [], rule: 'count' };
+      }
+    }
+    return null;
+  }
+  // граница пуста: остались только внутренние клетки — решает счётчик мин
+  function countOnly(S) {
+    const { B, kn, N } = S;
+    let known = 0; const inner = [];
+    for (let i = 0; i < N; i++) { if (kn[i] === 1) known++; else if (kn[i] < 0) inner.push(i); }
+    const R = B.n - known;
+    if (!inner.length) return null;
+    if (R === 0) return { safe: inner, mine: [], src: [], rule: 'count' };
+    if (R === inner.length) return { safe: [], mine: inner, src: [], rule: 'count' };
+    return null;
+  }
+  function rangeSet(a, b) { const r = []; for (let k = a; k <= b; k++) r.push(k); return r; }
+  // перебор вариантов одного участка: для каждого числа мин m — в каких клетках мина бывает / не бывает
+  function enumComp(S, comp, frontierCons, NODE) {
+    const { B, kn } = S, cells = comp.cells, n = cells.length;
+    const pos = new Map(); cells.forEach((c, q) => pos.set(c, q));
+    // числа, касающиеся участка
+    const cs = [];
+    for (const i of frontierCons) {
+      const vars = [];
+      let m = 0;
+      for (const j of B.nb[i]) { if (kn[j] < 0 && pos.has(j)) vars.push(pos.get(j)); else if (kn[j] === 1) m++; }
+      if (vars.length) cs.push({ i, vars, need: B.num[i] - m, cur: 0, left: vars.length });
+    }
+    comp.src = cs.map(c => c.i);
+    // порядок клеток: обход в ширину по связям — отсечения раньше
+    const adj = cells.map(() => []);
+    cs.forEach((c, k) => c.vars.forEach(q => adj[q].push(k)));
+    const order = [], seen = new Uint8Array(n);
+    for (let s = 0; s < n; s++) {
+      if (seen[s]) continue;
+      const qu = [s]; seen[s] = 1;
+      while (qu.length) {
+        const q = qu.shift(); order.push(q);
+        for (const k of adj[q]) for (const r of cs[k].vars) if (!seen[r]) { seen[r] = 1; qu.push(r); }
+      }
+    }
+    const val = new Int8Array(n).fill(-1);
+    const mineAt = [], safeAt = [], ks = new Set();
+    let nodes = 0, aborted = false, mines = 0;
+    const rec = (d) => {
+      if (aborted) return;
+      if (++nodes > NODE) { aborted = true; return; }
+      if (d === n) {
+        ks.add(mines);
+        if (!mineAt[mines]) { mineAt[mines] = new Uint8Array(n); safeAt[mines] = new Uint8Array(n); }
+        for (let q = 0; q < n; q++) { if (val[q]) mineAt[mines][q] = 1; else safeAt[mines][q] = 1; }
+        return;
+      }
+      const q = order[d];
+      for (let v = 0; v <= 1; v++) {
+        let ok = true;
+        for (const k of adj[q]) {
+          const c = cs[k];
+          const cur = c.cur + v, left = c.left - 1;
+          if (cur > c.need || cur + left < c.need) { ok = false; break; }
+        }
+        if (!ok) continue;
+        val[q] = v; mines += v;
+        for (const k of adj[q]) { cs[k].cur += v; cs[k].left--; }
+        rec(d + 1);
+        for (const k of adj[q]) { cs[k].cur -= v; cs[k].left++; }
+        val[q] = -1; mines -= v;
+        if (aborted) return;
+      }
+    };
+    rec(0);
+    if (aborted || !ks.size) return;
+    comp.ok = true;
+    comp.ks = [...ks].sort((a, b) => a - b);
+    comp.mineAt = mineAt; comp.safeAt = safeAt;
+  }
+
+  // открытые числа с неизвестными соседями
+  function frontierOf(S) {
+    const { B, kn, open, N } = S, f = [];
+    for (let i = 0; i < N; i++) {
+      if (!open[i] || B.num[i] <= 0) continue;
+      for (const j of B.nb[i]) if (kn[j] < 0) { f.push(i); break; }
+    }
+    return f;
+  }
+  // один логический шаг из текущего знания (без открытия клеток)
+  function nextStep(S, opts) {
+    const f = frontierOf(S);
+    return stepSingle(S, f, opts && opts.safeFirst) || stepPair(S, f) || (opts && opts.noEnum ? null : stepEnum(S, f, opts));
+  }
+
+  /* ── Проверка «решается без угадывания» (от первого хода, с открытием выведенных клеток) ── */
+  function solve(B, first, opts) {
+    opts = opts || {};
+    const N = B.w * B.h, open = new Uint8Array(N);
+    const S = Solver(B, open);
+    const openSafe = (i) => { for (const j of reveal(B, open, null, i)) { S.kn[j] = 0; } };
+    if (B.mine[first]) return { ok: false, open, steps: 0, hard: 0 };
+    openSafe(first);
+    const total = N - B.n;
+    let opened = () => { let c = 0; for (let i = 0; i < N; i++) if (open[i]) c++; return c; };
+    let steps = 0, hard = 0;           // hard: 0 — только одиночные, 1 — пары, 2 — перебор, 3 — счёт мин
+    const RANK = { zero: 0, full: 0, pair: 1, enum: 2, count: 3 };
+    // быстрый цикл одиночных правил с очередью
+    const queue = [];
+    const pushAround = (i) => { queue.push(i); for (const j of B.nb[i]) if (open[j]) queue.push(j); };
+    for (let i = 0; i < N; i++) if (open[i]) queue.push(i);
+    for (;;) {
+      while (queue.length) {
+        const i = queue.pop();
+        if (!isCons(S, i)) continue;
+        const c = cons(S, i);
+        if (!c.U.length) continue;
+        if (c.v === 0) { for (const u of c.U) if (!open[u]) { const was = []; for (const j of reveal(B, open, null, u)) { S.kn[j] = 0; was.push(j); } was.forEach(pushAround); } steps++; }
+        else if (c.v === c.U.length) { for (const u of c.U) { S.kn[u] = 1; pushAround(u); } steps++; }
+      }
+      if (opened() === total) return { ok: true, open, steps, hard };
+      if (opts.deadline && Date.now() > opts.deadline) return { ok: false, open, steps, hard, timeout: true };
+      const f = frontierOf(S);
+      const st = stepPair(S, f) || (opts.maxRank !== undefined && opts.maxRank < 2 ? null : stepEnum(S, f, opts));
+      if (!st || (opts.maxRank !== undefined && RANK[st.rule] > opts.maxRank)) return { ok: false, open, steps, hard };
+      hard = Math.max(hard, RANK[st.rule]);
+      steps++;
+      for (const u of st.mine) { S.kn[u] = 1; pushAround(u); }
+      for (const u of st.safe) if (!open[u]) { for (const j of reveal(B, open, null, u)) { S.kn[j] = 0; pushAround(j); } }
+    }
+  }
+
+  /* ── Поле без угадывания: случайные поля, пока решатель не пройдёт от первого хода ──
+   * Возвращает объект-генератор: next(budgetMs) — работает не дольше budgetMs, затем { done, board, tries }. */
+  function noGuess(w, h, n, rnd, first, opts) {
+    opts = opts || {};
+    let tries = 0, board = null;
+    return {
+      get tries() { return tries; },
+      next(budgetMs) {
+        const t0 = Date.now();
+        while (!board && Date.now() - t0 < budgetMs) {
+          tries++;
+          const B = generate(w, h, n, rnd, first, 'open');
+          const r = solve(B, first, { deadline: opts.noDeadline ? 0 : Date.now() + 400, maxRank: opts.maxRank });
+          if (r.ok) board = B;
+        }
+        return { done: !!board, board, tries };
+      }
+    };
+  }
+
+  /* ── Подсказка для игрока: что можно вывести из открытых чисел (флаги игрока не учитываются) ──
+   * Возвращает { kind: 'safe' | 'mine' | 'wrongflag', cells, src, rule } — первый шаг, который игрок ещё не сделал,
+   * или null, если логикой дальше не пройти. */
+  function hint(B, open, mark, opts) {
+    const S = Solver(B, open);
+    opts = Object.assign({ safeFirst: true }, opts || {});
+    for (let guard = 0; guard < 4000; guard++) {
+      const st = nextStep(S, opts);
+      if (!st) return null;
+      // неверный флаг на выведенной безопасной клетке — сначала про него
+      const wrong = st.safe.filter(u => mark[u] === 1);
+      if (wrong.length) return { kind: 'wrongflag', cells: wrong, src: st.src, rule: st.rule };
+      const newSafe = st.safe.filter(u => !open[u]);
+      if (newSafe.length) return { kind: 'safe', cells: newSafe, mines: st.mine, src: st.src, rule: st.rule };
+      const newMine = st.mine.filter(u => mark[u] !== 1);
+      if (newMine.length) return { kind: 'mine', cells: newMine, src: st.src, rule: st.rule };
+      // всё это игрок уже знает — запомнить и искать дальше
+      for (const u of st.mine) S.kn[u] = 1;
+      for (const u of st.safe) S.kn[u] = 0;
+    }
+    return null;
+  }
+
+  // проверка, что из открытого можно вывести (для тестов): не противоречит ли вывод правде
+  function checkStep(B, st) {
+    for (const u of st.safe || []) if (B.mine[u]) return false;
+    for (const u of st.mine || []) if (!B.mine[u]) return false;
+    return true;
+  }
+
+  // упаковка поля в строку (сохранение партии): мины — битами в base64
+  function packBits(arr) {
+    let s = '';
+    for (let i = 0; i < arr.length; i += 6) { let v = 0; for (let k = 0; k < 6; k++) v |= (arr[i + k] ? 1 : 0) << k; s += 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-_'[v]; }
+    return s;
+  }
+  function unpackBits(s, n) {
+    const A = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-_', out = new Uint8Array(n);
+    for (let c = 0; c < s.length; c++) { const v = A.indexOf(s[c]); if (v < 0) return null; for (let k = 0; k < 6; k++) { const i = c * 6 + k; if (i < n) out[i] = (v >> k) & 1; } }
+    return out;
+  }
+
+  return { LEVELS, LIMITS, maxMines, rng, hashStr, nbs, makeBoard, generate, bbbv, reveal, solve, noGuess, hint, Solver, nextStep, checkStep, packBits, unpackBits };
+})();
+
+/* ═══ ui.js ═══ */
+/* ═══════════════════════════════════════════════════════════════
+ * САПЁР — интерфейс: меню, партия, ввод (мышь, тач, клавиатура), масштаб,
+ * подсказки, статистика и рекорды, сохранение партии, достижения.
+ * ═════════════════════════════════════════════════════════════ */
+const $ = s => document.querySelector(s), $$ = s => document.querySelectorAll(s);
+const clamp = (v, a, b) => Math.min(b, Math.max(a, v));
+const fmt = n => (n || 0).toLocaleString('ru-RU');
+const fmtT = ms => { ms = Math.max(0, ms | 0); const m = Math.floor(ms / 60000), s = Math.floor((ms % 60000) / 1000); return m + ':' + String(s).padStart(2, '0'); };
+const fmtT1 = ms => { ms = Math.max(0, ms | 0); return fmtT(ms) + '.' + Math.floor((ms % 1000) / 100); };
+const toast = (m, k, d) => { if (window.KuArcade) KuArcade.toast(m, ((k || '') + (screen === 'game' ? ' top' : '')).trim(), d); };
+const now = () => performance.now();
+const dateKey = d => d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');
+const dayNum = s => Math.round(Date.UTC(+s.slice(0, 4), +s.slice(5, 7) - 1, +s.slice(8, 10)) / 86400000);
+const plural = (n, a, b, c) => { const m = n % 10, h = n % 100; return m === 1 && h !== 11 ? a : m >= 2 && m <= 4 && (h < 12 || h > 14) ? b : c; };
+const LV = MSE.LEVELS;
+
+/* ═══ Хранилище ═══ */
 const store = {
-  get(k, d) { try { const v = localStorage.getItem(k); return v !== null ? JSON.parse(v) : d; } catch (e) { return d; } },
+  get(k, d) { try { const v = localStorage.getItem(k); if (v === null) return d; const o = JSON.parse(v); return o === null ? d : o; } catch (e) { return d; } },
   set(k, v) { try { localStorage.setItem(k, JSON.stringify(v)); } catch (e) {} },
   del(k) { try { localStorage.removeItem(k); } catch (e) {} }
 };
-const asObj = v => (v && typeof v === 'object' && !Array.isArray(v)) ? v : {};
+const asObj = o => (o && typeof o === 'object' && !Array.isArray(o)) ? o : {};
+const KEYS = { set: 'm_settings', stats: 'm_stats2', ach: 'm_ach', hist: 'm_history', save: 'm_save', daily: 'm_daily', oldBest: 'm_best', oldStats: 'm_stats' };
+const PROGRESS_KEYS = [KEYS.stats, KEYS.ach, KEYS.hist, KEYS.save, KEYS.daily, KEYS.oldBest, KEYS.oldStats];
 
-const DEF_SETTINGS = { theme: 'neon', sound: true, music: true, sfxVol: 0.8, musicVol: 0.5, vibration: true, safeFirst: true };
-const DEF_BEST = { easy: 0, medium: 0, hard: 0, sprint: 0 };          // hardM — Профи 12×22 на узком экране
-const DEF_STATS = { games: 0, wins: 0, minesDefused: 0, playTime: 0, totalScore: 0 };
-const PROGRESS_KEYS = ['m_best', 'm_history', 'm_ach', 'm_stats'];     // «Сбросить прогресс» трогает только их
+/* ── Настройки (перенос старых: safeFirst=false → первый ход «только не мина») ── */
+const settings = (() => {
+  const o = asObj(store.get(KEYS.set, null));
+  const s = { theme: 'neon', sound: true, sfxVol: 0.8, vibration: true, firstMove: 'open', marks: false, chordClick: true, chordPreview: true, noGuess: false, custom: { w: 20, h: 12, n: 40 } };
+  for (const k of ['sound', 'vibration', 'marks', 'chordClick', 'chordPreview', 'noGuess']) if (typeof o[k] === 'boolean') s[k] = o[k];
+  if (typeof o.theme === 'string') s.theme = o.theme;
+  if (o.firstMove === 'open' || o.firstMove === 'cell') s.firstMove = o.firstMove; else if (o.safeFirst === false) s.firstMove = 'cell';
+  if (typeof o.sfxVol === 'number' && o.sfxVol >= 0 && o.sfxVol <= 1) s.sfxVol = o.sfxVol;
+  const c = asObj(o.custom), L = MSE.LIMITS;
+  if ([c.w, c.h, c.n].every(Number.isInteger)) {
+    s.custom.w = clamp(c.w, L.wMin, L.wMax); s.custom.h = clamp(c.h, L.hMin, L.hMax);
+    s.custom.n = clamp(c.n, 1, MSE.maxMines(s.custom.w, s.custom.h));
+  }
+  return s;
+})();
+const saveSettings = () => store.set(KEYS.set, settings);
 
-let settings = Object.assign({}, DEF_SETTINGS, asObj(store.get('m_settings', null)));
-let best = Object.assign({}, DEF_BEST, asObj(store.get('m_best', null)));
-let historyData = store.get('m_history', []);
-if (!Array.isArray(historyData)) historyData = [];
-let unlocked = asObj(store.get('m_ach', null));
-let stats = Object.assign({}, DEF_STATS, asObj(store.get('m_stats', null)));
+/* ── Статистика: по ключу (уровень + режим): игры, победы, серии, 5 лучших времён ──
+ * ключи: easy, medium, hard, custom, sprint (+ _ng — без угадывания), daily */
+const KEY_RE = /^(easy|medium|hard|sprint)(_ng)?$|^daily$|^custom:\d{1,2}x\d{1,2}x\d{1,4}(_ng)?$/;
+const blankRec = () => ({ g: 0, w: 0, cur: 0, best: 0, sumT: 0, times: [] });
+const stats = (() => {
+  const raw = store.get(KEYS.stats, null), o = asObj(raw);
+  const st = { total: { games: 0, wins: 0, defused: 0, playTime: 0, score: 0, played: 0 }, by: {} };
+  const t = asObj(o.total);
+  for (const k in st.total) if (Number.isFinite(t[k]) && t[k] >= 0) st.total[k] = Math.floor(t[k]);
+  if (!Number.isFinite(t.played)) st.total.played = st.total.games;
+  st.total.wins = Math.min(st.total.wins, st.total.games);
+  const by = asObj(o.by);
+  for (const k in by) {
+    if (!KEY_RE.test(k)) continue;
+    const r = asObj(by[k]), rec = blankRec();
+    for (const f of ['g', 'w', 'cur', 'best', 'sumT']) if (Number.isFinite(r[f]) && r[f] >= 0) rec[f] = Math.floor(r[f]);
+    rec.w = Math.min(rec.w, rec.g); rec.cur = Math.min(rec.cur, rec.w); rec.best = Math.max(rec.best, rec.cur);
+    if (Array.isArray(r.times)) rec.times = r.times.filter(x => x && Number.isFinite(x.t) && x.t > 0).map(x => ({ t: Math.round(x.t), d: Number.isFinite(x.d) ? x.d : 0, b: Number.isFinite(x.b) ? x.b : 0 })).sort((a, b) => a.t - b.t).slice(0, 5);
+    st.by[k] = rec;
+  }
+  if (raw === null) {             // перенос рекордов и итогов прежней версии
+    const ob = asObj(store.get(KEYS.oldBest, null)), os = asObj(store.get(KEYS.oldStats, null));
+    for (const k of ['easy', 'medium', 'hard', 'sprint']) if (Number.isFinite(ob[k]) && ob[k] > 0) { st.by[k] = st.by[k] || blankRec(); st.by[k].times.push({ t: Math.round(ob[k]), d: 0, b: 0 }); }
+    if (Number.isFinite(ob.hardM) && ob.hardM > 0) { const k = 'custom:22x12x55'; st.by[k] = st.by[k] || blankRec(); st.by[k].times.push({ t: Math.round(ob.hardM), d: 0, b: 0 }); }
+    const map = { games: 'games', wins: 'wins', minesDefused: 'defused', playTime: 'playTime', totalScore: 'score' };
+    for (const k in map) if (Number.isFinite(os[k]) && os[k] >= 0) st.total[map[k]] = Math.floor(os[k]);
+    st.total.wins = Math.min(st.total.wins, st.total.games); st.total.played = st.total.games;
+  }
+  return st;
+})();
+const saveStats = () => store.set(KEYS.stats, stats);
+const rec = k => stats.by[k] || (stats.by[k] = blankRec());
+const bestOf = k => (stats.by[k] && stats.by[k].times[0]) ? stats.by[k].times[0].t : 0;
 
-function saveSettings() { store.set('m_settings', settings); }
-function saveBest() { store.set('m_best', best); }
-function saveStats() { store.set('m_stats', stats); }
-function addHistory(rec) {
-  historyData.unshift({ id: uid(), date: Date.now(), ...rec });
-  if (historyData.length > 100) historyData.pop();
-  store.set('m_history', historyData);
-}
+let unlocked = asObj(store.get(KEYS.ach, null));
+let historyData = (() => { const h = store.get(KEYS.hist, []); return Array.isArray(h) ? h.filter(x => x && typeof x === 'object').slice(0, 100) : []; })();
+const daily = (() => {
+  const o = asObj(store.get(KEYS.daily, null)), d = { done: {}, last: '', streak: 0, best: 0, att: '' };
+  const done = asObj(o.done);
+  for (const k in done) if (/^\d{4}-\d\d-\d\d$/.test(k) && Number.isFinite(done[k]) && done[k] > 0) d.done[k] = Math.round(done[k]);
+  if (typeof o.last === 'string' && /^\d{4}-\d\d-\d\d$/.test(o.last)) d.last = o.last;
+  if (typeof o.att === 'string' && /^\d{4}-\d\d-\d\d$/.test(o.att)) d.att = o.att;
+  for (const f of ['streak', 'best']) if (Number.isFinite(o[f]) && o[f] >= 0) d[f] = Math.floor(o[f]);
+  return d;
+})();
+// текущая серия дней (если день пропущен — 0)
+const dailyStreak = () => { const td = dateKey(new Date()); return daily.last && dayNum(td) - dayNum(daily.last) <= 1 ? daily.streak : 0; };
+const saveDaily = () => {
+  const keys = Object.keys(daily.done).sort();
+  while (keys.length > 120) delete daily.done[keys.shift()];
+  store.set(KEYS.daily, daily);
+};
 
-/* ==================== 3. ТЕМЫ ==================== */
+/* ═══ Темы ═══ */
 const THEMES = {
-  neon: { name: 'Неон', bg: ['#070b24', '#151038', '#0a2540'], panel: 'rgba(255,255,255,.06)', panelBorder: 'rgba(255,255,255,.13)', accent: '#00e5ff', accent2: '#ff4dd2', text: '#eef2ff', muted: '#8f9ac2', glow: true },
-  sunset: { name: 'Закат', bg: ['#1c0d28', '#381028', '#200818'], panel: 'rgba(255,255,255,.07)', panelBorder: 'rgba(255,255,255,.14)', accent: '#ff9e00', accent2: '#ff0055', text: '#fff2f6', muted: '#b894a6', glow: true },
-  ocean: { name: 'Океан', bg: ['#031b29', '#083248', '#041f38'], panel: 'rgba(255,255,255,.06)', panelBorder: 'rgba(255,255,255,.12)', accent: '#00f2fe', accent2: '#4facfe', text: '#e8f8ff', muted: '#84b4cc', glow: true },
-  retro: { name: 'Ретро', bg: ['#0f380f', '#306230', '#154215'], panel: 'rgba(155,188,15,.12)', panelBorder: 'rgba(155,188,15,.25)', accent: '#9bbc0f', accent2: '#8bac0f', text: '#e0f8cf', muted: '#8bac0f', glow: false },
-  candy: { name: 'Конфеты', bg: ['#241a2e', '#3d2a4e', '#5a3a63'], panel: 'rgba(255,255,255,.08)', panelBorder: 'rgba(255,255,255,.16)', accent: '#ff8fc7', accent2: '#8fd8ff', text: '#fdf2ff', muted: '#b8a3c7', glow: true }
+  neon: { name: 'Неон', bg: ['#070b24', '#151038', '#0a2540'], panel: 'rgba(255,255,255,.06)', panelBorder: 'rgba(255,255,255,.13)', accent: '#00e5ff', accent2: '#ff4dd2', text: '#eef2ff', muted: '#8f9ac2' },
+  sunset: { name: 'Закат', bg: ['#1c0d28', '#381028', '#200818'], panel: 'rgba(255,255,255,.07)', panelBorder: 'rgba(255,255,255,.14)', accent: '#ff9e00', accent2: '#ff0055', text: '#fff2f6', muted: '#b894a6' },
+  ocean: { name: 'Океан', bg: ['#031b29', '#083248', '#041f38'], panel: 'rgba(255,255,255,.06)', panelBorder: 'rgba(255,255,255,.12)', accent: '#00f2fe', accent2: '#4facfe', text: '#e8f8ff', muted: '#84b4cc' },
+  retro: { name: 'Ретро', bg: ['#0f380f', '#306230', '#154215'], panel: 'rgba(155,188,15,.12)', panelBorder: 'rgba(155,188,15,.25)', accent: '#9bbc0f', accent2: '#8bac0f', text: '#e0f8cf', muted: '#8bac0f' },
+  candy: { name: 'Конфеты', bg: ['#241a2e', '#3d2a4e', '#5a3a63'], panel: 'rgba(255,255,255,.08)', panelBorder: 'rgba(255,255,255,.16)', accent: '#ff8fc7', accent2: '#8fd8ff', text: '#fdf2ff', muted: '#b8a3c7' }
 };
 let THEME = THEMES.neon;
-
 function applyTheme(key) {
-  if (!THEMES[key]) key = 'neon';
+  if (!Object.prototype.hasOwnProperty.call(THEMES, key)) key = 'neon';
   THEME = THEMES[key]; settings.theme = key;
   const r = document.documentElement.style;
   r.setProperty('--bg1', THEME.bg[0]); r.setProperty('--bg2', THEME.bg[1]); r.setProperty('--bg3', THEME.bg[2]);
   r.setProperty('--panel', THEME.panel); r.setProperty('--panel-border', THEME.panelBorder);
   r.setProperty('--accent', THEME.accent); r.setProperty('--accent2', THEME.accent2);
   r.setProperty('--text', THEME.text); r.setProperty('--muted', THEME.muted);
-  saveSettings();
-  G.dirty = true;
+  dirty = true;
 }
 
-/* ==================== 4. ЗВУК ==================== */
-let audioCtx = null, sfxGain = null;
-function ac() {
-  if (!audioCtx) {
-    audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-    sfxGain = audioCtx.createGain(); sfxGain.connect(audioCtx.destination);
-    applyVolumes();
-  }
-  if (audioCtx.state === 'suspended') audioCtx.resume();
-  return audioCtx;
-}
-function applyVolumes() {
-  if (!audioCtx) return;
-  sfxGain.gain.value = settings.sound ? settings.sfxVol : 0;
-}
+/* ═══ Звук и вибрация ═══ */
+let audioCtx = null;
 function tone(f, d, type, v, delay) {
   if (!settings.sound) return;
   try {
-    const c = ac(), o = c.createOscillator(), g = c.createGain(), t0 = c.currentTime + (delay || 0);
+    if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+    if (audioCtx.state === 'suspended') audioCtx.resume();
+    const c = audioCtx, o = c.createOscillator(), g = c.createGain(), t0 = c.currentTime + (delay || 0);
     o.type = type || 'square'; o.frequency.value = f;
-    g.gain.setValueAtTime(v || 0.04, t0); g.gain.exponentialRampToValueAtTime(0.0001, t0 + d);
-    o.connect(g); g.connect(sfxGain); o.start(t0); o.stop(t0 + d + 0.02);
+    g.gain.setValueAtTime((v || 0.04) * settings.sfxVol, t0); g.gain.exponentialRampToValueAtTime(0.0001, t0 + d);
+    o.connect(g); g.connect(c.destination); o.start(t0); o.stop(t0 + d + 0.02);
   } catch (e) {}
 }
-
 const sfx = {
   click: () => tone(500, 0.04, 'sine', 0.03),
-  reveal: () => tone(240, 0.05, 'triangle', 0.035),
+  reveal: k => tone(240 + Math.min(200, k * 6), 0.06, 'triangle', 0.035),
   flag: () => tone(440, 0.06, 'sine', 0.04),
   unflag: () => tone(330, 0.06, 'sine', 0.03),
-  chord: () => [523, 659, 784].forEach((f, i) => tone(f, 0.08, 'square', 0.035, i * 0.04)),
+  chord: () => [523, 659, 784].forEach((f, i) => tone(f, 0.08, 'square', 0.03, i * 0.04)),
   explode: () => { tone(120, 0.25, 'sawtooth', 0.08); tone(60, 0.35, 'square', 0.08, 0.03); },
   win: () => [523, 659, 784, 1046, 784, 1046].forEach((f, i) => tone(f, 0.12, 'square', 0.05, i * 0.08)),
-  ach: () => [659, 784, 1046].forEach((f, i) => tone(f, 0.12, 'sine', 0.05, i * 0.09))
+  ach: () => [659, 784, 1046].forEach((f, i) => tone(f, 0.12, 'sine', 0.05, i * 0.09)),
+  hint: () => [784, 988].forEach((f, i) => tone(f, 0.1, 'sine', 0.04, i * 0.07)),
+  nope: () => tone(160, 0.12, 'square', 0.04)
 };
+const vib = p => { if (settings.vibration && navigator.vibrate) try { navigator.vibrate(p); } catch (e) {} };
 
-/* ==================== 5. ЭКРАНЫ И ОКНА ==================== */
-let currentScreen = 'menu';
-function showScreen(id) {
-  currentScreen = id;
-  $$('.ku-screen').forEach(s => s.classList.toggle('active', s.id === 'screen-' + id));
-  if (id !== 'game') {
-    clearGameTimers(); cancelPress();
-    closeOverlay('pauseOverlay'); closeOverlay('overOverlay');
-  }
+/* ═══ Экраны и окна ═══ */
+let screen = 'menu';
+const OVERLAYS = ['ov-pause', 'ov-over', 'ov-custom', 'ov-stats', 'ov-ach', 'ov-history', 'ov-rules', 'ov-settings', 'ov-export'];
+const isOpen = id => $('#' + id).classList.contains('open');
+const anyOverlay = () => OVERLAYS.some(isOpen) || !!document.querySelector('.ku-dialog');
+const openOv = id => { $('#' + id).classList.add('open'); cancelInput(); };
+// окна поверх паузы возвращают в неё
+let returnTo = null;
+function closeOv(id) {
+  $('#' + id).classList.remove('open');
+  if (returnTo && id !== returnTo && !OVERLAYS.some(o => o !== id && isOpen(o))) { const r = returnTo; returnTo = null; if (screen === 'game' && G.state === 'paused') openOv(r); }
 }
-function openOverlay(id) { $('#' + id).classList.add('open'); }
-function closeOverlay(id) { $('#' + id).classList.remove('open'); }
-function topModal() {
-  const open = [...$$('.ku-overlay.open')].filter(o => o.querySelector('.ku-modal'));
-  return open[open.length - 1] || null;
+function showScreen(name) {
+  screen = name;
+  $('#screen-menu').classList.toggle('active', name === 'menu');
+  $('#screen-game').classList.toggle('active', name === 'game');
+  document.body.classList.toggle('ku-calm', name === 'game');
+  if (name === 'menu') { OVERLAYS.forEach(id => $('#' + id).classList.remove('open')); refreshMenu(); }
+  else queueLayout();
 }
-$$('[data-close]').forEach(b => b.addEventListener('click', () => { sfx.click(); closeOverlay(b.closest('.ku-overlay').id); }));
-$$('.ku-overlay').forEach(o => o.addEventListener('click', e => {
-  if (e.target === o && o.querySelector('.ku-modal')) closeOverlay(o.id);       // клик мимо окна
-}));
+$$('[data-close]').forEach(b => b.addEventListener('click', () => { sfx.click(); closeOv(b.closest('.ku-overlay').id); }));
+$$('.ku-overlay').forEach(o => o.addEventListener('click', e => { if (e.target === o && o.querySelector('.ku-modal')) closeOv(o.id); }));
 
-/* ==================== 6. ДОСТИЖЕНИЯ ==================== */
+/* ═══ Достижения ═══ */
 const ACHIEVEMENTS = [
   { id: 'first_win', icon: '🏆', title: 'Первый сапёр', desc: 'Выиграйте первую игру' },
   { id: 'master_easy', icon: '🌱', title: 'Мастер Новичка', desc: 'Пройдите уровень Новичок' },
-  { id: 'master_medium', icon: '🌿', title: 'Опытный Минёр', desc: 'Пройдите уровень Любитель' },
+  { id: 'master_medium', icon: '🌿', title: 'Опытный минёр', desc: 'Пройдите уровень Любитель' },
   { id: 'master_hard', icon: '🔥', title: 'Виртуоз Профи', desc: 'Пройдите уровень Профи' },
-  { id: 'sprint_master', icon: '⚡', title: 'Молния', desc: 'Пройдите Забег на время' },
+  { id: 'sprint_master', icon: '⚡', title: 'Молния', desc: 'Пройдите Забег — три поля подряд' },
   { id: 'fast_click', icon: '⏱️', title: 'Спринтер', desc: 'Пройдите Новичка быстрее 30 секунд' },
-  { id: 'chord_pro', icon: '🎹', title: 'Маэстро Аккордов', desc: 'Используйте аккорд 10 раз за игру' },
-  { id: 'flag_master', icon: '🚩', title: 'Флагоносец', desc: 'Установите 50 флагов' },
-  { id: 'games10', icon: '🎮', title: 'Новичок', desc: 'Сыграйте 10 игр' },
+  { id: 'hard_200', icon: '🏎️', title: 'Профи-гонщик', desc: 'Пройдите Профи быстрее 200 секунд' },
+  { id: 'ng_win', icon: '🧠', title: 'Чистая логика', desc: 'Пройдите поле без угадывания (Любитель или Профи) без подсказок' },
+  { id: 'nf_win', icon: '🚫', title: 'Без флагов', desc: 'Пройдите Любителя или Профи, не поставив ни одного флага' },
+  { id: 'eff_100', icon: '🎯', title: 'Ни одного лишнего', desc: 'Эффективность 100 % и выше на Любителе или Профи' },
+  { id: 'rate_2', icon: '💨', title: 'Скорострел', desc: '3BV/с не меньше 2 на Любителе или Профи' },
+  { id: 'daily_7', icon: '📅', title: 'Неделя подряд', desc: 'Решите Сапёра дня 7 дней подряд' },
+  { id: 'custom_dense', icon: '🛠️', title: 'Минное поле', desc: 'Пройдите своё поле: не меньше 50 мин и плотность от 20 %' },
+  { id: 'chord_pro', icon: '🎹', title: 'Маэстро аккордов', desc: 'Откройте соседей числа 10 раз за одну игру' },
+  { id: 'flag_master', icon: '🚩', title: 'Флагоносец', desc: 'Держите на поле 50 флагов одновременно' },
+  { id: 'games10', icon: '🎮', title: 'Втянулся', desc: 'Сыграйте 10 игр' },
   { id: 'games50', icon: '🎖️', title: 'Ветеран', desc: 'Сыграйте 50 игр' },
   { id: 'mines100', icon: '💣', title: 'Разминировщик', desc: 'Обезвредьте 100 мин' }
 ];
-
+const achQueue = []; let achTimer = 0;
+function nextAchToast() { const m = achQueue.shift(); if (!m) { achTimer = 0; return; } toast(m, 'gold', 2600); achTimer = setTimeout(nextAchToast, 2800); }
 function award(id) {
   if (unlocked[id]) return;
-  unlocked[id] = Date.now();
-  store.set('m_ach', unlocked);
+  unlocked[id] = Date.now(); store.set(KEYS.ach, unlocked);
   const a = ACHIEVEMENTS.find(x => x.id === id);
-  if (a) {
-    sfx.ach(); vib([50, 50, 100]);
-    queueAchToast(`🏅 Достижение: ${a.title}`);
-  }
+  if (a) { sfx.ach(); vib([50, 50, 100]); achQueue.push(`🏅 Достижение: ${a.title}`); if (!achTimer) nextAchToast(); }
 }
 
-/* ==================== 7. ИГРОВОЙ ДВИЖОК САПЁРА ==================== */
-const MODES = {
-  easy: { name: 'Новичок', cols: 9, rows: 9, mines: 10 },
-  medium: { name: 'Любитель', cols: 16, rows: 16, mines: 40 },
-  hard: { name: 'Профи', cols: 16, rows: 30, mines: 99 },
-  sprint: { name: 'Забег на время', cols: 9, rows: 9, mines: 10, sprintTarget: 3 }
+/* ═══ Партия ═══ */
+const LONG_MS = 330, REVEAL_MS = 170;
+const G = {
+  lv: 'easy', ng: false, daily: '', sprint: false, key: 'easy', name: '',
+  w: 9, h: 9, n: 10, B: null, open: null, mark: null, revT: null,
+  state: 'idle',              // idle — мин ещё нет · gen — создаётся поле · play · paused · clear (забег: поле пройдено) · over · won
+  pausedFrom: 'idle', startTs: 0, elapsed: 0, opened: 0, flags: 0,
+  clicks: 0, chords: 0, hints: 0, practice: false, replay: false, ngFailed: false, usedFlags: false,
+  first: -1, startCell: -1, boom: -1, bbbv: 0,
+  sprintCount: 0, sprintAcc: 0, sprintBbbv: 0, sprintClicks: 0,
+  undo: null, hint: null, cursor: -1, kbd: false,
+  particles: [], flashT: 0, genCell: -1
 };
-const HARD_MOBILE = { cols: 12, rows: 22, mines: 55 };   // Профи на узком экране (телефон)
-const LONG_PRESS_MS = 320, REVEAL_MS = 160;
+let lastBoard = null;             // для «Это поле ещё раз»
+const customKey = (w, h, n) => `custom:${Math.max(w, h)}x${Math.min(w, h)}x${n}`;
+const keyOf = (lv, ng, d) => lv === 'daily' ? 'daily' : (lv === 'custom' ? customKey((d || G).w, (d || G).h, (d || G).n) : lv) + (ng ? '_ng' : '');
+const levelName = lv => lv === 'custom' ? 'Своё поле' : lv === 'daily' ? 'Сапёр дня' : lv === 'sprint' ? 'Забег' : LV[lv].name;
+const density = (w, h, n) => n / (w * h);
+const ngLimit = (w, h) => w * h <= 600 ? 0.25 : w * h <= 1000 ? 0.23 : 0.22;
+const ngAllowed = (w, h, n) => density(w, h, n) <= ngLimit(w, h) + 1e-9;
 
-function isCompact() { return window.innerWidth < 821; }
-function bestKeyFor(mode) { return mode === 'hard' && isCompact() ? 'hardM' : mode; }
-function sizeLabel(mode) {
-  if (mode === 'hard') {
-    if (isCompact()) return `${HARD_MOBILE.cols}×${HARD_MOBILE.rows} · ${HARD_MOBILE.mines} мин`;
-    return (window.innerWidth >= window.innerHeight ? '30×16' : '16×30') + ' · 99 мин';
+// размеры поля уровня
+function dimsOf(lv) {
+  if (lv === 'custom') return Object.assign({}, settings.custom);
+  if (lv === 'sprint') return { w: 9, h: 9, n: 10 };
+  if (lv === 'daily') return { w: 16, h: 16, n: 40 };
+  return { w: LV[lv].w, h: LV[lv].h, n: LV[lv].n };
+}
+
+// партия в процессе (её прерывание засчитывается как поражение)
+const inProgress = () => (G.state === 'play' || (G.state === 'paused' && G.pausedFrom === 'play') || (G.sprint && G.sprintCount > 0 && (G.state === 'idle' || G.state === 'clear'))) && !G.practice && !G.replay;
+
+async function confirmAbandon() {
+  if (!inProgress()) return true;
+  // пока открыт вопрос — время стоит
+  const wasPlay = G.state === 'play';
+  if (wasPlay) { G.elapsed = now() - G.startTs; G.state = 'paused'; G.pausedFrom = 'play'; }
+  const ok = window.KuArcade && KuArcade.confirm ? await KuArcade.confirm('Текущая партия будет засчитана как поражение.', { title: 'НОВОЕ ПОЛЕ?', ok: 'Новое поле', cancel: 'Отмена', danger: true }) : true;
+  if (wasPlay && G.state === 'paused' && !isOpen('ov-pause')) { G.state = 'play'; G.startTs = now() - G.elapsed; }
+  if (ok) countLoss(true);
+  return ok;
+}
+
+// новая партия: lv — уровень; opts.replay — то же поле; opts.keepSprint — следующее поле забега
+function startGame(lv, opts) {
+  opts = opts || {};
+  const keepPractice = opts.keepSprint ? G.practice : false;
+  clearTimers(); cancelInput(); hideHint();
+  OVERLAYS.forEach(id => $('#' + id).classList.remove('open')); returnTo = null;
+  if (screen !== 'game') showScreen('game');
+  const d = opts.replay ? { w: opts.replay.w, h: opts.replay.h, n: opts.replay.n } : dimsOf(lv);
+  G.lv = lv; G.sprint = lv === 'sprint'; G.daily = lv === 'daily' ? dateKey(new Date()) : '';
+  G.ng = lv === 'daily' ? true : (settings.noGuess && ngAllowed(d.w, d.h, d.n));
+  if (opts.replay) G.ng = opts.replay.ng;
+  G.key = keyOf(lv, G.ng, d);
+  if (!opts.keepSprint) { G.sprintCount = 0; G.sprintAcc = 0; G.sprintBbbv = 0; G.sprintClicks = 0; }
+  G.replay = !!opts.replay; G.practice = !!opts.replay || keepPractice; G.ngFailed = false;
+  // ориентация: если поле «лёжа» на высоком экране (или наоборот) — повернуть, клетки крупнее
+  let w = d.w, h = d.h;
+  if (!opts.replay && lv !== 'daily' && w !== h) {
+    const a = areaSize();
+    if (a) { const f1 = Math.min(a.w / w, a.h / h), f2 = Math.min(a.w / h, a.h / w); if (f2 > f1 * 1.1) { const t = w; w = h; h = t; } }
   }
-  const m = MODES[mode];
-  return `${m.cols}×${m.rows} · ${m.mines} мин`;
-}
-
-let G = {
-  mode: 'easy', cols: 9, rows: 9, mines: 10, bestKey: 'easy',
-  board: [], revealedCount: 0, flagsCount: 0,
-  state: 'idle',            // idle (мин ещё нет) · play · paused · clear (забег: поле пройдено) · over · victory
-  pausedFrom: 'idle', firstClick: true, startTs: 0, elapsed: 0,
-  sprintCount: 0, accTime: 0, accDefused: 0, chords: 0,   // накопленное за забег время и мины, аккорды за игру
-  inputMode: 'dig',         // 'dig' или 'flag'
-  particles: [], flashT: 0, boom: null, hover: -1, pressCell: null,
-  overTimer: 0, sprintTimer: 0, dirty: true, animUntil: 0
-};
-
-const playCv = $('#playCv');
-let pctx = null;
-
-function clearGameTimers() {
-  clearTimeout(G.overTimer); clearTimeout(G.sprintTimer);
-  G.overTimer = 0; G.sprintTimer = 0;
-}
-function inBounds(r, c) { return r >= 0 && r < G.rows && c >= 0 && c < G.cols; }
-function canPlay() { return G.state === 'idle' || G.state === 'play'; }
-
-// Новая партия выбранного режима (в забеге — с первого поля)
-function startGame(mode) {
-  G.mode = mode;
-  G.sprintCount = 0; G.accTime = 0; G.accDefused = 0; G.chords = 0;
-  showScreen('game');
-  newBoard();
-}
-
-// Чистое поле текущего режима (в забеге прогресс полей сохраняется)
-function newBoard() {
-  clearGameTimers();
-  cancelPress();
-  const cfg = MODES[G.mode];
-  G.bestKey = bestKeyFor(G.mode);
-  if (G.bestKey === 'hardM') {
-    G.cols = HARD_MOBILE.cols; G.rows = HARD_MOBILE.rows; G.mines = HARD_MOBILE.mines;
-  } else {
-    G.cols = cfg.cols; G.rows = cfg.rows; G.mines = cfg.mines;
-    // Профи на широком экране кладём «лёжа» (30×16) — клетки заметно крупнее
-    const area = $('#boardArea');
-    if (G.mode === 'hard' && area.clientWidth > area.clientHeight) { G.cols = cfg.rows; G.rows = cfg.cols; }
+  G.w = w; G.h = h; G.n = d.n;
+  const N = w * h;
+  G.open = new Uint8Array(N); G.mark = new Uint8Array(N); G.revT = new Float64Array(N);
+  G.B = null; G.state = 'idle'; G.startTs = 0; G.elapsed = 0; G.opened = 0; G.flags = 0;
+  G.clicks = 0; G.chords = 0; if (!opts.keepSprint) G.hints = 0; G.usedFlags = false; G.first = -1; G.startCell = -1; G.boom = -1; G.bbbv = 0;
+  G.undo = null; G.particles = []; G.flashT = 0; G.genCell = -1; G.cursor = -1; genId++;
+  if (opts.replay) { G.B = opts.replay.B; G.startCell = opts.replay.first; }
+  else if (lv === 'daily') {
+    // поле дня — по зерну даты, одинаковое у всех; начало — отмеченная клетка у центра
+    const r = MSE.rng(MSE.hashStr('ms-daily-v1-' + G.daily));
+    const sc = Math.floor(h / 2) * w + Math.floor(w / 2) - 1 - Math.floor(r() * 2) * w;
+    const gen = MSE.noGuess(w, h, G.n, r, sc, { noDeadline: true });
+    let res; do { res = gen.next(1500); } while (!res.done);
+    G.B = res.board; G.startCell = sc;
   }
-
-  G.board = Array.from({ length: G.rows }, () =>
-    Array.from({ length: G.cols }, () => ({ mine: false, revealed: false, flagged: false, neighborMines: 0, revealT: 0 }))
-  );
-  G.revealedCount = 0; G.flagsCount = 0; G.firstClick = true;
-  G.state = 'idle'; G.startTs = 0; G.elapsed = 0;
-  G.particles = []; G.flashT = 0; G.boom = null; G.hover = -1; G.pressCell = null;
-
-  closeOverlay('pauseOverlay'); closeOverlay('overOverlay');
+  $('#gen').hidden = true;
+  layout(true);
+  if (G.startCell >= 0) centerOn(G.startCell);
+  updateHud(true);
   setSmiley('😄');
-  updateHud();
-  applyBoardScale();
+  $('#game-hint').textContent = hintLine();
+  dirty = true;
+  if (G.sprint && G.sprintCount > 0) saveNow();
 }
 
-function placeMines(safeR, safeC) {
-  let placed = 0;
-  while (placed < G.mines) {
-    const r = Math.floor(Math.random() * G.rows);
-    const c = Math.floor(Math.random() * G.cols);
-    // «Безопасный 1-й клик»: вокруг первой ячейки (3×3) мин нет
-    if (settings.safeFirst && Math.abs(r - safeR) <= 1 && Math.abs(c - safeC) <= 1) continue;
-    if (!G.board[r][c].mine) {
-      G.board[r][c].mine = true;
-      placed++;
+function areaSize() {
+  const a = $('#board-area');
+  if (!a || !a.clientWidth || !a.clientHeight) return null;
+  return { w: a.clientWidth - 16, h: a.clientHeight - 16 };
+}
+
+/* ── Ходы ── */
+const playable = () => G.state === 'idle' || G.state === 'play';
+function snapshot() { G.undo = { open: G.open.slice(), mark: G.mark.slice(), opened: G.opened, flags: G.flags, clicks: G.clicks, chords: G.chords }; }
+
+// первый щелчок: расставить мины (классика — сразу, без угадывания — подбор поля по кускам)
+function firstMove(i) {
+  if (G.startCell >= 0) {
+    if (i !== G.startCell) { sfx.nope(); toast('Начните с отмеченной клетки ✦', '', 1600); centerOn(G.startCell); dirty = true; return; }
+    begin(i); return;
+  }
+  if (G.ng) { startGen(i); return; }
+  G.B = MSE.generate(G.w, G.h, G.n, Math.random, i, settings.firstMove);
+  begin(i);
+}
+let genId = 0;
+function startGen(i) {
+  G.state = 'gen'; G.genCell = i; G.first = i;
+  const id = ++genId, gen = MSE.noGuess(G.w, G.h, G.n, Math.random, i), t0 = now();
+  const step = () => {
+    if (G.state !== 'gen' || G.genCell !== i || id !== genId) return;
+    const r = gen.next(12);
+    if (r.done) { $('#gen').hidden = true; G.B = r.board; begin(i); return; }
+    if (now() - t0 > 160) $('#gen').hidden = false;
+    if (now() - t0 > 6000) {
+      $('#gen').hidden = true; G.ng = false; G.ngFailed = true; G.key = keyOf(G.lv, false);
+      G.B = MSE.generate(G.w, G.h, G.n, Math.random, i, 'open');
+      toast('Поле без угадывания не нашлось быстро — играем обычное', 'bad', 2800);
+      begin(i); return;
     }
+    setTimeout(step, 0);
+  };
+  step();
+}
+function begin(i) {
+  G.first = i; G.bbbv = MSE.bbbv(G.B);
+  if (G.lv === 'daily' && !G.replay) {
+    if (daily.att === G.daily) { G.practice = true; toast('Сапёр дня уже начат сегодня — это тренировка', '', 2200); }
+    else { daily.att = G.daily; saveDaily(); }
   }
-  for (let r = 0; r < G.rows; r++) {
-    for (let c = 0; c < G.cols; c++) {
-      if (G.board[r][c].mine) continue;
-      let count = 0;
-      for (let dr = -1; dr <= 1; dr++) {
-        for (let dc = -1; dc <= 1; dc++) {
-          const nr = r + dr, nc = c + dc;
-          if (inBounds(nr, nc) && G.board[nr][nc].mine) count++;
-        }
-      }
-      G.board[r][c].neighborMines = count;
+  G.state = 'play'; G.startTs = now() - G.elapsed;
+  openCell(i, true);
+  updateHud(true);
+}
+
+function openCell(i, isFirst) {
+  if (G.open[i] || G.mark[i] === 1) return false;
+  if (!isFirst) snapshot();
+  G.clicks++;
+  const t = now(), list = MSE.reveal(G.B, G.open, G.mark, i);
+  revealAt = t;
+  for (const j of list) { if (G.mark[j]) { if (G.mark[j] === 1) G.flags--; G.mark[j] = 0; } G.revT[j] = t; }
+  if (G.B.mine[i]) { lose(i); return true; }
+  G.opened += list.length;
+  sfx.reveal(list.length); vib(8);
+  afterMove();
+  return true;
+}
+// открыть соседей числа, если флагов рядом ровно столько, сколько число
+function chord(i) {
+  if (!G.open[i] || G.B.num[i] <= 0) return false;
+  let f = 0; const rest = [];
+  for (const j of G.B.nb[i]) { if (G.mark[j] === 1) f++; else if (!G.open[j]) rest.push(j); }
+  if (f !== G.B.num[i] || !rest.length) return false;
+  snapshot();
+  G.clicks++; G.chords++;
+  const t = now(); let boom = -1, n = 0;
+  revealAt = t;
+  for (const j of rest) {
+    if (G.open[j]) continue;
+    const list = MSE.reveal(G.B, G.open, G.mark, j);
+    for (const q of list) { if (G.mark[q]) { if (G.mark[q] === 1) G.flags--; G.mark[q] = 0; } G.revT[q] = t; }
+    if (G.B.mine[j]) { if (boom < 0) boom = j; } else n += list.length;
+  }
+  if (boom >= 0) { lose(boom); return true; }
+  G.opened += n;
+  sfx.chord(); vib(12);
+  if (G.chords >= 10 && !G.practice) award('chord_pro');
+  afterMove();
+  return true;
+}
+// флаг: пусто → 🚩 → (?) → пусто
+function cycleMark(i) {
+  if (G.open[i]) return false;
+  if (G.state === 'play') G.clicks++;
+  const m = G.mark[i];
+  G.mark[i] = m === 0 ? 1 : m === 1 ? (settings.marks ? 2 : 0) : 0;
+  if (G.mark[i] === 1) { G.flags++; G.usedFlags = G.usedFlags || G.state === 'play'; sfx.flag(); vib(15); if (G.flags >= 50 && !G.practice && G.state === 'play') award('flag_master'); }
+  else { if (m === 1) G.flags--; sfx.unflag(); }
+  if (G.hint) hideHint();
+  updateHud(); saveSoon(); dirty = true;
+  return true;
+}
+function afterMove() {
+  dirty = true;
+  if (G.hint) hideHint();
+  if (G.opened === G.w * G.h - G.n) { win(); return; }
+  updateHud(); saveSoon();
+}
+
+/* ── Конец партии ── */
+let overTimer = 0, sprintTimer = 0;
+function clearTimers() { clearTimeout(overTimer); clearTimeout(sprintTimer); overTimer = sprintTimer = 0; }
+function elapsedNow() { return G.state === 'play' ? now() - G.startTs : G.elapsed; }
+
+// прерванная партия — поражение для статистики (без истории)
+function countLoss(abandon) {
+  const r = rec(G.key);
+  r.g++; r.cur = 0;
+  stats.total.games++;
+  if (!abandon) stats.total.played++;
+  stats.total.playTime += Math.round((elapsedNow() + G.sprintAcc) / 1000);
+  saveStats();
+  if (abandon) store.del(KEYS.save);
+}
+
+function lose(i) {
+  G.elapsed = now() - G.startTs; G.state = 'over'; G.boom = i;
+  cancelInput(); hideHint();
+  sfx.explode(); vib([80, 60, 80]); G.flashT = 1;
+  setSmiley('😵');
+  let defused = 0;
+  for (let k = 0; k < G.w * G.h; k++) if (G.mark[k] === 1 && G.B.mine[k]) defused++;
+  if (!G.practice && !G.replay) {
+    countLoss(false);
+    stats.total.defused += defused; saveStats();
+    addHistory(false, G.elapsed + G.sprintAcc);
+    if (stats.total.defused >= 100) award('mines100');
+    checkGamesAch();
+  }
+  lastBoard = { B: G.B, w: G.w, h: G.h, n: G.n, ng: G.ng, first: G.first };
+  store.del(KEYS.save);
+  fillOver(false, G.elapsed + G.sprintAcc, false, 0);
+  dirty = true; updateHud();
+  overTimer = setTimeout(() => { overTimer = 0; if (screen === 'game' && G.state === 'over') openOv('ov-over'); }, 1100);
+}
+
+function win() {
+  G.elapsed = now() - G.startTs;
+  for (let k = 0; k < G.w * G.h; k++) if (G.B.mine[k] && G.mark[k] !== 1) { G.mark[k] = 1; G.flags++; }
+  cancelInput(); hideHint();
+  if (G.sprint && G.sprintCount + 1 < 3) {
+    G.sprintCount++; G.sprintAcc += G.elapsed; G.elapsed = 0; G.sprintBbbv += G.bbbv; G.sprintClicks += G.clicks;
+    G.state = 'clear';
+    sfx.chord(); vib([30, 30, 30]);
+    toast(`Поле ${G.sprintCount} из 3 пройдено!`, 'good', 1500);
+    store.del(KEYS.save);
+    updateHud(); dirty = true;
+    sprintTimer = setTimeout(() => { sprintTimer = 0; if (screen === 'game' && G.state === 'clear') startGame('sprint', { keepSprint: true }); }, 900);
+    return;
+  }
+  G.state = 'won';
+  setSmiley('😎');
+  sfx.win(); vib([40, 40, 40, 100]);
+  const COLORS = ['#00e5ff', '#51f58b', '#ffd60a', '#ff4dd2', '#c77dff'];
+  for (let k = 0; k < 46; k++) G.particles.push({ x: view.cw / 2, y: view.ch / 2, vx: (Math.random() - 0.5) * 9, vy: (Math.random() - 0.5) * 9, life: 1, color: COLORS[k % COLORS.length], s: 3 + Math.random() * 4 });
+  const total = G.elapsed + G.sprintAcc, bbbv = G.bbbv + G.sprintBbbv, clicks = G.clicks + G.sprintClicks;
+  let isBest = false, score = 0;
+  const counted = !G.practice && !G.replay;
+  if (counted) {
+    const r = rec(G.key);
+    r.g++; r.w++; r.cur++; r.best = Math.max(r.best, r.cur); r.sumT += Math.round(total);
+    if (!G.hints) {
+      const prev = r.times[0] ? r.times[0].t : 0;
+      r.times.push({ t: Math.round(total), d: Date.now(), b: bbbv });
+      r.times.sort((a, b) => a.t - b.t); r.times = r.times.slice(0, 5);
+      isBest = !prev || total < prev;
     }
-  }
-}
-
-// Ход «открыть ячейку»
-function openCell(r, c) {
-  if (!canPlay() || !inBounds(r, c)) return;
-  const cell = G.board[r][c];
-  if (cell.revealed || cell.flagged) return;
-  if (G.firstClick) {
-    G.firstClick = false;
-    placeMines(r, c);
-    G.state = 'play';
-    G.startTs = performance.now();
-  }
-  afterReveal(flood(r, c));
-}
-
-// Открывает ячейку, у пустых — всю область вокруг (без рекурсии).
-// Возвращает true, если открыта мина. Победа проверяется один раз — после хода целиком.
-function flood(r0, c0) {
-  const stack = [[r0, c0]], now = performance.now();
-  while (stack.length) {
-    const [r, c] = stack.pop();
-    if (!inBounds(r, c)) continue;
-    const cell = G.board[r][c];
-    if (cell.revealed || cell.flagged) continue;
-    cell.revealed = true; cell.revealT = now;
-    if (cell.mine) { G.boom = { r, c }; return true; }
-    G.revealedCount++;
-    if (cell.neighborMines === 0) {
-      for (let dr = -1; dr <= 1; dr++)
-        for (let dc = -1; dc <= 1; dc++)
-          if (dr || dc) stack.push([r + dr, c + dc]);
+    stats.total.games++; stats.total.wins++; stats.total.played++; stats.total.defused += G.n * (G.sprint ? 3 : 1);
+    stats.total.playTime += Math.round(total / 1000);
+    // очки: база уровня × скорость относительно норматива поля, подсказки −30 % каждая
+    const base = G.sprint ? 180 : G.lv === 'daily' ? 250 : G.lv === 'custom' ? Math.min(Math.round(G.n * 6 * Math.sqrt(Math.min(density(G.w, G.h, G.n), 0.35) / 0.15)), bbbv * 4) : { easy: 60, medium: 250, hard: 700 }[G.lv];
+    const par = (bbbv * 1.6 + 10 * (G.sprint ? 3 : 1)) * 1000;
+    score = Math.max(1, Math.round(base * clamp(par / total, 0.4, 2) * Math.pow(0.7, G.hints)));
+    let dailyFirst = false;
+    if (G.lv === 'daily') {
+      dailyFirst = !daily.done[G.daily];
+      if (dailyFirst) {
+        daily.done[G.daily] = Math.round(total);
+        const yesterday = daily.last && dayNum(G.daily) - dayNum(daily.last) === 1;
+        daily.streak = yesterday ? daily.streak + 1 : (daily.last === G.daily ? daily.streak : 1);
+        daily.best = Math.max(daily.best, daily.streak); daily.last = G.daily; saveDaily();
+        score = Math.round(score * 1.5);
+        if (daily.streak >= 7) award('daily_7');
+      } else score = 0;
     }
-  }
-  return false;
-}
-
-function afterReveal(hitMine) {
-  G.dirty = true;
-  G.animUntil = performance.now() + REVEAL_MS + 40;
-  if (hitMine) { gameOver(false); return; }
-  sfx.reveal(); vib(10);
-  checkVictory();
-}
-
-function toggleFlag(r, c) {
-  if (!canPlay() || !inBounds(r, c)) return;
-  const cell = G.board[r][c];
-  if (cell.revealed) return;
-
-  cell.flagged = !cell.flagged;
-  G.flagsCount += cell.flagged ? 1 : -1;
-  updateMinesHud();
-  G.dirty = true;
-
-  if (cell.flagged) {
-    sfx.flag(); vib(15);
-    if (G.flagsCount >= 50) award('flag_master');
-  } else {
-    sfx.unflag();
-  }
-}
-
-// Аккорд: у открытого числа стоит столько же флагов — открываем остальных соседей.
-// На мине останавливаемся сразу: ни раскрытия, ни «победы» поверх проигрыша.
-function chordCell(r, c) {
-  if (!canPlay() || !inBounds(r, c)) return;
-  const cell = G.board[r][c];
-  if (!cell.revealed || cell.mine || cell.neighborMines === 0) return;
-
-  let flagCount = 0;
-  const toOpen = [];
-  for (let dr = -1; dr <= 1; dr++) {
-    for (let dc = -1; dc <= 1; dc++) {
-      const nr = r + dr, nc = c + dc;
-      if (!(dr || dc) || !inBounds(nr, nc)) continue;
-      const n = G.board[nr][nc];
-      if (n.flagged) flagCount++;
-      else if (!n.revealed) toOpen.push([nr, nc]);
+    if (score > 0) {
+      stats.total.score += score;
+      try {
+        const api = window.parent && window.parent !== window && window.parent.PlatformAPI;
+        if (api && api.gameplay) Promise.resolve(api.gameplay.submitScore('minesweeper', score, Math.max(1, Math.round(score / 10)))).catch(() => {});
+      } catch (e) {}
     }
-  }
-  if (flagCount !== cell.neighborMines || !toOpen.length) return;
-
-  sfx.chord();
-  let hit = false;
-  for (const [nr, nc] of toOpen) {
-    if (flood(nr, nc)) { hit = true; break; }
-  }
-  if (!hit && ++G.chords >= 10) award('chord_pro');
-  afterReveal(hit);
-}
-
-function checkVictory() {
-  if (G.state !== 'play' || G.revealedCount !== G.rows * G.cols - G.mines) return;
-  G.elapsed = performance.now() - G.startTs;
-  G.accTime += G.elapsed; G.elapsed = 0;
-  G.accDefused += G.mines;
-  for (const row of G.board) for (const cell of row) if (cell.mine) cell.flagged = true;   // оставшиеся мины — под флаги
-  G.flagsCount = G.mines;
-  updateMinesHud();
-
-  if (G.mode === 'sprint') {
-    G.sprintCount++;
-    const target = MODES.sprint.sprintTarget;
-    if (G.sprintCount < target) {
-      // следующее поле — после короткой паузы и уже вне обработки текущего хода
-      G.state = 'clear';
-      sfx.chord(); vib([30, 30, 30]);
-      toast(`Поле ${G.sprintCount}/${target} пройдено!`, 'good', 1600);
-      G.sprintTimer = setTimeout(() => {
-        G.sprintTimer = 0;
-        if (currentScreen === 'game' && G.state === 'clear') newBoard();
-      }, 900);
-      return;
-    }
-  }
-  gameOver(true);
-}
-
-function gameOver(win) {
-  if (G.state === 'over' || G.state === 'victory') return;
-  // при победе checkVictory уже перенёс время поля в accTime (elapsed = 0) — второй раз не считаем
-  if (G.state === 'play' && !win) G.elapsed = performance.now() - G.startTs;
-  G.state = win ? 'victory' : 'over';
-  cancelPress();
-  const total = G.accTime + G.elapsed;
-  setSmiley(win ? '😎' : '😵');
-
-  let defused = G.accDefused, isNewBest = false;
-  if (!win) {
-    sfx.explode(); vib([80, 60, 80]); G.flashT = 1;
-    for (const row of G.board) for (const cell of row) if (cell.mine && cell.flagged) defused++;   // верные флаги
-  } else {
-    sfx.win(); vib([40, 40, 40, 100]);
-    const COLORS = ['#00e5ff', '#51f58b', '#ffd60a', '#ff4dd2', '#c77dff'];
-    for (let i = 0; i < 40; i++) {
-      G.particles.push({
-        x: playCv._w / 2, y: playCv._h / 2,
-        vx: (Math.random() - 0.5) * 8, vy: (Math.random() - 0.5) * 8,
-        life: 1, color: COLORS[Math.floor(Math.random() * COLORS.length)], s: 3 + Math.random() * 5
-      });
-    }
-
+    saveStats();
+    addHistory(true, total);
+    // достижения (кроме первой победы — без подсказок)
     award('first_win');
-    if (G.mode === 'easy') { award('master_easy'); if (total < 30000) award('fast_click'); }
-    if (G.mode === 'medium') award('master_medium');
-    if (G.mode === 'hard') award('master_hard');
-    if (G.mode === 'sprint') award('sprint_master');
-
-    const score = Math.max(10, Math.round(100000 / (total / 1000 + 1)));
-    if (!best[G.bestKey] || total < best[G.bestKey]) {
-      best[G.bestKey] = total; saveBest(); isNewBest = true;
+    const big = G.lv === 'medium' || G.lv === 'hard';
+    if (!G.hints) {
+      if (G.lv === 'easy') { award('master_easy'); if (total < 30000) award('fast_click'); }
+      if (G.lv === 'medium') award('master_medium');
+      if (G.lv === 'hard') { award('master_hard'); if (total < 200000) award('hard_200'); }
+      if (G.sprint) award('sprint_master');
+      if (G.ng && big) award('ng_win');
+      if (big && !G.usedFlags) award('nf_win');
+      if (big && clicks > 0 && bbbv / clicks >= 1) award('eff_100');
+      if (big && bbbv / (total / 1000) >= 2) award('rate_2');
+      if (G.lv === 'custom' && G.n >= 50 && density(G.w, G.h, G.n) >= 0.2 && bbbv >= 50) award('custom_dense');
     }
-    stats.wins++; stats.totalScore += score;
-
-    // Platform API submission
-    try {
-      if (window.parent && window.parent.PlatformAPI && window.parent.PlatformAPI.gameplay) {
-        Promise.resolve(window.parent.PlatformAPI.gameplay.submitScore('minesweeper', score, Math.round(score / 10))).catch(() => {});
-      }
-    } catch (e) {}
+    if (stats.total.defused >= 100) award('mines100');
+    checkGamesAch();
   }
+  lastBoard = { B: G.B, w: G.w, h: G.h, n: G.n, ng: G.ng, first: G.first };
+  store.del(KEYS.save);
+  fillOver(true, total, isBest, score, { bbbv, clicks, counted });
+  updateHud(); dirty = true;
+  overTimer = setTimeout(() => { overTimer = 0; if (screen === 'game' && G.state === 'won') openOv('ov-over'); }, 950);
+}
+function checkGamesAch() { if (stats.total.played >= 10) award('games10'); if (stats.total.played >= 50) award('games50'); }
 
-  stats.minesDefused += defused;
-  stats.games++; stats.playTime += Math.round(total / 1000); saveStats();
-  if (stats.games >= 10) award('games10');
-  if (stats.games >= 50) award('games50');
-  if (stats.minesDefused >= 100) award('mines100');
-
-  addHistory({ mode: G.mode, size: G.cols + '×' + G.rows, win, dur: Math.round(total) });
-  updateMenuBests(); updateMenuStats(); updateHud();
-  fillOver(win, total, isNewBest, defused);
-  G.dirty = true;
-
-  G.overTimer = setTimeout(() => {
-    G.overTimer = 0;
-    if (currentScreen === 'game' && (G.state === 'over' || G.state === 'victory')) openOverlay('overOverlay');
-  }, win ? 900 : 1100);
+function addHistory(isWin, dur) {
+  historyData.unshift({ id: Date.now().toString(36) + Math.random().toString(36).slice(2, 6), date: Date.now(), mode: G.lv, ng: G.ng, size: G.w + '×' + G.h, n: G.n, win: isWin, dur: Math.round(dur), b: G.bbbv + G.sprintBbbv, hints: G.hints });
+  if (historyData.length > 100) historyData.length = 100;
+  store.set(KEYS.hist, historyData);
 }
 
-function fillOver(win, total, isNewBest, defused) {
-  const h = $('#overTitle');
-  h.textContent = win ? 'ПОБЕДА!' : 'ИГРА ОКОНЧЕНА';
-  h.className = win ? 'win' : 'lose';
-  $('#overSubtitle').textContent = win
-    ? (G.mode === 'sprint' ? '⚡ Все поля забега пройдены!' : '🎉 Минное поле очищено!')
-    : '💥 Вы подорвались на мине';
-  $('#overNewBest').hidden = !isNewBest;
-  $('#overTime').textContent = fmtTimeMs(total);
-  const rows = [['Режим', `${MODES[G.mode].name} · ${G.cols}×${G.rows}`]];
-  if (G.mode === 'sprint') rows.push(['Пройдено полей', `${G.sprintCount} из ${MODES.sprint.sprintTarget}`]);
-  if (win) {
-    rows.push(['Рекорд', fmtTimeMs(best[G.bestKey])]);
+function fillOver(isWin, total, isBest, score, ex) {
+  const h = $('#over-title');
+  h.textContent = isWin ? 'ПОБЕДА!' : 'МИНА!';
+  h.className = isWin ? 'win' : 'lose';
+  $('#over-best').hidden = !isBest;
+  $('#over-time').textContent = fmtT1(total);
+  let sub;
+  if (isWin) sub = G.sprint ? '⚡ Все три поля забега пройдены!' : G.lv === 'daily' ? '📅 Сапёр дня решён!' : '🎉 Минное поле очищено!';
+  else sub = G.practice ? '💥 Мина (тренировка)' : '💥 Вы подорвались на мине';
+  if (G.practice && isWin) sub += ' Тренировка — без рекорда и очков.';
+  else if (isWin && G.hints) sub += ` С подсказками (${G.hints}) — без рекорда.`;
+  else if (isWin && G.lv === 'daily' && !score && ex && ex.counted) sub += ' Сегодня уже решён — очки не начисляются.';
+  $('#over-sub').textContent = sub;
+  const rows = [['Поле', `${levelName(G.lv)}${G.ng ? ' · без угадывания' : ''} · ${G.w}×${G.h} · ${G.n} ${plural(G.n, 'мина', 'мины', 'мин')}`]];
+  if (G.sprint) rows.push(['Пройдено полей', `${G.sprintCount + (isWin ? 1 : 0)} из 3`]);
+  if (isWin) {
+    const s = total / 1000;
+    rows.push(['3BV', `${ex.bbbv}`], ['3BV/с', (ex.bbbv / Math.max(0.1, s)).toFixed(2)], ['Щелчки', `${ex.clicks} · эффективность ${Math.round(ex.bbbv / Math.max(1, ex.clicks) * 100)}%`]);
+    const b = bestOf(G.key);
+    if (b) rows.push(['Рекорд', fmtT1(b)]);
+    if (score) rows.push(['Очки', '+' + fmt(score)]);
   } else {
-    rows.push(['Открыто', Math.min(100, Math.floor(G.revealedCount / (G.rows * G.cols - G.mines) * 100)) + '%']);
-    rows.push(['Мин под флагами', String(defused)]);
+    const safe = G.w * G.h - G.n;
+    rows.push(['Открыто', Math.min(100, Math.floor(G.opened / safe * 100)) + '%'], ['3BV поля', `${G.bbbv}`]);
+    let right = 0, wrong = 0;
+    for (let k = 0; k < G.w * G.h; k++) if (G.mark[k] === 1) { if (G.B.mine[k]) right++; else wrong++; }
+    rows.push(['Флаги', `верных ${right}${wrong ? ' · неверных ' + wrong : ''}`]);
   }
-  $('#overStats').innerHTML = rows.map(([k, v]) => `<div>${k}<b>${v}</b></div>`).join('');
+  $('#over-stats').innerHTML = rows.map(([k, v]) => `<div>${k}<b>${v}</b></div>`).join('');
+  $('#o-undo').hidden = isWin || !G.undo;
+  $('#o-replay').hidden = G.sprint;
+  $('#o-again').textContent = G.lv === 'daily' ? '🔄 Новое поле (Любитель)' : G.sprint ? '⚡ Новый забег' : '🔄 Новое поле';
 }
 
-/* ==================== 8. ШАПКА И ПОКАЗАТЕЛИ ==================== */
-function setSmiley(s) { $('#btnSmiley').textContent = s; }
-function updateMinesHud() { $('#hudMines').textContent = String(Math.max(0, G.mines - G.flagsCount)).padStart(3, '0'); }
-let lastTimerTxt = '';
-function updateHud() {
-  updateMinesHud();
-  lastTimerTxt = fmtTime(G.accTime + G.elapsed);
-  $('#hudTimer').textContent = lastTimerTxt;
-  const target = MODES.sprint.sprintTarget;
-  $('#gameTitle').textContent = G.mode === 'sprint'
-    ? `ЗАБЕГ · ПОЛЕ ${Math.min(G.sprintCount + 1, target)}/${target}`
-    : `${MODES[G.mode].name.toUpperCase()} · ${G.cols}×${G.rows}`;
-  $('#gameSub').textContent = 'РЕКОРД: ' + (best[G.bestKey] ? fmtTimeMs(best[G.bestKey]) : '—');
+/* ═══ Подсказка ═══ */
+function showHintInfo() {
+  if (!(G.state === 'play' || G.state === 'idle')) return;
+  if (G.hint) { doHint(); return; }               // второе нажатие — выполнить
+  if (G.state === 'idle') {
+    G.hint = { kind: 'start', cells: G.startCell >= 0 ? [G.startCell] : [], src: [] };
+    showHintBar(G.startCell >= 0 ? 'Начните с отмеченной клетки ✦ — она откроет область.' : 'Начните с любой клетки: первый ход всегда безопасен.', false);
+    dirty = true; return;
+  }
+  const h = MSE.hint(G.B, G.open, G.mark);
+  if (!h) {
+    // логикой не пройти — предложить безопасную клетку рядом с открытым
+    const N = G.w * G.h, cand = [];
+    for (let i = 0; i < N; i++) if (!G.open[i] && !G.B.mine[i] && G.mark[i] !== 1) { let edge = false; for (const j of G.B.nb[i]) if (G.open[j]) { edge = true; break; } if (edge) cand.push(i); }
+    if (!cand.length) for (let i = 0; i < N; i++) if (!G.open[i] && !G.B.mine[i]) cand.push(i);
+    const c = cand[Math.floor(Math.random() * cand.length)];
+    G.hint = { kind: 'guess', cells: [c], src: [] };
+    showHintBar('Логикой дальше не пройти — здесь нужно угадывать. <b>Подсвеченная клетка безопасна</b>: «Открыть» откроет её.', true);
+  } else {
+    G.hint = h;
+    showHintBar(explain(h), true);
+  }
+  G.hints++;                                // с подсказками — без рекорда (см. win)
+  sfx.hint();
+  ensureVisible(G.hint.cells.concat(G.hint.src));
+  updateHud(); saveSoon(); dirty = true;
 }
+function explain(h) {
+  const n = i => G.B.num[i];
+  const many = h.cells.length > 1;
+  if (h.kind === 'wrongflag') return `<b>Флаг стоит неверно.</b> ${ruleText(h, true)}`;
+  const what = h.kind === 'safe' ? (many ? '<b>Подсвеченные клетки безопасны</b>' : '<b>Подсвеченная клетка безопасна</b>') : (many ? '<b>Подсвеченные клетки — мины</b>' : '<b>Подсвеченная клетка — мина</b>');
+  return `${what}. ${ruleText(h, false)}`;
+}
+function ruleText(h) {
+  const src = h.src || [], a = src[0];
+  switch (h.rule) {
+    case 'zero': return `У числа ${G.B.num[a]} все ${G.B.num[a]} ${plural(G.B.num[a], 'мина', 'мины', 'мин')} уже известны — остальные его соседи пустые.`;
+    case 'full': return `У числа ${G.B.num[a]} закрытых соседей осталось ровно столько, сколько мин не хватает, — все они мины.`;
+    case 'pair': return 'Сравните два числа: у голубого мин осталось больше, чем у фиолетового, ровно на столько, сколько у голубого закрытых соседей, которых нет у фиолетового. Значит, эти соседи голубого — мины, а соседи фиолетового, которых нет у голубого, — пустые.';
+    case 'enum': return 'Переберите все расстановки мин вокруг подсвеченных чисел — в каждой эта клетка получается такой.';
+    case 'count': return 'Учтите счётчик мин: при всех расстановках вокруг чисел мин осталось ровно столько, что иначе не сходится.';
+  }
+  return '';
+}
+function showHintBar(html, canDo) {
+  $('#hint-text').innerHTML = html;
+  $('#hint-do').hidden = !canDo;
+  $('#hint-do').textContent = G.hint && (G.hint.kind === 'mine') ? '🚩 Поставить' : G.hint && G.hint.kind === 'wrongflag' ? 'Снять флаг' : 'Открыть';
+  $('#hint-bar').hidden = false;
+  queueLayout();
+}
+function hideHint() {
+  if (!G.hint) return;
+  G.hint = null; $('#hint-bar').hidden = true; dirty = true; queueLayout();
+}
+function doHint() {
+  const h = G.hint; if (!h) return;
+  if (h.kind === 'start') { hideHint(); if (G.startCell >= 0) act('open', G.startCell); return; }
+  hideHint();
+  if (h.kind === 'mine') { for (const c of h.cells) if (G.mark[c] !== 1) { G.mark[c] = 1; G.flags++; } sfx.flag(); updateHud(); saveSoon(); dirty = true; return; }
+  if (h.kind === 'wrongflag') { for (const c of h.cells) if (G.mark[c] === 1) { G.mark[c] = 0; G.flags--; } sfx.unflag(); updateHud(); saveSoon(); dirty = true; return; }
+  for (const c of h.cells) { if (G.state !== 'play') break; if (!G.open[c]) { if (G.mark[c] === 1) { G.mark[c] = 0; G.flags--; } openCell(c); } }
+}
+$('#btn-hint').addEventListener('click', () => { showHintInfo(); });
+$('#hint-do').addEventListener('click', () => doHint());
+$('#hint-x').addEventListener('click', () => hideHint());
 
-/* ==================== 9. ОТРИСОВКА (CANVAS 2D) ==================== */
-const FRAME = 16;   // рамка .ku-board: padding 7 + border 1 с каждой стороны
+/* ═══ HUD ═══ */
+function setSmiley(s) { $('#btn-new').textContent = s; }
+let hudKey = '';
+function updateHud(force) {
+  const left = G.n - G.flags, t = elapsedNow() + G.sprintAcc;
+  const tm = fmtT(t), title = G.sprint ? `ЗАБЕГ · ${Math.min(G.sprintCount + 1, 3)}/3` : G.lv === 'custom' ? `СВОЁ · ${G.w}×${G.h}` : levelName(G.lv).toUpperCase();
+  const key = [left, tm, title, G.key, G.hints].join('|');
+  if (!force && key === hudKey) return;
+  hudKey = key;
+  const m = $('#hud-mines');
+  m.textContent = left < 0 ? '−' + String(-left).padStart(2, '0') : String(left).padStart(3, '0');
+  m.classList.toggle('neg', left < 0);
+  $('#hud-time').textContent = tm;
+  $('#g-title').textContent = title;
+  const b = bestOf(G.key);
+  $('#g-sub').textContent = (G.ng ? '🧠 ' : '') + (G.practice ? 'ТРЕНИРОВКА' : 'РЕКОРД: ' + (b ? fmtT1(b) : '—')) + (G.hints ? ` · 💡${G.hints}` : '');
+}
+let inputMode = 'dig';
+function setInputMode(m) {
+  inputMode = m;
+  const f = m === 'flag', b = $('#btn-mode');
+  b.classList.toggle('flag', f); b.setAttribute('aria-pressed', String(f));
+  $('#mode-icon').textContent = f ? '🚩' : '⛏';
+  $('#mode-text').textContent = f ? 'ФЛАГ' : 'ОТКРЫТЬ';
+}
+$('#btn-mode').addEventListener('click', () => { setInputMode(inputMode === 'dig' ? 'flag' : 'dig'); sfx.click(); $('#game-hint').textContent = hintLine(); });
+const coarse = () => !!(window.matchMedia && matchMedia('(pointer: coarse)').matches);
+const hintLine = () => coarse()
+  ? (inputMode === 'flag' ? 'Тап — флаг · удержание — открыть · тап по числу — открыть соседей' : 'Тап — открыть · удержание — флаг · тап по числу — открыть соседей') + ' · щипок — масштаб'
+  : 'Клик — открыть · ПКМ — флаг · клик по числу — соседи · H — подсказка · P — пауза';
+
+/* ═══ Поле: размер, масштаб, отрисовка ═══ */
+const cv = $('#cv');
+let ctx = cv.getContext('2d'), dpr = 1, dirty = true;
+// view: cs — клетка; ox, oy — сдвиг поля внутри холста; cw, ch — холст; aw, ah — доступная область (холст по центру неё).
+// Холст по размеру поля, но не больше области: увеличенное поле прокручивается внутри.
+const view = { cs: 28, fit: 28, max: 44, ox: 0, oy: 0, cw: 0, ch: 0, aw: 0, ah: 0, zoomable: false };
+let layoutRaf = 0;
+const queueLayout = () => { cancelAnimationFrame(layoutRaf); layoutRaf = requestAnimationFrame(() => layout(false)); };
+const cx0 = () => (view.aw - view.cw) / 2, cy0 = () => (view.ah - view.ch) / 2;     // холст в координатах области
+function resizeCanvas() {
+  const cw = Math.max(1, Math.floor(Math.min(view.aw, G.w * view.cs))), ch = Math.max(1, Math.floor(Math.min(view.ah, G.h * view.cs)));
+  dpr = Math.min(2.5, window.devicePixelRatio || 1);
+  if (cw !== view.cw || ch !== view.ch || cv.width !== Math.round(cw * dpr)) {
+    view.cw = cw; view.ch = ch;
+    cv.style.width = cw + 'px'; cv.style.height = ch + 'px';
+    cv.width = Math.round(cw * dpr); cv.height = Math.round(ch * dpr);
+  }
+}
+function layout(reset) {
+  if (screen !== 'game') return;
+  const a = areaSize(); if (!a) return;
+  // сдвиг поля относительно области — сохранить при изменении размеров
+  const vox = view.ox + cx0(), voy = view.oy + cy0(), wasFit = view.cs <= view.fit + 0.01;
+  let aw = Math.floor(a.w), ah = Math.floor(a.h);
+  const comfy = coarse() ? 30 : 20;
+  let fit = clamp(Math.floor(Math.min(aw / G.w, ah / G.h)), 6, 48);
+  view.zoomable = fit < comfy;
+  view.zoomSide = false;
+  if (view.zoomable) {
+    // кнопкам масштаба — своё место, чтобы не закрывали клетки: снизу или справа (где поле теряет меньше)
+    const fitBelow = Math.floor(Math.min(aw / G.w, (ah - 48) / G.h)), fitSide = Math.floor(Math.min((aw - 54) / G.w, ah / G.h));
+    if (fitSide > fitBelow) { aw -= 54; view.zoomSide = true; } else ah -= 48;
+    fit = clamp(Math.floor(Math.min(aw / G.w, ah / G.h)), 6, 48);
+  }
+  const area = $('#board-area');
+  area.style.paddingBottom = view.zoomable && !view.zoomSide ? '48px' : '0';
+  area.style.paddingRight = view.zoomSide ? '54px' : '0';
+  view.aw = aw; view.ah = ah;
+  view.fit = fit; view.max = Math.max(fit, coarse() ? 46 : 40);
+  if (reset || !view.zoomable || wasFit) view.cs = fit;
+  view.cs = clamp(view.cs, view.fit, view.max);
+  resizeCanvas();
+  view.ox = vox - cx0(); view.oy = voy - cy0();
+  if (reset) { view.ox = (view.cw - G.w * view.cs) / 2; view.oy = (view.ch - G.h * view.cs) / 2; }
+  clampView();
+  placeZoomBar();
+  cv.classList.toggle('pan', view.zoomable && view.cs > view.fit);
+  dirty = true;
+}
+// кнопки масштаба — под правым нижним углом рамки поля, а если места нет — в углу области
+function placeZoomBar() {
+  const z = $('#zoom');
+  z.hidden = !view.zoomable;
+  if (!view.zoomable) return;
+  z.classList.toggle('side', !!view.zoomSide);
+  const left = cx0() + view.cw + 16, bottom = cy0() + view.ch + 16;        // правый и нижний край рамки поля
+  z.style.right = 'auto'; z.style.bottom = 'auto';
+  if (view.zoomSide) { z.style.left = (left + 8) + 'px'; z.style.top = Math.max(0, bottom - 126) + 'px'; }
+  else { z.style.left = Math.max(0, left - 126) + 'px'; z.style.top = (bottom + 6) + 'px'; }
+}
+window.addEventListener('resize', queueLayout);
+if (window.ResizeObserver) new ResizeObserver(queueLayout).observe($('#board-area'));
+function clampView() {
+  const bw = G.w * view.cs, bh = G.h * view.cs;
+  view.ox = bw <= view.cw ? (view.cw - bw) / 2 : clamp(view.ox, view.cw - bw, 0);
+  view.oy = bh <= view.ch ? (view.ch - bh) / 2 : clamp(view.oy, view.ch - bh, 0);
+}
+// точка экрана → координаты области (стабильны при изменении размера холста)
+function areaPt(clientX, clientY) { const r = $('#board-area').getBoundingClientRect(); return [clientX - r.left - 8, clientY - r.top - 8]; }
+// масштаб с опорной точкой (ax, ay) в координатах области: точка поля под ней остаётся на месте
+function setZoom(cs, ax, ay) {
+  if (!view.zoomable) return;
+  cs = clamp(cs, view.fit, view.max);
+  if (ax === undefined) { ax = view.aw / 2; ay = view.ah / 2; }
+  const vox = view.ox + cx0(), voy = view.oy + cy0();
+  const bx = (ax - vox) / view.cs, by = (ay - voy) / view.cs;
+  view.cs = cs;
+  resizeCanvas();
+  view.ox = ax - bx * cs - cx0(); view.oy = ay - by * cs - cy0();
+  clampView(); placeZoomBar();
+  cv.classList.toggle('pan', view.cs > view.fit);
+  dirty = true;
+}
+function centerOn(i) {
+  if (!view.zoomable) return;
+  const x = (i % G.w + 0.5) * view.cs, y = (Math.floor(i / G.w) + 0.5) * view.cs;
+  view.ox = view.cw / 2 - x; view.oy = view.ch / 2 - y; clampView(); dirty = true;
+}
+function ensureVisible(cells) {
+  if (!view.zoomable || !cells.length) return;
+  const vis = c => { const x = view.ox + (c % G.w) * view.cs, y = view.oy + Math.floor(c / G.w) * view.cs; return x >= -0.5 && y >= -0.5 && x + view.cs <= view.cw + 0.5 && y + view.cs <= view.ch + 0.5; };
+  if (!cells.every(vis)) centerOn(cells[0]);
+}
+$('#z-in').addEventListener('click', () => setZoom(view.cs * 1.25));
+$('#z-out').addEventListener('click', () => setZoom(view.cs / 1.25));
+$('#z-fit').addEventListener('click', () => setZoom(view.fit));
+
 const NUM_COLORS = ['', '#00e5ff', '#51f58b', '#ff5d7d', '#c77dff', '#ff9f43', '#5b8cff', '#ffd60a', '#eef2ff'];
-
-function applyBoardScale() {
-  const area = $('#boardArea');
-  if (!area.clientHeight || !G.board.length) return;   // экран игры скрыт
-  const maxW = area.clientWidth - FRAME, maxH = area.clientHeight - FRAME;
-  const cs = clamp(Math.floor(Math.min(maxW / G.cols, maxH / G.rows)), 12, 48);
-  pctx = setupCanvas(playCv, G.cols * cs, G.rows * cs);
-  playCv._cellSize = cs;
-  G.dirty = true;
-}
-
-// Закрытая ячейка — стеклянная плитка; hot — под курсором
-function drawClosed(ctx, x, y, s, r, hot) {
-  const g = ctx.createLinearGradient(0, y, 0, y + s);
+function rr(c, x, y, w, h, r) { r = Math.min(r, w / 2, h / 2); c.beginPath(); c.moveTo(x + r, y); c.arcTo(x + w, y, x + w, y + h, r); c.arcTo(x + w, y + h, x, y + h, r); c.arcTo(x, y + h, x, y, r); c.arcTo(x, y, x + w, y, r); c.closePath(); }
+function drawClosed(c, x, y, s, r, hot) {
+  const g = c.createLinearGradient(0, y, 0, y + s);
   g.addColorStop(0, hot ? 'rgba(255,255,255,.22)' : 'rgba(255,255,255,.13)');
   g.addColorStop(1, hot ? 'rgba(255,255,255,.08)' : 'rgba(255,255,255,.045)');
-  ctx.fillStyle = g; roundRect(ctx, x, y, s, s, r); ctx.fill();
-  ctx.fillStyle = 'rgba(255,255,255,.07)'; roundRect(ctx, x + s * .1, y + s * .08, s * .8, s * .3, r * .7); ctx.fill();
-  ctx.strokeStyle = hot ? THEME.accent : 'rgba(255,255,255,.12)'; ctx.lineWidth = 1;
-  roundRect(ctx, x + .5, y + .5, s - 1, s - 1, r); ctx.stroke();
+  c.fillStyle = g; rr(c, x, y, s, s, r); c.fill();
+  if (s > 9) { c.fillStyle = 'rgba(255,255,255,.07)'; rr(c, x + s * .1, y + s * .08, s * .8, s * .3, r * .7); c.fill(); }
+  c.strokeStyle = hot ? THEME.accent : 'rgba(255,255,255,.12)'; c.lineWidth = 1;
+  rr(c, x + .5, y + .5, s - 1, s - 1, r); c.stroke();
 }
-// Открытая ячейка — пустая клетка Тетриса; boom — мина, на которой подорвались
-function drawOpen(ctx, x, y, s, r, boom) {
-  ctx.fillStyle = boom ? 'rgba(255,93,125,.38)' : 'rgba(255,255,255,.035)';
-  roundRect(ctx, x, y, s, s, r); ctx.fill();
-  ctx.strokeStyle = boom ? '#ff5d7d' : 'rgba(255,255,255,.06)'; ctx.lineWidth = 1;
-  roundRect(ctx, x + .5, y + .5, s - 1, s - 1, r); ctx.stroke();
+function drawOpen(c, x, y, s, r, boom) {
+  c.fillStyle = boom ? 'rgba(255,93,125,.38)' : 'rgba(255,255,255,.035)';
+  rr(c, x, y, s, s, r); c.fill();
+  c.strokeStyle = boom ? '#ff5d7d' : 'rgba(255,255,255,.06)'; c.lineWidth = 1;
+  rr(c, x + .5, y + .5, s - 1, s - 1, r); c.stroke();
 }
-function drawNumber(ctx, x, y, s, n) {
-  const color = NUM_COLORS[n] || '#eef2ff';
-  ctx.save();
-  ctx.fillStyle = color; ctx.shadowColor = color; ctx.shadowBlur = Math.min(10, s * .3);
-  ctx.font = `${Math.round(s * .62)}px 'Russo One', 'Rubik', sans-serif`;
-  ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
-  ctx.fillText(n, x + s / 2, y + s / 2 + s * .04);
-  ctx.restore();
+function drawNumber(c, x, y, s, n) {
+  const col = NUM_COLORS[n] || '#eef2ff';
+  c.save(); c.fillStyle = col; c.shadowColor = col; c.shadowBlur = Math.min(10, s * .3);
+  c.font = `${Math.round(s * .62)}px 'Russo One', 'Rubik', sans-serif`; c.textAlign = 'center'; c.textBaseline = 'middle';
+  c.fillText(n, x + s / 2, y + s / 2 + s * .04); c.restore();
 }
-function drawMine(ctx, x, y, s) {
+function drawMine(c, x, y, s) {
   const cx = x + s / 2, cy = y + s / 2, R = s * .2;
-  ctx.save();
-  ctx.strokeStyle = '#ff5d7d'; ctx.lineWidth = Math.max(1.5, s * .07); ctx.lineCap = 'round';
-  ctx.shadowColor = '#ff5d7d'; ctx.shadowBlur = Math.min(12, s * .35);
-  for (let i = 0; i < 8; i++) {
-    const a = i * Math.PI / 4;
-    ctx.beginPath();
-    ctx.moveTo(cx + Math.cos(a) * R * .6, cy + Math.sin(a) * R * .6);
-    ctx.lineTo(cx + Math.cos(a) * R * 1.55, cy + Math.sin(a) * R * 1.55);
-    ctx.stroke();
-  }
-  const g = ctx.createRadialGradient(cx - R * .35, cy - R * .35, R * .1, cx, cy, R);
+  c.save(); c.strokeStyle = '#ff5d7d'; c.lineWidth = Math.max(1.2, s * .07); c.lineCap = 'round';
+  c.shadowColor = '#ff5d7d'; c.shadowBlur = Math.min(12, s * .35);
+  for (let i = 0; i < 8; i++) { const a = i * Math.PI / 4; c.beginPath(); c.moveTo(cx + Math.cos(a) * R * .6, cy + Math.sin(a) * R * .6); c.lineTo(cx + Math.cos(a) * R * 1.55, cy + Math.sin(a) * R * 1.55); c.stroke(); }
+  const g = c.createRadialGradient(cx - R * .35, cy - R * .35, R * .1, cx, cy, R);
   g.addColorStop(0, '#ffc2cf'); g.addColorStop(.45, '#ff5d7d'); g.addColorStop(1, '#a0183a');
-  ctx.fillStyle = g; ctx.beginPath(); ctx.arc(cx, cy, R, 0, Math.PI * 2); ctx.fill();
-  ctx.shadowBlur = 0; ctx.fillStyle = 'rgba(255,255,255,.85)';
-  ctx.beginPath(); ctx.arc(cx - R * .35, cy - R * .35, R * .22, 0, Math.PI * 2); ctx.fill();
-  ctx.restore();
+  c.fillStyle = g; c.beginPath(); c.arc(cx, cy, R, 0, Math.PI * 2); c.fill();
+  c.shadowBlur = 0; c.fillStyle = 'rgba(255,255,255,.85)'; c.beginPath(); c.arc(cx - R * .35, cy - R * .35, R * .22, 0, Math.PI * 2); c.fill();
+  c.restore();
 }
-// Флаг — цвет режима «флаг» (accent2 темы); wrong — ошибочный флаг после взрыва
-function drawFlag(ctx, x, y, s, wrong) {
-  const color = THEME.accent2, lw = Math.max(1.5, s * .07);
-  const px = x + s * .36, top = y + s * .2, bot = y + s * .8;
-  ctx.save();
-  if (wrong) ctx.globalAlpha = .45;
-  ctx.strokeStyle = '#eef2ff'; ctx.lineWidth = lw; ctx.lineCap = 'round';
-  ctx.beginPath(); ctx.moveTo(px, top); ctx.lineTo(px, bot); ctx.stroke();
-  ctx.beginPath(); ctx.moveTo(x + s * .24, bot); ctx.lineTo(x + s * .62, bot); ctx.stroke();
-  ctx.fillStyle = color; ctx.shadowColor = color; ctx.shadowBlur = Math.min(12, s * .35);
-  ctx.beginPath(); ctx.moveTo(px + lw / 2, top); ctx.lineTo(x + s * .8, y + s * .36); ctx.lineTo(px + lw / 2, y + s * .52); ctx.closePath(); ctx.fill();
-  ctx.restore();
-  if (wrong) {
-    const m = s * .22;
-    ctx.save();
-    ctx.strokeStyle = '#ffd60a'; ctx.lineWidth = Math.max(2, s * .09); ctx.lineCap = 'round';
-    ctx.shadowColor = '#ffd60a'; ctx.shadowBlur = 6;
-    ctx.beginPath();
-    ctx.moveTo(x + m, y + m); ctx.lineTo(x + s - m, y + s - m);
-    ctx.moveTo(x + s - m, y + m); ctx.lineTo(x + m, y + s - m);
-    ctx.stroke();
-    ctx.restore();
-  }
+function drawFlag(c, x, y, s, wrong) {
+  const col = THEME.accent2, lw = Math.max(1.2, s * .07), px = x + s * .36, top = y + s * .2, bot = y + s * .8;
+  c.save(); if (wrong) c.globalAlpha = .45;
+  c.strokeStyle = '#eef2ff'; c.lineWidth = lw; c.lineCap = 'round';
+  c.beginPath(); c.moveTo(px, top); c.lineTo(px, bot); c.stroke();
+  c.beginPath(); c.moveTo(x + s * .24, bot); c.lineTo(x + s * .62, bot); c.stroke();
+  c.fillStyle = col; c.shadowColor = col; c.shadowBlur = Math.min(12, s * .35);
+  c.beginPath(); c.moveTo(px + lw / 2, top); c.lineTo(x + s * .8, y + s * .36); c.lineTo(px + lw / 2, y + s * .52); c.closePath(); c.fill();
+  c.restore();
+  if (wrong) { const m = s * .22; c.save(); c.strokeStyle = '#ffd60a'; c.lineWidth = Math.max(2, s * .09); c.lineCap = 'round'; c.shadowColor = '#ffd60a'; c.shadowBlur = 6; c.beginPath(); c.moveTo(x + m, y + m); c.lineTo(x + s - m, y + s - m); c.moveTo(x + s - m, y + m); c.lineTo(x + m, y + s - m); c.stroke(); c.restore(); }
 }
+function drawQ(c, x, y, s) {
+  c.save(); c.fillStyle = '#ffd60a'; c.shadowColor = '#ffd60a'; c.shadowBlur = Math.min(8, s * .25);
+  c.font = `${Math.round(s * .6)}px 'Russo One', 'Rubik', sans-serif`; c.textAlign = 'center'; c.textBaseline = 'middle';
+  c.fillText('?', x + s / 2, y + s / 2 + s * .04); c.restore();
+}
+function drawStar(c, x, y, s, t) {
+  const cx = x + s / 2, cy = y + s / 2, R = s * .31;
+  c.save(); c.fillStyle = '#51f58b'; c.shadowColor = '#51f58b'; c.shadowBlur = Math.min(14, s * .45);
+  c.beginPath(); for (let k = 0; k < 8; k++) { const a = k * Math.PI / 4 - Math.PI / 2, rr2 = k % 2 ? R * .42 : R; c.lineTo(cx + Math.cos(a) * rr2, cy + Math.sin(a) * rr2); } c.closePath(); c.fill(); c.restore();
+}
+function ring(c, x, y, s, r, col, lw) { c.save(); c.strokeStyle = col; c.lineWidth = lw; c.shadowColor = col; c.shadowBlur = 10; rr(c, x + lw / 2, y + lw / 2, s - lw, s - lw, r); c.stroke(); c.restore(); }
 
-function renderBoard(now, dt) {
-  if (!pctx || !G.board.length) return;
-  const ctx = pctx, W = playCv._w, H = playCv._h, cs = playCv._cellSize || 28;
-  const k = dt / 16.67;
-  ctx.clearRect(0, 0, W, H);
-  ctx.fillStyle = 'rgba(4,6,22,.55)'; roundRect(ctx, 0, 0, W, H, 8); ctx.fill();
-
-  const gap = Math.max(1, Math.round(cs * .06)), s = cs - gap * 2, r = Math.max(2, s * .18);
-  const lost = G.state === 'over';
-  for (let row = 0; row < G.rows; row++) {
-    for (let col = 0; col < G.cols; col++) {
-      const cell = G.board[row][col], x = col * cs + gap, y = row * cs + gap;
-      if (cell.revealed || (lost && cell.mine && !cell.flagged)) {
-        drawOpen(ctx, x, y, s, r, !!(G.boom && G.boom.r === row && G.boom.c === col));
-        if (cell.mine) drawMine(ctx, x, y, s);
-        else if (cell.neighborMines) drawNumber(ctx, x, y, s, cell.neighborMines);
-        const t = now - cell.revealT;
-        if (cell.revealed && t < REVEAL_MS) {           // ячейка «тает» при открытии
-          ctx.globalAlpha = 1 - t / REVEAL_MS;
-          drawClosed(ctx, x, y, s, r, false);
-          ctx.globalAlpha = 1;
-        }
-      } else {
-        const pressed = !cell.flagged && G.pressCell && G.pressCell.r === row && G.pressCell.c === col;
-        if (pressed) drawOpen(ctx, x, y, s, r, false);
-        else drawClosed(ctx, x, y, s, r, canPlay() && G.hover === row * G.cols + col);
-        if (cell.flagged) drawFlag(ctx, x, y, s, lost && !cell.mine);
-      }
+let pressCells = null;      // клетки, нарисованные «нажатыми» (нажатие и соседи числа)
+let revealAt = 0;           // время последнего открытия клеток
+let hover = -1;
+function render(t, dt) {
+  const c = ctx, W = view.cw, H = view.ch, cs = view.cs;
+  c.setTransform(dpr, 0, 0, dpr, 0, 0);
+  c.clearRect(0, 0, W, H);
+  c.fillStyle = 'rgba(4,6,22,.55)'; rr(c, 0, 0, W, H, 8); c.fill();
+  if (!G.open) return;
+  const gap = Math.max(.5, Math.round(cs * .06)), s = cs - gap * 2, r = Math.max(1.5, s * .18);
+  const c0 = clamp(Math.floor(-view.ox / cs), 0, G.w), c1 = clamp(Math.ceil((W - view.ox) / cs), 0, G.w);
+  const r0 = clamp(Math.floor(-view.oy / cs), 0, G.h), r1 = clamp(Math.ceil((H - view.oy) / cs), 0, G.h);
+  const lost = G.state === 'over', B = G.B, tt = now();
+  const pressed = pressCells ? new Set(pressCells) : null;
+  for (let y = r0; y < r1; y++) for (let x = c0; x < c1; x++) {
+    const i = y * G.w + x, px = view.ox + x * cs + gap, py = view.oy + y * cs + gap;
+    if (G.open[i] || (lost && B && B.mine[i] && G.mark[i] !== 1)) {
+      drawOpen(c, px, py, s, r, i === G.boom);
+      if (B.mine[i]) drawMine(c, px, py, s);
+      else if (B.num[i] > 0) drawNumber(c, px, py, s, B.num[i]);
+      const age = tt - G.revT[i];
+      if (G.open[i] && age < REVEAL_MS) { c.globalAlpha = 1 - age / REVEAL_MS; drawClosed(c, px, py, s, r, false); c.globalAlpha = 1; }
+    } else {
+      const isP = pressed && pressed.has(i) && G.mark[i] !== 1;
+      if (isP) drawOpen(c, px, py, s, r, false);
+      else drawClosed(c, px, py, s, r, playable() && hover === i);
+      if (G.mark[i] === 1) drawFlag(c, px, py, s, lost && B && !B.mine[i]);
+      else if (G.mark[i] === 2) drawQ(c, px, py, s);
+      else if (i === G.startCell && G.state === 'idle') drawStar(c, px, py, s, t);
     }
   }
-
-  // Вспышка при взрыве
-  if (G.flashT > 0) {
-    ctx.fillStyle = `rgba(255, 93, 125, ${G.flashT * 0.35})`;
-    ctx.fillRect(0, 0, W, H);
-    G.flashT = Math.max(0, G.flashT - 0.03 * k);
+  // подсказка: числа-основания — голубые рамки, вывод — зелёные (безопасно) / красные (мина) / жёлтые (неверный флаг)
+  if (G.hint) {
+    const lw = Math.max(1.5, cs * .08);
+    (G.hint.src || []).forEach((i, k) => ring(c, view.ox + (i % G.w) * cs, view.oy + Math.floor(i / G.w) * cs, cs, r, k ? '#c77dff' : THEME.accent, lw));
+    const col = G.hint.kind === 'mine' ? '#ff5d7d' : G.hint.kind === 'wrongflag' ? '#ffd60a' : '#51f58b';
+    for (const i of G.hint.cells) ring(c, view.ox + (i % G.w) * cs, view.oy + Math.floor(i / G.w) * cs, cs, r, col, lw * 1.3);
   }
-
-  // Конфетти победы
-  for (let i = G.particles.length - 1; i >= 0; i--) {
-    const p = G.particles[i];
-    p.x += p.vx * k; p.y += p.vy * k; p.life -= 0.02 * k;
-    if (p.life <= 0) { G.particles.splice(i, 1); continue; }
-    ctx.fillStyle = p.color;
-    ctx.globalAlpha = p.life;
-    ctx.beginPath(); ctx.arc(p.x, p.y, p.s, 0, Math.PI * 2); ctx.fill();
+  // курсор клавиатуры
+  if (G.kbd && G.cursor >= 0 && playable()) ring(c, view.ox + (G.cursor % G.w) * cs, view.oy + Math.floor(G.cursor / G.w) * cs, cs, r, '#ffd60a', Math.max(1.5, cs * .08));
+  if (G.flashT > 0) { c.fillStyle = `rgba(255,93,125,${G.flashT * .35})`; c.fillRect(0, 0, W, H); G.flashT = Math.max(0, G.flashT - .03 * dt / 16.7); }
+  for (let k = G.particles.length - 1; k >= 0; k--) {
+    const p = G.particles[k], f = dt / 16.7;
+    p.x += p.vx * f; p.y += p.vy * f; p.life -= .02 * f;
+    if (p.life <= 0) { G.particles.splice(k, 1); continue; }
+    c.globalAlpha = p.life; c.fillStyle = p.color; c.beginPath(); c.arc(p.x, p.y, p.s, 0, Math.PI * 2); c.fill();
   }
-  ctx.globalAlpha = 1;
+  c.globalAlpha = 1;
 }
 
-/* ==================== 10. ВВОД ==================== */
-// Одно активное касание: тап — действие режима, удержание — противоположное (флаг ↔ открыть), ПКМ — флаг.
-let press = null;   // { id, r, c, x, y, timer, long }
+/* ═══ Ввод ═══ */
+const ptrs = new Map();
+let press = null, pinch = null, pan = null, longTimer = 0, lastPinchEnd = 0;
+function cancelInput() {
+  clearTimeout(longTimer); longTimer = 0;
+  press = null; pinch = null; pan = null; ptrs.clear();
+  if (pressCells) { pressCells = null; dirty = true; }
+}
+function cellAt(clientX, clientY) {
+  const rect = cv.getBoundingClientRect();
+  const x = (clientX - rect.left) * (view.cw / rect.width) - view.ox, y = (clientY - rect.top) * (view.ch / rect.height) - view.oy;
+  const cx = Math.floor(x / view.cs), cy = Math.floor(y / view.cs);
+  return cx >= 0 && cy >= 0 && cx < G.w && cy < G.h ? cy * G.w + cx : -1;
+}
+// какие клетки нарисовать нажатыми: закрытая клетка или закрытые соседи числа
+function pressSet(i, chordOnly) {
+  if (i < 0 || !playable()) return null;
+  if (G.open[i]) {
+    if (!G.B || G.B.num[i] <= 0 || !settings.chordPreview) return null;
+    const out = []; for (const j of G.B.nb[i]) if (!G.open[j] && G.mark[j] !== 1) out.push(j);
+    return out;
+  }
+  return chordOnly ? null : [i];
+}
+function setPress(list) { pressCells = list; dirty = true; }
 
-function cellAt(e) {
-  const rect = playCv.getBoundingClientRect();
-  const cs = playCv._cellSize || 28;
-  const x = (e.clientX - rect.left) * (playCv._w / rect.width);
-  const y = (e.clientY - rect.top) * (playCv._h / rect.height);
-  return { r: Math.floor(y / cs), c: Math.floor(x / cs) };
-}
-function cancelPress() {
-  if (press && press.timer) clearTimeout(press.timer);
-  press = null;
-  if (G.pressCell) { G.pressCell = null; G.dirty = true; }
-}
-function tapAction(r, c) {
-  const cell = G.board[r][c];
-  if (cell.revealed) chordCell(r, c);
-  else if (G.inputMode === 'flag') toggleFlag(r, c);
-  else openCell(r, c);
-}
-function longPressAction(r, c) {
-  if (!canPlay() || G.board[r][c].revealed) return;
-  if (G.inputMode === 'flag') openCell(r, c);
-  else toggleFlag(r, c);
-}
-
-playCv.addEventListener('pointerdown', e => {
-  if (!canPlay()) return;
-  if (e.pointerType === 'mouse' && e.button !== 0 && e.button !== 2) return;
-  const { r, c } = cellAt(e);
-  if (!inBounds(r, c)) return;
-  e.preventDefault();
-  try { window.focus(); } catch (_) {}               // preventDefault не даёт iframe взять фокус — клавиши P/R/F
-  if (e.button === 2) { if (!press) toggleFlag(r, c); return; }
-  if (press) return;                                  // второй палец не мешает первому
-  try { playCv.setPointerCapture(e.pointerId); } catch (_) {}
-  press = { id: e.pointerId, r, c, x: e.clientX, y: e.clientY, timer: 0, long: false };
-  press.timer = setTimeout(() => {
-    if (!press) return;
-    const p = press;
-    p.timer = 0; p.long = true;
-    if (G.pressCell) { G.pressCell = null; G.dirty = true; }
-    longPressAction(p.r, p.c);
-  }, LONG_PRESS_MS);
-  if (!G.board[r][c].revealed) { G.pressCell = { r, c }; G.dirty = true; }
-});
-
-playCv.addEventListener('pointermove', e => {
-  if (press && e.pointerId === press.id) {
-    if (!press.long && Math.hypot(e.clientX - press.x, e.clientY - press.y) > 10) cancelPress();
+// действие по клетке: open — тап/левая кнопка, flag — удержание/правая, chord — средняя/обе кнопки
+function act(kind, i) {
+  if (i < 0 || !playable()) return;
+  if (G.state === 'idle') {
+    if (kind === 'flag') { cycleMark(i); return; }
+    if (kind === 'chord') return;
+    if (G.mark[i] === 1) return;
+    firstMove(i); return;
+  }
+  if (G.open[i]) {
+    if (kind === 'chord' || (kind === 'open' && settings.chordClick) || kind === 'longnum') { if (!chord(i) && kind !== 'longnum') { /* число без нужного числа флагов — ничего */ } }
     return;
   }
-  if (e.pointerType === 'mouse') {
-    const { r, c } = cellAt(e);
-    const h = inBounds(r, c) ? r * G.cols + c : -1;
-    if (h !== G.hover) { G.hover = h; G.dirty = true; }
+  if (kind === 'flag') { cycleMark(i); return; }
+  if (kind === 'open') { if (G.mark[i] === 1) { sfx.nope(); return; } openCell(i); }
+}
+function tapKind() { return inputMode === 'flag' ? 'flag' : 'open'; }
+function longKind() { return inputMode === 'flag' ? 'open' : 'flag'; }
+
+cv.addEventListener('pointerdown', e => {
+  if (screen !== 'game' || anyOverlay()) return;
+  e.preventDefault();
+  try { window.focus(); cv.focus({ preventScroll: true }); } catch (_) {}
+  G.kbd = false;
+  try { cv.setPointerCapture(e.pointerId); } catch (_) {}
+  ptrs.set(e.pointerId, { x: e.clientX, y: e.clientY });
+  if (e.pointerType === 'touch' && ptrs.size === 2) {
+    // щипок: отменить начатое нажатие
+    clearTimeout(longTimer); longTimer = 0; press = null; setPress(null);
+    if (view.zoomable) { const [a, b] = [...ptrs.values()]; const [mx, my] = areaPt((a.x + b.x) / 2, (a.y + b.y) / 2); pinch = { d0: Math.hypot(a.x - b.x, a.y - b.y) || 1, cs0: view.cs, mx, my }; }
+    return;
   }
+  if (ptrs.size > 1 && e.pointerType === 'touch') return;
+  const i = cellAt(e.clientX, e.clientY);
+  if (e.pointerType === 'mouse') {
+    if (e.button === 2) {                               // правая: флаг сразу; с зажатой левой — «обе кнопки»
+      if (press && press.btn === 0) { press.both = true; setPress(pressSet(press.i, true)); return; }
+      act('flag', i); return;
+    }
+    if (e.button === 1) { press = { id: e.pointerId, i, btn: 1, x0: e.clientX, y0: e.clientY, both: true }; setPress(pressSet(i, true)); return; }
+    if (e.button !== 0) return;
+    press = { id: e.pointerId, i, btn: 0, x0: e.clientX, y0: e.clientY, both: (e.buttons & 2) === 2 };
+    setPress(pressSet(i, press.both));
+    return;
+  }
+  // палец (или перо): тап — действие режима, удержание — обратное
+  press = { id: e.pointerId, i, btn: 0, x0: e.clientX, y0: e.clientY, touch: true, long: false };
+  setPress(pressSet(i));
+  clearTimeout(longTimer);
+  longTimer = setTimeout(() => {
+    longTimer = 0;
+    if (!press || press.id !== e.pointerId || press.moved) return;
+    press.long = true; setPress(null);
+    if (press.i >= 0) { vib(25); act(G.open[press.i] ? 'longnum' : longKind(), press.i); }
+  }, LONG_MS);
 });
-
-playCv.addEventListener('pointerup', e => {
-  if (!press || e.pointerId !== press.id) return;
-  const p = press;
-  press = null;
-  if (G.pressCell) { G.pressCell = null; G.dirty = true; }
-  if (!p.timer) return;                               // удержание уже сработало
-  clearTimeout(p.timer);
-  if (canPlay()) tapAction(p.r, p.c);
+cv.addEventListener('pointermove', e => {
+  if (screen !== 'game') return;
+  const p = ptrs.get(e.pointerId);
+  if (p) { p.x = e.clientX; p.y = e.clientY; }
+  if (pinch && ptrs.size >= 2) {
+    const [a, b] = [...ptrs.values()];
+    const d = Math.hypot(a.x - b.x, a.y - b.y) || 1, [mx, my] = areaPt((a.x + b.x) / 2, (a.y + b.y) / 2);
+    setZoom(pinch.cs0 * d / pinch.d0, mx, my);
+    view.ox += mx - pinch.mx; view.oy += my - pinch.my; clampView();
+    pinch.mx = mx; pinch.my = my; pinch.cs0 = view.cs; pinch.d0 = d;
+    return;
+  }
+  if (pan && pan.id === e.pointerId) {
+    view.ox += e.clientX - pan.x; view.oy += e.clientY - pan.y; pan.x = e.clientX; pan.y = e.clientY;
+    clampView(); dirty = true; return;
+  }
+  if (e.pointerType === 'mouse' && (e.buttons & 3) === 3) {
+    if (press && press.id === e.pointerId) { if (!press.both) { press.both = true; setPress(pressSet(press.i, true)); } }
+    else if (!press && !pan && !anyOverlay()) { const i = cellAt(e.clientX, e.clientY); press = { id: e.pointerId, i, btn: 0, x0: e.clientX, y0: e.clientY, both: true }; setPress(pressSet(i, true)); }
+  }
+  if (press && press.id === e.pointerId) {
+    const moved = Math.hypot(e.clientX - press.x0, e.clientY - press.y0) > 9;
+    if (moved && !press.long && view.zoomable && view.cs > view.fit + 0.5 && !press.both) {
+      // перетаскивание — прокрутка увеличенного поля
+      clearTimeout(longTimer); longTimer = 0;
+      pan = { id: e.pointerId, x: e.clientX, y: e.clientY }; press = null; setPress(null); return;
+    }
+    if (press.touch) { if (moved && !press.long) { press.moved = true; clearTimeout(longTimer); longTimer = 0; setPress(null); } return; }
+    // мышь: нажатая клетка следует за курсором (как в классике)
+    const i = cellAt(e.clientX, e.clientY);
+    if (i !== press.i) { press.i = i; setPress(pressSet(i, press.both)); }
+    return;
+  }
+  if (e.pointerType === 'mouse' && !e.buttons) { const i = cellAt(e.clientX, e.clientY); if (i !== hover) { hover = i; dirty = true; } }
 });
-playCv.addEventListener('pointercancel', cancelPress);
-playCv.addEventListener('lostpointercapture', e => { if (press && e.pointerId === press.id) cancelPress(); });
-playCv.addEventListener('pointerleave', () => { if (G.hover !== -1) { G.hover = -1; G.dirty = true; } });
+function endPointer(e, cancelled) {
+  ptrs.delete(e.pointerId);
+  if (pinch) { if (ptrs.size < 2) { pinch = null; lastPinchEnd = now(); } press = null; setPress(null); return; }
+  if (pan && pan.id === e.pointerId) { pan = null; return; }
+  if (!press || press.id !== e.pointerId) return;
+  const p = press; press = null; setPress(null);
+  clearTimeout(longTimer); longTimer = 0;
+  if (cancelled || p.long || p.moved || now() - lastPinchEnd < 250) return;
+  if (p.touch) { act(G.open[p.i] ? 'open' : tapKind(), p.i); return; }
+  const i = cellAt(e.clientX, e.clientY);
+  if (p.both || p.btn === 1) { if (i >= 0 && G.open[i]) act('chord', i); return; }
+  act('open', i);
+}
+cv.addEventListener('pointerup', e => endPointer(e, false));
+cv.addEventListener('pointercancel', e => endPointer(e, true));
+cv.addEventListener('lostpointercapture', e => { if (ptrs.has(e.pointerId)) endPointer(e, true); });
+cv.addEventListener('pointerleave', () => { if (hover !== -1) { hover = -1; dirty = true; } });
+cv.addEventListener('wheel', e => {
+  if (!view.zoomable) return;
+  e.preventDefault();
+  const [x, y] = areaPt(e.clientX, e.clientY);
+  setZoom(view.cs * Math.pow(1.0015, -e.deltaY), x, y);
+}, { passive: false });
 $('#screen-game').addEventListener('contextmenu', e => e.preventDefault());
+$('#screen-game').addEventListener('click', e => { const b = e.target.closest('button'); if (b) setTimeout(() => { if (document.activeElement === b) b.blur(); }, 0); });
 
-function setInputMode(m) {
-  G.inputMode = m;
-  const flag = m === 'flag', btn = $('#btnModeToggle');
-  btn.classList.toggle('flag', flag);
-  btn.setAttribute('aria-pressed', String(flag));
-  $('#modeIcon').textContent = flag ? '🚩' : '🔨';
-  $('#modeText').textContent = flag ? 'ФЛАГ' : 'ОТКРЫТЬ';
-}
-$('#btnModeToggle').addEventListener('click', () => { setInputMode(G.inputMode === 'dig' ? 'flag' : 'dig'); sfx.click(); });
-
-// Смайлик — заново (в забеге — с первого поля)
-$('#btnSmiley').addEventListener('click', () => { sfx.click(); startGame(G.mode); });
-
-/* Пауза останавливает таймер; на паузе поле не принимает ходы */
-function pauseGame() {
-  if (currentScreen !== 'game' || !canPlay()) return;
-  if (G.state === 'play') G.elapsed = performance.now() - G.startTs;
-  G.pausedFrom = G.state;
-  G.state = 'paused';
-  cancelPress();
-  $('#pauseInfo').textContent = `${MODES[G.mode].name} · ${G.cols}×${G.rows} · ${fmtTime(G.accTime + G.elapsed)}`;
-  openOverlay('pauseOverlay');
-}
-function resumeGame() {
-  if (G.state !== 'paused') return;
-  G.state = G.pausedFrom;
-  if (G.state === 'play') G.startTs = performance.now() - G.elapsed;
-  closeOverlay('pauseOverlay');
-  G.dirty = true;
-}
-document.addEventListener('visibilitychange', () => {
-  if (document.hidden && currentScreen === 'game' && G.state === 'play') pauseGame();
-});
-
+/* ── Клавиатура ── */
 document.addEventListener('keydown', e => {
   if (e.ctrlKey || e.metaKey || e.altKey) return;
-  const modal = topModal();
-  if (modal) {
-    if (e.key === 'Escape') { e.preventDefault(); closeOverlay(modal.id); }
+  if (document.querySelector('.ku-dialog')) return;
+  const top = OVERLAYS.filter(isOpen).pop();
+  if (top) {
+    if (e.key === 'Escape') { e.preventDefault(); if (top === 'ov-pause') resume(); else if (top !== 'ov-over') closeOv(top); }
     return;
   }
-  if (currentScreen !== 'game') return;
-  if (e.code === 'KeyP' || e.key === 'Escape') { e.preventDefault(); G.state === 'paused' ? resumeGame() : pauseGame(); }
-  else if (e.code === 'KeyR' || e.key === 'F2') { e.preventDefault(); startGame(G.mode); }
-  else if (e.code === 'KeyF' && canPlay()) { e.preventDefault(); setInputMode(G.inputMode === 'dig' ? 'flag' : 'dig'); }
+  if (screen !== 'game') return;
+  const k = e.code;
+  if (k === 'KeyP' || k === 'Escape') { e.preventDefault(); pause(); return; }
+  if (k === 'KeyR' || k === 'F2') { e.preventDefault(); newBoardBtn(); return; }
+  if (k === 'KeyH') { e.preventDefault(); showHintInfo(); return; }
+  if (k === 'Equal' || k === 'NumpadAdd') { setZoom(view.cs * 1.25); return; }
+  if (k === 'Minus' || k === 'NumpadSubtract') { setZoom(view.cs / 1.25); return; }
+  if (k === 'Digit0' || k === 'Numpad0') { setZoom(view.fit); return; }
+  if (!playable()) return;
+  const mv = { ArrowLeft: [-1, 0], KeyA: [-1, 0], ArrowRight: [1, 0], KeyD: [1, 0], ArrowUp: [0, -1], KeyW: [0, -1], ArrowDown: [0, 1], KeyS: [0, 1] }[k];
+  if (mv) {
+    e.preventDefault();
+    if (!G.kbd || G.cursor < 0) { G.kbd = true; G.cursor = G.cursor >= 0 ? G.cursor : (G.startCell >= 0 ? G.startCell : Math.floor(G.h / 2) * G.w + Math.floor(G.w / 2)); }
+    else { const x = clamp(G.cursor % G.w + mv[0], 0, G.w - 1), y = clamp(Math.floor(G.cursor / G.w) + mv[1], 0, G.h - 1); G.cursor = y * G.w + x; }
+    ensureVisible([G.cursor]); dirty = true; return;
+  }
+  if (G.cursor < 0) return;
+  if (k === 'Space' || k === 'Enter' || k === 'NumpadEnter') { e.preventDefault(); G.kbd = true; act('open', G.cursor); }
+  else if (k === 'KeyF' || k === 'KeyX') { e.preventDefault(); G.kbd = true; act('flag', G.cursor); }
+  else if (k === 'KeyC') { G.kbd = true; act('chord', G.cursor); }
 });
+// режим касания: F без курсора на поле
+document.addEventListener('keydown', e => { if (screen === 'game' && !anyOverlay() && e.code === 'KeyM') { setInputMode(inputMode === 'dig' ? 'flag' : 'dig'); $('#game-hint').textContent = hintLine(); } });
 
-/* ==================== 11. МЕНЮ И МОДАЛКИ ==================== */
-function bestOr(key, fallback) { return best[key] ? fmtTimeMs(best[key]) : fallback; }
-function updateMenuBests() {
-  $('#menuBestEasy').textContent = 'Рекорд: ' + bestOr('easy', '—');
-  $('#menuBestMedium').textContent = best.medium ? 'Рекорд: ' + fmtTimeMs(best.medium) : sizeLabel('medium');
-  const hk = bestKeyFor('hard');
-  $('#menuBestHard').textContent = best[hk] ? 'Рекорд: ' + fmtTimeMs(best[hk]) : sizeLabel('hard');
-  $('#menuBestSprint').textContent = best.sprint ? 'Рекорд: ' + fmtTimeMs(best.sprint) : '3 поля подряд';
+/* ═══ Пауза ═══ */
+function pause() {
+  if (screen !== 'game' || anyOverlay()) return;
+  if (G.state === 'over' || G.state === 'won' || G.state === 'clear' || G.state === 'gen') { if (G.state === 'over' || G.state === 'won') openOv('ov-over'); return; }
+  if (G.state === 'play') G.elapsed = now() - G.startTs;
+  G.pausedFrom = G.state; G.state = 'paused';
+  cancelInput();
+  $('#pause-info').textContent = `${levelName(G.lv)}${G.ng ? ' · без угадывания' : ''} · ${G.w}×${G.h} · ${fmtT(G.elapsed + G.sprintAcc)}`;
+  openOv('ov-pause');
+  saveNow();
 }
-
-function updateMenuStats() {
-  const got = ACHIEVEMENTS.filter(a => unlocked[a.id]).length;
-  $('#menuStatsSummary').textContent =
-    `Сыграно игр: ${fmt(stats.games)} • Обезврежено мин: ${fmt(stats.minesDefused)} • Достижений: ${got}/${ACHIEVEMENTS.length}`;
+function resume() {
+  if (G.state !== 'paused') { $('#ov-pause').classList.remove('open'); return; }
+  G.state = G.pausedFrom;
+  if (G.state === 'play') G.startTs = now() - G.elapsed;
+  $('#ov-pause').classList.remove('open');
+  dirty = true;
 }
+document.addEventListener('visibilitychange', () => { if (document.hidden) { if (screen === 'game' && G.state === 'play') pause(); else saveNow(); } });
+window.addEventListener('pagehide', () => saveNow());
+$('#btn-pause').addEventListener('click', () => { sfx.click(); pause(); });
+$('#p-resume').addEventListener('click', () => { sfx.click(); resume(); });
+$('#p-new').addEventListener('click', async () => { sfx.click(); $('#ov-pause').classList.remove('open'); if (await confirmAbandon()) startGame(G.lv === 'daily' ? 'medium' : G.lv); else openOv('ov-pause'); });
+$('#p-rules').addEventListener('click', () => { returnTo = 'ov-pause'; $('#ov-pause').classList.remove('open'); openOv('ov-rules'); });
+$('#p-settings').addEventListener('click', () => { returnTo = 'ov-pause'; $('#ov-pause').classList.remove('open'); openSettings(); });
+$('#p-menu').addEventListener('click', () => { sfx.click(); saveNow(); toMenu(); });
+async function newBoardBtn() {
+  sfx.click();
+  if (G.state === 'paused') return;
+  if (!(await confirmAbandon())) return;
+  startGame(G.lv === 'daily' ? 'medium' : G.lv);
+}
+$('#btn-new').addEventListener('click', () => newBoardBtn());
+$('#o-again').addEventListener('click', () => { sfx.click(); $('#ov-over').classList.remove('open'); startGame(G.lv === 'daily' ? 'medium' : G.lv); });
+$('#o-replay').addEventListener('click', () => { sfx.click(); $('#ov-over').classList.remove('open'); if (lastBoard) startGame(G.lv, { replay: lastBoard }); });
+$('#o-view').addEventListener('click', () => { sfx.click(); $('#ov-over').classList.remove('open'); toast('Поле после партии · ⏸ — снова итоги', '', 1800); });
+$('#o-menu').addEventListener('click', () => { sfx.click(); toMenu(); });
+$('#o-undo').addEventListener('click', () => {
+  sfx.click();
+  const u = G.undo; if (!u || G.state !== 'over') return;
+  G.open = u.open; G.mark = u.mark; G.opened = u.opened; G.flags = u.flags; G.clicks = u.clicks; G.chords = u.chords;
+  G.undo = null; G.boom = -1; G.flashT = 0; G.practice = true;
+  G.state = 'play'; G.startTs = now() - G.elapsed;
+  setSmiley('😄'); $('#ov-over').classList.remove('open');
+  toast('Ход отменён — дальше тренировка (без рекорда)', '', 2000);
+  updateHud(true); saveSoon(); dirty = true;
+});
+function toMenu() { clearTimers(); cancelInput(); hideHint(); if (G.state === 'gen') G.state = 'idle'; showScreen('menu'); }
 
-function renderHistory() {
-  const container = $('#historyList');
-  if (!historyData.length) {
-    container.innerHTML = '<div class="empty">История игр пуста</div>';
+/* ═══ Сохранение партии ═══ */
+let saveT = 0;
+const saveSoon = () => { clearTimeout(saveT); saveT = setTimeout(saveNow, 400); };
+function saveNow() {
+  clearTimeout(saveT);
+  const st = G.state === 'paused' ? G.pausedFrom : G.state;
+  // забег между полями: сохранить пройденные поля и время
+  if (G.sprint && G.sprintCount > 0 && (st === 'idle' || st === 'clear') && screen === 'game') {
+    store.set(KEYS.save, { v: 1, lv: 'sprint', between: true, ng: G.ng, sc: G.sprintCount, sa: Math.round(G.sprintAcc), sb: G.sprintBbbv, scl: G.sprintClicks, hints: G.hints, practice: G.practice, at: Date.now() });
     return;
   }
-  container.innerHTML = historyData.slice(0, 50).map(h => {
-    const size = /^\d+×\d+$/.test(h.size || '') ? ' · ' + h.size : '';
-    return `
-    <div class="ach-item">
-      <div class="ach-icon">${h.win ? '🏆' : '💥'}</div>
-      <div class="ach-info">
-        <h4>${(MODES[h.mode] && MODES[h.mode].name) || '—'}${size} — ${h.win ? 'ПОБЕДА' : 'ПОРАЖЕНИЕ'}</h4>
-        <p>Время: ${fmtTimeMs(h.dur)} • ${new Date(h.date).toLocaleString('ru-RU')}</p>
-      </div>
-    </div>`;
-  }).join('');
+  if (st !== 'play' || !G.B) return;
+  const el = G.state === 'play' ? now() - G.startTs : G.elapsed;
+  const N = G.w * G.h, fl = new Uint8Array(N), q = new Uint8Array(N);
+  for (let i = 0; i < N; i++) { if (G.mark[i] === 1) fl[i] = 1; else if (G.mark[i] === 2) q[i] = 1; }
+  store.set(KEYS.save, { v: 1, lv: G.lv, ng: G.ng, daily: G.daily, w: G.w, h: G.h, n: G.n, mines: MSE.packBits(G.B.mine), open: MSE.packBits(G.open), fl: MSE.packBits(fl), q: MSE.packBits(q),
+    el: Math.round(el), clicks: G.clicks, chords: G.chords, hints: G.hints, practice: G.practice, replay: G.replay, first: G.first, usedFlags: G.usedFlags,
+    sc: G.sprintCount, sa: Math.round(G.sprintAcc), sb: G.sprintBbbv, scl: G.sprintClicks, at: Date.now() });
 }
-
-function renderAchievements() {
-  const got = ACHIEVEMENTS.filter(a => unlocked[a.id]).length;
-  $('#achCount').textContent = `${got}/${ACHIEVEMENTS.length}`;
-  $('#achList').innerHTML = ACHIEVEMENTS.map(a => {
-    const isUn = unlocked[a.id];
-    return `
-      <div class="ach-item ${isUn ? 'unlocked' : ''}">
-        <div class="ach-icon">${isUn ? a.icon : '🔒'}</div>
-        <div class="ach-info">
-          <h4>${a.title}</h4>
-          <p>${a.desc}${isUn ? ' • Получено: ' + new Date(isUn).toLocaleDateString('ru-RU') : ''}</p>
-        </div>
-      </div>`;
-  }).join('');
+function loadSave() {
+  const o = asObj(store.get(KEYS.save, null));
+  if (o.v !== 1 || !['easy', 'medium', 'hard', 'custom', 'daily', 'sprint'].includes(o.lv)) return null;
+  if (o.between) {
+    if (o.lv !== 'sprint' || !Number.isInteger(o.sc) || o.sc < 1 || o.sc > 2) return null;
+    return { o, between: true, op: 0 };
+  }
+  const L = MSE.LIMITS;
+  if (![o.w, o.h, o.n].every(Number.isInteger) || o.w < L.wMin || o.h < L.hMin || o.w > L.wMax || o.h > L.hMax || o.n < 1 || o.n > MSE.maxMines(o.w, o.h)) return null;
+  const N = o.w * o.h;
+  const mine = typeof o.mines === 'string' ? MSE.unpackBits(o.mines, N) : null, open = typeof o.open === 'string' ? MSE.unpackBits(o.open, N) : null;
+  const fl = typeof o.fl === 'string' ? MSE.unpackBits(o.fl, N) : null, q = typeof o.q === 'string' ? MSE.unpackBits(o.q, N) : null;
+  if (!mine || !open || !fl || !q) return null;
+  let n = 0, op = 0;
+  for (let i = 0; i < N; i++) { n += mine[i]; if (open[i]) { if (mine[i]) return null; op++; } }
+  if (n !== o.n || op === 0 || op >= N - n) return null;
+  return { o, mine, open, fl, q, op, stale: o.lv === 'daily' && o.daily !== dateKey(new Date()) };
 }
+// вчерашнее поле дня не продолжить — засчитать поражение и убрать
+function dropStaleSave() {
+  const s = loadSave();
+  if (s && s.stale) {
+    if (!s.o.practice && !s.o.replay) { const r = rec('daily'); r.g++; r.cur = 0; stats.total.games++; saveStats(); }
+    store.del(KEYS.save);
+  }
+}
+function resumeSave() {
+  const s = loadSave(); if (!s || s.stale) { dropStaleSave(); store.del(KEYS.save); refreshMenu(); return; }
+  const o = s.o;
+  if (s.between) {                                   // забег: следующее поле
+    G.sprintCount = o.sc; G.sprintAcc = Math.max(0, o.sa | 0); G.sprintBbbv = Math.max(0, o.sb | 0); G.sprintClicks = Math.max(0, o.scl | 0);
+    G.hints = Math.max(0, o.hints | 0); G.practice = !!o.practice;
+    const ng = settings.noGuess; settings.noGuess = !!o.ng;
+    startGame('sprint', { keepSprint: true });
+    settings.noGuess = ng;
+    return;
+  }
+  startGame(o.lv === 'sprint' ? 'sprint' : o.lv, { replay: { B: MSE.makeBoard(o.w, o.h, s.mine), w: o.w, h: o.h, n: o.n, ng: !!o.ng, first: -1 } });
+  G.lv = o.lv; G.sprint = o.lv === 'sprint'; G.daily = o.lv === 'daily' ? o.daily : ''; G.ng = !!o.ng; G.key = keyOf(o.lv, G.ng);
+  G.replay = !!o.replay; G.practice = !!o.practice; G.startCell = -1;
+  G.open = s.open; G.opened = s.op; G.flags = 0;
+  for (let i = 0; i < o.w * o.h; i++) { G.mark[i] = G.open[i] ? 0 : s.fl[i] ? 1 : s.q[i] ? 2 : 0; if (G.mark[i] === 1) G.flags++; }
+  G.first = Number.isInteger(o.first) ? o.first : -1;
+  G.clicks = o.clicks | 0; G.chords = o.chords | 0; G.hints = o.hints | 0; G.usedFlags = !!o.usedFlags;
+  G.sprintCount = clamp(o.sc | 0, 0, 2); G.sprintAcc = Math.max(0, o.sa | 0); G.sprintBbbv = Math.max(0, o.sb | 0); G.sprintClicks = Math.max(0, o.scl | 0);
+  G.bbbv = MSE.bbbv(G.B); G.elapsed = Math.max(0, o.el | 0);
+  G.state = 'paused'; G.pausedFrom = 'play';
+  updateHud(true); layout(true); dirty = true;
+  $('#pause-info').textContent = `${levelName(G.lv)}${G.ng ? ' · без угадывания' : ''} · ${G.w}×${G.h} · ${fmtT(G.elapsed + G.sprintAcc)}`;
+  openOv('ov-pause');
+}
+$('#btn-continue').addEventListener('click', () => { sfx.click(); resumeSave(); });
 
+/* ═══ Меню ═══ */
+function refreshMenu() {
+  const ng = settings.noGuess;
+  $$('#mode-seg button').forEach(b => b.classList.toggle('active', (b.dataset.ng === '1') === ng));
+  const lbl = (lv, def) => { const b = bestOf(keyOf(lv, ng)); return b ? 'Рекорд: ' + fmtT1(b) : def; };
+  $('#best-easy').textContent = lbl('easy', '10 мин');
+  $('#best-medium').textContent = lbl('medium', '16×16 · 40 мин');
+  $('#best-hard').textContent = lbl('hard', '30×16 · 99 мин');
+  const c = settings.custom;
+  $('#best-custom').textContent = `${c.w}×${c.h} · ${c.n} ${plural(c.n, 'мина', 'мины', 'мин')}` + (bestOf(keyOf('custom', ng && ngAllowed(c.w, c.h, c.n))) ? ' · рекорд ' + fmtT1(bestOf(keyOf('custom', ng && ngAllowed(c.w, c.h, c.n)))) : '');
+  $('#best-sprint').textContent = lbl('sprint', '3 поля подряд');
+  const td = dateKey(new Date());
+  $('#best-daily').textContent = daily.done[td] ? `✓ Сегодня: ${fmtT1(daily.done[td])}` + (dailyStreak() > 1 && daily.last === td ? ` · 🔥${dailyStreak()}` : '') : daily.att === td ? 'Попытка была — дальше тренировка' : (dailyStreak() > 0 ? `Серия 🔥${dailyStreak()} — не прервите` : '16×16 · одно на день');
+  dropStaleSave();
+  const s = loadSave();
+  $('#btn-continue').hidden = !s;
+  $('#btn-easy').classList.toggle('primary', !s); $('#btn-easy').classList.toggle('green', !!s);
+  if (s) $('#continue-sub').textContent = s.between ? `Забег · поле ${s.o.sc + 1} из 3 · ${fmtT(s.o.sa | 0)}` : `${levelName(s.o.lv)}${s.o.ng ? ' · без угадывания' : ''} · ${fmtT(s.o.el + (s.o.sa | 0))} · открыто ${Math.floor(s.op / (s.o.w * s.o.h - s.o.n) * 100)}%`;
+  const got = ACHIEVEMENTS.filter(a => unlocked[a.id]).length, T = stats.total;
+  $('#menu-stats').textContent = `Сыграно игр: ${fmt(T.games)} • Побед: ${fmt(T.wins)} • Достижений: ${got}/${ACHIEVEMENTS.length}`;
+  $('#menu-hint').innerHTML = coarse() ? 'Тап — открыть · удержание — флаг · тап по числу — открыть соседей<br>Большие поля: щипок — масштаб, палец — прокрутка' : 'Клик — открыть · ПКМ — флаг · клик по числу — открыть соседей<br>Клавиши: стрелки, пробел, F — флаг · H — подсказка · R — новое поле · P — пауза';
+}
+$$('#mode-seg button').forEach(b => b.addEventListener('click', () => { sfx.click(); settings.noGuess = b.dataset.ng === '1'; saveSettings(); refreshMenu(); }));
+async function startFromMenu(lv) {
+  sfx.click();
+  if (loadSave()) {
+    const ok = window.KuArcade && KuArcade.confirm ? await KuArcade.confirm('Начатая партия будет засчитана как поражение.', { title: 'НОВАЯ ИГРА?', ok: 'Начать', cancel: 'Отмена', danger: true }) : true;
+    if (!ok) return;
+    const s = loadSave(); if (s && !s.o.practice && !s.o.replay) { const r = rec(keyOf(s.o.lv, !!s.o.ng, s.between ? { w: 9, h: 9, n: 10 } : s.o)); r.g++; r.cur = 0; stats.total.games++; saveStats(); }
+    store.del(KEYS.save);
+  }
+  startGame(lv);
+}
+$('#btn-easy').addEventListener('click', () => startFromMenu('easy'));
+$('#btn-medium').addEventListener('click', () => startFromMenu('medium'));
+$('#btn-hard').addEventListener('click', () => startFromMenu('hard'));
+$('#btn-sprint').addEventListener('click', () => startFromMenu('sprint'));
+$('#btn-daily').addEventListener('click', () => startFromMenu('daily'));
+$('#btn-custom').addEventListener('click', () => { sfx.click(); renderCustom(); openOv('ov-custom'); });
+
+/* ── Своё поле ── */
+function renderCustom() {
+  const c = settings.custom, d = density(c.w, c.h, c.n);
+  $('#cu-w').textContent = c.w; $('#cu-h').textContent = c.h; $('#cu-n').textContent = c.n;
+  let info = `Плотность ${Math.round(d * 100)}% · клеток ${c.w * c.h} · максимум мин ${MSE.maxMines(c.w, c.h)}.`;
+  if (settings.noGuess) info += ngAllowed(c.w, c.h, c.n) ? ' Поле будет без угадывания.' : ` <b>Без угадывания — только до ${Math.round(ngLimit(c.w, c.h) * 100)}% мин</b> на таком поле: будет обычное поле.`;
+  else info += ' Режим: классика.';
+  $('#cu-info').innerHTML = info;
+}
+$$('[data-cu]').forEach(b => b.addEventListener('click', () => {
+  const c = settings.custom, k = b.dataset.cu, d = +b.dataset.d, L = MSE.LIMITS;
+  if (k === 'w') c.w = clamp(c.w + d, L.wMin, L.wMax);
+  if (k === 'h') c.h = clamp(c.h + d, L.hMin, L.hMax);
+  if (k === 'n') c.n = clamp(c.n + d, 1, MSE.maxMines(c.w, c.h));
+  c.n = clamp(c.n, 1, MSE.maxMines(c.w, c.h));
+  saveSettings(); renderCustom(); sfx.click();
+}));
+$$('[data-preset]').forEach(b => b.addEventListener('click', () => { const [w, h, n] = b.dataset.preset.split(',').map(Number); Object.assign(settings.custom, { w, h, n }); saveSettings(); renderCustom(); sfx.click(); }));
+$('#cu-play').addEventListener('click', () => { $('#ov-custom').classList.remove('open'); refreshMenu(); startFromMenu('custom'); });
+
+/* ── Статистика ── */
+let stTab = 'easy', stNg = false;
 function renderStats() {
-  const winRate = stats.games > 0 ? Math.round((stats.wins / stats.games) * 100) : 0;
-  const hk = bestKeyFor('hard');
-  const items = [
-    ['🎮', fmt(stats.games), 'Сыграно игр'],
-    ['🏆', fmt(stats.wins), 'Побед'],
-    ['📈', winRate + '%', 'Процент побед'],
-    ['💣', fmt(stats.minesDefused), 'Мин обезврежено'],
-    ['⏳', fmtTime(stats.playTime * 1000), 'Время в игре'],
-    ['🌱', bestOr('easy', '—'), 'Новичок'],
-    ['🌿', bestOr('medium', '—'), 'Любитель'],
-    ['🔥', bestOr(hk, '—'), hk === 'hardM' ? 'Профи 12×22' : 'Профи'],
-    ['⚡', bestOr('sprint', '—'), 'Забег']
-  ];
-  $('#statsGrid').innerHTML = items.map(i => `
-    <div class="st-card">
-      <div class="si">${i[0]}</div>
-      <div class="sv">${i[1]}</div>
-      <div class="sl">${i[2]}</div>
-    </div>`).join('');
+  $$('#st-tabs button').forEach(b => b.classList.toggle('active', b.dataset.k === stTab));
+  const modal = stTab !== 'daily';
+  $('#st-mode').hidden = !modal;
+  $$('#st-mode button').forEach(b => b.classList.toggle('active', (b.dataset.ng === '1') === stNg));
+  const k = stTab === 'daily' ? 'daily' : keyOf(stTab, stNg), r = stats.by[k] || blankRec();
+  const pct = r.g ? Math.round(r.w / r.g * 100) + '%' : '—';
+  const avg = r.w ? fmtT1(r.sumT / r.w) : '—';
+  const bestRate = r.times.reduce((m, x) => x.b ? Math.max(m, x.b / (x.t / 1000)) : m, 0);
+  const cards = [['Игр', fmt(r.g)], ['Побед', fmt(r.w)], ['% побед', pct], ['Серия', fmt(r.cur)], ['Лучшая серия', fmt(r.best)], ['Среднее время', avg], ['Лучшее 3BV/с', bestRate ? bestRate.toFixed(2) : '—']];
+  if (stTab === 'daily') cards.push(['Дней подряд', fmt(dailyStreak())], ['Рекорд серии', fmt(daily.best)]);
+  $('#st-grid').innerHTML = cards.map(([l, v]) => `<div class="st-card"><div class="sv">${v}</div><div class="sl">${l}</div></div>`).join('');
+  $('#st-times').innerHTML = r.times.length
+    ? r.times.map((x, q) => `<div><span>${q + 1}.</span><b>${fmtT1(x.t)}</b><span>${x.b ? '3BV ' + x.b + ' · ' + (x.b / (x.t / 1000)).toFixed(2) + '/с' : ''}${x.d ? ' · ' + new Date(x.d).toLocaleDateString('ru-RU') : ''}</span></div>`).join('')
+    : '<div class="empty">Побед пока нет</div>';
+  const T = stats.total;
+  $('#st-total').innerHTML = [['Игр', fmt(T.games)], ['Побед', fmt(T.wins)], ['% побед', T.games ? Math.round(T.wins / T.games * 100) + '%' : '—'], ['Мин обезврежено', fmt(T.defused)], ['Время в игре', fmtT(T.playTime * 1000)], ['Очки', fmt(T.score)]]
+    .map(([l, v]) => `<div class="st-card"><div class="sv">${v}</div><div class="sl">${l}</div></div>`).join('');
 }
+$$('#st-tabs button').forEach(b => b.addEventListener('click', () => { stTab = b.dataset.k; renderStats(); }));
+$$('#st-mode button').forEach(b => b.addEventListener('click', () => { stNg = b.dataset.ng === '1'; renderStats(); }));
+$('#btn-stats').addEventListener('click', () => { sfx.click(); stNg = settings.noGuess; renderStats(); openOv('ov-stats'); });
 
-function renderThemeGrid() {
-  const container = $('#themeGrid');
-  container.innerHTML = Object.keys(THEMES).map(k => {
-    const t = THEMES[k];
-    return `
-      <button type="button" class="theme-card ${settings.theme === k ? 'active' : ''}" data-theme="${k}">
-        ${t.name}
-        <div class="theme-swatches">
-          <span style="background:${t.accent}"></span>
-          <span style="background:${t.accent2}"></span>
-          <span style="background:${t.bg[0]}"></span>
-        </div>
-      </button>`;
+/* ── Достижения, история, правила ── */
+function renderAch() {
+  const got = ACHIEVEMENTS.filter(a => unlocked[a.id]).length;
+  $('#ach-count').textContent = `${got}/${ACHIEVEMENTS.length}`;
+  $('#ach-list').innerHTML = ACHIEVEMENTS.map(a => { const u = unlocked[a.id]; return `<div class="ach-item${u ? ' unlocked' : ''}"><div class="ach-icon">${u ? a.icon : '🔒'}</div><div class="ach-info"><h4>${a.title}</h4><p>${a.desc}${u ? ' • ' + new Date(u).toLocaleDateString('ru-RU') : ''}</p></div></div>`; }).join('');
+}
+const OLD_MODES = { easy: 'Новичок', medium: 'Любитель', hard: 'Профи', sprint: 'Забег', custom: 'Своё поле', daily: 'Сапёр дня' };
+function renderHistory() {
+  const box = $('#history-list');
+  if (!historyData.length) { box.innerHTML = '<div class="empty">История пуста</div>'; return; }
+  box.innerHTML = historyData.slice(0, 60).map(h => {
+    const size = /^\d+×\d+$/.test(h.size || '') ? ' · ' + h.size : '';
+    const num = v => Number.isFinite(v) && v > 0 ? Math.floor(v) : 0;
+    const extra = [num(h.b) ? '3BV ' + num(h.b) : '', num(h.hints) ? '💡' + num(h.hints) : '', h.ng === true ? '🧠' : ''].filter(Boolean).join(' · ');
+    const when = Number.isFinite(h.date) ? new Date(h.date).toLocaleString('ru-RU') : '';
+    return `<div class="ach-item"><div class="ach-icon">${h.win === true ? '🏆' : '💥'}</div><div class="ach-info"><h4>${Object.prototype.hasOwnProperty.call(OLD_MODES, h.mode) ? OLD_MODES[h.mode] : '—'}${size} — ${h.win === true ? 'ПОБЕДА' : 'ПОРАЖЕНИЕ'}</h4><p>${fmtT1(num(h.dur))}${extra ? ' • ' + extra : ''}${when ? ' • ' + when : ''}</p></div></div>`;
   }).join('');
-  container.querySelectorAll('.theme-card').forEach(c => c.addEventListener('click', () => {
-    sfx.click();
-    applyTheme(c.dataset.theme);
-    renderThemeGrid();
-  }));
 }
+$('#btn-ach').addEventListener('click', () => { sfx.click(); renderAch(); openOv('ov-ach'); });
+$('#btn-history').addEventListener('click', () => { sfx.click(); renderHistory(); openOv('ov-history'); });
+$('#btn-rules').addEventListener('click', () => { sfx.click(); openOv('ov-rules'); });
 
-function syncSettingsUI() {
-  $('#setSfx').checked = !!settings.sound;
-  $('#setVib').checked = !!settings.vibration;
-  $('#setSafeFirst').checked = !!settings.safeFirst;
+/* ── Настройки ── */
+function renderThemeGrid() {
+  const box = $('#theme-grid');
+  box.innerHTML = Object.keys(THEMES).map(k => { const t = THEMES[k]; return `<button type="button" class="theme-card${settings.theme === k ? ' active' : ''}" data-theme="${k}">${t.name}<div class="theme-swatches"><span style="background:${t.accent}"></span><span style="background:${t.accent2}"></span><span style="background:${t.bg[0]}"></span></div></button>`; }).join('');
+  box.querySelectorAll('.theme-card').forEach(b => b.addEventListener('click', () => { sfx.click(); applyTheme(b.dataset.theme); saveSettings(); renderThemeGrid(); }));
 }
-
-// Кнопки меню
-$('#btnPlayEasy').addEventListener('click', () => { sfx.click(); startGame('easy'); });
-$('#btnPlayMedium').addEventListener('click', () => { sfx.click(); startGame('medium'); });
-$('#btnPlayHard').addEventListener('click', () => { sfx.click(); startGame('hard'); });
-$('#btnPlaySprint').addEventListener('click', () => { sfx.click(); startGame('sprint'); });
-
-$('#btnHistory').addEventListener('click', () => { sfx.click(); renderHistory(); openOverlay('modalHistory'); });
-$('#btnAch').addEventListener('click', () => { sfx.click(); renderAchievements(); openOverlay('modalAch'); });
-$('#btnStats').addEventListener('click', () => { sfx.click(); renderStats(); openOverlay('modalStats'); });
-$('#btnSettings').addEventListener('click', () => { sfx.click(); syncSettingsUI(); renderThemeGrid(); openOverlay('modalSettings'); });
-
-// Пауза и конец игры
-$('#btnGamePause').addEventListener('click', () => { sfx.click(); G.state === 'paused' ? resumeGame() : pauseGame(); });
-$('#btnPauseResume').addEventListener('click', () => { sfx.click(); resumeGame(); });
-$('#btnPauseRestart').addEventListener('click', () => { sfx.click(); startGame(G.mode); });
-$('#btnPauseQuit').addEventListener('click', () => { sfx.click(); showScreen('menu'); });
-$('#btnOverRetry').addEventListener('click', () => { sfx.click(); startGame(G.mode); });
-$('#btnOverMenu').addEventListener('click', () => { sfx.click(); showScreen('menu'); });
-
-// Настройки
-$('#setSfx').addEventListener('change', e => { settings.sound = e.target.checked; saveSettings(); applyVolumes(); sfx.click(); });
-$('#setVib').addEventListener('change', e => { settings.vibration = e.target.checked; saveSettings(); vib(20); });
-$('#setSafeFirst').addEventListener('change', e => { settings.safeFirst = e.target.checked; saveSettings(); });
-
-// Экспорт: файл (если разрешено скачивание) или копирование текста
-function exportJSON() {
-  return JSON.stringify({
-    game: 'minesweeper', exported: new Date().toISOString(),
-    settings, best, stats, achievements: unlocked, history: historyData
-  }, null, 2);
+function openSettings() {
+  $$('#ov-settings input[data-opt]').forEach(el => { el.checked = !!settings[el.dataset.opt]; });
+  $$('#set-first button').forEach(b => b.classList.toggle('active', b.dataset.v === settings.firstMove));
+  renderThemeGrid(); openOv('ov-settings');
 }
-$('#btnExport').addEventListener('click', () => { sfx.click(); $('#exportText').value = exportJSON(); openOverlay('modalExport'); });
-$('#btnExportCopy').addEventListener('click', async () => {
-  const ta = $('#exportText');
-  let ok = false;
+$$('#ov-settings input[data-opt]').forEach(el => el.addEventListener('change', () => {
+  settings[el.dataset.opt] = el.checked; saveSettings();
+  if (el.dataset.opt === 'sound' && el.checked) sfx.click();
+  if (el.dataset.opt === 'vibration' && el.checked) vib(20);
+  if (el.dataset.opt === 'marks' && !el.checked && G.mark) { for (let i = 0; i < G.mark.length; i++) if (G.mark[i] === 2) G.mark[i] = 0; dirty = true; }
+}));
+$$('#set-first button').forEach(b => b.addEventListener('click', () => { settings.firstMove = b.dataset.v; saveSettings(); $$('#set-first button').forEach(x => x.classList.toggle('active', x === b)); sfx.click(); }));
+$('#btn-settings').addEventListener('click', () => { sfx.click(); openSettings(); });
+function exportJSON() { return JSON.stringify({ game: 'minesweeper', version: 2, exported: new Date().toISOString(), settings, stats, daily, achievements: unlocked, history: historyData }, null, 2); }
+$('#btn-export').addEventListener('click', () => { sfx.click(); $('#export-text').value = exportJSON(); openOv('ov-export'); });
+$('#export-copy').addEventListener('click', async () => {
+  const ta = $('#export-text'); let ok = false;
   try { await navigator.clipboard.writeText(ta.value); ok = true; } catch (e) {}
   if (!ok) { try { ta.focus(); ta.select(); ok = document.execCommand('copy'); } catch (e) {} }
   toast(ok ? '📋 Скопировано' : 'Выделите текст и скопируйте вручную', ok ? 'good' : 'bad');
 });
-$('#btnExportFile').addEventListener('click', () => {
+$('#export-file').addEventListener('click', () => {
   try {
-    const url = URL.createObjectURL(new Blob([$('#exportText').value], { type: 'application/json' }));
-    const a = document.createElement('a');
-    a.href = url; a.download = 'minesweeper-' + new Date().toISOString().slice(0, 10) + '.json';
-    document.body.appendChild(a); a.click(); a.remove();
-    setTimeout(() => URL.revokeObjectURL(url), 2000);
+    const url = URL.createObjectURL(new Blob([$('#export-text').value], { type: 'application/json' }));
+    const a = document.createElement('a'); a.href = url; a.download = 'minesweeper-' + dateKey(new Date()) + '.json';
+    document.body.appendChild(a); a.click(); a.remove(); setTimeout(() => URL.revokeObjectURL(url), 2000);
   } catch (e) { toast('Не удалось сохранить файл — скопируйте текст', 'bad'); }
 });
-
-// Сброс — только ключи Сапёра (сессия платформы и сейвы других игр не трогаются)
-$('#btnResetAll').addEventListener('click', async () => {
+$('#btn-reset').addEventListener('click', async () => {
   sfx.click();
-  const msg = 'Рекорды, статистика, история и достижения Сапёра будут удалены. Настройки и данные других игр не пострадают.';
-  const ok = window.KuArcade && KuArcade.confirm
-    ? await KuArcade.confirm(msg, { title: 'СБРОСИТЬ ПРОГРЕСС?', ok: '💣 Сбросить', cancel: 'Отмена', danger: true })
-    : window.confirm(msg);
+  const ok = window.KuArcade && KuArcade.confirm ? await KuArcade.confirm('Рекорды, статистика, история, достижения и сохранённая партия Сапёра будут удалены. Настройки останутся.', { title: 'СБРОСИТЬ ПРОГРЕСС?', ok: '💣 Сбросить', cancel: 'Отмена', danger: true }) : false;
   if (!ok) return;
   PROGRESS_KEYS.forEach(k => store.del(k));
-  best = Object.assign({}, DEF_BEST);
-  historyData = [];
-  unlocked = {};
-  stats = Object.assign({}, DEF_STATS);
-  updateMenuBests(); updateMenuStats();
-  toast('Прогресс Сапёра сброшен', 'good');
+  stats.total = { games: 0, wins: 0, defused: 0, playTime: 0, score: 0 }; stats.by = {};
+  unlocked = {}; historyData = []; daily.done = {}; daily.last = ''; daily.streak = 0; daily.best = 0; daily.att = '';
+  stats.total.played = 0;
+  saveStats();
+  refreshMenu(); toast('Прогресс Сапёра сброшен', 'good');
 });
 
-/* ==================== 12. ГЛАВНЫЙ ЦИКЛ ==================== */
-// Поле перерисовывается только при изменениях и во время анимаций
-let lastT = performance.now();
-function gameLoop(ts) {
-  requestAnimationFrame(gameLoop);
-  const dt = Math.min(50, Math.max(0, ts - lastT));
-  lastT = ts;
-  if (currentScreen !== 'game') return;
-
-  if (G.state === 'play') G.elapsed = performance.now() - G.startTs;
-  const tt = fmtTime(G.accTime + G.elapsed);
-  if (tt !== lastTimerTxt) { lastTimerTxt = tt; $('#hudTimer').textContent = tt; }
-
-  const now = performance.now();
-  if (G.dirty || G.particles.length || G.flashT > 0 || now < G.animUntil) {
-    G.dirty = false;
-    renderBoard(now, dt);
-  }
+/* ═══ Главный цикл: поле перерисовывается при изменениях и анимациях ═══ */
+let lastT = now();
+function loop(t) {
+  requestAnimationFrame(loop);
+  const dt = Math.min(50, Math.max(0, t - lastT)); lastT = t;
+  if (screen !== 'game') return;
+  if (G.state === 'play') updateHud();
+  const tt = now();
+  let anim = G.particles.length > 0 || G.flashT > 0;
+  if (tt - revealAt < REVEAL_MS + 30) anim = true;          // клетки «тают» при открытии
+  if (dirty || anim) { dirty = false; render(t / 1000, dt); }
 }
 
-let resizeT = 0;
-window.addEventListener('resize', () => {
-  clearTimeout(resizeT);
-  resizeT = setTimeout(() => {
-    if (currentScreen === 'game') applyBoardScale();
-    updateMenuBests();
-  }, 60);
-});
-if (document.fonts && document.fonts.load) {
-  document.fonts.load("16px 'Russo One'").then(() => { G.dirty = true; }).catch(() => {});
-}
-
-// Подсказка под полем — для мыши или для пальца
-if (window.matchMedia && matchMedia('(hover: hover) and (pointer: fine)').matches) {
-  $('#gameHint').textContent = 'Клик — открыть · ПКМ или удержание — флаг · клик по числу — аккорд · P — пауза';
-} else {
-  $('#gameHint').textContent = 'Тап — открыть · удержание — флаг (в режиме 🚩 — наоборот) · тап по числу — аккорд';
-}
-
-// Инициализация
+if (document.fonts && document.fonts.load) document.fonts.load("16px 'Russo One'").then(() => { dirty = true; }).catch(() => {});
 applyTheme(settings.theme);
-syncSettingsUI();
 setInputMode('dig');
-updateMenuBests();
-updateMenuStats();
-requestAnimationFrame(gameLoop);
+showScreen('menu');
+requestAnimationFrame(loop);
+
 </script>
 </body>
 </html>

@@ -154,12 +154,13 @@
     }).finally(function () { self.busy = false; });
   };
 
-  /** Новая партия в той же комнате. */
-  Session.prototype.reset = function (state, turn) {
+  /** Новая партия в той же комнате. round — раунд, который заканчиваем (по умолчанию текущий):
+   *  если соперник уже начал новый раунд, сервер вернёт его, а не начнёт ещё один. */
+  Session.prototype.reset = function (state, turn, round) {
     var self = this;
     if (!this.room) return Promise.reject(new Error('Нет комнаты'));
     this.busy = true;
-    return call('roomReset', { id: this.room.id, token: this.token, state: state, round: this.room.round, turn: turn || 0 })
+    return call('roomReset', { id: this.room.id, token: this.token, state: state, round: typeof round === 'number' ? round : this.room.round, turn: turn || 0 })
       .then(function (room) { self._apply(room); return room; })
       .finally(function () { self.busy = false; });
   };
@@ -272,7 +273,7 @@
 
   /**
    * Открыть лобби. opts:
-   *   game, title, initialState(): object, meta?: object (настройки партии, задаёт создатель),
+   *   game, title, initialState(): object | Promise<object>, meta?: object (настройки партии, задаёт создатель),
    *   onStart(sess), onClose()
    */
   function openLobby(opts) {
@@ -330,9 +331,17 @@
 
       btnCreate.onclick = function () {
         lock(true); setErr('');
-        sess.create(opts.initialState ? opts.initialState() : null, opts.meta || null)
-          .then(function (room) { renderWaiting(room); })
-          .catch(function (e) { setErr(e); lock(false); });
+        // initialState может вернуть Promise (например, игра готовит головоломку) — пока ждём, кнопка занята
+        var label = btnCreate.textContent;
+        btnCreate.textContent = 'Подготовка…';
+        Promise.resolve(opts.initialState ? opts.initialState() : null)
+          .then(function (state) { if (closed) throw null; return sess.create(state, opts.meta || null); })
+          .then(function (room) {
+            btnCreate.textContent = label;
+            if (closed) { sess.leave(); return; }
+            renderWaiting(room);
+          })
+          .catch(function (e) { btnCreate.textContent = label; if (closed || e === null) return; setErr(e); lock(false); });
       };
       var doJoin = function (code) {
         code = String(code || '').toUpperCase().trim();
