@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
-<title>Мячик</title>
+<title>Bounce Classic</title>
 <link rel="stylesheet" href="ku-arcade.css">
 <script src="ku-arcade.js"></script>
 <style>
@@ -14,18 +14,19 @@
   .bn-ico{display:inline-block;width:14px;height:14px;margin-right:6px;vertical-align:-2px;border-radius:50%;flex:none}
   .bn-ico.ring{border:2.5px solid var(--gold);border-radius:50%;width:9px;height:14px;box-shadow:0 0 6px rgba(255,214,10,.6)}
   .bn-ico.ball{background:radial-gradient(circle at 35% 35%,#ff9aab,#e0234e 60%,#7a0f2a);box-shadow:0 0 8px rgba(255,93,125,.7)}
-  .bn-ico.big{background:radial-gradient(circle at 35% 35%,#bcd7ff,#2f6bff 60%,#12307a);box-shadow:0 0 8px rgba(91,140,255,.7)}
+  .bn-ico.big{width:18px;height:18px;vertical-align:-4px;background:radial-gradient(circle at 35% 35%,#ff9aab,#d41c45 60%,#5e0a20);box-shadow:0 0 8px rgba(255,93,125,.7)}
   .bn-ico.water{border-radius:3px;background:linear-gradient(180deg,#78c8ff,rgba(40,120,255,.5))}
   .bn-ico.spike{border-radius:0;width:0;height:0;border-left:7px solid transparent;border-right:7px solid transparent;border-bottom:13px solid var(--gold);filter:drop-shadow(0 0 4px rgba(255,214,10,.7))}
   .bn-ico.check{border-radius:2px;width:10px;height:10px;transform:rotate(45deg);background:linear-gradient(135deg,#fff,var(--accent));box-shadow:0 0 8px rgba(0,229,255,.7);margin:0 8px 0 2px}
-  .bn-ico.spider{background:radial-gradient(circle,#2a0f3e 45%,#ff4dd2 47%);box-shadow:0 0 8px rgba(255,77,210,.7)}
-  .bn-ico.rubber{border-radius:3px;background:repeating-linear-gradient(180deg,#39d98a 0 3px,#0f7a52 3px 5px);box-shadow:0 0 6px rgba(81,245,139,.6)}
-  .bn-ico.pad-big{border-radius:8px 8px 2px 2px;background:#51f58b;box-shadow:0 0 6px rgba(81,245,139,.7)}
-  .bn-ico.pad-small{border-radius:8px 8px 2px 2px;background:#ff4dd2;box-shadow:0 0 6px rgba(255,77,210,.7)}
+  .bn-ico.jack{border-radius:2px;background:linear-gradient(#ff9f43,#ff9f43) center/100% 4px no-repeat,linear-gradient(#ff9f43,#ff9f43) center/4px 100% no-repeat,radial-gradient(circle,#d81b4a 28%,transparent 31%);transform:rotate(45deg);filter:drop-shadow(0 0 4px rgba(255,93,125,.8))}
+  .bn-ico.rubber{border-radius:3px;background:linear-gradient(180deg,#8fb8ff,#4f8dff 45%,#1c3aa6);box-shadow:0 0 6px rgba(91,140,255,.7)}
+  .bn-ico.pad-big{border-radius:0;background:radial-gradient(circle at 50% 30%,#ffd60a 0 3.5px,transparent 4px),linear-gradient(#51f58b,#51f58b) 50% 100%/5px 8px no-repeat;filter:drop-shadow(0 0 4px rgba(81,245,139,.8))}
+  .bn-ico.pad-small{border-radius:0;background:radial-gradient(circle at 50% 30%,#fff 0 3.5px,transparent 4px),linear-gradient(#ff4dd2,#ff4dd2) 50% 100%/5px 8px no-repeat;filter:drop-shadow(0 0 4px rgba(255,77,210,.8))}
+  .bn-ico.super{border-radius:2px;width:11px;height:14px;clip-path:polygon(50% 0,100% 32%,82% 100%,18% 100%,0 32%);background:linear-gradient(180deg,#f3e1ff,#c77dff 50%,#6a2bd9);box-shadow:0 0 8px rgba(199,125,255,.8)}
   .bn-ico.speed{border-radius:3px;background:var(--gold);box-shadow:0 0 6px rgba(255,214,10,.7)}
   .bn-ico.grav{border-radius:3px;background:var(--purple);box-shadow:0 0 6px rgba(199,125,255,.7)}
   .bn-ico.norm{border-radius:3px;background:var(--cyan);box-shadow:0 0 6px rgba(0,229,255,.7)}
-  .bn-ico.life{background:radial-gradient(circle at 35% 35%,#dff0ff,#5b8cff);box-shadow:0 0 8px rgba(91,140,255,.7)}
+  .bn-ico.life{background:radial-gradient(circle at 35% 35%,#fff,#bfe3ff 45%,#4f8dff);box-shadow:0 0 8px rgba(140,200,255,.8)}
   .bn-ico.door{border-radius:4px;width:10px;height:15px;background:linear-gradient(180deg,rgba(0,229,255,.8),rgba(255,77,210,.6));box-shadow:0 0 8px rgba(0,229,255,.6)}
 
   /* выбор уровня */
@@ -40,6 +41,9 @@
   .bn-lv.done{border-color:color-mix(in srgb,var(--accent) 45%,transparent);background:color-mix(in srgb,var(--accent) 8%,transparent)}
   .bn-lv.cur{border-color:var(--gold);box-shadow:0 0 16px rgba(255,214,10,.35)}
   .bn-lv:disabled{opacity:.32;cursor:default}
+  .bn-lv.secret{border-style:dashed;border-color:rgba(199,125,255,.55)}
+  .bn-lv.secret b{color:var(--purple);text-shadow:0 0 10px rgba(199,125,255,.6)}
+  .bn-lv.secret:disabled{opacity:.45}
   .bn-lv:not(:disabled):active{transform:scale(.95)}
   @media (hover:hover){.bn-lv:not(:disabled):hover{border-color:var(--accent)}}
 
@@ -54,8 +58,19 @@
   .bn-timer{position:absolute;left:50%;top:14px;transform:translateX(-50%);pointer-events:none;display:flex;gap:6px;z-index:2}
   .bn-timer span{font:400 11px/1 var(--font-display);letter-spacing:1px;padding:5px 9px;border-radius:999px;background:rgba(4,6,22,.7);border:1px solid var(--panel-border)}
   .bn-timer .sp{color:var(--gold);border-color:rgba(255,214,10,.5)} .bn-timer .gv{color:var(--purple);border-color:rgba(199,125,255,.5)}
+  .bn-timer .sj{color:var(--gold);border-color:rgba(199,125,255,.65);box-shadow:0 0 12px rgba(199,125,255,.35);font-size:13px;padding:6px 11px}
+  .bn-timer .sj.low{animation:bnBlink .5s steps(2,start) infinite}
+  @keyframes bnBlink{to{visibility:hidden}}
+  @media (prefers-reduced-motion:reduce){.bn-timer .sj.low{animation:none;color:var(--bad)}}
   /* с антигравитацией мяч у потолка — таймеры внизу поля, стрелка прыжка — вниз */
   .bn-timer.low{top:auto;bottom:14px}
+  /* подсказка уровня — плашка внизу поля */
+  .bn-hint{position:absolute;left:50%;bottom:14px;transform:translate(-50%,8px);max-width:min(90%,440px);width:max-content;pointer-events:none;z-index:3;
+    padding:9px 16px;border-radius:12px;background:rgba(6,9,28,.86);border:1px solid rgba(0,229,255,.35);color:var(--text);
+    font:500 13.5px/1.35 var(--font-body);text-align:center;opacity:0;transition:opacity .3s,transform .3s;box-shadow:0 6px 22px rgba(0,0,0,.45)}
+  .bn-hint.show{opacity:1;transform:translate(-50%,0)}
+  .bn-hint.gold{border-color:rgba(255,214,10,.6);color:#ffe38a} .bn-hint.good{border-color:rgba(81,245,139,.6);color:#a6ffc4}
+  .bn-hint.bad{border-color:rgba(255,93,125,.6);color:#ff9fb1}
   .bn-key.jump svg{transition:transform .25s}
   .bn-key.jump.inv svg{transform:rotate(180deg)}
 
@@ -91,14 +106,56 @@
   .bn-legend li{display:flex;align-items:flex-start;gap:4px}
   .bn-legend .bn-ico{margin-top:3px}
   .ku-card .note{font-size:12px;color:var(--muted);margin:2px 0 0;line-height:1.4}
-  /* низкий экран (альбом на телефоне): окна компактнее и прокручиваются */
+  /* окна паузы и конца уровня: название уровня — строкой (с многоточием), показатели — плитками
+     (значение в одну строку), кнопки — сеткой */
+  .ku-card.bn-end{gap:10px;padding:20px 18px;width:min(380px,100%)}
+  .bn-end h2{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-size:clamp(17px,5.2vw,24px);flex-shrink:0}
+  .ku-card p.bn-line{display:flex;flex-direction:column;align-items:center;gap:2px;min-width:0;white-space:nowrap;line-height:1.3}
+  .bn-lvname{font-family:var(--font-display);color:var(--text);font-size:15px;overflow:hidden;text-overflow:ellipsis;min-width:0;max-width:100%}
+  .bn-line .bn-sub{flex-shrink:0;font-size:13px}
+  .bn-win-top{display:flex;flex-direction:column;align-items:center;gap:4px}
+  .bn-win-top .ku-new-best{font-size:15px}
+  .bn-stats{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:6px}
+  .bn-stats div{display:flex;flex-direction:column;align-items:center;gap:1px;min-width:0;padding:6px 4px;border-radius:12px;
+    background:rgba(255,255,255,.04);border:1px solid var(--panel-border)}
+  .bn-stats span{font-size:10.5px;letter-spacing:.5px;text-transform:uppercase;color:var(--muted);white-space:nowrap;
+    overflow:hidden;text-overflow:ellipsis;max-width:100%;line-height:1.3}
+  .bn-stats b{font-family:var(--font-display);font-weight:400;font-size:16px;color:var(--text);white-space:nowrap;line-height:1.25}
+  .bn-end .note{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;flex-shrink:0}
+  .bn-acts{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px}
+  .bn-acts.two{grid-template-columns:repeat(2,minmax(0,1fr))}
+  .bn-acts .bn-wide{grid-column:1/-1}
+  .bn-acts.row{display:flex;flex-wrap:wrap}
+  .bn-acts.row .ku-btn{flex:1 1 0}
+  .bn-acts.row .bn-wide{flex-basis:100%}
+  .ku-card .bn-acts .ku-btn{min-width:0;padding-left:6px;padding-right:6px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  /* низкий экран (альбом на телефоне): окна компактнее — плашка целиком в экране без прокрутки */
   @media (max-height:560px){
-    .ku-overlay .ku-card{max-height:calc(100vh - 16px);max-height:calc(100dvh - 16px);overflow-y:auto;padding:14px 18px;gap:6px}
-    .ku-overlay .ku-card h2{font-size:20px;margin:0}
-    .stars{font-size:26px}
-    .ku-overlay .ku-big-score{font-size:30px}
-    .ku-overlay .ku-over-stats{display:grid;grid-template-columns:1fr 1fr;column-gap:14px}
-    .ku-overlay .ku-card .ku-btn{min-height:38px;padding-top:8px;padding-bottom:8px}
+    .ku-overlay .ku-card{max-height:calc(100vh - 16px);max-height:calc(100dvh - 16px);overflow-y:auto;padding:12px 16px;gap:6px}
+    .ku-overlay .ku-card h2{font-size:19px;margin:0}
+    .stars{font-size:24px;gap:8px}
+    .ku-overlay .ku-big-score{font-size:26px}
+    .bn-win-top{flex-direction:row;justify-content:center;gap:16px}
+    .bn-stats div{padding:4px}
+    .bn-stats b{font-size:15px}
+    .ku-overlay .ku-card .ku-btn{min-height:36px;padding-top:6px;padding-bottom:6px;font-size:14px}
+  }
+  /* низкий альбом: окно шире, кнопки итога — в один ряд; внутри платформы окно сбоку от кнопки «←» (она слева
+     вверху, 64×64), поэтому отступ не сверху, а по бокам — по высоте доступен весь экран */
+  @media (max-height:560px) and (min-aspect-ratio:1/1){
+    .ku-overlay{padding:8px 16px}
+    html.ku-embedded .ku-overlay{padding:8px 72px}
+    html.ku-embedded .ku-overlay .ku-card{max-height:calc(100vh - 16px);max-height:calc(100dvh - 16px)}
+    .ku-card.bn-end{width:min(620px,100%)}
+    .ku-card p.bn-line{flex-direction:row;justify-content:center;align-items:baseline;gap:8px}
+    .bn-line .bn-lvname + .bn-sub::before{content:'· '}
+    .bn-acts.row{flex-wrap:nowrap}
+    .bn-acts.row .bn-wide{flex-basis:0}
+  }
+  @media (max-height:560px) and (min-aspect-ratio:1/1) and (min-width:760px){
+    #win-stats{grid-template-columns:repeat(6,minmax(0,1fr))}
+    .bn-acts.two{grid-template-columns:repeat(3,minmax(0,1fr))}
+    .bn-acts.two .bn-wide:not(.primary){grid-column:auto}
   }
 </style>
 </head>
@@ -107,17 +164,18 @@
 
   <!-- ═══ МЕНЮ ═══ -->
   <section id="screen-menu" class="ku-screen menu active">
-    <h1 class="ku-logo">МЯЧИК</h1>
-    <p class="ku-tagline">Прыжки • Кольца • 12 уровней</p>
+    <h1 class="ku-logo sm">BOUNCE CLASSIC</h1>
+    <p class="ku-tagline">Как на Nokia • 11 уровней</p>
     <div class="ku-pills">
       <span><i class="bn-ico ring"></i>Кольца</span>
       <span><i class="bn-ico water"></i>Вода</span>
-      <span><i class="bn-ico big"></i>Большой мяч</span>
-      <span><i class="bn-ico spider"></i>Пауки</span>
+      <span><i class="bn-ico pad-big"></i>Насос</span>
+      <span><i class="bn-ico jack"></i>Джеки</span>
+      <span><i class="bn-ico super"></i>Супер-прыжок</span>
     </div>
     <div class="ku-menu-btns">
       <button class="ku-btn big primary" id="btn-play">▶ Играть<span class="best" id="best-play">Уровень 1</span></button>
-      <button class="ku-btn big accent2" id="btn-levels">🗺 Уровни<span class="best" id="best-levels">★ 0 / 36</span></button>
+      <button class="ku-btn big accent2" id="btn-levels">🗺 Уровни<span class="best" id="best-levels">★ 0 / 33</span></button>
     </div>
     <div class="ku-menu-row">
       <button class="ku-btn ghost" id="btn-rules">📖 Правила</button>
@@ -131,7 +189,7 @@
   <section id="screen-game" class="ku-screen fit">
     <header class="ku-top">
       <div class="ku-top-left"></div>
-      <div class="ku-top-title"><div class="t" id="g-title">ПЕРВЫЕ ПРЫЖКИ</div><div class="s" id="g-sub">УРОВЕНЬ 1 / 12</div></div>
+      <div class="ku-top-title"><div class="t" id="g-title">ПЕРВЫЕ ШАГИ</div><div class="s" id="g-sub">УРОВЕНЬ 1 / 11</div></div>
       <div class="ku-top-actions">
         <button class="ku-btn icon" id="btn-pause" aria-label="Пауза"><svg viewBox="0 0 24 24"><line x1="9" y1="5" x2="9" y2="19"/><line x1="15" y1="5" x2="15" y2="19"/></svg></button>
       </div>
@@ -144,7 +202,7 @@
         <div class="ku-stat c2"><span>Время</span><b id="hud-time">0:00</b></div>
       </div>
       <div id="stage">
-        <div class="ku-board" id="board"><canvas id="cv" aria-label="Игровое поле"></canvas></div>
+        <div class="ku-board" id="board"><canvas id="cv" aria-label="Игровое поле"></canvas><div class="bn-hint" id="hint" role="status" aria-live="polite"></div></div>
         <div class="bn-timer" id="timers"></div>
       </div>
       <div id="ctl">
@@ -164,49 +222,60 @@
     <header><h2>🗺 Уровни</h2><button class="ku-btn icon" id="levels-x" aria-label="Закрыть">✕</button></header>
     <div class="ku-body">
       <div class="bn-levels" id="levels-grid"></div>
-      <p class="ku-menu-hint" style="margin-top:12px">★ — пройден, ★★ — не больше одной потерянной жизни, ★★★ — без потерь и не дольше норматива. Следующий уровень открывается после прохождения.</p>
+      <p class="ku-menu-hint" style="margin-top:12px">★ — пройден, ★★ — не больше одной потерянной жизни, ★★★ — без потерь и не дольше норматива. Следующий уровень открывается после прохождения; 11-й — секретный, открывается после 10-го.</p>
     </div>
   </div>
 </div>
 
 <!-- ═══ ПАУЗА ═══ -->
 <div class="ku-overlay" id="ov-pause">
-  <div class="ku-card" role="dialog" aria-modal="true">
+  <div class="ku-card bn-end" role="dialog" aria-modal="true">
     <h2>⏸ ПАУЗА</h2>
-    <p id="pause-sub"></p>
-    <button class="ku-btn primary" id="btn-resume">Продолжить</button>
-    <button class="ku-btn" id="btn-restart">🔄 Уровень заново</button>
-    <button class="ku-btn" id="btn-pause-levels">🗺 Уровни</button>
-    <button class="ku-btn" id="btn-pause-settings">⚙️ Настройки</button>
-    <button class="ku-btn" id="btn-pause-rules">📖 Правила</button>
-    <button class="ku-btn ghost" id="btn-quit">В меню</button>
+    <p class="bn-line"><span class="bn-lvname" id="pause-level"></span><span class="bn-sub" id="pause-sub"></span></p>
+    <div class="bn-acts two">
+      <button class="ku-btn primary bn-wide" id="btn-resume">▶ Продолжить</button>
+      <button class="ku-btn" id="btn-restart">🔄 Заново</button>
+      <button class="ku-btn" id="btn-pause-levels">🗺 Уровни</button>
+      <button class="ku-btn bn-wide" id="btn-pop" title="Если мяч застрял: минус жизнь, возврат к последнему кристаллу">💥 К кристаллу (−1 ♥)</button>
+      <button class="ku-btn" id="btn-pause-settings">⚙️ Настройки</button>
+      <button class="ku-btn" id="btn-pause-rules">📖 Правила</button>
+      <button class="ku-btn ghost bn-wide" id="btn-quit">В меню</button>
+    </div>
   </div>
 </div>
 
 <!-- ═══ УРОВЕНЬ ПРОЙДЕН ═══ -->
 <div class="ku-overlay" id="ov-win">
-  <div class="ku-card" role="dialog" aria-modal="true">
+  <div class="ku-card bn-end" role="dialog" aria-modal="true">
     <h2 class="win" id="win-title">УРОВЕНЬ ПРОЙДЕН!</h2>
-    <div class="stars" id="win-stars"><span>★</span><span>★</span><span>★</span></div>
-    <div class="ku-new-best" id="win-best" hidden>🏆 НОВЫЙ РЕКОРД!</div>
-    <div class="ku-big-score" id="win-score">0</div>
-    <div class="ku-over-stats" id="win-stats"></div>
+    <p class="bn-line"><span class="bn-lvname" id="win-level"></span></p>
+    <div class="bn-win-top">
+      <div class="stars" id="win-stars"><span>★</span><span>★</span><span>★</span></div>
+      <div class="ku-big-score" id="win-score">0</div>
+      <div class="ku-new-best" id="win-best" hidden>🏆 РЕКОРД!</div>
+    </div>
+    <div class="bn-stats" id="win-stats"></div>
     <p class="note" id="win-note" hidden></p>
-    <button class="ku-btn primary" id="win-next">Следующий уровень →</button>
-    <button class="ku-btn" id="win-again">🔄 Ещё раз</button>
-    <button class="ku-btn ghost" id="win-menu">В меню</button>
+    <div class="bn-acts row">
+      <button class="ku-btn primary bn-wide" id="win-next">Дальше →</button>
+      <button class="ku-btn" id="win-again">Ещё раз</button>
+      <button class="ku-btn" id="win-levels">Уровни</button>
+      <button class="ku-btn ghost" id="win-menu">В меню</button>
+    </div>
   </div>
 </div>
 
 <!-- ═══ ЖИЗНИ КОНЧИЛИСЬ ═══ -->
 <div class="ku-overlay" id="ov-over">
-  <div class="ku-card" role="dialog" aria-modal="true">
+  <div class="ku-card bn-end" role="dialog" aria-modal="true">
     <h2 class="lose">МЯЧ ЛОПНУЛ</h2>
-    <p id="over-sub">Жизни кончились</p>
-    <div class="ku-over-stats" id="over-stats"></div>
-    <button class="ku-btn primary" id="over-retry">🔄 Уровень заново</button>
-    <button class="ku-btn" id="over-levels">🗺 Уровни</button>
-    <button class="ku-btn ghost" id="over-menu">В меню</button>
+    <p class="bn-line"><span class="bn-lvname" id="over-level"></span><span class="bn-sub" id="over-sub">жизни кончились</span></p>
+    <div class="bn-stats" id="over-stats"></div>
+    <div class="bn-acts row">
+      <button class="ku-btn primary bn-wide" id="over-retry">🔄 Заново</button>
+      <button class="ku-btn" id="over-levels">Уровни</button>
+      <button class="ku-btn ghost" id="over-menu">В меню</button>
+    </div>
   </div>
 </div>
 
@@ -217,33 +286,39 @@
     <div class="ku-body">
       <h3>Цель</h3>
       <ul class="ku-rules">
-        <li>Проведите мяч через <b>все кольца</b> уровня — тогда откроется <b>выход</b>. Сколько колец осталось, видно на двери и вверху экрана.</li>
-        <li>На уровень даётся <b>3 жизни</b> (найденные голубые шарики добавляют, до 5). Мяч лопается от шипов и пауков; после этого он появляется на последней взятой контрольной точке.</li>
+        <li>Проведите красный мяч через <b>все жёлтые кольца</b> уровня — тогда <b>дверь-портал</b> откроется и замерцает. Сколько колец осталось, видно на двери и вверху экрана.</li>
+        <li>На уровень <b>3 жизни</b> (кристальные шары добавляют, до 5). Мяч лопается от игл и джеков и возвращается к последнему взятому кристаллу — того же размера, каким был у кристалла.</li>
+        <li>Пропустили кольцо — за ним можно вернуться: насосы, сдуватели и кристаллы супер-прыжка срабатывают снова, тупиков на уровнях нет.</li>
+        <li>11 уровней, как в оригинальной Bounce с телефонов Nokia (карты — свои). <b>11-й — секретный</b>: открывается после 10-го.</li>
       </ul>
       <h3>Управление</h3>
       <ul class="ku-rules">
-        <li><b>← →</b> — катиться, <b>↑ / пробел</b> — прыжок. Держите прыжок — мяч прыгает снова при каждом касании, в воздухе им можно чуть подруливать.</li>
-        <li>На телефоне — кнопки внизу экрана (в настройках: крупнее, прыжок слева).</li>
+        <li><b>← →</b> — катиться, <b>↑ / пробел</b> — прыжок. Держите прыжок — мяч прыгает снова при каждом касании; в воздухе им можно подруливать.</li>
+        <li>На телефоне — кнопки внизу экрана (в настройках: крупнее, прыжок слева). <b>P / Esc</b> — пауза.</li>
+        <li>Застряли? В паузе — «К кристаллу» (минус жизнь, мяч вернётся к последнему кристаллу).</li>
+      </ul>
+      <h3>Размер мяча</h3>
+      <ul class="ku-rules">
+        <li><b>Маленький</b> прыгает высоко (через стенку в 2 клетки), пролезает в трубы шириной в клетку, в воде <b>тонет</b> (из мелкой воды выпрыгнет, из глубокой — только с насосом).</li>
+        <li><b>Большой</b> прыгает ниже (на ступеньку в 1 клетку), в узкие ходы не пролезает, зато <b>плавает</b>, выпрыгивает из воды на берег и катится над узкими ямками.</li>
       </ul>
       <h3>Что встретится</h3>
       <ul class="ku-rules bn-legend">
-        <li><i class="bn-ico ring"></i><span><b>Кольцо</b> — пролетите или прокатитесь насквозь. Маленькие кольца пропускают только маленький мяч.</span></li>
-        <li><i class="bn-ico door"></i><span><b>Выход</b> — открывается, когда пройдены все кольца.</span></li>
-        <li><i class="bn-ico check"></i><span><b>Контрольная точка</b> — отсюда мяч продолжит после потери жизни.</span></li>
-        <li><i class="bn-ico spike"></i><span><b>Шипы</b> — мяч лопается.</span></li>
-        <li><i class="bn-ico spider"></i><span><b>Паук</b> — ходит туда-сюда, касаться нельзя.</span></li>
-        <li><i class="bn-ico rubber"></i><span><b>Пружина</b> — подбрасывает; прыжки подряд по пружинам — всё выше.</span></li>
-        <li><i class="bn-ico water"></i><span><b>Вода</b> — маленький мяч тонет, большой всплывает и держится на воде.</span></li>
-        <li><i class="bn-ico pad-big"></i><span><b>Надуть</b> — мяч становится большим: прыгает выше и плавает, но не пролезает в узкие ходы.</span></li>
-        <li><i class="bn-ico pad-small"></i><span><b>Сдуть</b> — снова маленький: проходит в щели высотой в клетку.</span></li>
-        <li><i class="bn-ico speed"></i><span><b>Ускорение</b> — 10 секунд мяч катится быстрее.</span></li>
-        <li><i class="bn-ico grav"></i><span><b>Антигравитация</b> — 8 секунд мяч «падает» вверх и катится по потолку; прыжок — вниз. Пружины работают и на потолке.</span></li>
-        <li><i class="bn-ico norm"></i><span><b>Обычная тяжесть</b> — антигравитация кончается сразу, мяч падает вниз.</span></li>
-        <li><i class="bn-ico life"></i><span><b>Жизнь</b> — ещё одна попытка (больше пяти — очки).</span></li>
+        <li><i class="bn-ico ring"></i><span><b>Кольцо</b> — пролетите или прокатитесь насквозь. Узкие кольца пропускают только маленький мяч, кольца «лёжа» — сверху вниз или снизу вверх.</span></li>
+        <li><i class="bn-ico door"></i><span><b>Дверь-портал</b> — открывается, когда пройдены все кольца.</span></li>
+        <li><i class="bn-ico check"></i><span><b>Кристалл</b> — контрольная точка: отсюда мяч продолжит после потери жизни.</span></li>
+        <li><i class="bn-ico spike"></i><span><b>Иглы</b> — на полу, потолке и стенах; мяч лопается.</span></li>
+        <li><i class="bn-ico jack"></i><span><b>Джек</b> — колючий крест, летает туда-сюда; касаться нельзя, выбирайте момент.</span></li>
+        <li><i class="bn-ico rubber"></i><span><b>Резиновый пол</b> (синий) — мяч отскакивает, прыжок с него намного выше.</span></li>
+        <li><i class="bn-ico water"></i><span><b>Вода</b> — маленький тонет, большой всплывает.</span></li>
+        <li><i class="bn-ico pad-big"></i><span><b>Насос</b> — делает мяч большим.</span></li>
+        <li><i class="bn-ico pad-small"></i><span><b>Сдуватель</b> — снова маленький мяч.</span></li>
+        <li><i class="bn-ico super"></i><span><b>Кристалл супер-прыжка</b> — 15 секунд огромных прыжков (таймер вверху поля). Осторожно с иглами на потолке! Кристалл можно взять снова.</span></li>
+        <li><i class="bn-ico life"></i><span><b>Кристальный шар</b> — жизнь и очки (больше пяти жизней — только очки).</span></li>
       </ul>
       <h3>Очки и звёзды</h3>
       <ul class="ku-rules">
-        <li>Кольцо +100, контрольная точка +50, жизнь +100, бонус за прохождение, оставшиеся жизни и время быстрее норматива.</li>
+        <li>Кольцо +100, кристалл +50, супер-прыжок +50, кристальный шар +100; за прохождение 500, 100 за каждую оставшуюся жизнь и 10 за каждую секунду быстрее норматива.</li>
         <li>★ — уровень пройден, ★★ — потеряно не больше одной жизни, ★★★ — без потерь и не дольше норматива. За повтор уровня очки начисляются только за улучшение результата.</li>
       </ul>
     </div>
@@ -261,6 +336,9 @@
       <label class="ku-switch-row">Крупные кнопки<input type="checkbox" data-opt="bigKeys"><span class="ku-switch"></span></label>
       <label class="ku-switch-row">Прыжок слева<input type="checkbox" data-opt="lefty"><span class="ku-switch"></span></label>
       <label class="ku-switch-row">Кнопки на экране и с клавиатурой<input type="checkbox" data-opt="keysAlways"><span class="ku-switch"></span></label>
+      <label class="ku-switch-row">Подсказки на новых уровнях<input type="checkbox" data-opt="hints"><span class="ku-switch"></span></label>
+      <div class="ku-field" style="margin-top:10px"><div class="ku-label">Оформление поля</div>
+        <div class="ku-seg" id="theme-seg"><button data-theme="neon" class="active">Неон</button><button data-theme="classic">Классика</button></div></div>
       <div style="margin-top:14px"><button class="ku-btn danger" id="btn-reset">Сбросить прогресс</button></div>
     </div>
     <footer><button class="ku-btn primary" id="settings-ok">Готово</button></footer>
@@ -273,9 +351,11 @@
 
 /* ═══ core.js ═══ */
 /* ═══════════════════════════════════════════════════════════════
- * МЯЧИК — ядро: разбор уровня, физика мяча, объекты, события.
+ * BOUNCE CLASSIC — ядро: разбор уровня, физика мяча, объекты, события.
  * Единица длины — клетка, время — секунды, ось y — вниз. Шаг физики фиксированный (1/240 с),
  * поэтому игра одинакова на 60 и 120 Гц.
+ * Размеры мяча — как в оригинальной Bounce: маленький прыгает высоко, тонет в воде и пролезает в трубы
+ * шириной в клетку; большой (после насоса) прыгает ниже, плавает и в узкие ходы не пролезает.
  * ═════════════════════════════════════════════════════════════ */
 const BCore = (function () {
   'use strict';
@@ -292,27 +372,32 @@ const BCore = (function () {
     dt: 1 / 240,
     g: 27,
     r: [0.42, 0.86],
-    vmax: [5.6, 5.0], acc: [32, 26], accAir: [19, 15], fric: 17, fricAir: 2.5,
-    jump: [11.6, 13.6],           // высота прыжка ≈ v²/2g: 2,5 и 3,4 клетки
+    vmax: [5.6, 4.7], acc: [32, 24], accAir: [19, 13], fric: 17, fricAir: 2.5,
+    // высота прыжка ≈ v²/2g: маленький ≈ 2,7 клетки (стенка в 2 клетки — да, в 3 — нет), большой ≈ 1,6 (ступень в 1 клетку)
+    jump: [12.1, 9.3],
     bounceMin: 4.2, bounceK: 0.34, wallK: 0.18,
-    rubber: [14.2, 15.6], rubberStep: 1.7, rubberMax: [19.5, 20.5],
-    vterm: 21,
+    // резиновый пол: прыжок с него выше (×rubberK), мяч отскакивает упруго (rubberE), с прыжком — почти на высоту падения
+    rubberK: 1.36, rubberE: 0.62, rubberKeep: 0.9,
+    // супер-прыжок: 15 с прыжки ×superK (маленький ≈ 6,5 клетки, большой ≈ 3,9)
+    superK: 1.55, superT: 15,
+    jumpMax: 23, vterm: 23,
     waterLift: [0.72, 2.05],      // выталкивание (доля g при полном погружении): маленький тонет, большой всплывает
-    waterDrag: [2.6, 3.4], waterVmax: 0.68, waterJump: [0.78, 0.86],
+    waterDrag: [2.6, 3.4], waterVmax: 0.68, waterJump: [0.9, 1.1],   // маленький выпрыгивает только из мелкой воды (глубина ≤ 2), большой — на берег до 1 клетки выше воды
     speedK: 1.65, speedT: 10, gravT: 8,
     coyote: 0.09, jumpCD: 0.16
   };
 
   /* ── Разбор уровня ──
    * map — строки одинаковой длины; символы:
-   *  # кирпич   / \ склоны (подъём вправо / влево)   q p — склоны на потолке   R — пружинный блок
-   *  ^ v < > — шипы (вверх, вниз, влево, вправо)   ~ — вода (ещё вода — прямоугольники level.water)
+   *  # кирпич   / \ склоны (подъём вправо / влево)   q p — склоны на потолке   R — резиновый пол (синий)
+   *  ^ v < > — иглы (вверх, вниз, влево, вправо)   ~ — вода (ещё вода — прямоугольники level.water)
    *  o — маленькое кольцо (пролететь по горизонтали, проём 1 клетка)   O — большое (проём 2 клетки, ниже — '|')
    *  - — маленькое кольцо «лёжа» (пролететь сверху вниз или снизу вверх)   = — большое «лёжа» (правее — '_')
-   *  C — контрольная точка   L — жизнь   U — надуть (большой мяч)   D — сдуть (маленький)
-   *  S — ускорение   G — антигравитация   N — обычная тяжесть (антигравитация кончается сразу)
+   *  C — кристалл — контрольная точка   L — кристальный шар (жизнь)   U — насос (большой мяч)   D — сдуватель (маленький)
+   *  J — кристалл супер-прыжка (15 с)   S — ускорение   G — антигравитация   N — обычная тяжесть (в уровнях Bounce Classic не используются)
    *  E — выход (дверь 1×2: E и клетка над ней)   @ — старт (& — старт большим мячом)
-   * level.spiders: [x, y, dx, dy, длина, скорость] — паук ходит по отрезку туда и обратно. */
+   * level.jacks: [x, y, dx, dy, длина, скорость] — джек (колючий крест) ходит по отрезку туда и обратно
+   * (прежнее имя поля — spiders, тоже понимается). */
   function parseLevel(def) {
     const rows = def.map, h = rows.length, w = Math.max(...rows.map(s => s.length));
     const tiles = new Uint8Array(w * h), water = new Uint8Array(w * h);
@@ -332,7 +417,9 @@ const BCore = (function () {
         else if (ch === 'L') L.items.push({ k: 'life', x: c + 0.5, y: r + 0.5 });
         else if (ch === 'U') L.items.push({ k: 'big', x: c + 0.5, y: r + 0.5, pad: true });
         else if (ch === 'D') L.items.push({ k: 'small', x: c + 0.5, y: r + 0.5, pad: true });
-        // ускорение и антигравитация не исчезают (после потери жизни нужны снова) — срабатывают при каждом касании
+        // насос, сдуватель, супер-прыжок, ускорение и антигравитация не исчезают (после потери жизни нужны снова) —
+        // срабатывают при каждом новом касании
+        else if (ch === 'J') L.items.push({ k: 'super', x: c + 0.5, y: r + 0.5, pad: true });
         else if (ch === 'S') L.items.push({ k: 'speed', x: c + 0.5, y: r + 0.5, pad: true });
         else if (ch === 'G') L.items.push({ k: 'grav', x: c + 0.5, y: r + 0.5, pad: true });
         else if (ch === 'N') L.items.push({ k: 'norm', x: c + 0.5, y: r + 0.5, pad: true });
@@ -342,7 +429,7 @@ const BCore = (function () {
       }
     }
     for (const [x0, y0, x1, y1] of def.water || []) for (let r = y0; r <= y1; r++) for (let c = x0; c <= x1; c++) if (!isSolidT(tiles[r * w + c])) water[r * w + c] = 1;
-    L.spiders = (def.spiders || []).map(([x, y, dx, dy, len, sp]) => { const n = Math.hypot(dx, dy) || 1; return { x0: x + 0.5, y0: y + 0.5, dx: dx / n, dy: dy / n, len, sp, t: 0, x: x + 0.5, y: y + 0.5 }; });
+    L.jacks = (def.jacks || def.spiders || []).map(([x, y, dx, dy, len, sp]) => { const n = Math.hypot(dx, dy) || 1; return { x0: x + 0.5, y0: y + 0.5, dx: dx / n, dy: dy / n, len, sp, x: x + 0.5, y: y + 0.5 }; });
     if (!L.start) throw new Error('нет старта (@)');
     if (!L.door) throw new Error('нет выхода (E)');
     if (!L.rings.length) throw new Error('нет колец');
@@ -367,13 +454,20 @@ const BCore = (function () {
     for (const [u, v] of [[a, b], [b, c], [c, a]]) { const q = closestSeg(u[0], u[1], v[0], v[1], px, py); best = Math.min(best, Math.hypot(px - q[0], py - q[1])); }
     return best;
   }
-  // треугольник шипов клетки (для столкновения — чуть меньше рисунка)
+  // треугольник игл клетки (для столкновения — чуть меньше рисунка)
   function spikeTri(t, c, r) {
     if (t === T.SP_U) return [[c + 0.08, r + 1], [c + 0.5, r + 0.3], [c + 0.92, r + 1]];
     if (t === T.SP_D) return [[c + 0.08, r], [c + 0.5, r + 0.7], [c + 0.92, r]];
     if (t === T.SP_L) return [[c + 1, r + 0.08], [c + 0.3, r + 0.5], [c + 1, r + 0.92]];
     return [[c, r + 0.08], [c + 0.7, r + 0.5], [c, r + 0.92]];
   }
+  const JACK_HIT = 0.34;          // радиус «колючек» джека для столкновения (к радиусу мяча)
+  // куда можно сдвинуть мяч при смене размера: сетка смещений, ближние — первыми
+  const RESIZE_TRIES = (() => {
+    const out = [];
+    for (let ix = -5; ix <= 5; ix++) for (const oy of [0, -0.3, 0.3, -0.6]) out.push([ix * 0.3, oy]);
+    return out.sort((a, b) => Math.hypot(a[0], a[1] * 1.5) - Math.hypot(b[0], b[1] * 1.5));
+  })();
 
   /* ── Мир: состояние уровня ── */
   class World {
@@ -394,14 +488,16 @@ const BCore = (function () {
       this.won = false; this.over = false;
       this.placeBall(this.spawn);
     }
+    // мяч на точке возрождения: размер — как при взятии точки, бонусы (супер-прыжок и др.) пропадают
     placeBall(s) {
       this.big = !!s.big;
       this.r = P.r[this.big ? 1 : 0];
       this.x = s.x; this.y = s.y;
       this.px = this.x; this.py = this.y;
       this.vx = 0; this.vy = 0;
-      this.ground = false; this.coyote = 0; this.jumpCD = 0; this.chain = 0; this.groundT = 0;
-      this.speedT = 0; this.gravT = 0;
+      this.ground = false; this.coyote = 0; this.jumpCD = 0; this.groundT = 0;
+      this.onRubber = false; this.landV = 0;
+      this.superT = 0; this.speedT = 0; this.gravT = 0;
       this.dead = 0;              // > 0 — лопнул (секунды до возрождения)
       this.inPad = null;
       this.squash = 0;            // деформация при ударе (для рисунка)
@@ -492,10 +588,17 @@ const BCore = (function () {
       w.spawn = Object.assign({}, this.spawn); w.events = [];
       return w;
     }
-    // положение паука — функция времени (туда-обратно, плавный разворот на концах)
-    spiderPos(sp) {
-      const ph = (this.time * sp.sp / sp.len) % 2, k = ph < 1 ? ph : 2 - ph, e = k * k * (3 - 2 * k);
-      return [sp.x0 + sp.dx * sp.len * e, sp.y0 + sp.dy * sp.len * e];
+    // положение джека — функция времени (туда-обратно, плавный разворот на концах)
+    jackPos(j) {
+      const ph = (this.time * j.sp / j.len) % 2, k = ph < 1 ? ph : 2 - ph, e = k * k * (3 - 2 * k);
+      return [j.x0 + j.dx * j.len * e, j.y0 + j.dy * j.len * e];
+    }
+    // скорость прыжка сейчас (резина, супер-прыжок, вода)
+    jumpSpeed(big, f) {
+      let v = P.jump[big] * (this.onRubber ? P.rubberK : 1) * (this.superT > 0 ? P.superK : 1);
+      if (this.onRubber) v = Math.max(v, this.landV * P.rubberKeep);     // упал на резину с высоты — подбросит почти на ту же высоту
+      if (f > 0.3) v *= P.waterJump[big];
+      return Math.min(v, P.jumpMax);
     }
     step(inp) {
       const dt = P.dt;
@@ -511,6 +614,7 @@ const BCore = (function () {
         return;
       }
       const big = this.big ? 1 : 0, gdir = this.gravT > 0 ? -1 : 1;
+      if (this.superT > 0) { this.superT -= dt; if (this.superT <= 0) { this.superT = 0; this.events.push(['superEnd']); } }
       if (this.speedT > 0) { this.speedT -= dt; if (this.speedT <= 0) this.events.push(['speedEnd']); }
       if (this.gravT > 0) { this.gravT -= dt; if (this.gravT <= 0) this.events.push(['gravEnd']); }
       this.jumpCD -= dt; this.coyote -= dt;
@@ -539,12 +643,11 @@ const BCore = (function () {
       if (Math.abs(this.vy) > P.vterm) this.vy = Math.sign(this.vy) * P.vterm;
       // прыжок (держать — прыгает снова при каждом касании, как в оригинале)
       if (inp.jump && this.jumpCD <= 0) {
-        const floating = big && f > 0.2 && f < 0.85;
+        const floating = big && f > 0.2 && f < 0.85;     // большой мяч отталкивается и от воды
         if (this.ground || this.coyote > 0 || floating) {
-          const k = f > 0.3 ? P.waterJump[big] : 1;
-          this.vy = -gdir * P.jump[big] * k;
-          this.ground = false; this.coyote = 0; this.jumpCD = P.jumpCD; this.chain = 0;
-          this.events.push(['jump']);
+          this.vy = -gdir * this.jumpSpeed(big, f);
+          this.events.push([this.onRubber && this.ground ? 'rjump' : 'jump']);
+          this.ground = false; this.coyote = 0; this.jumpCD = P.jumpCD; this.onRubber = false;
         }
       }
       this.px = this.x; this.py = this.y;
@@ -559,7 +662,7 @@ const BCore = (function () {
 
     collide(gdir, big) {
       const r = this.r, ux = 0, uy = -gdir;      // «вверх» с учётом антигравитации
-      let ground = false;
+      let ground = false, rub = false, landV = 0;
       const list = [];
       for (let it = 0; it < 4; it++) {
         let best = null;
@@ -597,44 +700,39 @@ const BCore = (function () {
         const up = nx * ux + ny * uy;
         if (up > 0.55 && best.side !== 'post') {             // опора под мячом (столбик кольца опорой не считается)
           ground = true;
-          if (best.t === T.RUBBER && best.side === (gdir > 0 ? 'top' : 'bottom') && vn < 0.5) {   // пружина — сторона «под ногами» (с антигравитацией — нижняя)
-            // подбрасывает строго против тяжести (с угла не «выстреливает» вбок); горизонтальная скорость сохраняется
-            const base = P.rubber[big] + this.chain * P.rubberStep;
-            const vIn = Math.max(0, this.vy * gdir);
-            const out = Math.min(P.rubberMax[big], Math.max(vIn * 0.92, base));
-            this.vy = -gdir * out;
-            this.chain = Math.min(this.chain + 1, 6);
-            this.ground = false; ground = false; this.jumpCD = 0.05;
-            this.squash = 0.35;
-            this.events.push(['boing', Math.min(1, out / P.rubberMax[big])]);
-            continue;
-          }
+          // резиновый пол — сторона «под ногами» (с антигравитацией — нижняя)
+          const isRub = best.t === T.RUBBER && best.side === (gdir > 0 ? 'top' : 'bottom');
+          if (isRub) rub = true;
           if (vn < 0) {
+            landV = Math.max(landV, -vn);
             if (-vn > P.bounceMin) {
-              this.vx -= (1 + P.bounceK) * vn * nx; this.vy -= (1 + P.bounceK) * vn * ny;
-              this.squash = Math.min(0.3, -vn * 0.02);
-              this.events.push(['bounce', Math.min(1, -vn / 16)]);
+              const k = isRub ? P.rubberE : P.bounceK;
+              this.vx -= (1 + k) * vn * nx; this.vy -= (1 + k) * vn * ny;
+              this.squash = Math.min(isRub ? 0.35 : 0.3, -vn * 0.02);
+              this.events.push([isRub ? 'boing' : 'bounce', Math.min(1, -vn / 16)]);
             } else { this.vx -= vn * nx; this.vy -= vn * ny; }
           }
-          if (best.t !== T.RUBBER) this.chain = 0;
         } else if (vn < 0) {
           this.vx -= (1 + P.wallK) * vn * nx; this.vy -= (1 + P.wallK) * vn * ny;
           if (-vn > 6) this.events.push(['bump', Math.min(1, -vn / 16)]);
         }
       }
       this.ground = ground;
+      if (ground) { this.onRubber = rub; this.landV = landV; }
+      else if (this.coyote <= 0) { this.onRubber = false; this.landV = 0; }
     }
 
     die(why) {
       if (this.dead > 0 || this.won) return;
       this.dead = 1.1;
       this.lives--; this.deaths++;
+      this.superT = 0;
       this.events.push(['die', this.x, this.y, why]);
     }
 
     interact() {
       const x = this.x, y = this.y, r = this.r;
-      // шипы
+      // иглы
       const c0 = Math.floor(x - r) - 1, c1 = Math.floor(x + r) + 1, r0 = Math.floor(y - r) - 1, r1 = Math.floor(y + r) + 1;
       for (let rr = r0; rr <= r1; rr++) for (let cc = c0; cc <= c1; cc++) {
         const t = this.tile(cc, rr);
@@ -642,8 +740,8 @@ const BCore = (function () {
         const [a, b, c] = spikeTri(t, cc, rr);
         if (distTri(x, y, a, b, c) < r - 0.04) { this.die('spike'); return; }
       }
-      // пауки
-      for (const sp of this.L.spiders) { const [sx, sy] = this.spiderPos(sp); if (Math.hypot(sx - x, sy - y) < r + 0.36) { this.die('spider'); return; } }
+      // джеки
+      for (const j of this.L.jacks) { const [jx, jy] = this.jackPos(j); if (Math.hypot(jx - x, jy - y) < r + JACK_HIT) { this.die('jack'); return; } }
       // кольца: центр мяча пересёк плоскость кольца между столбиками
       this.L.rings.forEach((rg, k) => {
         if (this.ringDone[k]) return;
@@ -651,31 +749,35 @@ const BCore = (function () {
           if ((this.px - rg.x) * (x - rg.x) <= 0 && this.px !== x && y > rg.y && y < rg.y + rg.len) this.takeRing(rg, k);
         } else if ((this.py - rg.y) * (y - rg.y) <= 0 && this.py !== y && x > rg.x && x < rg.x + rg.len) this.takeRing(rg, k);
       });
-      // контрольные точки
+      // контрольные точки (кристаллы): мяч вернётся сюда того же размера, что был при касании
       this.L.checks.forEach((ch, k) => {
-        if (this.checkOn === k || Math.hypot(ch.x - x, ch.y - y) > r + 0.4) return;
+        if (Math.hypot(ch.x - x, ch.y - y) > r + 0.4) return;
+        const sp = { x: ch.x, y: ch.y + 0.5 - this.r - 0.001, big: this.big };
+        if (this.checkOn === k && this.spawn.big === sp.big) return;
+        const first = this.checkOn !== k;
         this.checkOn = k;
         if (!this.checkGot[k]) { this.checkGot[k] = 1; this.score += 50; }
-        this.spawn = { x: ch.x, y: ch.y + 0.5 - this.r - 0.001, big: this.big };
-        this.events.push(['check', ch.x, ch.y]);
+        this.spawn = sp;
+        if (first) this.events.push(['check', ch.x, ch.y]);
       });
       // предметы
       let inPad = null;
       for (let k = 0; k < this.L.items.length; k++) {
         const it = this.L.items[k];
-        if (this.itemTaken[k]) continue;
-        const d = Math.hypot(it.x - x, it.y - y);
         if (it.pad) {
+          const d = Math.hypot(it.x - x, it.y - y);
           if (d < r + (it.k === 'big' || it.k === 'small' ? 0.32 : 0.36)) inPad = k;
           continue;
         }
-        if (d > r + 0.36) continue;
+        if (this.itemTaken[k]) continue;
+        if (Math.hypot(it.x - x, it.y - y) > r + 0.36) continue;
         this.itemTaken[k] = 1;
         if (it.k === 'life') { if (this.lives < 5) this.lives++; else this.score += 200; this.score += 100; this.events.push(['life', it.x, it.y]); }
       }
       if (inPad !== null && inPad !== this.inPad) {
         const it = this.L.items[inPad], first = !this.itemTaken[inPad];
-        if (it.k === 'speed') { this.speedT = P.speedT; if (first) this.score += 25; this.itemTaken[inPad] = 1; this.events.push(['speed', it.x, it.y]); }
+        if (it.k === 'super') { this.superT = P.superT; if (first) this.score += 50; this.itemTaken[inPad] = 1; this.events.push(['super', it.x, it.y]); }
+        else if (it.k === 'speed') { this.speedT = P.speedT; if (first) this.score += 25; this.itemTaken[inPad] = 1; this.events.push(['speed', it.x, it.y]); }
         else if (it.k === 'grav') { this.gravT = P.gravT; if (first) this.score += 25; this.itemTaken[inPad] = 1; this.vy *= 0.3; this.events.push(['grav', it.x, it.y]); }
         else if (it.k === 'norm') { if (this.gravT > 0) { this.gravT = 0; this.vy *= 0.3; this.itemTaken[inPad] = 1; this.events.push(['norm', it.x, it.y]); } }
         else this.resize(it.k === 'big', it);
@@ -695,12 +797,13 @@ const BCore = (function () {
       this.events.push(['ring', rg.x + (rg.vert ? 0 : rg.len / 2), rg.y + (rg.vert ? rg.len / 2 : 0), this.ringsLeft]);
       if (this.ringsLeft === 0) this.events.push(['door']);
     }
-    // надуть / сдуть: большому нужно место — центр поднимается так, чтобы низ мяча остался на месте
+    // надуть / сдуть: большому нужно место — центр поднимается так, чтобы низ мяча остался на месте;
+    // если тесно (насос в нише стены), мяч выходит в ближайшее свободное место — не дальше 1,5 клетки
     resize(toBig, pad) {
       if (toBig === this.big) return;
       const nr = P.r[toBig ? 1 : 0], gdir = this.gravT > 0 ? -1 : 1;
       const lift = (nr - this.r) * gdir;
-      const tries = [[0, -lift], [0.3, -lift], [-0.3, -lift], [0.6, -lift], [-0.6, -lift], [0, 0]];
+      const tries = RESIZE_TRIES.map(([ox, oy]) => [ox, oy - lift]);
       for (const [ox, oy] of tries) {
         if (this.fits(this.x + ox, this.y + oy, nr)) {
           this.x += ox; this.y += oy;
@@ -711,331 +814,386 @@ const BCore = (function () {
       }
       this.events.push(['nofit', pad.x, pad.y]);
     }
+    // «лопнуть» по кнопке в паузе — если мяч застрял (минус жизнь, возврат на контрольную точку)
+    pop() { if (!this.won && !this.over && this.dead <= 0) this.die('self'); }
   }
 
-  return { T, P, CHAR, RING_OUT, POST_R, parseLevel, World, isSolidT, isSpikeT, spikeTri, closestSeg };
+  return { T, P, CHAR, RING_OUT, POST_R, JACK_HIT, parseLevel, World, isSolidT, isSpikeT, spikeTri, closestSeg };
 })();
 
 /* ═══ levels.js ═══ */
-/* Уровни «Мячика» (собраны lvgen.py). Символы карт — см. BCore.parseLevel. */
+/* Уровни Bounce Classic (собраны lvgen.py). Символы карт — см. BCore.parseLevel. */
 const BLevels = [
   {
-    name: "Первые прыжки", par: 35,
+    name: "Первые шаги", par: 50,
+    hints: [[2, 10, "← → — катиться, ↑ — прыжок. Пролетайте сквозь кольца"], [50, 10, "Синий пол — резина: с него прыжок намного выше"], [69, 6, "Кольцо «лёжа» проходят сверху вниз или снизу вверх"], [111, 10, "Кристалл — контрольная точка: после потери жизни мяч вернётся сюда"]],
     map: [
-      "################################################################",
-      "#                                                              #",
-      "#                                                              #",
-      "#                                                              #",
-      "#                                                              #",
-      "#                                                              #",
-      "#                                                              #",
-      "#                               o                              #",
-      "#                    o      #########                          #",
-      "#           o     #######   #########             o            #",
-      "# @   o   #####   #######   ###########     o   /###\\        E #",
-      "################################################################",
+      "##############################################################################################################################",
+      "##############################################################################################################################",
+      "##############            ####################################################################################################",
+      "##############         ##               ##########          ######                ################            ################",
+      "##############          #                                   ######                                            ################",
+      "#                                                           ######                                                  ##########",
+      "#                                                         o   o                                        =                     #",
+      "#                                                      ################             ############                             #",
+      "#                  o             o                     ################             ############                             #",
+      "#                 /#\\           ####                   ################ =    O      ############                             #",
+      "#  @    o        /###\\       #######                   ################                 o                        C      E    #",
+      "##########################################    ######RRR###################RRR##########################RR#####################",
+      "########################################## o  ################################################################################",
+      "##############################################################################################################################",
     ]
   },
   {
-    name: "Шипы", par: 40,
+    name: "Иглы и насос", par: 70,
+    water: [[74, 13, 74, 13], [82, 13, 82, 13], [71, 15, 71, 15], [86, 15, 86, 15]],
+    hints: [[11, 12, "Иглы лопают мяч — перепрыгивайте их"], [30, 12, "Иглы на потолке: здесь не прыгайте!"], [60, 12, "Насос: большой мяч плавает, но прыгает ниже и в узкие ходы не пролезает"]],
     map: [
-      "##############################################################################",
-      "#                                                     #########              #",
-      "#                                                     #########              #",
-      "#                                                     #########              #",
-      "#                                                     #########              #",
-      "#                                                     #########              #",
-      "#                                                     #########              #",
-      "#                      O                              #########              #",
-      "#             #####                                   #########              #",
-      "#             vvvvv                          O        #########              #",
-      "#                o          o                     L   vvvvvvvvv              #",
-      "#              ######    ######                  ###                         #",
-      "# @  o  ^^  o  ######^^^^######  C  ^^  ^^  ^^^  ###      o       ^^  o    E #",
-      "##############################################################################",
+      "##########################################################################################################################################################",
+      "################     ###      ##############                                                                                ##############               #",
+      "################     ###      ##############                                                                                ##############               #",
+      "#       ###          ###      ##############                                                                                ##############               #",
+      "#       ###          ###      ##############                                                                                ##############               #",
+      "#       ###          ###      ##############                                                                                ##############               #",
+      "#       ###          ###      ##############                                                                                ##############               #",
+      "#       ###          ###      ##############                                                                                 vvvvvvvvvvvv                #",
+      "#       ###          ###      ##############                                                                      O               O                      #",
+      "#       ###           O        vvvvvvvvvvvv                                                                  ^         ^                                 #",
+      "#       ###                                                                                         #########################################            #",
+      "#                                    O           L                                              ##############################################           #",
+      "# @      o    ^                              C  ###            U          O       O         ###################################################C   ^   E #",
+      "#####################^^^#############################################~~~~~ ~~~~~~~ ~~~~~~#################################################################",
+      "#####################################################################~~~~~~~~~~~~~~~~~~~~#################################################################",
+      "#####################################################################~~U~~~~~~~~~~~~~~U~~#################################################################",
+      "##########################################################################################################################################################",
+      "##########################################################################################################################################################",
     ]
   },
   {
-    name: "Пружины", par: 55,
+    name: "Водные преграды", par: 75,
+    water: [[110, 8, 111, 8], [50, 10, 50, 10], [55, 10, 55, 10], [78, 10, 78, 10], [101, 12, 102, 12], [13, 14, 13, 14], [18, 14, 18, 14], [23, 14, 23, 14], [45, 15, 45, 15], [64, 15, 64, 15], [71, 15, 71, 15], [97, 16, 97, 16], [104, 16, 104, 16], [112, 16, 112, 16]],
+    hints: [[13, 9, "Маленький мяч тонет. Насос на дне поднимет его наверх"], [26, 9, "Сдуватель снова делает мяч маленьким — он пролезет в трубу"], [57, 9, "Под стену большой мяч не поднырнёт: сдуйтесь на полке"], [99, 9, "В трубе с водой большой мяч всплывёт наверх"]],
     map: [
-      "############################################################################",
-      "#                                                                          #",
-      "#                                                                          #",
-      "#                                                                          #",
-      "#                                                                          #",
-      "#                                                                          #",
-      "#                                                o                O        #",
-      "#                                             #######                      #",
-      "#           o             o                   #######                      #",
-      "#      =   ###        #########            R  #######              ##      #",
-      "#          ###        #########            #  #######  =           ##      #",
-      "#          ###                          R  #  #######              ##      #",
-      "#          ###                          #  #  #######              ##      #",
-      "#          ###   RR                  R  #  #  #######              ##      #",
-      "# @  o     ###   ##  ^^^^^^^^^^^RRC  #^^#^^#^^#######^^     o      ##    E #",
-      "#######RRR#####################################################RRR##########",
+      "########################################################################################################################",
+      "#      ###      #####          #############                  #####                                          ###########",
+      "#      ###      #####          #############                  #####                                          #         #",
+      "#      ###      #####          #############                  #####                                          #     D E #",
+      "#      ###      #####          #############                  #####                                          #~~########",
+      "#      ###      #####          #############                  #####                                          #~~########",
+      "#      ###      #####          #############                  #####                                          #~~########",
+      "#      ###      #####          #############                  #####                                          #~~########",
+      "#               #####          #############                D ##### D                                        #= ########",
+      "# @    o   D    #####       D       o             O    O    #########         O         C   D                #~~########",
+      "##############~~#####~~#####################~~~~~~ ~~~~ ~~~~~~#####~~~~~~~~~~~ ~~~~~##############~~~~~~~~~~~#~~########",
+      "##############~~#####~~#####################~~~~~~~~~~~~~~~~~~#####~~~~~~~~~~~~~~~~~##############~~~~~~~~~~~#~~########",
+      "##############~~#####~~#####################~~~~~~~~~~~~~~~~~~#####~~~~~~~~~~~~~~~~~##############~~~= ~~~~~~#~~########",
+      "##############~~#####~~#####################~~~~~~~~~~~~~~~~~~#####~~~~~~~~~~~~~~~~~##############~~~~~~~~~~~~~~########",
+      "#############U~~~~o~~~~U####################~~~~~~~~~~~~~~~~~~#####~~~~~~~~~~~~~~~~~##############~~~~~~~~~~~~~~########",
+      "############################################~U~~~~~~~~~~~~~~~~~~o~~~~~~U~~~~~~~~~~~~##############~~~~~~~~~~~~~~########",
+      "#################################################################################################U~~~~~~o~~~~~~~U#######",
+      "########################################################################################################################",
+      "########################################################################################################################",
+      "########################################################################################################################",
     ]
   },
   {
-    name: "Пауки", par: 45,
-    spiders: [[9, 12, 1, 0, 5, 2.4], [22, 6, 0, 1, 6, 2.2], [36, 12, 1, 0, 12, 3.2], [53, 8, 1, 0, 5, 2.0], [53, 5, 1, 0, 5, 2.7], [71, 7, 0, 1, 5, 2.8]],
+    name: "Джеки", par: 65,
+    jacks: [[7, 11, 1, 0, 6, 2.2], [23, 3, 0, 1, 8, 2.8], [33, 9, 1, 0, 15, 2.6], [51, 14, 1, 0, 7, 2.6], [51, 18, 1, 0, 7, 3.4], [70, 13, 0, 1, 8, 3.0], [83, 17, 1, -1, 8, 2.0], [111, 6, 0, 1, 5, 2.0], [133, 6, 0, 1, 5, 2.4]],
+    water: [[107, 12, 107, 12], [115, 12, 115, 12], [105, 16, 105, 16]],
+    hints: [[4, 11, "Джек! Касаться нельзя — перепрыгните, когда подкатится"], [52, 9, "Шахта: прыгайте вниз, когда джеки отойдут в стороны"]],
     map: [
-      "################################################################################",
-      "#                                  ###############                             #",
-      "#                                  ###############                             #",
-      "#                                  ###############                             #",
-      "#                                  ###############                             #",
-      "#                                  ###############                             #",
-      "#                                  ###############                             #",
-      "#                    O             ###############                             #",
-      "#                                  ###############       o                     #",
-      "#                                                    #######                   #",
-      "#                 o       o                          #######                   #",
-      "#               ####    #####                      #########                   #",
-      "# @  o          ####^^^^#####  C           o       #########   L  C       o  E #",
-      "################################################################################",
+      "##############################################################################################################################################",
+      "##############################################################################################################################################",
+      "################                ##############################################################################################################",
+      "################                ##############################################################################################################",
+      "################                ##############################################################################################################",
+      "################                ##############################################################################################################",
+      "#   ###                O           ###    ###           ############################################                          ####### ###    #",
+      "#   ###                            ###    ###           ############################################                          ####### ###    #",
+      "#   ###                                                 ########################                                              ####### ###    #",
+      "#   ###                             o      o            ########################                                              ####### ###    #",
+      "#               ######   ###############^^############  ########################                 O                            ####### ###    #",
+      "# @  o          ######   #############################  ########################                      U    O       O     D C     o         E #",
+      "######################   #############################= ########################              ##########~~~ ~~~~~~~ ~~~~######################",
+      "######################^^^#############################  ############## #########              ##########~~~~~~~~~~~~~~~~######################",
+      "###################################################        ########### #########           #############~~~~~~~~~~~~~~~~######################",
+      "######################################################  ############## #########           #############~~~~~~~~~~~~~~~~######################",
+      "######################################################= ############## #########        ################~U~~~~~~~~~~~~~~######################",
+      "######################################################  ############## #########        ######################################################",
+      "###################################################        ###           ###         #########################################################",
+      "######################################################  ######           ###         #########################################################",
+      "######################################################                            ############################################################",
+      "######################################################                    o  C    ############################################################",
+      "##############################################################################################################################################",
+      "##############################################################################################################################################",
     ]
   },
   {
-    name: "Вода", par: 55,
-    water: [[8, 9, 19, 14], [31, 9, 44, 14], [60, 9, 70, 14]],
+    name: "Супер-прыжок", par: 95,
+    water: [[108, 27, 108, 27]],
+    hints: [[8, 26, "Кристалл супер-прыжка: 15 секунд огромных прыжков"], [49, 6, "Иглы на потолке! С супер-прыжком здесь не прыгайте"], [72, 26, "Супер-прыжок с резины — к самому потолку"], [93, 21, "Большой мяч с супер-прыжком выпрыгнет из воды высоко"]],
     map: [
-      "####################################################################################",
-      "#                                               #########                          #",
-      "#                                               #########                          #",
-      "#                                               #########                          #",
-      "#                                               #########                          #",
-      "#                                               #########                          #",
-      "#                                               #########                          #",
-      "#                       O         L             #########                   O      #",
-      "# @  o D                             O        D     o     C                     E  #",
-      "########~~~~~~~~~~~~###########~~~~~~~~~~~~~~###############~~~~##~~~~~#############",
-      "########~~~~~~~~~~~~###########~~~~~~~~~~~~~~###############~~~~##~~~~~#############",
-      "########~~~~~~~~~~~~###########~~~~~~~~~~~~~~###############~~~~##~~~~~#############",
-      "########~~~~~~~~~~~~###########~~~~~~~~~~~~~~###############~~~~##~~~~~#############",
-      "########~~~~~~~~~~~~###########~~~~~~~~~~~~~~###############~~~~~~~~~~~#############",
-      "########~~~o~~~~U~~~###########~~~~~~~~~U~~~~###############~~~~~~o~U~~#############",
-      "####################################################################################",
+      "##########################################################################################################################################",
+      "##########################################################################################################################################",
+      "#################################               vvvvvvvvvvvvvvvvvv  ######################################################################",
+      "#################################                                                                                                        #",
+      "#################################                                                                                                        #",
+      "#################################                                                                                                        #",
+      "#################################          o         o      C                                                                            #",
+      "#################################        #######################                                                                         #",
+      "#################################             ##################                                                                         #",
+      "#################################             ##################                                                                         #",
+      "##############                  #             ##################                                                                         #",
+      "##############                  #  o          ##################                                                                         #",
+      "##############                  ######        ##################                                                                         #",
+      "##############                  #             ##################                                                                 o     E #",
+      "##############                  #             ##################                                                              ############",
+      "#                               #             ##################                                                              ############",
+      "#                               #         J o ##################          O                                                   ############",
+      "#                               #        #######################                                                              ############",
+      "#                               #             ##################                                                  D    C J    ############",
+      "#                      O        #             ##################                                              ############################",
+      "#                               #             ##################                                       J      ############################",
+      "#                o          o   #  o          ##################                   O           U              ############################",
+      "#              #####       #### ######        ##################                            ######~~~~~~~~~~~~############################",
+      "#              #####       ####               ##################                            ######~~~~~~~~~~~~############################",
+      "#              #####       ####                                                             ######~~~~~~~~~~~~############################",
+      "#              #####       ####                                                             ######~~~~~~~~~~~~############################",
+      "# @  o   J     #####   J   ####            J                                  J        D  J ######~~~~~~~~~~~~############################",
+      "#########################################################################RRR#######RRR############~~~~~~~~~~U~############################",
+      "##########################################################################################################################################",
+      "##########################################################################################################################################",
     ]
   },
   {
-    name: "Узкие ходы", par: 45,
+    name: "Лабиринт труб", par: 100,
+    water: [[62, 18, 62, 18], [39, 22, 39, 22], [46, 22, 46, 22], [55, 22, 55, 22], [15, 33, 15, 33], [24, 33, 24, 33], [31, 33, 31, 33], [55, 33, 55, 33], [64, 33, 64, 33]],
+    hints: [[11, 10, "Иглы на потолке трубы — не прыгайте"], [39, 21, "Насос в нише: большой мяч всплывёт по трубе"], [12, 14, "В узкую шахту пролезет только маленький мяч"]],
     map: [
-      "################################################################################",
-      "#     #########               ###########               ###############        #",
-      "#     #########               ###########               ###############        #",
-      "#     #########               ###########                    ##########        #",
-      "#     #########               ###########                 O  ##########        #",
-      "#     #########               ###########                   D     o            #",
-      "#     #########               ###########                ##############        #",
-      "#     #########               ###########                ##############        #",
-      "#     #########               ###########                ##############        #",
-      "#     #########               ###########            ### ##############        #",
-      "#     #########       O       ###########            ### ##############        #",
-      "#     #########               ###########            ### ##############        #",
-      "#     #########      ###      ###########        ### ### ##############        #",
-      "#     #########      ###      ###########        ### ### ##############        #",
-      "# @       o      U   ###   D       o       C  U  ### ### ##############   L  E #",
-      "################################################################################",
+      "##################################################################",
+      "######################################################           #",
+      "######################################################           #",
+      "########################         ##       ############  E        #",
+      "#    ###  ##############         ##       ####################~~##",
+      "#    ###  ##############         vv O     ####################~~##",
+      "#    ###  ##############                  ####################~~##",
+      "#    ###  ##############                  ####################~~##",
+      "#    ###   vvvvvvvvvvvv                   ####################~~##",
+      "#                           ##   ##   ##  ####################~~##",
+      "# @   o         o         ^^##^^^##^^^## C        o          #~~##",
+      "###########################################################  #~~##",
+      "####          vvvvvvvvvvvvvvvvvvvvvvvvv   #################  #~~##",
+      "####                  O        O          ########   ####    #~~##",
+      "####    D                            C    ########   ####    #~~##",
+      "#### ###################################~~########   ####    #~~##",
+      "#### ###################################~~########   ####    #~~##",
+      "#### ###################################~~########~~~####~~~~#~~##",
+      "#### ###################################~~########~~~####~~~~#=~##",
+      "####-###################################~~########~~~####~~~~#~~##",
+      "#### ###################################~~########~~~####~~~~#~~##",
+      "#### ###################################~~########~~~####~~~~#~~##",
+      "#### ##################################U~~~~~~o~~~~~~~~o~~~~~#~~##",
+      "#### #########################################################~~##",
+      "#### #########################################################~~##",
+      "#          ###################################################~~##",
+      "#          ###################################################~~##",
+      "#          ##########     ###        #########################~~##",
+      "#          ##########     vvv        #########################~~##",
+      "#          ##########                ############~~~~~~~~~~~~#~~##",
+      "#          ##########                 vvvvvvvvvv ~~~~~~~~~~~~~~~##",
+      "#     L    ##########                     o      ~~~~~~~~~~~~~~~##",
+      "#          ########## ~~~~###~~~~################~~~~~~~~~~~~~~~##",
+      "# C     o     ~o~~    ~~o~###~~o~################~~~~~~o~~~~~~~~U#",
+      "##################################################################",
+      "##################################################################",
     ]
   },
   {
-    name: "Горки", par: 50,
+    name: "Испытание", par: 85,
+    jacks: [[16, 13, 1, 0, 18, 3.0], [44, 8, 0, 1, 8, 3.0], [36, 11, 1, 0, 16, 2.8], [101, 10, 0, 1, 6, 2.4], [107, 10, 0, 1, 6, 3.0], [125, 11, 0, 1, 5, 2.6], [132, 11, 0, 1, 5, 3.2], [140, 11, 1, 0, 9, 3.0], [170, 7, 0, 1, 5, 2.5]],
+    water: [[99, 17, 99, 17], [110, 17, 110, 17], [96, 20, 113, 20]],
+    hints: [[58, 16, "Узкая площадка: сбавьте скорость в прыжке"], [74, 16, "Большой мяч катится над узкими ямами — маленький в них проваливается"], [95, 16, "На дне иглы — переплывайте большим"]],
     map: [
-      "################################################################################################",
-      "#                                                                                              #",
-      "#                                                                                              #",
-      "#                                                                                              #",
-      "#                                                                                              #",
-      "#                                                                                              #",
-      "#                                                                                              #",
-      "#                                                                                              #",
-      "#                                                                                              #",
-      "#                                                                                              #",
-      "#                              O                     O              O                          #",
-      "#                                                                                 o            #",
-      "#                 o                          o            L                     /###\\          #",
-      "#         o     /###\\                    /######\\        ###                   /#####\\         #",
-      "# @  o  /###\\  /#####\\  S   ^^^^^^    C /########\\  ^^^  ###  S  ^^^^^^     C /#######\\     E  #",
-      "################################################################################################",
+      "########################################################################################################################################################################################",
+      "########################################################################################################################################################################################",
+      "########################################################################################################################################################################################",
+      "########################################################################################################################################################################################",
+      "########################################################################################################################################################################################",
+      "########################################################################################################################################################################################",
+      "########################################################################################################################################################################################",
+      "############################################################################################################################################                                           #",
+      "####################################                  ######################################################################################                                           #",
+      "####################################                  ######################################################################################                           O      O        #",
+      "#               ####################                                        ##################                          ####################                                           #",
+      "#               vvvvvvvvvvvvvvvvvvvv                                        ##################                          ##### ###### #######                                           #",
+      "#                                                                           ##################                          ##### ###### #######           o   L      C   ^^^    ^^^    E  #",
+      "#                                               o                O          ##################                          ##### ###### #######          ##################################",
+      "#                                      o       ####                         vvvvvvvvvvvvvv                              ##### ###### #######          ##################################",
+      "#                                     ####     ####                            O     O                                  ##### ###### #######          ##################################",
+      "# @  o   ^^       ^^ o ^^ o ^^        ####   ^^####    C   ^^^  ^^^  D  U                          O          O     U  D  o       o       C       ^^^^##################################",
+      "############################################################################^#^#^#^#^#^#########~~~ ~~~~~~~~~~ ~~~#############################RRR######################################",
+      "################################################################################################~~~~~~~~~~~~~~~~~~######################################################################",
+      "################################################################################################~~~~~~~~~~~~~~~~~~######################################################################",
+      "################################################################################################^^^^^^^^^^^^^^^^^^######################################################################",
+      "########################################################################################################################################################################################",
     ]
   },
   {
-    name: "Вверх!", par: 70,
-    spiders: [[7, 24, 1, 0, 4, 1.8], [9, 8, 1, 0, 4, 2.4]],
+    name: "Склоны и вес", par: 70,
+    jacks: [[110, 15, 1, -1, 4, 1.8]],
+    water: [[81, 18, 81, 18], [85, 18, 85, 18], [78, 20, 87, 20], [93, 20, 93, 20], [97, 20, 97, 20], [104, 20, 104, 20]],
+    hints: [[14, 17, "Скатитесь и прыгайте с разгона через яму"], [53, 17, "Длинный склон разгонит мяч — без разгона яму не перепрыгнуть"], [78, 17, "Внизу иглы: переплывайте большим. Под иглами на потолке — только маленьким по дну"]],
     map: [
-      "##########################",
-      "##########################",
-      "##########################",
-      "#                        #",
-      "#                        #",
-      "#               O        #",
-      "#                  C   E #",
-      "#                 ########",
-      "#             ##         #",
-      "#          o             #",
-      "#        #####           #",
-      "#                        #",
-      "#                        #",
-      "#   L                    #",
-      "#  ####         RRRR     #",
-      "#                        #",
-      "############= ############",
-      "#                        #",
-      "#          ####          #",
-      "#                        #",
-      "#              ###       #",
-      "#                     o  #",
-      "#                   ######",
-      "#                        #",
-      "#              ####      #",
-      "#       C  o             #",
-      "#      ######            #",
-      "#                        #",
-      "#                        #",
-      "# =                      #",
-      "#                        #",
-      "# RRRR                   #",
-      "#                        #",
-      "#        ####            #",
-      "#                        #",
-      "#              ####      #",
-      "#                     o  #",
-      "#                   ######",
-      "#                   ######",
-      "#             ####       #",
-      "#             ####       #",
-      "#       ####             #",
-      "#  @ o  ####             #",
-      "##########################",
+      "############################################################################################################################",
+      "############################################################################################################################",
+      "############################################################################################################################",
+      "############################################################################################################################",
+      "############################################################################################################################",
+      "############################################################################################################################",
+      "############################################################################################################################",
+      "##########################################################################################################                 #",
+      "##########################################################################################################                 #",
+      "####################################################                        ##############################                 #",
+      "#                                                                                          ##########                      #",
+      "#                                                           o                              ##########              o     E #",
+      "#                                                          ####\\                           ##########             /#########",
+      "#                                                          #####\\                          ##########            /##########",
+      "#                o          o                           #########\\     O                   ##########           /###########",
+      "#        o      /##\\       /##\\      o     o     o      ##########\\                        ##########          /############",
+      "#       /##\\   /####\\     /####\\    /#\\   /#\\   /#\\     ###########\\                    D  ##########         /#############",
+      "# @  o /####\\ /######\\^^^/######\\ C/###\\^/###\\^/###\\    ############\\^^^^DC  U   O   O  ## vvvvvvvvvv    D   /##############",
+      "#####################################################RRR######################~~~ ~~~ ~~##~~~~~~~~~~~~~~####################",
+      "##############################################################################~~~~~~~~~~##~~~~~~~~~~~~~~####################",
+      "##############################################################################^^^^^^^^^^##~~~o~~~o~~~~~~U###################",
+      "############################################################################################################################",
     ]
   },
   {
-    name: "Антигравитация", par: 60,
-    spiders: [[88, 1, 1, 0, 4, 2.0]],
+    name: "Скорость", par: 60,
+    jacks: [[44, 12, 1, 0, 5, 2.5], [54, 8, 0, 1, 6, 3.0], [64, 9, 1, 0, 16, 2.8], [115, 6, 0, 1, 6, 2.6]],
+    hints: [[14, 17, "Держите прыжок — мяч скачет по резине. Сбавьте скорость, чтобы попадать на резину"], [64, 17, "Островки в клетку шириной: не разгоняйтесь"], [84, 17, "Супер-прыжок перенесёт через длинное поле игл"]],
     map: [
-      "####################################################################################################",
-      "#               o   vv   o    N          o       G  o    vv    N                o  G vv         ####",
-      "#                                               #######                                        E####",
-      "#                                       ###     #######                                         ####",
-      "#                                       ###     #######                                         ####",
-      "#                                       ###     #######                                         ####",
-      "#                                       ###     #######                                         ####",
-      "#                                       ###     #######                   =                     ####",
-      "#                                       ###     #######                                         ####",
-      "#                                       ###     #######                                         ####",
-      "#                                       ###     #######                                         ####",
-      "#                                       ###     #######                                         ####",
-      "#                                       ###     #######                                         ####",
-      "#                                       ###                                                     ####",
-      "# @  o   G   ^^^^^^^^^^^^^^G     C  G   ###^^^^^^^^^^^^^^^^^^    L C  o   G  ^^^^^^^^^^^^^^^^^^^####",
-      "####################################################################################################",
+      "##############################################################################################################################",
+      "##############################################################################################################################",
+      "##############################################################################################################################",
+      "##############################################################################################################################",
+      "##############################################################################################################################",
+      "##############################################################################################################################",
+      "####################################################################################                                         #",
+      "######################################                        ######################                                         #",
+      "######################################                        ######################                                         #",
+      "##############                                                                                                        o    E #",
+      "#                                                                                          O                          ########",
+      "#                                                                                                                     ########",
+      "#         O      O    O    O    O        O         O                                                                  ########",
+      "#                                                                     O   O                                           ########",
+      "#                                                                                                             RRRR    ########",
+      "#                                                                                                             ####    ########",
+      "#                                                                                                             ####    ########",
+      "# @  o          ^^^  ^^^  ^^^  ^^^      ^^^  ^^^  ^^^  ^^^     C ^^^#^^^#^^^#^^^     J  ^^^^^^      C         ####    ########",
+      "#########RRR##RR###RR###RR###RR#######RR###RR###RR###RR###################################################RRR#####RRRR########",
+      "##############################################################################################################################",
+      "##############################################################################################################################",
+      "##############################################################################################################################",
     ]
   },
   {
-    name: "Подводная пещера", par: 75,
-    spiders: [[20, 4, 0, 1, 4, 2.0], [52, 15, 0, 1, 2, 1.2], [90, 10, 0, 1, 8, 1.6]],
-    water: [[11, 9, 30, 18], [38, 9, 40, 17], [41, 15, 60, 17], [61, 9, 80, 18], [86, 9, 94, 18]],
+    name: "Финальный экзамен", par: 130,
+    jacks: [[26, 14, 0, 1, 5, 2.6], [59, 13, 0, 1, 6, 2.4], [161, 15, 1, 0, 10, 3.0], [185, 20, 1, 0, 7, 2.0]],
+    water: [[195, 12, 196, 12], [56, 20, 56, 20], [62, 20, 62, 20], [118, 21, 118, 21], [71, 24, 71, 24], [79, 24, 79, 24], [183, 24, 183, 24], [189, 24, 189, 24], [197, 24, 197, 24]],
+    hints: [[37, 19, "Насос на столбике среди игл — прыгайте точно"], [76, 19, "Узкая дыра в берегу — только для маленького мяча"], [136, 19, "Кольцо заперто в уступе. Путь туда — сверху"]],
     map: [
-      "################################################################################################",
-      "################################################################################################",
-      "################################################################################################",
-      "#                                        ####################                                  #",
-      "#                                        ####################                                  #",
-      "#                                        ####################                                  #",
-      "#                        O               ####################          D                       #",
-      "#                                C  D    ####################         ###         C D          #",
-      "# @  o  U      O               #######   ####################     O   ###        #####         #",
-      "###########~~~~~~~~~~~~~~~~~~~~#######~~~####################~~~~~~~~~###~~~~~~~~#####~~~~~~~~~#",
-      "###########~~~~~~~~~~~~~~~~~~~~#######~~~####################~~~~~~~~~###~~~~~~~~#####~~~~~~~~~#",
-      "###########~~~~~~~~~~~~~~~~~~~~#######~~~####################~~~~~~~~~###~~~~~~~~#####~~~~~~~~~#",
-      "###########~~~~~~~~~~~~~~~~~~~~#######~~~####################~~~~~~~~~###~~~~~~~~#####~~~~~~~~~#",
-      "###########~~~~~~~~~~~~~~~~~~~~#######~~~####################~~~~~~~~~###~~~~~~~~#####~~~~~~~~~#",
-      "###########~~~~~~~~~~~~~~~~~~~~#######~~~####################~~~~~~~~~###~~~~~~~~#####~~~~~~~~~#",
-      "###########~~~~~~~~~~~~~~~~~~~~#######~~~######~~~~~~~#######~~~~~~~~~###~~~~~~~~#####~~~~~~~~~#",
-      "###########~~~~~~~~~~~~~~~~~~~~#######~~~######~L~~~~~#######~~~~~~~~~###~~~~~~~~#####~~~~~~~~~#",
-      "###########~~~~~~~~~~~~~~~~~~~~#######U~~~~o~~~~#~o~~~~~~~~~~~~~~~~~~~###~~~~~~~~#####~~~~~~~~~#",
-      "###########~~~~~~~~~U~~~~~~~~~~##############################~U~~~~~~~###~~~o~~U~#####~~E~~~o~U#",
-      "################################################################################################",
+      "##########################################################################################################################################################################################################",
+      "##########################################################################################################################################################################################################",
+      "##############################################################################################################################################################################################           #",
+      "##############################################################################################################################################################################################           #",
+      "##############################################################################################################################################################################################        E  #",
+      "###################################################################################################################################################################################################~~#####",
+      "###################################################################################################################################################################################################~~#####",
+      "###################################################################################################################################################################################################~~#####",
+      "####################################################################################                      #########################################################################################~~#####",
+      "####################################################################################                O     #########################################################################################~~#####",
+      "#                                                 ##################################                      ##########################                                                              #~~#####",
+      "#                                                 ##################################                      ##########################                                                              #~~#####",
+      "#                                                                                                         ##########################                                                              #= #####",
+      "#                                                                                                         ##########################                                                              #~~#####",
+      "#                                                                                             o           ##########################                                                              #~~#####",
+      "#          o                                                                                ######        ##########################          o       L                             DC            #~~#####",
+      "#        ######       O                                                                     ######        ##########################       ####### ##########\\       O         /########~~~~~~~~~~#~~#####",
+      "#        ######                          U                                                  ######        ##########################       ######    #########\\               /#########~~~~~~~~~~#~~#####",
+      "#        ######                          #                                                  ######        ##################vvvvvvvv       ######    ##########\\             /##########~~~~~~~~~~#~~#####",
+      "# @  o   ######      ^^^  o  ^^^D  C   ^^#^^            O     O                  D    J     ######   J  C     o    ########     o          ######  o ###########\\   ^^^^    /###########~~~~~~~~~~#~~#####",
+      "#####RRR#######RR###################################~~~~ ~~~~~ ~~~~~~~~~~##### ################################### ######## ###########RRR#######RR#####################################~~~~~~~~~~#~~#####",
+      "####################################################~~~~~~~~~~~~~~~~~~~~~#####~###################################   ~o~~   ############################################################~~~~~~~~~~~~~#####",
+      "####################################################~~~~~~~~~~~~~~~~~~~~~####~~~~#######################################################################################################~~~~~~~~~~~~~#####",
+      "####################################################~~~~~~~~~~~~~~~~~~~~~####~~~~#######################################################################################################~~~~~~~~~~~~~#####",
+      "####################################################~~~~~~~~~~~~~~~~~~~U~~~~~~~o~######################################################################################################U~~~~~o~~~~~~~U####",
+      "##########################################################################################################################################################################################################",
     ]
   },
   {
-    name: "Крепость", par: 80,
-    spiders: [[30, 16, 1, 0, 6, 2.2], [33, 9, 0, 1, 2, 1.5], [67, 2, 0, 1, 8, 2.0], [37, 4, 1, 0, 5, 2.4]],
-    water: [[14, 17, 23, 22]],
+    name: "Секрет", par: 40,
+    secret: true,
+    jacks: [[19, 6, 0, 1, 7, 2.6], [38, 6, 1, 0, 9, 3.0], [53, 7, 0, 1, 7, 3.2], [58, 9, 1, 0, 6, 2.4]],
+    hints: [[2, 12, "Секретный уровень: островки над иглами. Удачи!"]],
     map: [
-      "############################################################################",
-      "#                         ##                                            ####",
-      "#                         ##                                            ####",
-      "#                         ##                                            ####",
-      "#                         ##  E               #  o  #  o  #  C  ###     ####",
-      "#                         ######################################      o ####",
-      "#                         ##                                         #######",
-      "#                         ##                                            ####",
-      "#                         ##                          O         ###     ####",
-      "#                         ##                                            ####",
-      "#                         ##                                         #######",
-      "#                         ##  L     o          S   ^^^^^^ S C           ####",
-      "#                         ################= ################################",
-      "#                         ##                  ##############################",
-      "#                         ##                  ##############################",
-      "#                         ##                  ##############################",
-      "# @  o   U        O      D             o      ##############################",
-      "##############~~~~~~~~~~#################RRRR###############################",
-      "##############~~~~~~~~~~####################################################",
-      "##############~~~~~~~~~~####################################################",
-      "##############~~~~~~~~~~####################################################",
-      "##############~~~~~~~~~~####################################################",
-      "##############~~U~~~~~~~####################################################",
-      "############################################################################",
-    ]
-  },
-  {
-    name: "Финал", par: 75,
-    spiders: [[41, 14, 0, 1, 4, 1.8], [120, 10, 1, 0, 2, 1.6]],
-    water: [[34, 19, 45, 22], [60, 19, 66, 22]],
-    map: [
-      "################################################################################################################################",
-      "#                                                 #########                       q#####p oG vv     N                         ##",
-      "#                                                 #########                        q###p                                      ##",
-      "#                                                 #########                          o                                        ##",
-      "#                                                 #########                                                                   ##",
-      "#                                                 #########                                                                   ##",
-      "#                                                 #########                                                                   ##",
-      "#                                                 #########                                                                   ##",
-      "#                                                 #########                                                                   ##",
-      "#                                                 #########                                                                   ##",
-      "#                                                 #########                                                    O       o     E##",
-      "#                                                 #########                                                          ###########",
-      "#                                                 #########                                                          ###########",
-      "#                                                 #########                                               O          ###########",
-      "#                                                 #########                                                      RR  ###########",
-      "#                       O                         #########                                                      ##  ###########",
-      "#         o                                       #########                                                 RR   ##  ###########",
-      "#        /##\\                                     #########                                                 ##   ##  ###########",
-      "# @  o  /####\\   S   ^^^^^^   C U    O          D    o  L            C D  G  ^^^^^^^^^^^^^^^^^^^^G   C RR^^^##^^^##^^###########",
-      "##################################~~~~~~~~~~~~##############~~~~~~~#############################################################",
-      "##################################~~~~~~~~~~~~##############~~~~~~~#############################################################",
-      "##################################~~~~~~~~~~~~##############~~~~~~~#############################################################",
-      "##################################~U~~~~~~~~~~##############~~~o~U~#############################################################",
-      "################################################################################################################################",
+      "########################################################################",
+      "#vvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvv#",
+      "#                                                                      #",
+      "#                                                                      #",
+      "#                                                                      #",
+      "#                                                                      #",
+      "#                                                        O             #",
+      "#                       O                                              #",
+      "#                o                      o                              #",
+      "#                #             L        ##                             #",
+      "#                #             #        ##             #               #",
+      "#       o        #   ##        #        ##   ##   C    #               #",
+      "# @    ##        #   ##   ##   #        ##   ##   ##   #   ##    o   E #",
+      "####   ##   RR   #   ##   ##   #   RR   ##   ##   ##   #   ##   ########",
+      "####   ##   ##   #   ##   ##   #   ##   ##   ##   ##   #   ##   ########",
+      "####^^^##^^^##^^^#^^^##^^^##^^^#^^^##^^^##^^^##^^^##^^^#^^^##^^^########",
+      "########################################################################",
+      "########################################################################",
     ]
   }
 ];
 
 /* ═══ render.js ═══ */
 /* ═══════════════════════════════════════════════════════════════
- * МЯЧИК — рисование: рельеф кусками 8×8 клеток (кэш), объекты, мяч, частицы.
+ * BOUNCE CLASSIC — рисование: рельеф кусками 8×8 клеток (кэш), объекты, мяч, частицы.
  * ═════════════════════════════════════════════════════════════ */
 const Render = (function () {
   const { T } = BCore;
   const CHUNK = 8;
+  // темы поля: «Неон» (вид набора KuApp, по умолчанию) и «Классика» (как на Nokia: голубое небо, красный кирпич,
+  // стальные иглы). Мяч красный в обеих — и маленький, и большой (большой чуть темнее).
+  const THEMES = {
+    neon: {
+      bg: 'rgba(4,6,22,.62)', grid: 'rgba(120,140,255,.05)',
+      brickA: '#2a2160', brickB: '#171245', seam: 'rgba(255,255,255,.045)', seamW: 1, depth: ['rgba(4,3,20,.32)', 'rgba(4,3,20,.55)'],
+      edge: '#00e5ff', edgeGlow: 'rgba(0,229,255,.75)', edgeW: .07,
+      rubberA: '#4f8dff', rubberB: '#1c3aa6', rubberEdge: '#a8ccff', rubberGlow: 'rgba(91,140,255,.95)',
+      spikeA: '#ff9f43', spikeB: '#fff2a8', spikeGlow: 'rgba(255,214,10,.8)',
+      water: 'rgba(40,120,255,.28)', waterTop: 'rgba(120,200,255,.85)', waterDeep: 'rgba(40,120,255,.07)',
+      ring: '#ffd60a', ringGlow: 'rgba(255,214,10,.8)', ringDone: 'rgba(160,170,210,.35)', check: '#00e5ff', checkOn: '#ffd60a',
+      jack: ['#ff5d7d', '#ff9f43', '#fff2a8'], jackGlow: 'rgba(255,93,125,.9)', jackCore: ['#ffd1dc', '#d81b4a', '#4a0718'], textShadow: null
+    },
+    classic: {
+      bg: null, sky: ['#7fcdf0', '#cdeefa'], grid: null,
+      brickA: '#d4602f', brickB: '#b0441c', seam: 'rgba(255,226,196,.55)', seamW: 1.6, depth: ['rgba(70,14,0,.10)', 'rgba(70,14,0,.18)'],
+      edge: '#5e1806', edgeGlow: null, edgeW: .05,
+      rubberA: '#5b98f5', rubberB: '#2449b5', rubberEdge: '#13286e', rubberGlow: null,
+      spikeA: '#1d2027', spikeB: '#a7b0c2', spikeGlow: null,
+      water: 'rgba(20,90,215,.38)', waterTop: 'rgba(255,255,255,.9)', waterDeep: 'rgba(20,90,215,.12)',
+      ring: '#f0be00', ringGlow: 'rgba(120,80,0,.35)', ringDone: 'rgba(60,70,95,.35)', check: '#1aa7d8', checkOn: '#ffb000',
+      jack: ['#14161c', '#3b4150', '#c9d1e0'], jackGlow: 'rgba(0,0,0,.35)', jackCore: ['#ff9a9a', '#b3122e', '#2a0008'], textShadow: 'rgba(0,0,0,.75)'
+    }
+  };
+  let TH = THEMES.neon, themeName = 'neon';
   const COL = {
-    brickA: '#2a2160', brickB: '#171245', edge: '#00e5ff', edgeGlow: 'rgba(0,229,255,.75)',
-    rubberA: '#39d98a', rubberB: '#0f7a52', spike: '#ffd60a', spikeGlow: 'rgba(255,214,10,.8)',
-    water: 'rgba(40,120,255,.28)', waterTop: 'rgba(120,200,255,.85)',
-    ring: '#ffd60a', ringDone: 'rgba(160,170,210,.35)', check: '#00e5ff', checkOn: '#ffd60a',
-    ball: ['#ff7a8f', '#e0234e', '#7a0f2a'], ballBig: ['#7fb6ff', '#2f6bff', '#12307a']
+    // мяч красный, как в оригинале, — и маленький, и большой (большой чуть темнее)
+    ball: ['#ff8496', '#e8264f', '#7a0f2a'], ballBig: ['#ff7088', '#d41c45', '#5e0a20']
   };
   let ts = 32, chunks = new Map(), chunkTs = 0, dpr = 1;
 
@@ -1043,6 +1201,16 @@ const Render = (function () {
     g.beginPath(); g.moveTo(x + r, y); g.lineTo(x + w - r, y); g.quadraticCurveTo(x + w, y, x + w, y + r);
     g.lineTo(x + w, y + h - r); g.quadraticCurveTo(x + w, y + h, x + w - r, y + h); g.lineTo(x + r, y + h);
     g.quadraticCurveTo(x, y + h, x, y + h - r); g.lineTo(x, y + r); g.quadraticCurveTo(x, y, x + r, y); g.closePath();
+  }
+
+  // насколько клетка «внутри» массива: 0 — у края (рядом пусто), 1–2 — глубже (рисуется темнее)
+  function depthAt(L, c, r) {
+    for (let d = 1; d <= 2; d++)
+      for (let rr = r - d; rr <= r + d; rr++) for (let cc = c - d; cc <= c + d; cc++) {
+        if (cc < 0 || rr < 0 || cc >= L.w || rr >= L.h) continue;
+        if (!BCore.isSolidT(L.tiles[rr * L.w + cc])) return d - 1;
+      }
+    return 2;
   }
 
   /* ── рельеф одного куска ── */
@@ -1060,8 +1228,8 @@ const Render = (function () {
       if (!BCore.isSolidT(t)) continue;
       const x = at(c), y = atY(r);
       const grd = g.createLinearGradient(0, y, 0, y + ts);
-      if (t === T.RUBBER) { grd.addColorStop(0, COL.rubberA); grd.addColorStop(1, COL.rubberB); }
-      else { grd.addColorStop(0, COL.brickA); grd.addColorStop(1, COL.brickB); }
+      if (t === T.RUBBER) { grd.addColorStop(0, TH.rubberA); grd.addColorStop(1, TH.rubberB); }
+      else { grd.addColorStop(0, TH.brickA); grd.addColorStop(1, TH.brickB); }
       g.fillStyle = grd;
       g.beginPath();
       if (t === T.SL_R) { g.moveTo(x, y + ts); g.lineTo(x + ts, y); g.lineTo(x + ts, y + ts); }
@@ -1070,16 +1238,20 @@ const Render = (function () {
       else if (t === T.CSL_L) { g.moveTo(x, y); g.lineTo(x + ts, y); g.lineTo(x, y + ts); }
       else g.rect(x - 0.5, y - 0.5, ts + 1, ts + 1);
       g.fill();
+      if (t === T.BRICK) {
+        const dp = depthAt(L, c, r);                 // глубина массива — затемнение
+        if (dp) { g.fillStyle = TH.depth[dp - 1]; g.fillRect(x - 0.5, y - 0.5, ts + 1, ts + 1); }
+      }
       if (t === T.BRICK) {                          // кладка: тонкие швы
-        g.strokeStyle = 'rgba(255,255,255,.045)'; g.lineWidth = 1;
+        g.strokeStyle = TH.seam; g.lineWidth = TH.seamW;
         g.beginPath(); g.moveTo(x, y + ts / 2); g.lineTo(x + ts, y + ts / 2);
         const o = (r % 2) * ts / 2; g.moveTo(x + o + ts / 4, y); g.lineTo(x + o + ts / 4, y + ts / 2); g.moveTo(x + (o + ts * 3 / 4) % ts, y + ts / 2); g.lineTo(x + (o + ts * 3 / 4) % ts, y + ts);
         g.stroke();
-      } else if (t === T.RUBBER) {                  // пружина: полосы
-        g.strokeStyle = 'rgba(255,255,255,.28)'; g.lineWidth = Math.max(1, ts * .06);
-        g.beginPath();
-        for (let k = 1; k < 4; k++) { g.moveTo(x + ts * .12, y + ts * k / 4); g.lineTo(x + ts * .88, y + ts * k / 4); }
-        g.stroke();
+      } else if (t === T.RUBBER) {                  // резина: мягкие «подушки»
+        g.fillStyle = 'rgba(255,255,255,.16)';
+        roundRect(g, x + ts * .1, y + ts * .12, ts * .8, ts * .3, ts * .14); g.fill();
+        g.strokeStyle = 'rgba(255,255,255,.22)'; g.lineWidth = Math.max(1, ts * .05);
+        g.beginPath(); g.moveTo(x + ts * .14, y + ts * .64); g.lineTo(x + ts * .86, y + ts * .64); g.stroke();
       }
     }
     // открытые рёбра — неоновая линия
@@ -1093,8 +1265,9 @@ const Render = (function () {
       list.length = 0; W.edges(c, r, t, list);
       for (const e of list) {
         const rub = t === T.RUBBER;
-        g.strokeStyle = rub ? '#7dffbf' : COL.edge; g.shadowColor = rub ? 'rgba(81,245,139,.9)' : COL.edgeGlow;
-        g.shadowBlur = ts * .35; g.lineWidth = Math.max(1.5, ts * .07);
+        g.strokeStyle = rub ? TH.rubberEdge : TH.edge;
+        const glow = rub ? TH.rubberGlow : TH.edgeGlow;
+        g.shadowColor = glow || 'transparent'; g.shadowBlur = glow ? ts * .35 : 0; g.lineWidth = Math.max(1.5, ts * TH.edgeW);
         g.beginPath(); g.moveTo(at(e[0]), atY(e[1])); g.lineTo(at(e[2]), atY(e[3])); g.stroke();
       }
     }
@@ -1112,9 +1285,9 @@ const Render = (function () {
     g.save();
     g.translate(x + ts / 2, y + ts / 2);
     g.rotate(t === T.SP_U ? 0 : t === T.SP_D ? Math.PI : t === T.SP_L ? -Math.PI / 2 : Math.PI / 2);
-    g.shadowColor = COL.spikeGlow; g.shadowBlur = ts * .3;
+    if (TH.spikeGlow) { g.shadowColor = TH.spikeGlow; g.shadowBlur = ts * .3; }
     const grd = g.createLinearGradient(0, ts / 2, 0, -ts * .3);
-    grd.addColorStop(0, '#ff9f43'); grd.addColorStop(1, '#fff2a8');
+    grd.addColorStop(0, TH.spikeA); grd.addColorStop(1, TH.spikeB);
     g.fillStyle = grd;
     g.beginPath();
     for (let k = 0; k < 3; k++) {
@@ -1123,6 +1296,24 @@ const Render = (function () {
     }
     g.fill();
     g.restore();
+  }
+
+  // кольцо «лёжа», чьи столбики ушли в стены (узкая труба), рисуется по ширине проёма
+  function fitRings(L) {
+    for (const rg of L.rings) {
+      if (rg.vert || rg.span !== undefined) continue;
+      const r = Math.floor(rg.y), solid = c => c < 0 || c >= L.w || BCore.isSolidT(L.tiles[r * L.w + c]);
+      const c0 = Math.floor(rg.x), c1 = Math.floor(rg.x + rg.len);
+      let a = rg.x, b = rg.x + rg.len;
+      if (solid(c0)) a = c0 + 1;
+      if (solid(c1)) b = c1;
+      rg.span = Math.max(0.6, Math.min(rg.len, b - a + 0.16));
+    }
+  }
+
+  function setTheme(name) {
+    const n = THEMES[name] ? name : 'neon';
+    if (n !== themeName) { themeName = n; TH = THEMES[n]; chunks.clear(); }
   }
 
   function setScale(tileSize, ratio) {
@@ -1139,12 +1330,14 @@ const Render = (function () {
   // cam: { x, y } — левый верхний угол вида в клетках; vw, vh — размер вида в клетках
   function frame(g, W, cam, vw, vh, now, fx) {
     const L = W.L;
+    if (!L.ringsFitted) { fitRings(L); L.ringsFitted = true; }
     g.save();
     g.scale(dpr, dpr);
     // фон
-    g.fillStyle = 'rgba(4,6,22,.62)';
+    if (TH.sky) { const sk = g.createLinearGradient(0, 0, 0, vh * ts); sk.addColorStop(0, TH.sky[0]); sk.addColorStop(1, TH.sky[1]); g.fillStyle = sk; }
+    else g.fillStyle = TH.bg;
     g.fillRect(0, 0, vw * ts, vh * ts);
-    drawBackdrop(g, cam, vw, vh, now);
+    if (TH.grid) drawBackdrop(g, cam, vw, vh, now);
     g.translate(-cam.x * ts, -cam.y * ts);
     const c0 = Math.floor(cam.x), c1 = Math.ceil(cam.x + vw), r0 = Math.floor(cam.y), r1 = Math.ceil(cam.y + vh);
     // вода (позади)
@@ -1162,7 +1355,7 @@ const Render = (function () {
     L.checks.forEach((ch, k) => drawCheck(g, ch, now, W.checkOn === k));
     L.items.forEach((it, k) => { if (it.pad || !W.itemTaken[k]) drawItem(g, it, now); });
     L.rings.forEach((rg, k) => drawRing(g, rg, now, 'back', W.ringDone[k]));
-    for (const sp of L.spiders) { const [sx, sy] = W.spiderPos(sp); drawSpider(g, sx, sy, now); }
+    for (const j of L.jacks) { const [jx, jy] = W.jackPos(j); drawJack(g, jx, jy, now); }
     if (W.dead <= 0 && !W.won && !W.over) drawBall(g, W, now);
     L.rings.forEach((rg, k) => drawRing(g, rg, now, 'front', W.ringDone[k]));
     // вода (поверх мяча — полупрозрачная гладь)
@@ -1174,7 +1367,7 @@ const Render = (function () {
   function drawBackdrop(g, cam, vw, vh, now) {
     // медленная сетка «вдали» (параллакс)
     const step = ts * 2, ox = -((cam.x * ts * 0.3) % step), oy = -((cam.y * ts * 0.3) % step);
-    g.strokeStyle = 'rgba(120,140,255,.05)'; g.lineWidth = 1;
+    g.strokeStyle = TH.grid; g.lineWidth = 1;
     g.beginPath();
     for (let x = ox; x < vw * ts; x += step) { g.moveTo(x, 0); g.lineTo(x, vh * ts); }
     for (let y = oy; y < vh * ts; y += step) { g.moveTo(0, y); g.lineTo(vw * ts, y); }
@@ -1185,32 +1378,32 @@ const Render = (function () {
     const L = W.L;
     for (let r = Math.max(0, r0); r < Math.min(L.h, r1 + 1); r++) for (let c = Math.max(0, c0); c < Math.min(L.w, c1 + 1); c++) {
       if (!L.water[r * L.w + c]) continue;
-      const x = c * ts, y = r * ts, surf = !(r > 0 && L.water[(r - 1) * L.w + c]);
+      const x = c * ts, y = r * ts, up = r > 0 ? (r - 1) * L.w + c : -1, surf = up >= 0 && !L.water[up] && !BCore.isSolidT(L.tiles[up]);   // гладь — только под воздухом
       if (!top) {
-        g.fillStyle = COL.water;
+        g.fillStyle = TH.water;
         if (surf) {
           g.beginPath(); g.moveTo(x, y + ts);
           for (let k = 0; k <= 4; k++) { const xx = x + ts * k / 4; g.lineTo(xx, y + ts * .12 + Math.sin(now * 2.6 + xx / ts * 1.7) * ts * .06); }
           g.lineTo(x + ts, y + ts); g.closePath(); g.fill();
         } else g.fillRect(x, y, ts, ts);
       } else if (surf) {
-        g.strokeStyle = COL.waterTop; g.lineWidth = Math.max(1, ts * .05);
+        g.strokeStyle = TH.waterTop; g.lineWidth = Math.max(1, ts * .05);
         g.beginPath();
         for (let k = 0; k <= 4; k++) { const xx = x + ts * k / 4, yy = y + ts * .12 + Math.sin(now * 2.6 + xx / ts * 1.7) * ts * .06; k ? g.lineTo(xx, yy) : g.moveTo(xx, yy); }
         g.stroke();
       } else {
-        g.fillStyle = 'rgba(40,120,255,.07)'; g.fillRect(x, y, ts, ts);
+        g.fillStyle = TH.waterDeep; g.fillRect(x, y, ts, ts);
       }
     }
   }
 
   function drawRing(g, rg, now, half, done) {
-    const col = done ? COL.ringDone : COL.ring;
+    const col = done ? TH.ringDone : TH.ring;
     const L = rg.len * ts, th = rg.big ? .14 : .12;
     g.save();
     g.lineWidth = Math.max(2, ts * th);
     g.strokeStyle = col;
-    if (!done) { g.shadowColor = 'rgba(255,214,10,.8)'; g.shadowBlur = ts * .35; }
+    if (!done) { g.shadowColor = TH.ringGlow; g.shadowBlur = ts * .35; }
     if (rg.vert) {
       const cx = rg.x * ts, cy = (rg.y + rg.len / 2) * ts, rx = ts * (rg.big ? .32 : .24), ry = L / 2;
       g.beginPath();
@@ -1218,7 +1411,7 @@ const Render = (function () {
       else g.ellipse(cx, cy, rx, ry, 0, -Math.PI / 2, Math.PI / 2);
       g.stroke();
     } else {
-      const cx = (rg.x + rg.len / 2) * ts, cy = rg.y * ts, rx = L / 2, ry = ts * (rg.big ? .3 : .22);
+      const cx = (rg.x + rg.len / 2) * ts, cy = rg.y * ts, rx = (rg.span || rg.len) * ts / 2, ry = ts * (rg.big ? .3 : .22);
       g.beginPath();
       if (half === 'back') g.ellipse(cx, cy, rx, ry, 0, Math.PI, Math.PI * 2);
       else g.ellipse(cx, cy, rx, ry, 0, 0, Math.PI);
@@ -1234,7 +1427,7 @@ const Render = (function () {
     g.scale(Math.cos(now * 2.4 + ch.x) * .35 + .65, 1);
     g.shadowColor = on ? 'rgba(255,214,10,.9)' : 'rgba(0,229,255,.8)'; g.shadowBlur = ts * (on ? .6 : .35);
     const grd = g.createLinearGradient(0, -s * 1.4, 0, s * 1.4);
-    grd.addColorStop(0, '#fff'); grd.addColorStop(1, on ? COL.checkOn : COL.check);
+    grd.addColorStop(0, '#fff'); grd.addColorStop(1, on ? TH.checkOn : TH.check);
     g.fillStyle = grd;
     g.beginPath(); g.moveTo(0, -s * 1.4); g.lineTo(s, 0); g.lineTo(0, s * 1.4); g.lineTo(-s, 0); g.closePath(); g.fill();
     g.restore();
@@ -1244,28 +1437,59 @@ const Render = (function () {
     const x = it.x * ts, y = it.y * ts;
     g.save();
     if (it.k === 'life') {
-      const yy = y + Math.sin(now * 3 + it.x) * ts * .07, r = ts * .26;
-      g.shadowColor = 'rgba(91,140,255,.9)'; g.shadowBlur = ts * .4;
-      const grd = g.createRadialGradient(x - r * .35, yy - r * .35, r * .1, x, yy, r);
-      grd.addColorStop(0, '#dff0ff'); grd.addColorStop(1, '#5b8cff');
+      // кристальный шар: стеклянная сфера с бликом — жизнь и очки
+      const yy = y + Math.sin(now * 3 + it.x) * ts * .07, r = ts * .27;
+      g.shadowColor = 'rgba(140,200,255,.95)'; g.shadowBlur = ts * .45;
+      const grd = g.createRadialGradient(x - r * .35, yy - r * .4, r * .08, x, yy, r);
+      grd.addColorStop(0, '#ffffff'); grd.addColorStop(.45, '#bfe3ff'); grd.addColorStop(1, '#4f8dff');
       g.fillStyle = grd; g.beginPath(); g.arc(x, yy, r, 0, Math.PI * 2); g.fill();
-      g.shadowBlur = 0; g.fillStyle = '#fff'; g.font = `${Math.round(ts * .26)}px 'Russo One', sans-serif`; g.textAlign = 'center'; g.textBaseline = 'middle';
-      g.fillText('+1', x, yy + ts * .01);
+      g.shadowBlur = 0;
+      g.strokeStyle = 'rgba(255,255,255,.7)'; g.lineWidth = Math.max(1, ts * .03);
+      g.beginPath(); g.arc(x, yy, r * .72, Math.PI * 1.1, Math.PI * 1.45); g.stroke();
+      // искорка
+      const tw = (Math.sin(now * 4 + it.x * 3) + 1) / 2, sx = x + r * .45, sy = yy - r * .55, sl = ts * (.06 + .07 * tw);
+      g.strokeStyle = 'rgba(255,255,255,.95)'; g.lineWidth = Math.max(1, ts * .035);
+      g.beginPath(); g.moveTo(sx - sl, sy); g.lineTo(sx + sl, sy); g.moveTo(sx, sy - sl); g.lineTo(sx, sy + sl); g.stroke();
     } else if (it.k === 'big' || it.k === 'small') {
-      // площадка: купол (зелёный — надуть, розовый — сдуть) на подставке
-      const big = it.k === 'big', col = big ? '#51f58b' : '#ff4dd2';
-      const by = y + ts * .5, pulse = 1 + Math.sin(now * 4 + it.x) * .06;
-      g.shadowColor = col; g.shadowBlur = ts * .4;
-      g.fillStyle = 'rgba(255,255,255,.18)'; g.fillRect(x - ts * .42, by - ts * .14, ts * .84, ts * .14);
-      g.fillStyle = col;
-      g.beginPath(); g.arc(x, by - ts * .14, ts * .3 * pulse, Math.PI, 0); g.closePath(); g.fill();
-      g.shadowBlur = 0; g.strokeStyle = '#041018'; g.lineWidth = Math.max(1.5, ts * .07); g.lineCap = 'round';
-      const cy = by - ts * .27;
-      g.beginPath(); g.moveTo(x - ts * .1, cy); g.lineTo(x + ts * .1, cy);
-      if (big) { g.moveTo(x, cy - ts * .1); g.lineTo(x, cy + ts * .1); }
+      // насос — зелёный столбик с жёлтым шаром (+); сдуватель — розовый столбик с белым шаром (−)
+      const big = it.k === 'big', col = big ? '#51f58b' : '#ff4dd2', colD = big ? '#1f9e57' : '#a8238a';
+      const by = y + ts * .5, pulse = 1 + Math.sin(now * 4 + it.x) * .07;
+      g.shadowColor = col; g.shadowBlur = ts * .35;
+      g.fillStyle = 'rgba(255,255,255,.2)'; roundRect(g, x - ts * .34, by - ts * .1, ts * .68, ts * .1, ts * .04); g.fill();
+      const pg = g.createLinearGradient(x - ts * .12, 0, x + ts * .12, 0);
+      pg.addColorStop(0, colD); pg.addColorStop(.5, col); pg.addColorStop(1, colD);
+      g.fillStyle = pg; roundRect(g, x - ts * .11, by - ts * .5, ts * .22, ts * .42, ts * .05); g.fill();
+      const br = ts * .2 * pulse, bcy = by - ts * .62;
+      const bg = g.createRadialGradient(x - br * .35, bcy - br * .35, br * .1, x, bcy, br);
+      if (big) { bg.addColorStop(0, '#fff6b0'); bg.addColorStop(1, '#ffc300'); g.shadowColor = 'rgba(255,214,10,.9)'; }
+      else { bg.addColorStop(0, '#ffffff'); bg.addColorStop(1, '#ffb3ec'); g.shadowColor = 'rgba(255,77,210,.9)'; }
+      g.fillStyle = bg; g.beginPath(); g.arc(x, bcy, br, 0, Math.PI * 2); g.fill();
+      g.shadowBlur = 0; g.strokeStyle = big ? '#5a3d00' : '#8a1070'; g.lineWidth = Math.max(1.4, ts * .055); g.lineCap = 'round';
+      g.beginPath(); g.moveTo(x - ts * .09, bcy); g.lineTo(x + ts * .09, bcy);
+      if (big) { g.moveTo(x, bcy - ts * .09); g.lineTo(x, bcy + ts * .09); }
       g.stroke();
+    } else if (it.k === 'super') {
+      // кристалл супер-прыжка: фиолетовый самоцвет со стрелками вверх и искрами
+      const yy = y + Math.sin(now * 2.6 + it.x) * ts * .08, s = ts * .34;
+      g.shadowColor = 'rgba(199,125,255,.95)'; g.shadowBlur = ts * .55;
+      const grd = g.createLinearGradient(x, yy - s * 1.2, x, yy + s * 1.2);
+      grd.addColorStop(0, '#f3e1ff'); grd.addColorStop(.5, '#c77dff'); grd.addColorStop(1, '#6a2bd9');
+      g.fillStyle = grd;
+      g.beginPath();
+      g.moveTo(x, yy - s * 1.25); g.lineTo(x + s * .9, yy - s * .35); g.lineTo(x + s * .62, yy + s * 1.05);
+      g.lineTo(x - s * .62, yy + s * 1.05); g.lineTo(x - s * .9, yy - s * .35); g.closePath(); g.fill();
+      g.shadowBlur = 0;
+      g.strokeStyle = 'rgba(255,255,255,.45)'; g.lineWidth = Math.max(1, ts * .025);
+      g.beginPath(); g.moveTo(x - s * .9, yy - s * .35); g.lineTo(x + s * .9, yy - s * .35); g.moveTo(x, yy - s * 1.25); g.lineTo(x, yy + s * 1.05); g.stroke();
+      g.strokeStyle = '#ffd60a'; g.lineWidth = Math.max(1.5, ts * .07); g.lineCap = 'round'; g.lineJoin = 'round';
+      g.shadowColor = 'rgba(255,214,10,.9)'; g.shadowBlur = ts * .2;
+      for (const o of [.18, -.12]) { g.beginPath(); g.moveTo(x - s * .42, yy + s * (o + .3)); g.lineTo(x, yy + s * (o - .12)); g.lineTo(x + s * .42, yy + s * (o + .3)); g.stroke(); }
+      for (let k = 0; k < 3; k++) {
+        const t = (now * .9 + k / 3 + it.x * .13) % 1, px = x + Math.sin(k * 2.1 + it.x) * s * .9, py = yy + s * 1.1 - t * s * 3;
+        g.globalAlpha = 1 - t; g.fillStyle = '#fff'; g.beginPath(); g.arc(px, py, Math.max(1, ts * .035), 0, Math.PI * 2); g.fill();
+      }
     } else {
-      // коробка: ускорение (жёлтая »), антигравитация (фиолетовая ⇅), обычная тяжесть (голубая ↓)
+      // коробка: ускорение (жёлтая »), антигравитация (фиолетовая ⇅), обычная тяжесть (голубая ↓) — в уровнях не используются
       const sp = it.k === 'speed', nm = it.k === 'norm', col = sp ? '#ffd60a' : nm ? '#00e5ff' : '#c77dff', s = ts * .62, yy = y + Math.sin(now * 3 + it.x) * ts * .05;
       g.shadowColor = col; g.shadowBlur = ts * .4;
       g.fillStyle = col; roundRect(g, x - s / 2, yy - s / 2, s, s, ts * .1); g.fill();
@@ -1279,23 +1503,25 @@ const Render = (function () {
     g.restore();
   }
 
-  function drawSpider(g, sx, sy, now) {
-    const x = sx * ts, y = sy * ts, r = ts * .3;
+  // джек — крестообразная колючка: 4 длинных и 4 коротких шипа, медленно вращается
+  function drawJack(g, jx, jy, now) {
+    const x = jx * ts, y = jy * ts, R = ts * .5;
     g.save();
     g.translate(x, y);
-    g.rotate(now * 3);
-    g.shadowColor = 'rgba(255,77,210,.85)'; g.shadowBlur = ts * .35;
-    g.fillStyle = '#ff4dd2';
-    g.beginPath();
-    for (let k = 0; k < 16; k++) { const a = k * Math.PI / 8, rr = k % 2 ? r * .78 : r * 1.32; g.lineTo(Math.cos(a) * rr, Math.sin(a) * rr); }
-    g.closePath(); g.fill();
-    g.rotate(-now * 3);
+    g.rotate(now * 1.3 + jx * .7);
+    g.shadowColor = TH.jackGlow; g.shadowBlur = ts * .35;
+    for (let k = 0; k < 8; k++) {
+      const long = k % 2 === 0, L = long ? R : R * .62, w = long ? ts * .13 : ts * .1;
+      const grd = g.createLinearGradient(0, 0, L, 0);
+      grd.addColorStop(0, TH.jack[0]); grd.addColorStop(.6, TH.jack[1]); grd.addColorStop(1, TH.jack[2]);
+      g.fillStyle = grd;
+      g.beginPath(); g.moveTo(0, -w); g.lineTo(L, 0); g.lineTo(0, w); g.closePath(); g.fill();
+      g.rotate(Math.PI / 4);
+    }
     g.shadowBlur = 0;
-    const grd = g.createRadialGradient(-r * .3, -r * .3, r * .1, 0, 0, r * .85);
-    grd.addColorStop(0, '#5a2a7a'); grd.addColorStop(1, '#1a0b2e');
-    g.fillStyle = grd; g.beginPath(); g.arc(0, 0, r * .82, 0, Math.PI * 2); g.fill();
-    g.fillStyle = '#ffd60a';
-    g.beginPath(); g.arc(-r * .28, -r * .12, r * .14, 0, Math.PI * 2); g.arc(r * .28, -r * .12, r * .14, 0, Math.PI * 2); g.fill();
+    const cg = g.createRadialGradient(-ts * .06, -ts * .06, ts * .02, 0, 0, ts * .2);
+    cg.addColorStop(0, TH.jackCore[0]); cg.addColorStop(.5, TH.jackCore[1]); cg.addColorStop(1, TH.jackCore[2]);
+    g.fillStyle = cg; g.beginPath(); g.arc(0, 0, ts * .19, 0, Math.PI * 2); g.fill();
     g.restore();
   }
 
@@ -1303,9 +1529,11 @@ const Render = (function () {
     const d = W.L.door, x = d.c * ts, y = d.r * ts, w = d.w * ts, h = d.h * ts, open = W.ringsLeft === 0;
     g.save();
     if (open) {
+      // мерцающий портал
+      const fl = .75 + Math.sin(now * 9) * .12 + Math.sin(now * 23) * .06;
       g.shadowColor = 'rgba(0,229,255,.9)'; g.shadowBlur = ts * .8;
       const grd = g.createLinearGradient(x, y, x, y + h);
-      grd.addColorStop(0, 'rgba(0,229,255,.75)'); grd.addColorStop(1, 'rgba(255,77,210,.55)');
+      grd.addColorStop(0, `rgba(0,229,255,${fl})`); grd.addColorStop(1, `rgba(255,77,210,${fl * .75})`);
       g.fillStyle = grd; roundRect(g, x + ts * .08, y + ts * .04, w - ts * .16, h - ts * .04, ts * .35); g.fill();
       g.shadowBlur = 0; g.strokeStyle = 'rgba(255,255,255,.6)'; g.lineWidth = 1.5;
       for (let k = 0; k < 3; k++) {
@@ -1320,7 +1548,7 @@ const Render = (function () {
       g.beginPath();
       for (let k = 1; k < 3; k++) { g.moveTo(x + w * k / 3, y + ts * .2); g.lineTo(x + w * k / 3, y + h - ts * .05); }
       g.stroke();
-      // замок и число колец
+      // число оставшихся колец
       g.fillStyle = '#ffd60a'; g.font = `${Math.round(ts * .36)}px 'Russo One', sans-serif`; g.textAlign = 'center'; g.textBaseline = 'middle';
       g.shadowColor = 'rgba(0,0,0,.6)'; g.shadowBlur = 4;
       g.fillText(String(W.ringsLeft), x + w / 2, y + h * .42);
@@ -1332,11 +1560,25 @@ const Render = (function () {
     const x = W.x * ts, y = W.y * ts, r = W.r * ts, cols = W.big ? COL.ballBig : COL.ball;
     g.save();
     g.translate(x, y);
+    // супер-прыжок: золотое сияние и искры (в последние 3 с мигает)
+    if (W.superT > 0 && (W.superT > 3 || Math.sin(now * 18) > -0.2)) {
+      g.save();
+      const halo = g.createRadialGradient(0, 0, r * .9, 0, 0, r * 1.75);
+      halo.addColorStop(0, 'rgba(255,214,10,.45)'); halo.addColorStop(1, 'rgba(199,125,255,0)');
+      g.fillStyle = halo; g.beginPath(); g.arc(0, 0, r * 1.75, 0, Math.PI * 2); g.fill();
+      g.fillStyle = '#fff6b0';
+      for (let k = 0; k < 4; k++) {
+        const t = (now * 1.6 + k / 4) % 1, a = k * 1.7 + now;
+        g.globalAlpha = 1 - t;
+        g.beginPath(); g.arc(Math.cos(a) * r * 1.1, r * .6 - t * r * 2.2, Math.max(1, r * .1), 0, Math.PI * 2); g.fill();
+      }
+      g.restore();
+    }
     // сплющивание при ударе и вытягивание в полёте
     const sp = Math.hypot(W.vx, W.vy), a = Math.atan2(W.vy, W.vx);
     const st = Math.min(0.12, sp * 0.006) - W.squash;
     g.rotate(a); g.scale(1 + st, 1 - st); g.rotate(-a);
-    g.shadowColor = W.big ? 'rgba(91,140,255,.85)' : 'rgba(255,93,125,.85)';
+    g.shadowColor = W.superT > 0 ? 'rgba(255,214,10,.9)' : 'rgba(255,93,125,.85)';
     g.shadowBlur = r * .9;
     const grd = g.createRadialGradient(-r * .35, -r * .4, r * .08, 0, 0, r);
     grd.addColorStop(0, cols[0]); grd.addColorStop(.55, cols[1]); grd.addColorStop(1, cols[2]);
@@ -1385,7 +1627,7 @@ const Render = (function () {
           g.globalAlpha = k;
           if (p.txt) {
             g.fillStyle = p.col; g.font = `${Math.round(ts * .42)}px 'Russo One', sans-serif`; g.textAlign = 'center'; g.textBaseline = 'middle';
-            g.shadowColor = p.col; g.shadowBlur = 8;
+            g.shadowColor = TH.textShadow || p.col; g.shadowBlur = TH.textShadow ? 3 : 8;
             g.fillText(p.txt, p.x * ts, p.y * ts);
           } else {
             g.fillStyle = p.col; g.shadowColor = p.col; g.shadowBlur = 6;
@@ -1409,17 +1651,21 @@ const Render = (function () {
     return cv;
   }
 
-  return { setScale, resetChunks, resetAround, frame, Fx, wholeLevel, get ts() { return ts; } };
+  return { setScale, setTheme, resetChunks, resetAround, frame, Fx, wholeLevel, get ts() { return ts; }, get theme() { return themeName; } };
 })();
 
 /* ═══ ui.js ═══ */
 /* ═══════════════════════════════════════════════════════════════
- * МЯЧИК — экраны, ввод, цикл игры, прогресс, звук.
+ * BOUNCE CLASSIC — экраны, ввод, цикл игры, прогресс, звук.
  * ═════════════════════════════════════════════════════════════ */
 const $ = id => document.getElementById(id);
 const LEVELS = BLevels;
 const P = BCore.P;
-const toast = (m, kind, ms) => { if (window.KuArcade) KuArcade.toast(m, ((kind || '') + (screen === 'game' ? ' top' : '')).trim(), ms); };
+// во время игры сообщения показываются плашкой внизу поля (не закрывают показатели), в меню — тостом набора
+const toast = (m, kind, ms) => {
+  if (screen === 'game' && document.getElementById('hint')) { showHint(m, kind, ms); return; }
+  if (window.KuArcade) KuArcade.toast(m, kind || '', ms);
+};
 
 /* ── Хранилище ── */
 const store = {
@@ -1428,22 +1674,29 @@ const store = {
   del(k) { try { localStorage.removeItem(k); } catch (e) {} }
 };
 const asObj = o => (o && typeof o === 'object' && !Array.isArray(o)) ? o : {};
-const KEYS = { prog: 'bounce_progress', set: 'bounce_settings', sent: 'bounce_sent' };
+// Bounce Classic — новый набор уровней, поэтому прогресс и учёт отправленных очков — в новых ключах bounce2_*.
+// Ключи прежнего «Мячика» (bounce_*) не трогаем; настройки при первом запуске переносятся из bounce_settings.
+const KEYS = { prog: 'bounce2_progress', set: 'bounce2_settings', sent: 'bounce2_sent', oldSet: 'bounce_settings' };
 const settings = (() => {
-  const o = asObj(store.get(KEYS.set, {})), s = { sound: true, vibro: true, bigKeys: false, lefty: false, keysAlways: false };
-  for (const k in s) if (typeof o[k] === 'boolean') s[k] = o[k];
+  let raw = store.get(KEYS.set, null);
+  if (raw === null) raw = store.get(KEYS.oldSet, {});           // перенос настроек «Мячика»
+  const o = asObj(raw), s = { sound: true, vibro: true, bigKeys: false, lefty: false, keysAlways: false, hints: true, theme: 'neon' };
+  for (const k in s) if (typeof o[k] === 'boolean' && typeof s[k] === 'boolean') s[k] = o[k];
+  if (o.theme === 'classic') s.theme = 'classic';                 // оформление поля: «Неон» (набор) или «Классика»
   return s;
 })();
 const saveSettings = () => store.set(KEYS.set, settings);
-// прогресс: levels[i] = { s: звёзды, t: лучшее время (с), sc: лучшие очки }
+// прогресс: levels[i] = { s: звёзды, t: лучшее время (с), sc: лучшие очки, d: меньше всего потерянных жизней }
 const prog = (() => {
   const o = asObj(store.get(KEYS.prog, {})), lv = asObj(o.levels), out = { levels: {}, total: 0 };
   for (const k in lv) {
     const i = +k; if (!(Number.isInteger(i) && i >= 0 && i < LEVELS.length)) continue;
     const r = asObj(lv[k]);
-    out.levels[i] = { s: Math.max(1, Math.min(3, r.s | 0)), t: Number.isFinite(r.t) && r.t > 0 ? r.t : 0, sc: Math.max(0, r.sc | 0) };
+    out.levels[i] = { s: Math.max(1, Math.min(3, r.s | 0)), t: Number.isFinite(r.t) && r.t > 0 ? r.t : 0, sc: Math.max(0, r.sc | 0), d: Math.max(0, r.d | 0) };
   }
   out.total = Number.isFinite(o.total) ? Math.max(0, o.total | 0) : 0;
+  out.plays = Number.isFinite(o.plays) ? Math.max(0, o.plays | 0) : 0;      // статистика: сыграно попыток
+  out.pops = Number.isFinite(o.pops) ? Math.max(0, o.pops | 0) : 0;        // лопнувших мячей всего
   return out;
 })();
 const saveProg = () => store.set(KEYS.prog, prog);
@@ -1451,6 +1704,7 @@ const saveProg = () => store.set(KEYS.prog, prog);
 const sent = (() => { const o = asObj(store.get(KEYS.sent, {})), out = {}; for (const k in o) if (Number.isFinite(o[k]) && o[k] > 0) out[k] = Math.floor(o[k]); return out; })();
 const levelDone = i => !!prog.levels[i];
 const levelOpen = i => i === 0 || levelDone(i - 1) || levelDone(i);
+const isSecret = i => !!LEVELS[i].secret;
 const totalStars = () => Object.values(prog.levels).reduce((a, r) => a + r.s, 0);
 const fmtT = s => { s = Math.max(0, s); const m = Math.floor(s / 60), x = Math.floor(s % 60); return m + ':' + String(x).padStart(2, '0'); };
 const fmtT1 = s => fmtT(s) + '.' + Math.floor((s * 10) % 10);
@@ -1496,7 +1750,10 @@ const sfx = {
   splash: () => AudioSys.noise(0.3, 0.12, 400),
   power: () => AudioSys.tone(500, 'square', 0.25, 0.05, 1200),
   nope: () => AudioSys.tone(160, 'square', 0.15, 0.06),
-  powerEnd: () => AudioSys.tone(900, 'square', 0.22, 0.035, 300)
+  powerEnd: () => AudioSys.tone(900, 'square', 0.22, 0.035, 300),
+  rjump: () => AudioSys.tone(240, 'triangle', 0.2, 0.1, 880),
+  superOn: () => [440, 587, 784, 1175].forEach((f, k) => AudioSys.tone(f, 'triangle', 0.14, 0.08, f * 1.5, k * 0.05)),
+  superTick: () => AudioSys.tone(1320, 'square', 0.05, 0.03)
 };
 const buzz = ms => { if (settings.vibro) try { if (navigator.vibrate) navigator.vibrate(ms); } catch (e) {} };
 
@@ -1522,7 +1779,7 @@ function showScreen(name) {
   if (name === 'menu') refreshMenu(); else queueLayout();
 }
 function nextLevelIndex() {
-  for (let i = 0; i < LEVELS.length; i++) if (!levelDone(i)) return i;
+  for (let i = 0; i < LEVELS.length; i++) if (!levelDone(i) && levelOpen(i)) return i;
   return 0;
 }
 function refreshMenu() {
@@ -1530,15 +1787,18 @@ function refreshMenu() {
   $('best-play').textContent = `Уровень ${n + 1} · ${LEVELS[n].name}`;
   $('best-levels').textContent = `★ ${totalStars()} / ${LEVELS.length * 3}`;
   const done = Object.keys(prog.levels).length;
-  $('menu-stats').textContent = `Пройдено уровней: ${done} из ${LEVELS.length} • Очки: ${prog.total}`;
+  $('menu-stats').textContent = `Пройдено уровней: ${done} из ${LEVELS.length} • Очки: ${prog.total}` +
+    (prog.plays ? ` • Попыток: ${prog.plays}` : '') + (prog.pops ? ` • Лопнуло мячей: ${prog.pops}` : '');
 }
 function renderLevels() {
   const nx = nextLevelIndex();
   $('levels-grid').innerHTML = LEVELS.map((L, i) => {
-    const r = prog.levels[i], op = levelOpen(i);
+    const r = prog.levels[i], op = levelOpen(i), sec = isSecret(i);
     const st = r ? '★'.repeat(r.s) + '<s>' + '★'.repeat(3 - r.s) + '</s>' : '<s>★★★</s>';
-    return `<button class="bn-lv${r ? ' done' : ''}${i === nx && op ? ' cur' : ''}" data-i="${i}" ${op ? '' : 'disabled'} aria-label="Уровень ${i + 1}: ${L.name}${op ? '' : ' — закрыт'}">` +
-      `<b>${op ? i + 1 : '🔒'}</b><span class="st">${st}</span><small>${op ? L.name : 'закрыт'}</small><small>${r && r.t ? fmtT(r.t) : ''}</small></button>`;
+    // секретный уровень до открытия — «?» без названия
+    const num = op ? i + 1 : sec ? '?' : '🔒', nm = op ? L.name : sec ? 'секрет' : 'закрыт';
+    return `<button class="bn-lv${r ? ' done' : ''}${sec ? ' secret' : ''}${i === nx && op ? ' cur' : ''}" data-i="${i}" ${op ? '' : 'disabled'} aria-label="Уровень ${i + 1}: ${op ? L.name : nm}${op ? '' : ' — закрыт'}">` +
+      `<b>${num}</b><span class="st">${st}</span><small>${nm}</small><small>${r && r.t ? fmtT(r.t) : ''}</small></button>`;
   }).join('');
 }
 $('levels-grid').addEventListener('click', e => {
@@ -1556,11 +1816,14 @@ const inp = { left: false, right: false, jump: false };
 let shake = 0;
 const calm = () => !!(window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches);
 
+let hintsShown = new Set(), superSec = 0;
 function startLevel(i) {
   cur = Math.max(0, Math.min(LEVELS.length - 1, i));
+  if (!levelOpen(cur)) cur = nextLevelIndex();
   W = new BCore.World(LEVELS[cur]);
   fx.clear(); Render.resetChunks();
-  paused = false; ended = false; shake = 0;
+  paused = false; ended = false; shake = 0; hintsShown = new Set(); superSec = 0; hideHint();
+  prog.plays++; saveProg();
   closeAll();
   $('g-title').textContent = LEVELS[cur].name.toUpperCase();
   showScreen('game');
@@ -1583,9 +1846,9 @@ function layout() {
   if (!sw || !sh) return;
   const aw = sw - 14, ah = sh - 14, L = W.L;
   // клетка: по ширине видно не меньше 10,5 клетки и по высоте — 7,2; невысокий уровень на высоком экране —
-  // крупнее, лишь бы по ширине оставалось хотя бы 8 клеток
+  // чуть крупнее, но по ширине остаётся не меньше 9,5 клетки (видно, что впереди)
   ts = Math.max(18, Math.min(60, aw / 10.5, ah / 7.2));
-  if (L.h * ts < ah) ts = Math.max(ts, Math.min(60, ah / L.h, aw / 8));
+  if (L.h * ts < ah) ts = Math.max(ts, Math.min(60, ah / L.h, aw / 9.5));
   cssW = Math.floor(Math.min(aw, L.w * ts));
   cssH = Math.floor(Math.min(ah, L.h * ts));
   dpr = Math.min(2, window.devicePixelRatio || 1);
@@ -1635,6 +1898,7 @@ function loop(t) {
     cam.x += (tx - cam.x) * k; cam.y += (ty - cam.y) * k;
     keepInView();
   }
+  if (live) checkHints();
   fx.update(live ? dt : 0);
   shake *= Math.exp(-9 * dt);
   draw(t / 1000);
@@ -1649,12 +1913,31 @@ function draw(now) {
   Render.frame(ctx, W, { x: cam.x + sx, y: cam.y + sy }, view.w, view.h, now, fx);
 }
 
+/* ── Подсказки на ещё не пройденных уровнях: мяч рядом с местом подсказки — короткий тост ── */
+// подсказка — плашка внизу поля (не закрывает показатели и кнопки)
+let hintTimer = 0;
+function showHint(txt, kind, ms) {
+  const el = $('hint'); el.textContent = txt; el.className = 'bn-hint show' + (kind ? ' ' + kind : '');
+  clearTimeout(hintTimer); hintTimer = setTimeout(() => el.classList.remove('show'), ms || 3800);
+}
+function hideHint() { clearTimeout(hintTimer); $('hint').classList.remove('show'); }
+function checkHints() {
+  const hs = LEVELS[cur].hints;
+  if (!hs || !settings.hints || levelDone(cur) || W.dead > 0) return;
+  for (let k = 0; k < hs.length; k++) {
+    if (hintsShown.has(k)) continue;
+    const [hx, hy, txt] = hs[k];
+    if (Math.abs(W.x - hx - 0.5) < 2.5 && Math.abs(W.y - hy - 0.5) < 3) { hintsShown.add(k); showHint(txt); break; }
+  }
+}
+
 /* ── События мира ── */
 function handleEvents() {
   const ev = W.events; W.events = [];
   for (const e of ev) {
     switch (e[0]) {
       case 'jump': sfx.jump(); break;
+      case 'rjump': sfx.rjump(); break;
       case 'bounce': sfx.bounce(e[1]); break;
       case 'boing': sfx.boing(e[1]); break;
       case 'bump': sfx.bump(); break;
@@ -1671,6 +1954,11 @@ function handleEvents() {
       case 'life': sfx.life(); fx.burst(e[1], e[2], '#5b8cff', 16, 3, 0.7); fx.text(e[1], e[2] - 0.6, '+1 ♥', '#7fb6ff'); popStat('hud-lives'); break;
       case 'speed': sfx.power(); fx.burst(e[1], e[2], '#ffd60a', 14, 3, 0.5); toast('Ускорение!', 'gold', 1000); break;
       case 'grav': sfx.power(); fx.burst(e[1], e[2], '#c77dff', 14, 3, 0.5); toast('Антигравитация!', '', 1000); break;
+      case 'super':
+        sfx.superOn(); buzz(20); fx.burst(e[1], e[2], '#c77dff', 18, 4, 0.6); fx.burst(e[1], e[2], '#ffd60a', 10, 3, 0.5);
+        toast('Супер-прыжок! 15 секунд', 'gold', 1300);
+        break;
+      case 'superEnd': sfx.powerEnd(); toast('Супер-прыжок кончился', '', 1100); break;
       case 'speedEnd': case 'gravEnd': sfx.powerEnd(); break;
       case 'norm': sfx.powerEnd(); fx.burst(e[1], e[2], '#00e5ff', 12, 3, 0.5); break;
       case 'grow': sfx.grow(); fx.burst(e[1], e[2], '#51f58b', 14, 3, 0.5); break;
@@ -1679,7 +1967,8 @@ function handleEvents() {
       case 'splash': sfx.splash(); fx.burst(e[1], e[2], '#78c8ff', 10, 3, 0.45); break;
       case 'die':
         sfx.die(); buzz([40, 30, 60]); shake = calm() ? 0 : 0.35;
-        fx.burst(e[1], e[2], W.big ? '#5b8cff' : '#ff5d7d', 30, 6, 0.9);
+        fx.burst(e[1], e[2], '#ff5d7d', 30, 6, 0.9); fx.burst(e[1], e[2], '#fff2a8', 10, 4, 0.5);
+        prog.pops++; saveProg();
         popStat('hud-lives');
         break;
       case 'respawn': snapCam(); break;
@@ -1696,7 +1985,10 @@ function updateHud(force) {
   if (!W) return;
   const total = W.L.rings.length, lives = Math.max(0, W.lives);
   const tm = fmtT(W.time);
-  const key = [W.ringsLeft, lives, W.score, tm, Math.ceil(W.speedT), Math.ceil(W.gravT)].join('|');
+  const sj = Math.ceil(W.superT);
+  // тиканье в последние 3 секунды супер-прыжка
+  if (sj !== superSec) { if (sj > 0 && sj <= 3 && sj < superSec) sfx.superTick(); superSec = sj; }
+  const key = [W.ringsLeft, lives, W.score, tm, Math.ceil(W.speedT), Math.ceil(W.gravT), sj].join('|');
   if (!force && key === hudCache) return;
   hudCache = key;
   $('hud-rings').textContent = `${total - W.ringsLeft}/${total}`;
@@ -1706,6 +1998,7 @@ function updateHud(force) {
   // в альбомной ориентации HUD прячется — коротко в подзаголовке
   if ($('play').classList.contains('land')) $('g-sub').textContent = `УР. ${cur + 1} · КОЛЬЦА ${total - W.ringsLeft}/${total} · ♥ ${lives} · ${W.score} · ${tm}`;
   let tm2 = '';
+  if (W.superT > 0) tm2 += `<span class="sj${sj <= 3 ? ' low' : ''}" aria-label="Супер-прыжок: ${sj} с">⇑ СУПЕР ${sj}</span>`;
   if (W.speedT > 0) tm2 += `<span class="sp">⚡ ${Math.ceil(W.speedT)}</span>`;
   if (W.gravT > 0) tm2 += `<span class="gv">⇅ ${Math.ceil(W.gravT)}</span>`;
   $('timers').innerHTML = tm2;
@@ -1726,7 +2019,8 @@ function levelWon() {
   const r = prog.levels[cur], prevSc = r ? r.sc : 0;
   const award = Math.max(0, score - Math.max(prevSc, sent[cur] || 0));   // повтор уровня — только за улучшение
   const newBest = !!r && r.t > 0 && t < r.t;
-  prog.levels[cur] = { s: Math.max(r ? r.s : 0, stars), t: r && r.t ? Math.min(r.t, t) : t, sc: Math.max(prevSc, score) };
+  const secretNew = !levelDone(LEVELS.length - 1) && !levelOpen(LEVELS.length - 1) && cur === LEVELS.length - 2;
+  prog.levels[cur] = { s: Math.max(r ? r.s : 0, stars), t: r && r.t ? Math.min(r.t, t) : t, sc: Math.max(prevSc, score), d: r ? Math.min(r.d, W.deaths) : W.deaths };
   prog.total += award;
   saveProg();
   if (award > 0) { sent[cur] = Math.max(sent[cur] || 0, score); store.set(KEYS.sent, sent); }
@@ -1734,7 +2028,7 @@ function levelWon() {
     const api = window.parent && window.parent !== window && window.parent.PlatformAPI;
     if (api && api.gameplay) Promise.resolve(api.gameplay.submitScore('bounce', award, Math.max(1, Math.round(award / 20)))).catch(() => {});
   } catch (e) {}
-  setTimeout(() => showWin({ t, par, stars, score, award, newBest, best: prog.levels[cur].t, replay: !!r }), 900);
+  setTimeout(() => showWin({ t, par, stars, score, award, newBest, best: prog.levels[cur].t, replay: !!r, secretNew }), 900);
 }
 function showWin(o) {
   const last = cur === LEVELS.length - 1, allDone = LEVELS.every((_, i) => levelDone(i));
@@ -1744,22 +2038,26 @@ function showWin(o) {
   for (let k = 0; k < 3; k++) { st[k].classList.remove('lit'); if (k < o.stars) starTimers.push(setTimeout(() => st[k].classList.add('lit'), 250 + k * 250)); }
   $('win-best').hidden = !o.newBest;
   $('win-score').textContent = '+' + o.award;
-  const rows = [['Уровень', `${cur + 1}. ${LEVELS[cur].name}`], ['Время', `${fmtT1(o.t)} (норматив ${fmtT(o.par)})`],
-                ['Кольца', `${W.L.rings.length} из ${W.L.rings.length}`], ['Потеряно жизней', W.deaths], ['Очки уровня', o.score], ['Лучшее время', fmtT1(o.best)]];
-  $('win-stats').innerHTML = rows.map(([k, v]) => `<div>${k}<b>${v}</b></div>`).join('');
+  $('win-level').textContent = lvTitle(cur);
+  $('win-stats').innerHTML = statTiles([['Время', fmtT1(o.t)], ['Норматив', fmtT(o.par)], ['Кольца', `${W.L.rings.length}/${W.L.rings.length}`],
+    ['Потери', W.deaths ? '−' + W.deaths + ' ♥' : '0'], ['Очки', o.score], ['Лучшее', fmtT1(o.best)]]);
   const note = $('win-note');
-  note.hidden = !o.replay;
-  note.textContent = o.award ? 'Повтор уровня: очки — только за улучшение лучшего результата.' : 'Повтор уровня: очки начисляются только за улучшение лучшего результата.';
+  note.hidden = !o.replay && !o.secretNew;
+  note.textContent = o.secretNew ? '🔓 Открыт секретный уровень 11!' : 'Повтор: очки — только за улучшение результата';
+  if (o.secretNew) toast('Открыт секретный уровень!', 'gold', 2200);
   $('win-next').hidden = last;
-  $('win-again').className = 'ku-btn' + (last ? ' primary' : '');
+  $('win-again').className = 'ku-btn' + (last ? ' primary bn-wide' : '');
   open('ov-win');
 }
+// окна итога: «3 · Водные преграды»; показатели плитками — подпись сверху, значение в одну строку
+const lvTitle = i => `${i + 1} · ${LEVELS[i].name}`;
+const statTiles = rows => rows.map(([k, v]) => `<div><span>${k}</span><b>${v}</b></div>`).join('');
 function gameOver() {
   ended = true; releaseKeys();
   const total = W.L.rings.length;
-  $('over-sub').textContent = 'Жизни кончились — уровень можно пройти заново.';
-  $('over-stats').innerHTML = [['Уровень', `${cur + 1}. ${LEVELS[cur].name}`], ['Кольца', `${total - W.ringsLeft} из ${total}`], ['Время', fmtT(W.time)]]
-    .map(([k, v]) => `<div>${k}<b>${v}</b></div>`).join('');
+  $('over-level').textContent = lvTitle(cur);
+  $('over-sub').textContent = 'жизни кончились';
+  $('over-stats').innerHTML = statTiles([['Кольца', `${total - W.ringsLeft}/${total}`], ['Время', fmtT(W.time)], ['Очки', W.score]]);
   setTimeout(() => open('ov-over'), 300);
 }
 
@@ -1768,11 +2066,14 @@ function pause() {
   if (screen !== 'game' || !W || anyOverlay()) return;
   if (ended) { open(endOverlay()); return; }          // уровень окончен — снова окно итога
   paused = true; releaseKeys();
-  $('pause-sub').textContent = `${cur + 1}. ${LEVELS[cur].name} · ${fmtT(W.time)} · кольца ${W.L.rings.length - W.ringsLeft}/${W.L.rings.length}`;
+  $('pause-level').textContent = lvTitle(cur);
+  $('pause-sub').textContent = `${fmtT(W.time)} · кольца ${W.L.rings.length - W.ringsLeft}/${W.L.rings.length}`;
+  $('btn-pop').textContent = W.checkOn >= 0 ? '💥 К кристаллу (−1 ♥)' : '💥 На старт (−1 ♥)';
+  $('btn-pop').disabled = W.dead > 0;
   open('ov-pause');
 }
 function resume() { paused = false; close('ov-pause'); }
-function toMenu() { closeAll(); paused = false; ended = true; releaseKeys(); showScreen('menu'); }
+function toMenu() { closeAll(); paused = false; ended = true; releaseKeys(); hideHint(); showScreen('menu'); }
 
 /* ── Ввод: кнопки на экране (мультитач, можно вести палец с ◀ на ▶) и клавиатура ── */
 const ptrs = new Map();                 // pointerId → 'left' | 'right' | 'jump'
@@ -1843,10 +2144,21 @@ $('levels-x').onclick = () => closeLevels();
 $('btn-pause').onclick = () => { AudioSys.init(); pause(); };
 $('btn-resume').onclick = () => resume();
 $('btn-restart').onclick = () => startLevel(cur);
+// «лопнуть» мяч, если он застрял: минус жизнь и возврат к последнему кристаллу
+$('btn-pop').onclick = async () => {
+  if (!W || ended || W.dead > 0) return;
+  if (W.lives <= 1) {
+    close('ov-pause');
+    const yes = window.KuArcade && KuArcade.confirm ? await KuArcade.confirm('Это последняя жизнь — уровень придётся начать заново.', { title: 'ЛОПНУТЬ МЯЧ?', ok: 'Лопнуть', cancel: 'Отмена', danger: true }) : true;
+    if (!yes) { open('ov-pause'); return; }
+  }
+  resume(); W.pop(); handleEvents();
+};
 $('btn-pause-levels').onclick = () => { close('ov-pause'); levelsFrom = 'ov-pause'; renderLevels(); open('ov-levels'); };
 $('btn-quit').onclick = () => toMenu();
 $('win-next').onclick = () => startLevel(cur + 1);
 $('win-again').onclick = () => startLevel(cur);
+$('win-levels').onclick = () => { close('ov-win'); levelsFrom = 'ov-win'; renderLevels(); open('ov-levels'); };
 $('win-menu').onclick = () => toMenu();
 $('over-retry').onclick = () => startLevel(cur);
 $('over-levels').onclick = () => { close('ov-over'); levelsFrom = 'ov-over'; renderLevels(); open('ov-levels'); };
@@ -1857,7 +2169,15 @@ function closeRules() { close('ov-rules'); if (rulesFrom) open(rulesFrom); rules
 $('btn-rules').onclick = () => openRules(null);
 $('btn-pause-rules').onclick = () => openRules('ov-pause');
 $('rules-x').onclick = $('rules-ok').onclick = () => closeRules();
-function renderSettings() { document.querySelectorAll('#ov-settings input[data-opt]').forEach(el => { el.checked = !!settings[el.dataset.opt]; }); }
+function renderSettings() {
+  document.querySelectorAll('#ov-settings input[data-opt]').forEach(el => { el.checked = !!settings[el.dataset.opt]; });
+  document.querySelectorAll('#theme-seg button').forEach(b => b.classList.toggle('active', b.dataset.theme === settings.theme));
+}
+document.querySelectorAll('#theme-seg button').forEach(b => b.addEventListener('click', () => {
+  settings.theme = b.dataset.theme === 'classic' ? 'classic' : 'neon'; saveSettings();
+  Render.setTheme(settings.theme); renderSettings();
+}));
+Render.setTheme(settings.theme);
 function openSettings(from) { settingsFrom = from; if (from) close(from); renderSettings(); open('ov-settings'); }
 function closeSettings() { close('ov-settings'); if (settingsFrom) open(settingsFrom); settingsFrom = null; queueLayout(); }
 $('btn-settings').onclick = () => openSettings(null);
@@ -1871,7 +2191,7 @@ document.querySelectorAll('#ov-settings input[data-opt]').forEach(el => el.addEv
 $('btn-reset').onclick = async () => {
   const yes = window.KuArcade && KuArcade.confirm ? await KuArcade.confirm('Звёзды, лучшие времена и открытые уровни будут удалены.', { title: 'СБРОСИТЬ?', ok: 'Сбросить', cancel: 'Отмена', danger: true }) : false;
   if (!yes) return;
-  prog.levels = {}; prog.total = 0; saveProg();
+  prog.levels = {}; prog.total = 0; prog.plays = 0; prog.pops = 0; saveProg();
   refreshMenu(); toast('Прогресс сброшен');
 };
 
