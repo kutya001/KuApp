@@ -11,13 +11,15 @@
   #screen-game,#screen-game *{touch-action:none}
 
   /* ── Игровая колонка: панель соперника · поле · ваша панель ── */
-  #wrap{flex:1;min-height:0;width:100%;max-width:520px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:10px}
-  .pside{display:flex;flex-direction:column;align-items:center;gap:6px;transition:transform .3s;flex:none}
+  #wrap{flex:1;min-height:0;width:100%;max-width:600px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:10px}
+  .pside{display:flex;flex-direction:column;align-items:center;gap:6px;transition:transform .3s;flex:none;max-width:100%}
   .pside.flip{transform:rotate(180deg)}
   #wrap.netflip #panel-1{order:3}#wrap.netflip #board-box{order:2}#wrap.netflip #panel-0{order:1}
   #wrap.netflip:not(.race) #cv{transform:rotate(180deg)}
-  .plabel{font-family:var(--font-display);font-size:10.5px;letter-spacing:1.5px;text-transform:uppercase;color:var(--muted);height:14px;white-space:nowrap}
+  .plabel{font-family:var(--font-display);font-size:10.5px;letter-spacing:1.5px;text-transform:uppercase;color:var(--muted);height:14px;white-space:nowrap;
+    max-width:100%;overflow:hidden;text-overflow:ellipsis}
   .plabel.on{color:var(--text)}
+  .plabel.no{color:#ff9fb1}
   .wbtn{min-width:104px;height:46px;padding:0 18px;border-radius:14px;display:flex;align-items:center;justify-content:center;gap:12px;
     color:var(--text);font:400 19px var(--font-display);cursor:pointer;background:var(--glass);border:1px solid var(--pc);
     box-shadow:var(--shadow-btn);transition:opacity .2s,filter .2s,box-shadow .2s,transform .1s,background .2s;opacity:.45;filter:saturate(.6)}
@@ -30,7 +32,39 @@
   .wbtn.armed{outline:3px solid #fff;outline-offset:3px}
   .wbtn:active{transform:scale(.95)}
   .wbtn.empty .bar{opacity:.35}
+  /* Ряд панели: [⟳ повернуть] [стены — счётчик] [✓ поставить]; ⟳ и ✓ видны, пока стена выбрана касанием */
+  .prow{display:flex;align-items:center;justify-content:center;gap:8px}
+  .ku-btn.icon.gbtn{width:46px;height:46px;border-radius:14px}
+  .ku-btn.icon.gbtn svg{width:21px;height:21px}
+  .gbtn.off{visibility:hidden}
+  #panel-0 .gbtn.ok{background:linear-gradient(135deg,#ff5d7d,#ff4dd2);color:#fff;border-color:transparent;box-shadow:0 0 18px rgba(255,93,125,.45)}
+  #panel-1 .gbtn.ok{background:linear-gradient(135deg,#5b8cff,#00e5ff);color:#fff;border-color:transparent;box-shadow:0 0 18px rgba(91,140,255,.45)}
+  .gbtn.ok.dim{opacity:.4;filter:saturate(.4);box-shadow:none}
   #board-box{line-height:0}
+  /* тост набора центрируется через left:50%, из-за этого его ширина упиралась в пол-экрана и текст ломался
+     на 3–4 строки; здесь — по содержимому, в одну строку, если помещается */
+  #toast{width:max-content;max-width:calc(100vw - 32px)}
+
+  /* Телефон в альбоме: поле по центру во всю высоту, заголовок и панели — по бокам */
+  @media (orientation:landscape) and (max-height:540px){
+    #screen-game.active{display:grid;grid-template-columns:minmax(150px,1fr) auto minmax(150px,1fr);grid-template-rows:auto minmax(0,1fr);
+      column-gap:12px;align-items:center;justify-items:center}
+    #screen-game .ku-top,#wrap{display:contents}
+    #screen-game .ku-top-left{display:none}
+    #screen-game .ku-top-title{grid-column:1;grid-row:1;align-self:start;justify-self:stretch;padding-top:calc(var(--ku-safe-left) * .85)}
+    #screen-game .ku-top-title .s{white-space:normal}
+    #screen-game .ku-top-actions{grid-column:3;grid-row:1;align-self:start;justify-self:end}
+    #board-box{grid-column:2;grid-row:1/3}
+    #panel-1{grid-column:1;grid-row:2}
+    #panel-0{grid-column:3;grid-row:2}
+    #wrap.netflip #panel-1{grid-column:3}
+    #wrap.netflip #panel-0{grid-column:1}
+    .pside.flip{transform:none}
+    .prow{flex-wrap:wrap;width:150px;row-gap:8px}
+    .prow .wbtn{order:-1;flex:1 0 100%}
+    .plabel{height:auto;white-space:normal;text-align:center;line-height:1.35;max-width:150px}
+    #panel-1 .plabel{order:-1}   /* подпись над кнопкой у обеих панелей; скрытый ряд ⟳ ✓ — внизу */
+  }
 
   .r{color:var(--red)} .b{color:var(--blue)}
   #menu-end h2.red{background:linear-gradient(90deg,#ff5d7d,#ff4dd2);-webkit-background-clip:text;background-clip:text}
@@ -80,7 +114,7 @@
 
     <div class="ku-menu-row"><button class="ku-btn ghost" id="btn-rules">📖 Правила</button></div>
     <div class="ku-menu-stats" id="menu-stats"></div>
-    <div class="ku-menu-hint">Тап по подсвеченной клетке — ход · кнопка стен → проведите по доске и отпустите</div>
+    <div class="ku-menu-hint">Ход — щелчок или тап по подсвеченной клетке<br>Стена мышью — наведите на паз между клетками и щёлкните (R, колесо или правая кнопка — повернуть)<br>На телефоне — тап по пазу, ещё тап (или ✓) — поставить, ⟳ — повернуть</div>
   </section>
 
   <!-- ═══ ИГРА ═══ -->
@@ -96,14 +130,22 @@
     <div id="wrap">
       <!-- Верхний игрок: синий (ИИ или второй игрок) -->
       <div class="pside" id="panel-1">
-        <button class="wbtn blue" id="wbtn-1"><span class="bar"></span><span id="wcount-1">10</span></button>
+        <div class="prow">
+          <button class="ku-btn icon gbtn off" id="rot-1" aria-label="Повернуть стену"><svg viewBox="0 0 24 24"><polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/></svg></button>
+          <button class="wbtn blue" id="wbtn-1" aria-label="Стены"><span class="bar"></span><span id="wcount-1">10</span></button>
+          <button class="ku-btn icon gbtn ok off" id="put-1" aria-label="Поставить стену"><svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg></button>
+        </div>
         <div class="plabel" id="plabel-1"></div>
       </div>
       <div id="board-box" class="ku-board"><canvas id="cv"></canvas></div>
       <!-- Нижний игрок: красный (вы / первый игрок) -->
       <div class="pside" id="panel-0">
         <div class="plabel" id="plabel-0"></div>
-        <button class="wbtn red" id="wbtn-0"><span class="bar"></span><span id="wcount-0">10</span></button>
+        <div class="prow">
+          <button class="ku-btn icon gbtn off" id="rot-0" aria-label="Повернуть стену"><svg viewBox="0 0 24 24"><polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/></svg></button>
+          <button class="wbtn red" id="wbtn-0" aria-label="Стены"><span class="bar"></span><span id="wcount-0">10</span></button>
+          <button class="ku-btn icon gbtn ok off" id="put-0" aria-label="Поставить стену"><svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg></button>
+        </div>
       </div>
     </div>
   </section>
@@ -129,8 +171,12 @@
       </ul>
       <h3>Управление</h3>
       <ul class="ku-rules">
-        <li>Тап по подсвеченной клетке — ход.</li>
-        <li>Тап по своей кнопке стен, затем проведите пальцем по доске и отпустите. Направление свайпа задаёт ориентацию стены.</li>
+        <li><b>Ход:</b> щелчок или тап по подсвеченной клетке (под курсором она подсвечивается целиком).</li>
+        <li><b>Стена мышью:</b> наведите курсор на паз между клетками — появится призрак стены вашего цвета. Серый призрак с ✕ — сюда нельзя (причина — в подписи у кнопки стен). Щелчок ставит стену. Стена закрывает две клетки: её середина — на ближайшем пересечении пазов; если там нельзя, а через тот же участок паза проходит стена, которую можно, — призрак сдвигается на неё (удобно ставить встык).</li>
+        <li><b>Поворот:</b> на пересечении пазов призрак сохраняет направление, с которого вы пришли; повернуть его — клавиша <b>R</b>, правая кнопка мыши или колесо.</li>
+        <li><b>Стена пальцем:</b> тап по пазу — призрак (ход не тратится), ещё тап по призраку или <b>✓</b> — поставить, <b>⟳</b> — повернуть. Ведите пальцем по доске — призрак едет по пазам. Тап по пустой клетке — убрать призрак. Ход фишкой — по-прежнему один тап.</li>
+        <li><b>Кнопка стен</b> показывает, сколько стен осталось. Тап по ней включает прежний способ: проведите по доске и отпустите — направление движения задаёт ориентацию.</li>
+        <li><b>Клавиши:</b> стрелки — шаг фишкой (и прыжок через соседа), R — повернуть, Enter — поставить призрак, Esc — убрать призрак / пауза, U — отменить ход, P — пауза.</li>
         <li>↶ — отменить свой ход (кроме игры по сети).</li>
       </ul>
     </div>
@@ -441,7 +487,7 @@ function netApply(room) {
   if (!isNet() || !room || !room.state) return;
   if (room.round !== netRound) { netRound = room.round; ['menu-end'].forEach(hide); newGame(); }
   S = deserialize(room.state);
-  history = []; armed = false; ghost = null;
+  history = []; clearInput();
   const lm = room.lastMove && room.lastMove.move;
   if (lm && lm.t === 'w' && room.lastMove.by !== mySeat) { lastWall = { o: lm.o, r: lm.r, c: lm.c, t: performance.now() }; AudioSys.sfx.wall(); }
   else if (lm && lm.t === 'm' && room.lastMove.by !== mySeat) AudioSys.sfx.move();
@@ -465,7 +511,7 @@ function startNet(sess) {
   hide('menu-main'); AudioSys.init();
   newGame();
   sess.onUpdate = room => netApply(room);
-  sess.onClosed = () => { gameOver = true; aiBusy = false; armed = false; ghost = null; updateHUD(); toast('Соперник вышел из игры'); $('end-title').textContent = 'СОПЕРНИК ВЫШЕЛ'; $('end-title').className = ''; $('end-sub').textContent = ''; $('end-score').style.display = 'none'; $('end-stats').textContent = ''; showEnd(); };
+  sess.onClosed = () => { gameOver = true; aiBusy = false; clearInput(); updateHUD(); toast('Соперник вышел из игры'); $('end-title').textContent = 'СОПЕРНИК ВЫШЕЛ'; $('end-title').className = ''; $('end-sub').textContent = ''; $('end-score').style.display = 'none'; $('end-stats').textContent = ''; showEnd(); };
   sess.onError = () => toast('Нет связи с сервером…');
   netApply(sess.room);
   sess.startPolling();
@@ -495,18 +541,35 @@ function refreshMenuStats() {
   $('menu-stats').textContent = parts.length ? MODE_NAME[GM] + ' против ИИ — ' + parts.join(' • ') : 'Сыграйте первую партию против ИИ';
 }
 
-function toast(msg) {
-  const t = $('toast'); t.textContent = msg; t.classList.add('show');
-  clearTimeout(toast._t); toast._t = setTimeout(() => t.classList.remove('show'), 1800);
+const LAND_MQ = '(orientation:landscape) and (max-height:540px)';   // телефон в альбоме — как в CSS
+// Тост — на стороне, противоположной панели того, чей ход (не закрывает его ⟳ / ✓ и кнопку стен)
+function toast(msg, ms) {
+  const t = $('toast'); t.textContent = msg;
+  let top = false;
+  if ($('screen-game').classList.contains('active')) {
+    const bottomSeat = $('wrap').classList.contains('netflip') ? 1 : 0;
+    top = matchMedia(LAND_MQ).matches || S.turn === bottomSeat;
+  }
+  t.classList.toggle('top', top);
+  t.classList.add('show');
+  clearTimeout(toast._t); toast._t = setTimeout(() => t.classList.remove('show'), ms || 1800);
 }
 
 /* ── Layout ── */
 function layout() {
-  const wrap = $('wrap');
-  if (!wrap.clientHeight) return;                       // экран игры скрыт (меню)
+  const scr = $('screen-game'), wrap = $('wrap');
+  if (!scr.clientHeight) return;                         // экран игры скрыт (меню)
   const FRAME = 16;                                      // рамка .ku-board: padding 7 + border 1
-  const availW = wrap.clientWidth - FRAME;
-  const availH = wrap.clientHeight - $('panel-0').offsetHeight - $('panel-1').offsetHeight - 2 * 10 - FRAME;
+  let availW, availH;
+  if (matchMedia(LAND_MQ).matches) {
+    // альбом: поле во всю высоту, по бокам колонки не уже 150 px (заголовок, панели) — см. CSS
+    const st = getComputedStyle(scr), px = v => parseFloat(v) || 0;
+    availW = scr.clientWidth - px(st.paddingLeft) - px(st.paddingRight) - 2 * 150 - 2 * 12 - FRAME;
+    availH = scr.clientHeight - px(st.paddingTop) - px(st.paddingBottom) - FRAME;
+  } else {
+    availW = wrap.clientWidth - FRAME;
+    availH = wrap.clientHeight - $('panel-0').offsetHeight - $('panel-1').offsetHeight - 2 * 10 - FRAME;
+  }
   // размер поля в клетках: клетки + пазы (¼ клетки) + поля по краям
   const GK = .25, PK = .2;
   const uw = COLS + AC * GK + 2 * PK, uh = ROWS + AR * GK + 2 * PK, um = Math.max(uw, uh);
@@ -521,23 +584,37 @@ window.addEventListener('resize', layout);
 
 /* ── HUD ── */
 function updateHUD() {
+  const act = canAct();
+  // призрак стены, о котором стоит сказать в подписи: выбранный касанием или под курсором
+  const g = act && !armed ? (pend || (hover && hover.t === 'w' ? hover : null)) : null;
+  const chk = g ? wallCheck(g.o, g.r, g.c) : null;
   for (const p of [0, 1]) {
     const b = $('wbtn-' + p), active = !gameOver && S.turn === p;
     $('wcount-' + p).textContent = S.walls[p];
     b.classList.toggle('active', active);
     b.classList.toggle('armed', active && armed);
     b.classList.toggle('empty', S.walls[p] === 0);
+    b.setAttribute('aria-label', 'Стены: осталось ' + S.walls[p]);
     const lb = $('plabel-' + p), nm = nameOf(p);
-    let txt = nm;
+    let txt = nm, hint = false, no = false;
     if (active) {
       if (!isHuman(p)) txt = mode === 'net' ? 'Ход: ' + nm : 'ИИ думает…';
       else if (armed) txt = 'Проведите по доске';
+      else if (chk && !chk.ok) { txt = '✕ ' + WHY[chk.why][0]; hint = no = true; }
+      else if (g && g === pend) { txt = 'Ещё тап или ✓ — поставить'; hint = true; }
+      else if (act && tipLeft > 0) { txt = ((mode === '1p' || mode === 'net') ? 'Ваш ход' : nm) + ' · ' + tipText(); hint = true; }
       else txt = (mode === '1p' || mode === 'net') ? 'Ваш ход' : 'Ход: ' + nm;
     }
     if (gameOver && winner === p) txt = nm + ' — ' + (GM === 'race' ? 'финиш!' : 'победа');
-    else if (GM === 'race') { const d = bfs(S, p); if (d < 999) txt += ' · 🏁 ' + d; }
-    lb.textContent = txt;
+    else if (GM === 'race' && !hint) { const d = bfs(S, p); if (d < 999) txt += ' · 🏁 ' + d; }
+    if (lb.textContent !== txt) lb.textContent = txt;
     lb.classList.toggle('on', active);
+    lb.classList.toggle('no', no);
+    // ⟳ и ✓ — только пока стена выбрана касанием и ход этого игрока; ✓ приглушена, если сюда нельзя
+    const showG = act && active && isHuman(p) && !!pend;
+    $('rot-' + p).classList.toggle('off', !showG);
+    $('put-' + p).classList.toggle('off', !showG);
+    $('put-' + p).classList.toggle('dim', showG && !!chk && !chk.ok);
   }
   $('panel-1').classList.toggle('flip', mode === '2p' && GM !== 'race');
   const who = mode === '1p' ? 'ИИ · ' + LEVEL_NAME[level] : mode === '2p' ? 'вдвоём' : 'по сети';
@@ -551,10 +628,11 @@ function commit(n, action) {
   const p = S.turn;
   history.push({ state: S, by: p });
   S = n;
-  armed = false; ghost = null;
+  clearInput();
   if (action.t === 'w') { lastWall = { o: action.o, r: action.r, c: action.c, t: performance.now() }; AudioSys.sfx.wall(); }
   else AudioSys.sfx.move();
   if (isHuman(p) && action.t === 'm') humanMoves++;
+  if (isHuman(p)) tipLeft = action.t === 'w' ? 0 : Math.max(0, tipLeft - 1);   // подсказка о стенах — до первой стены
 
   const won = action.t === 'm' && isGoal(p, S.pos[p][0], S.pos[p][1]);
   const over = won || S.ply >= MAX_PLY;
@@ -589,18 +667,28 @@ function undo() {
     const e = history.pop();
     if (isHuman(e.by)) { S = e.state; break; }
   }
-  armed = false; ghost = null; lastWall = null;
+  clearInput(); lastWall = null;
   updateHUD();
 }
 
 /* ── Results ── */
+// {easy|medium|hard|center_<ур.>|race_<ур.>: {w, l}}; испорченные данные (null, массив, строки) не ломают меню и итоги
 function loadStats() {
-  try { return JSON.parse(localStorage.getItem('wallrush_stats') || '{}'); } catch (e) { return {}; }
+  try {
+    const st = JSON.parse(localStorage.getItem('wallrush_stats') || '{}');
+    if (!st || typeof st !== 'object' || Array.isArray(st)) return {};
+    for (const k of Object.keys(st)) {
+      const r = st[k];
+      if (!r || typeof r !== 'object') { delete st[k]; continue; }
+      r.w = Math.max(0, r.w | 0); r.l = Math.max(0, r.l | 0);
+    }
+    return st;
+  } catch (e) { return {}; }
 }
 function saveStats(st) { try { localStorage.setItem('wallrush_stats', JSON.stringify(st)); } catch (e) {} }
 
 function finish(w) {
-  gameOver = true; winner = w; armed = false; ghost = null;
+  gameOver = true; winner = w; clearInput();
   clearTimeout(aiTimer); aiBusy = false;
   updateHUD();
 
@@ -646,22 +734,42 @@ function finish(w) {
 
 function newGame() {
   clearTimeout(aiTimer); clearTimeout(endTimer);
-  S = newState(); history = []; armed = false; ghost = null; lastWall = null;
+  S = newState(); history = []; clearInput(); lastWall = null;
   gameOver = false; aiBusy = false; humanMoves = 0; winner = -1;
   for (const p of [0, 1]) { disp[p].x = S.pos[p][1]; disp[p].y = S.pos[p][0]; }
   layout(); updateHUD();
 }
 
 /* ═══════════════════════════════════════════════════════════════
- * INPUT
+ * INPUT — ход: щелчок / тап по подсвеченной клетке; стена — без кнопки, по пазу между клетками:
+ *   мышь:    наведение на паз → призрак стены, щелчок → стена; R / ПКМ / колесо — повернуть призрак;
+ *   касание: тап по пазу → призрак, ещё тап по нему или ✓ → стена; ⟳ — повернуть; ведение пальцем
+ *            двигает призрак по пазам; тап по пустой клетке — убрать призрак (ход фишкой — один тап);
+ *   прежний способ (armed): кнопка стен → провести по доске → отпустить, ориентация — по направлению.
+ * Координаты (x, y) ниже — в системе поля: без отступа pad, с учётом поворота доски по сети.
  * ═════════════════════════════════════════════════════════════ */
-function localXY(e) {
+let hover = null;     // мышь: {t:'m', r, c} — клетка хода под курсором | {t:'w', o, r, c} — паз под курсором
+let pend = null;      // касание: выбранная, ещё не поставленная стена {o, r, c}
+let rotLock = null;   // повёрнутый игроком призрак {r, c, o} — держится, пока призрак у того же пересечения пазов
+let mouseXY = null;   // последняя позиция мыши над полем: по ней призрак пересчитывается каждый кадр
+let tp = null;        // текущее касание поля: {id, x0, y0, moved, onG, mv}
+let press = null;     // клетка хода под пальцем (подсветка нажатия)
+let mdown = false, lastPtr = 'mouse', dragStart = null, dragGhost = null, hoverKey = '';
+
+function clearInput() {
+  armed = false; ghost = null; dragging = false; dragStart = null; dragGhost = null;
+  hover = null; pend = null; rotLock = null; tp = null; press = null; mdown = false; hoverKey = '';
+  cv.style.cursor = '';
+}
+
+function localXYc(cx, cy) {
   const rc = cv.getBoundingClientRect();
-  let x = e.clientX - rc.left, y = e.clientY - rc.top;
+  let x = cx - rc.left, y = cy - rc.top;
   if (boardFlipped()) { x = G.w - x; y = G.h - y; }   // доска повёрнута на 180°
   return [x - G.pad, y - G.pad];
 }
-// Orientation: swipe direction wins once the finger has moved; otherwise the nearest groove.
+const localXY = e => localXYc(e.clientX, e.clientY);
+// Прежний способ: ориентация — по направлению движения пальца, пока он не сдвинулся — по ближайшему пазу.
 function wallAt(x, y, forced) {
   const fx = (x + G.gp / 2) / G.P, fy = (y + G.gp / 2) / G.P;
   const dx = Math.abs(fx - Math.round(fx)), dy = Math.abs(fy - Math.round(fy));
@@ -669,7 +777,6 @@ function wallAt(x, y, forced) {
   const o = forced || (dy <= dx ? 'h' : 'v');
   return { o, r: clampI(fy, ROWS) - 1, c: clampI(fx, COLS) - 1 };
 }
-let dragStart = null;
 function cellAt(x, y) {
   const c = Math.floor((x + G.gp / 2) / G.P), r = Math.floor((y + G.gp / 2) / G.P);
   return (r >= 0 && r < ROWS && c >= 0 && c < COLS) ? [r, c] : null;
@@ -681,43 +788,334 @@ function setGhost(e) {
     const mx = x - dragStart[0], my = y - dragStart[1];
     if (Math.hypot(mx, my) > G.cs * .35) forced = Math.abs(mx) >= Math.abs(my) ? 'h' : 'v';
   }
-  const w = wallAt(x, y, forced);
-  w.ok = !!tryWall(S, w.o, w.r, w.c, S.turn);
-  ghost = w;
+  dragGhost = wallAt(x, y, forced);
 }
 
+/* ── Попадание: паз (стена) и клетка хода ── */
+// Номер ближайшей линии паза по оси (k — паз между клетками k-1 и k) и расстояние до его середины, px
+function axisInfo(v) {
+  const f = (v + G.gp / 2) / G.P, k = Math.round(f);
+  return { k, d: Math.abs(f - k) * G.P };
+}
+// Стена у паза под точкой или null. band — полуширина полосы паза (паз + запас в соседние клетки), px.
+// Центр стены — ближайшее пересечение пазов вдоль паза (у края поля — сдвиг внутрь); рамка поля — не паз.
+// На пересечении пазов — ближний паз, но прежняя ориентация (prev у того же пересечения) сохраняется, пока
+// перпендикулярный паз не ближе на 12 % клетки (пришли по горизонтальному пазу — стена остаётся горизонтальной
+// и не мигает на самом пересечении). ho, hr, hc — паз и пересечение под указателем (до поворота и сдвига):
+// повёрнутый игроком призрак (rotLock) держится, пока указатель у того же пересечения.
+function grooveAt(x, y, band, prev) {
+  const lim = G.gp / 2;
+  if (x < -lim || y < -lim || x > COLS * G.P - lim || y > ROWS * G.P - lim) return null;
+  const X = axisInfo(x), Y = axisInfo(y);
+  const hOk = Y.k >= 1 && Y.k <= AR && Y.d <= band, vOk = X.k >= 1 && X.k <= AC && X.d <= band;
+  if (!hOk && !vOk) return null;
+  let o = hOk ? 'h' : 'v';
+  if (hOk && vOk) {
+    const r = Y.k - 1, c = X.k - 1, m = G.cs * .12;
+    if (prev && prev.hr === r && prev.hc === c) o = prev.ho === 'h' ? (X.d + m < Y.d ? 'v' : 'h') : (Y.d + m < X.d ? 'h' : 'v');
+    else o = Y.d <= X.d ? 'h' : 'v';
+  }
+  const w = o === 'h' ? { o, r: Y.k - 1, c: Math.min(AC, Math.max(1, X.k)) - 1 }
+                      : { o, r: Math.min(AR, Math.max(1, Y.k)) - 1, c: X.k - 1 };
+  w.ho = w.o; w.hr = w.r; w.hc = w.c;
+  if (rotLock) {
+    if (rotLock.hr === w.hr && rotLock.hc === w.hc) return { o: rotLock.o, r: rotLock.r, c: rotLock.c, ho: w.ho, hr: w.hr, hc: w.hc };
+    rotLock = null;
+  }
+  return w;
+}
+// Стена под указателем с учётом правил: если ближайшая не встаёт, а другая стена через тот же участок паза
+// (сдвинутая на клетку вдоль паза) встаёт — берём её (удобно ставить стену встык к уже стоящей).
+// Повёрнутый игроком призрак не сдвигаем.
+function pickWall(x, y, band, prev) {
+  const w = grooveAt(x, y, band, prev);
+  if (!w || rotLock || wallCheck(w.o, w.r, w.c).ok) return w;
+  const k = w.o === 'h' ? w.c : w.r;                                  // стена занимает клетки k и k+1 вдоль паза
+  const f = ((w.o === 'h' ? x : y) + G.gp / 2) / G.P;                 // указатель над клеткой k (f < k+1) или k+1
+  const k2 = f < k + 1 ? k - 1 : k + 1;
+  if (k2 < 0 || k2 >= (w.o === 'h' ? AC : AR)) return w;
+  const a = w.o === 'h' ? { o: 'h', r: w.r, c: k2 } : { o: 'v', r: k2, c: w.c };
+  if (!wallCheck(a.o, a.r, a.c).ok) return w;
+  a.ho = w.ho; a.hr = w.hr; a.hc = w.hc;
+  return a;
+}
+// Полоса паза: мышь — паз + 20 % клетки с каждой стороны; палец — паз + 30 % (на 360×640 это ≈ 24 px)
+const bandOf = touch => G.gp / 2 + G.cs * (touch ? .3 : .2);
+// Клетка хода под точкой — вся клетка (и её края, куда заходит полоса паза: здесь ход важнее стены).
+// Сам паз между клетками всегда за стеной: спорный тап по пазу даёт лишь призрак, который надо подтвердить,
+// а не необратимый (по сети) ход фишкой.
+function moveAt(x, y) {
+  for (const [r, c] of legalMoves(S, S.turn)) {
+    const x0 = c * G.P, y0 = r * G.P;   // кромка клетки — уже паз
+    if (x > x0 && x < x0 + G.cs && y > y0 && y < y0 + G.cs) return [r, c];
+  }
+  return null;
+}
+// Тап по выбранной стене: вся её длина, поперёк — паз и ~28 % соседних клеток
+function onGhost(x, y, g) {
+  const q = wallRect(g.o, g.r, g.c), X = x + G.pad, Y = y + G.pad;
+  const m = Math.max(G.gp / 2, G.cs * .28), a = G.gp / 2;
+  return g.o === 'h' ? X >= q.x - a && X <= q.x + q.w + a && Y >= q.y - m && Y <= q.y + q.h + m
+                     : X >= q.x - m && X <= q.x + q.w + m && Y >= q.y - a && Y <= q.y + q.h + a;
+}
+const sameWall = (a, b) => !!a && !!b && a.o === b.o && a.r === b.r && a.c === b.c;
+// Стены кончились — призраков не показываем (не мешают ходить фишкой), на щелчок по пазу — сообщение
+const hasWalls = () => S.walls[S.turn] > 0;
+function noWallsHint() { AudioSys.sfx.bad(); toast(WHY.none[1]); }
+
+/* ── Можно ли поставить стену и почему нет ── */
+const WHY = {   // [коротко — в подписи панели, полностью — в сообщении]
+  none:   ['Стены закончились', 'Стены закончились'],
+  busy:   ['Тут уже стена', 'Здесь уже стоит стена'],
+  cross:  ['Пересекает стену', 'Стены нельзя пересекать'],
+  over:   ['Налезает на стену', 'Стена налезает на другую стену'],
+  self:   ['Отрежет вас от цели', 'Нельзя отрезать себя от цели'],
+  opp:    ['Замурует соперника', 'Нельзя полностью отрезать соперника от цели'],
+  both:   ['Перекроет путь к цели', 'Нельзя перекрыть путь к цели'],
+  center: ['Замурует центр', 'Нельзя замуровать центр'],
+};
+function wallWhy(s, o, r, c, p) {
+  if (s.walls[p] <= 0) return 'none';
+  const i = r * AC + c;
+  if ((o === 'h' ? s.h : s.v)[i]) return 'busy';
+  if ((o === 'h' ? s.v : s.h)[i]) return 'cross';
+  if (o === 'h' ? (H(s, r, c - 1) || H(s, r, c + 1)) : (V(s, r - 1, c) || V(s, r + 1, c))) return 'over';
+  const n = clone(s); (o === 'h' ? n.h : n.v)[i] = p + 1;
+  const cut0 = bfs(n, 0) >= 999, cut1 = bfs(n, 1) >= 999;
+  if (cut0 && cut1) return GM === 'center' ? 'center' : 'both';
+  if (cut0 || cut1) return (cut0 ? 0 : 1) === p ? 'self' : 'opp';
+  return '';
+}
+const WC = { s: null, m: new Map() };   // кэш проверок стен для текущей позиции S (сбрасывается с новой позицией)
+function wallCheck(o, r, c) {
+  if (WC.s !== S) { WC.s = S; WC.m.clear(); }
+  const k = o + r + ',' + c;
+  let v = WC.m.get(k);
+  if (!v) {
+    const why = (r < 0 || r >= AR || c < 0 || c >= AC) ? 'busy' : wallWhy(S, o, r, c, S.turn);
+    v = { ok: !why, why };
+    WC.m.set(k, v);
+  }
+  return v;
+}
+
+/* ── Действия ── */
+function pawnTo(r, c) { commit(doMove(S, r, c, S.turn), { t: 'm', r, c }); }
+function placeWall(g) {
+  if (!g || !canAct()) return false;
+  const n = tryWall(S, g.o, g.r, g.c, S.turn);
+  if (n) { commit(n, { t: 'w', o: g.o, r: g.r, c: g.c }); return true; }
+  AudioSys.sfx.bad();
+  toast(WHY[wallCheck(g.o, g.r, g.c).why || 'busy'][1]);
+  return false;
+}
+// Повернуть призрак вокруг его середины (пересечения пазов); поворот держится, пока указатель у того же пересечения
+function rotateGhost() {
+  if (!canAct() || armed) return false;
+  const g = pend || (hover && hover.t === 'w' ? hover : null);
+  if (!g) return false;
+  const o = g.o === 'h' ? 'v' : 'h', hr = g.hr != null ? g.hr : g.r, hc = g.hc != null ? g.hc : g.c, ho = g.ho || g.o;
+  rotLock = { hr, hc, o, r: g.r, c: g.c };
+  if (pend) pend = { o, r: g.r, c: g.c, ho, hr, hc };
+  else hover = { t: 'w', o, r: g.r, c: g.c, ho, hr, hc };
+  AudioSys.sfx.arm(); onHoverChange();
+  return true;
+}
+// Призрак, который сейчас виден (и который поставит щелчок / Enter)
+function currentGhost() {
+  if (!canAct()) return null;
+  if (armed && dragging) return dragGhost;
+  if (pend) return pend;
+  return hover && hover.t === 'w' ? hover : null;
+}
+
+/* ── Мышь: призрак и подсветка хода пересчитываются каждый кадр (ИИ мог сходить, пока курсор стоит) ── */
+function updateHover() {
+  let h = null;
+  if (mouseXY && !pend && !(armed && dragging) && canAct()) {
+    const [x, y] = localXYc(mouseXY.x, mouseXY.y);
+    const mv = armed ? null : moveAt(x, y);
+    if (mv) h = { t: 'm', r: mv[0], c: mv[1] };
+    else if (hasWalls()) { const w = pickWall(x, y, bandOf(false), hover && hover.t === 'w' ? hover : null); if (w) h = Object.assign({ t: 'w' }, w); }
+  }
+  hover = h;
+  const k = h ? h.t + (h.o || '') + h.r + ',' + h.c : '';
+  if (k !== hoverKey) { hoverKey = k; onHoverChange(); }
+}
+function onHoverChange() {
+  const g = hover && hover.t === 'w' ? hover : null;
+  cv.style.cursor = !hover ? '' : g && !wallCheck(g.o, g.r, g.c).ok ? 'not-allowed' : 'pointer';
+  updateHUD();
+}
+function mouseClick(e) {
+  mouseXY = { x: e.clientX, y: e.clientY };
+  updateHover();
+  if (!canAct()) return;
+  if (hover && hover.t === 'm') return pawnTo(hover.r, hover.c);
+  if (hover && hover.t === 'w') return placeWall(hover);
+  const [x, y] = localXY(e), cell = cellAt(x, y), me = S.pos[S.turn];
+  if (!hasWalls() && grooveAt(x, y, bandOf(false), null)) return noWallsHint();
+  if (cell && !(cell[0] === me[0] && cell[1] === me[1])) AudioSys.sfx.bad();
+}
+
+/* ── Касание: тап по пазу выбирает стену, второй тап по ней (или ✓) ставит ── */
+function selectPend(w) {
+  pend = { o: w.o, r: w.r, c: w.c, ho: w.ho || w.o, hr: w.hr != null ? w.hr : w.r, hc: w.hc != null ? w.hc : w.c };
+  if (wallCheck(pend.o, pend.r, pend.c).ok) AudioSys.sfx.arm(); else AudioSys.sfx.bad();
+  updateHUD();
+}
+function touchDown(e) {
+  const [x, y] = localXY(e);
+  try { cv.setPointerCapture(e.pointerId); } catch (_) {}
+  const onG = !!pend && onGhost(x, y, pend);
+  const mv = onG ? null : moveAt(x, y);
+  tp = { id: e.pointerId, x0: x, y0: y, moved: false, onG, mv };
+  press = mv ? { r: mv[0], c: mv[1] } : null;
+}
+function touchMove(e) {
+  if (!tp || e.pointerId !== tp.id) return;
+  if (!canAct()) { tp = null; press = null; return; }
+  const [x, y] = localXY(e);
+  if (!tp.moved) {
+    if (Math.hypot(x - tp.x0, y - tp.y0) < Math.max(10, G.cs * .35)) return;   // дрожание пальца — ещё тап
+    if (tp.mv) { const m = moveAt(x, y); if (m && m[0] === tp.mv[0] && m[1] === tp.mv[1]) return; }
+    tp.moved = true; press = null;
+  }
+  // ведение пальцем: призрак едет по пазам; над серединой клетки остаётся на прежнем месте
+  const w = hasWalls() ? pickWall(x, y, bandOf(true), pend) : null;
+  if (w && !sameWall(w, pend)) { pend = w; updateHUD(); }
+}
+function touchUp(e) {
+  if (!tp || e.pointerId !== tp.id) return;
+  const t = tp; tp = null; press = null;
+  if (!canAct()) return;
+  if (t.moved) { if (pend) selectPend(pend); return; }   // после ведения призрак ждёт подтверждения
+  if (t.onG && pend) { placeWall(pend); return; }       // второй тап по выбранной стене
+  if (t.mv) { pawnTo(t.mv[0], t.mv[1]); return; }        // ход — в один тап
+  const w = pickWall(t.x0, t.y0, bandOf(true), pend);
+  if (w) { if (hasWalls()) selectPend(w); else noWallsHint(); return; }
+  if (pend) { pend = null; rotLock = null; updateHUD(); return; }   // тап мимо — убрать призрак
+  const cell = cellAt(t.x0, t.y0), me = S.pos[S.turn];
+  if (cell && !(cell[0] === me[0] && cell[1] === me[1])) AudioSys.sfx.bad();
+}
+
+/* ── События поля ── */
+// чем человек пользуется (для текста подсказки): палец/перо или мышь
+function notePtr(t) {
+  if (ptrSeen && lastPtr === t) return;
+  const was = touchUI();
+  lastPtr = t; ptrSeen = true;
+  if (touchUI() !== was && tipLeft > 0) updateHUD();
+}
 cv.addEventListener('pointerdown', e => {
+  notePtr(e.pointerType);
+  if (!e.isPrimary || (e.pointerType === 'mouse' && e.button !== 0)) return;   // ПКМ — поворот (contextmenu)
   if (!canAct()) return;
   AudioSys.init();
   if (armed) { dragging = true; cv.setPointerCapture(e.pointerId); dragStart = localXY(e); setGhost(e); return; }
-  const [x, y] = localXY(e), cell = cellAt(x, y);
-  if (!cell) return;
-  const p = S.turn;
-  const ok = legalMoves(S, p).some(([r, c]) => r === cell[0] && c === cell[1]);
-  if (ok) commit(doMove(S, cell[0], cell[1], p), { t: 'm', r: cell[0], c: cell[1] });
-  else if (!(cell[0] === S.pos[p][0] && cell[1] === S.pos[p][1])) AudioSys.sfx.bad();
+  if (e.pointerType === 'mouse') { mouseXY = { x: e.clientX, y: e.clientY }; mdown = true; return; }   // действие — по отпусканию
+  touchDown(e);
 });
-cv.addEventListener('pointermove', e => { if (dragging && armed) setGhost(e); });
+cv.addEventListener('pointermove', e => {
+  if (e.pointerType === 'mouse') {
+    mouseXY = { x: e.clientX, y: e.clientY };
+    notePtr('mouse');
+    if (pend) { pend = null; rotLock = null; updateHUD(); }   // мышь после пальца (ноутбук с сенсорным экраном)
+  }
+  if (dragging) { if (armed) setGhost(e); return; }
+  if (e.pointerType !== 'mouse') touchMove(e);
+});
+// курсор ушёл с поля: призрак убрать; щелчок засчитывается, только если и нажали, и отпустили на поле
+cv.addEventListener('pointerleave', e => { if (e.pointerType === 'mouse' && !dragging) { mouseXY = null; mdown = false; } });
 const endDrag = e => {
   if (!dragging) return;
-  dragging = false;
-  if (!armed || !ghost || !canAct()) { ghost = null; return; }
-  const g = ghost, n = tryWall(S, g.o, g.r, g.c, S.turn);
-  if (n) commit(n, { t: 'w', o: g.o, r: g.r, c: g.c });
-  else { ghost = null; AudioSys.sfx.bad(); toast('Сюда стену поставить нельзя'); }
+  dragging = false; dragStart = null;
+  const g = dragGhost; dragGhost = null;
+  if (!armed || !g || !canAct()) return;
+  placeWall(g);   // не вышло — сообщение с причиной, кнопка остаётся нажатой
 };
-cv.addEventListener('pointerup', endDrag);
-cv.addEventListener('pointercancel', () => { dragging = false; ghost = null; });
+cv.addEventListener('pointerup', e => {
+  if (dragging) { endDrag(e); return; }
+  if (e.pointerType === 'mouse') { if (mdown && e.button === 0) { mdown = false; mouseClick(e); } return; }
+  touchUp(e);
+});
+cv.addEventListener('pointercancel', () => { dragging = false; dragStart = null; dragGhost = null; tp = null; press = null; mdown = false; });
+cv.addEventListener('contextmenu', e => {
+  e.preventDefault();                                   // своё меню браузера на поле не нужно (и долгий тап)
+  if (lastPtr === 'mouse') rotateGhost();               // ПКМ — повернуть призрак
+});
+let wheelT = 0;
+cv.addEventListener('wheel', e => {
+  if (!canAct() || armed || !(pend || (hover && hover.t === 'w'))) return;
+  e.preventDefault();
+  const now = performance.now();
+  if (now - wheelT < 180) return;                       // тачпад шлёт серию событий — один поворот
+  wheelT = now; rotateGhost();
+}, { passive: false });
+// Тап вне поля (по фону экрана) убирает выбранную касанием стену
+$('screen-game').addEventListener('pointerdown', e => {
+  if (pend && e.target !== cv && !e.target.closest('button')) { pend = null; rotLock = null; updateHUD(); }
+});
 
 for (const p of [0, 1]) {
+  // Кнопка стен — счётчик; тап по ней включает прежний способ «провести по доске»
   $('wbtn-' + p).addEventListener('click', () => {
     AudioSys.init();
     if (!canAct() || S.turn !== p) return;
     if (S.walls[p] === 0) { AudioSys.sfx.bad(); toast('Стены закончились'); return; }
-    armed = !armed; ghost = null;
+    const on = !armed;
+    clearInput(); armed = on;
     AudioSys.sfx.arm(); updateHUD();
   });
+  $('rot-' + p).addEventListener('click', () => { if (S.turn === p && pend) rotateGhost(); });
+  $('put-' + p).addEventListener('click', () => { if (S.turn === p && pend) placeWall(pend); });
 }
+
+/* ── Клавиатура ── */
+function keyStep(d) {
+  if (boardFlipped()) d ^= 1;                           // доска повёрнута: «вверх» на экране — вниз по полю
+  const p = S.turn, [r, c] = S.pos[p], mv = legalMoves(S, p);
+  for (const k of [1, 2]) {                             // шаг или прыжок через соседа по прямой
+    const t = mv.find(([mr, mc]) => mr === r + DR[d] * k && mc === c + DC[d] * k);
+    if (t) return pawnTo(t[0], t[1]);
+  }
+  AudioSys.sfx.bad();
+  const o = S.pos[1 - p];
+  if (o[0] === r + DR[d] && o[1] === c + DC[d] && !blocked(S, r, c, d)) toast('Обход соперника по диагонали — щелчком по клетке');
+}
+document.addEventListener('keydown', e => {
+  if (e.altKey || ((e.ctrlKey || e.metaKey) && e.code !== 'KeyZ')) return;
+  if (!$('screen-game').classList.contains('active') || document.querySelector('.kn-ov, .ku-dialog')) return;
+  const key = e.key, code = e.code;
+  if ($('menu-rules').classList.contains('open')) {
+    if (key === 'Escape') { e.preventDefault(); $('btn-rules-close').click(); }
+    return;
+  }
+  if ($('menu-pause').classList.contains('open')) {
+    if (key === 'Escape' || code === 'KeyP') { e.preventDefault(); $('btn-resume').click(); }
+    return;
+  }
+  if (anyMenu()) return;                                 // окно итогов
+  if (code === 'KeyP' || (key === 'Escape' && !pend && !armed)) { e.preventDefault(); openPause(); return; }
+  if (key === 'Escape') { e.preventDefault(); clearInput(); updateHUD(); return; }
+  if (code === 'KeyU' || key === 'Backspace' || (code === 'KeyZ' && (e.ctrlKey || e.metaKey))) { e.preventDefault(); if (!$('btn-undo').disabled) undo(); return; }
+  if (!canAct()) return;
+  if (code === 'KeyR') { e.preventDefault(); rotateGhost(); return; }
+  if (key === 'Enter' || key === ' ') { const g = currentGhost(); if (g) { e.preventDefault(); placeWall(g); } return; }
+  const d = { ArrowUp: 0, ArrowDown: 1, ArrowLeft: 2, ArrowRight: 3 }[key];
+  if (d !== undefined) { e.preventDefault(); clearInput(); keyStep(d); }
+});
+
+// Подсказка «как поставить стену» — в строке статуса своей панели (часть раскладки, ничего не перекрывает):
+// первые 3 своих хода за сессию или до первой поставленной стены. Текст — по устройству ввода: пока не было
+// ни касания, ни мыши — по медиазапросам; потом — по тому, чем человек реально пользуется.
+let tipLeft = 3, ptrSeen = false;
+function touchUI() {
+  if (ptrSeen) return lastPtr !== 'mouse';
+  return matchMedia('(pointer:coarse)').matches ||
+    (navigator.maxTouchPoints > 0 && !matchMedia('(hover:hover) and (pointer:fine)').matches);
+}
+const tipText = () => touchUI() ? 'стена — тап по пазу' : 'стена — щелчок по пазу';
 
 /* ═══════════════════════════════════════════════════════════════
  * RENDER
@@ -744,8 +1142,37 @@ function drawWall(o, r, c, color, scale = 1, alpha = 1) {
   ctx.fill(); ctx.restore();
 }
 
+// Призрак стены: цвет игрока (выбранный касанием — пульсирует); серый с ✕ — сюда нельзя
+function drawGhost(g, now) {
+  if (wallCheck(g.o, g.r, g.c).ok) {
+    if (g !== pend) { drawWall(g.o, g.r, g.c, COL[S.turn], 1, .6); return; }
+    // выбранная касанием, ещё не поставленная стена: пульсирует и обведена пунктиром
+    drawWall(g.o, g.r, g.c, COL[S.turn], 1, .62 + .25 * Math.sin(now / 150));
+    const q = wallRect(g.o, g.r, g.c), e = Math.max(2, G.gp * .3);
+    ctx.save();
+    ctx.strokeStyle = 'rgba(255,255,255,.75)'; ctx.lineWidth = 1.2; ctx.setLineDash([4, 3]); ctx.lineDashOffset = -now / 60;
+    rr(q.x - e, q.y - e, q.w + 2 * e, q.h + 2 * e, 3); ctx.stroke();
+    ctx.restore();
+    return;
+  }
+  drawWall(g.o, g.r, g.c, '#8f9ac2', 1, .42);
+  const q = wallRect(g.o, g.r, g.c), cx = q.x + q.w / 2, cy = q.y + q.h / 2, s = Math.max(3.5, G.gp * .75);
+  ctx.save();
+  ctx.strokeStyle = '#ff5d7d'; ctx.shadowColor = '#ff5d7d'; ctx.shadowBlur = 6;
+  ctx.lineWidth = Math.max(1.6, G.gp * .3); ctx.lineCap = 'round';
+  ctx.beginPath(); ctx.moveTo(cx - s, cy - s); ctx.lineTo(cx + s, cy + s); ctx.moveTo(cx + s, cy - s); ctx.lineTo(cx - s, cy + s); ctx.stroke();
+  ctx.restore();
+}
+
+let lastFrame = 0;
 function frame(now) {
   const { w: bw, h: bh, pad, cs, gp, P } = G;
+  // шаг анимации фишек — по времени, а не по кадрам (60 и 120 Гц одинаково)
+  const dt = Math.min(100, Math.max(0, now - (lastFrame || now))); lastFrame = now;
+  const ease = 1 - Math.pow(1 - .28, dt / (1000 / 60));
+  updateHover();
+  ghost = currentGhost();
+  const act = canAct();
   // фон поля даёт рамка .ku-board; клетки — стеклянные, как пустые клетки Тетриса
   ctx.clearRect(0, 0, bw, bh);
   ctx.fillStyle = 'rgba(4,6,22,.55)'; rr(0, 0, bw, bh, 11); ctx.fill();
@@ -794,8 +1221,18 @@ function frame(now) {
     ctx.restore();
   }
 
+  // клетка хода под курсором / под пальцем
+  const mt = act && !armed ? (press || (hover && hover.t === 'm' ? hover : null)) : null;
+  if (mt) {
+    const x = pad + mt.c * P, y = pad + mt.r * P;
+    ctx.save();
+    ctx.fillStyle = COL[S.turn]; ctx.globalAlpha = .16; rr(x, y, cs, cs, cs * .12); ctx.fill();
+    ctx.globalAlpha = .8; ctx.strokeStyle = COL[S.turn]; ctx.lineWidth = 1.5; ctx.shadowColor = COL[S.turn]; ctx.shadowBlur = 10; ctx.stroke();
+    ctx.restore();
+  }
+
   // move hints
-  if (canAct() && !armed) {
+  if (act && !armed) {
     const p = S.turn;
     ctx.fillStyle = COL[p];
     for (const [r, c] of legalMoves(S, p)) {
@@ -818,12 +1255,12 @@ function frame(now) {
       drawWall(o, r, c, COL[own - 1], sc);
     }
   }
-  if (ghost) drawWall(ghost.o, ghost.r, ghost.c, ghost.ok ? COL[S.turn] : '#8f9ac2', 1, ghost.ok ? .55 : .35);
+  if (ghost) drawGhost(ghost, now);
 
   // pawns
   for (const p of [0, 1]) {
     const tx = S.pos[p][1], ty = S.pos[p][0];
-    disp[p].x += (tx - disp[p].x) * .28; disp[p].y += (ty - disp[p].y) * .28;
+    disp[p].x += (tx - disp[p].x) * ease; disp[p].y += (ty - disp[p].y) * ease;
     if (Math.abs(tx - disp[p].x) < .002) disp[p].x = tx;
     if (Math.abs(ty - disp[p].y) < .002) disp[p].y = ty;
     const x = pad + disp[p].x * P + cs / 2, y = pad + disp[p].y * P + cs / 2;
@@ -878,12 +1315,20 @@ $('btn-rules').onclick = () => { rulesReturn = null; show('menu-rules'); };
 $('btn-rules2').onclick = () => { rulesReturn = 'menu-pause'; hide('menu-pause'); show('menu-rules'); };
 $('btn-rules-close').onclick = $('btn-rules-x').onclick = () => { hide('menu-rules'); if (rulesReturn) show(rulesReturn); };
 
-$('btn-pause').onclick = () => {
+function openPause() {
   if (anyMenu() || gameOver) return;   // после финала через 0.9 с откроется окно итогов
-  armed = false; ghost = null; updateHUD();
+  clearInput(); updateHUD();
   $('btn-restart').style.display = isNet() ? 'none' : '';   // по сети «заново» = общий сброс, он в «Играть снова»
   show('menu-pause');
-};
+}
+$('btn-pause').onclick = openPause;
+// Вкладка скрыта: сбросить незаконченный ввод; партия против ИИ / вдвоём — на паузу (по сети соперник не ждёт)
+document.addEventListener('visibilitychange', () => {
+  if (!document.hidden) return;
+  mouseXY = null;
+  if (tp || dragging) { tp = null; press = null; dragging = false; dragStart = null; dragGhost = null; }
+  if ($('screen-game').classList.contains('active') && !gameOver && !anyMenu() && mode !== 'net') openPause();
+});
 $('btn-resume').onclick = () => { hide('menu-pause'); updateHUD(); };
 $('btn-restart').onclick = () => { hide('menu-pause'); if (isNet()) { netApply(net.room); return; } newGame(); };
 $('btn-undo').onclick = () => undo();
@@ -891,7 +1336,7 @@ $('btn-undo').onclick = () => undo();
 const toMenu = () => {
   clearTimeout(aiTimer); clearTimeout(endTimer);
   leaveNet();
-  gameOver = true; aiBusy = false;
+  gameOver = true; aiBusy = false; clearInput(); mouseXY = null;
   ['menu-pause', 'menu-end', 'menu-rules'].forEach(hide);
   $('diff-btns').style.display = 'none'; $('main-btns').style.display = 'flex';
   show('menu-main'); updateHUD();
@@ -920,7 +1365,7 @@ function chooseGoalMode(m) {
   document.querySelectorAll('#mode-selectors button').forEach(x => x.classList.toggle('active', x.dataset.m === GM));
   $('menu-sub').textContent = MODE_SUB[GM];
   $('wrap').classList.toggle('race', GM === 'race');
-  S = newState(); history = []; ghost = null; lastWall = null;
+  S = newState(); history = []; clearInput(); lastWall = null;
   for (const p of [0, 1]) { disp[p].x = S.pos[p][1]; disp[p].y = S.pos[p][0]; }
   layout(); updateHUD(); refreshMenuStats();
 }
