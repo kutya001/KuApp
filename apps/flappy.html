@@ -9,35 +9,108 @@
 <style>
   html,body{height:100%;overflow:hidden}
   #screen-game{touch-action:none}
+  #screen-game,#screen-game *{-webkit-user-select:none;user-select:none;-webkit-touch-callout:none}
 
-  /* ── Поле: рамка .ku-board на всю свободную высоту, ширина до 450px канваса ── */
-  #stage{flex:1;min-height:0;width:100%;display:flex;justify-content:center}
-  #board{width:min(100%,466px)}
-  #board>canvas{position:absolute;inset:7px;width:calc(100% - 14px);height:calc(100% - 14px);cursor:pointer}
-  #fx{position:absolute;inset:7px;pointer-events:none;overflow:hidden;border-radius:11px}
-  .float-text{position:absolute;font-family:var(--font-display);font-size:22px;line-height:1;pointer-events:none;
-    transform:translate(-50%,-50%);animation:floatUp .8s ease-out forwards;text-shadow:0 0 12px currentColor,0 2px 6px rgba(0,0,0,.6)}
-  @keyframes floatUp{to{opacity:0;transform:translate(-50%,calc(-50% - 45px)) scale(1.3)}}
-  #theme-chip{position:absolute;top:14px;left:50%;transform:translate(-50%,-8px);opacity:0;transition:opacity .4s,transform .4s;
-    white-space:nowrap;background:rgba(4,6,22,.72)}
-  #theme-chip.show{opacity:1;transform:translate(-50%,0)}
+  /* ═══ МЕНЮ ═══ */
+  .fp-bird{display:flex;flex-direction:column;align-items:center;gap:2px;margin:14px auto 0;padding:4px 18px 6px;border-radius:16px;
+    background:none;border:1px solid transparent;color:var(--muted);cursor:pointer;font:500 11px var(--font-body);letter-spacing:1px;text-transform:uppercase}
+  .fp-bird canvas{width:128px;height:84px;display:block}
+  .fp-bird b{color:var(--text);font:400 13px var(--font-display);letter-spacing:1px;text-transform:none}
+  @media (hover:hover){.fp-bird:hover{border-color:var(--panel-border);background:var(--panel)}}
+  .fp-bird:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+  #screen-menu .ku-menu-row{max-width:420px}
+  #screen-menu .ku-menu-row .ku-btn{padding:10px 16px;font-size:14px}
 
-  .ku-stat .ku-pbar{height:4px;margin-top:4px;min-width:60px}
-  #screen-game .ku-hud{margin-bottom:8px}
-  @media (max-height:560px){#screen-game .ku-hud{display:none}}   /* телефон боком — вся высота полю */
-
-  /* ── Медали ── */
+  /* медали */
   .medals{display:flex;gap:10px;justify-content:center}
-  .medal{width:46px;height:46px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:21px;
+  .medal{width:46px;height:46px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:21px;flex:none;
     border:2px solid var(--m);background:rgba(255,255,255,.04);opacity:.3;transform:scale(.85);filter:grayscale(.7);
     transition:opacity .4s,transform .4s cubic-bezier(.34,1.56,.64,1),filter .4s}
   .medal.earned{opacity:1;transform:none;filter:none;background:color-mix(in srgb,var(--m) 18%,transparent);
     box-shadow:0 0 14px color-mix(in srgb,var(--m) 45%,transparent)}
-  .medal.bronze{--m:#cd7f32} .medal.silver{--m:#c9d1e4} .medal.gold{--m:var(--gold)} .medal.platinum{--m:var(--cyan)}
+  .medal.bronze{--m:#cd7f32} .medal.silver{--m:#c9d1e4} .medal.gold{--m:var(--gold)} .medal.platinum{--m:var(--cyan)} .medal.none{--m:rgba(255,255,255,.25)}
   #menu-medals{margin-top:20px}
   #menu-medal-txt{margin-top:10px}
-  .ku-card .medals{margin:2px 0 4px}
-  [hidden]{display:none!important}
+
+  /* ═══ ИГРА ═══ */
+  #play{flex:1;min-height:0;width:100%;display:flex;flex-direction:column;align-items:center}
+  #hud{margin:0 0 8px;flex-wrap:nowrap;max-width:100%}
+  #hud .ku-stat{min-width:0;padding:5px 10px}
+  #hud .ku-stat b{font-size:16px}
+  #hud .ku-pbar{height:4px;margin-top:3px;min-width:56px}
+  #stage{flex:1;min-height:0;width:100%;display:flex;align-items:flex-start;justify-content:center}
+  #board{flex:none;line-height:0}
+  #board>canvas{display:block;cursor:pointer}
+  /* телефон боком: показатели столбиком слева от поля, поле — во всю высоту */
+  @media (orientation:landscape) and (max-height:560px){
+    #play{flex-direction:row;justify-content:center;align-items:stretch;gap:12px}
+    #hud{flex-direction:column;justify-content:center;margin:0}
+    #hud .ku-stat{min-width:96px}
+    #stage{flex:0 0 auto;width:auto;align-items:center}
+  }
+
+  /* ═══ ОКНА ═══ */
+  .ku-card .fp-note{font-size:12.5px;color:var(--muted);line-height:1.45;margin:0}
+  .ku-card .fp-ach{font-size:13px;color:var(--gold);line-height:1.45;margin:0;text-shadow:0 0 12px rgba(255,214,10,.3)}
+  .fp-btns{display:flex;flex-direction:column;gap:12px;width:100%}
+  .fp-result{display:flex;align-items:center;justify-content:center;gap:18px;margin:2px 0}
+  .fp-result .medal{width:64px;height:64px;font-size:30px;opacity:1;transform:none;filter:none}
+  .fp-result .medal.none{opacity:.45}
+  .fp-result .ku-big-score{font-size:44px}
+  /* защита от случайного тапа: кнопки конца игры включаются через 0,7 с */
+  .fp-wait{position:relative;overflow:hidden}
+  .fp-wait:disabled{opacity:.6}
+  .fp-wait:disabled::after{content:'';position:absolute;left:0;bottom:0;height:3px;width:100%;background:currentColor;opacity:.55;
+    transform-origin:left;animation:fpLock .7s linear forwards}
+  @keyframes fpLock{from{transform:scaleX(1)}to{transform:scaleX(0)}}
+
+  .stats-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(96px,1fr));gap:8px}
+  .st-card{background:var(--glass-panel,rgba(255,255,255,.06));border:1px solid var(--panel-border);border-radius:14px;padding:10px 6px;text-align:center}
+  .st-card .sv{font-family:var(--font-display);font-size:17px;color:var(--accent);margin-top:2px;white-space:nowrap}
+  .st-card .sl{font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:.8px;margin-top:3px}
+  .fp-tabs{margin:0 0 12px;width:100%;flex-wrap:wrap}
+  .fp-tabs button{font-size:12.5px;flex:1 1 40%}
+  .list{display:flex;flex-direction:column;gap:8px}
+  .ach-item{display:flex;align-items:center;gap:12px;padding:10px 12px;border-radius:14px;background:var(--panel);border:1px solid var(--panel-border)}
+  .ach-item.unlocked{border-color:rgba(255,214,10,.45);background:rgba(255,214,10,.07)}
+  .ach-item.unlocked h4{color:var(--gold)}
+  .ach-item:not(.unlocked) .ach-icon{filter:grayscale(1);opacity:.45}
+  .ach-icon{font-size:22px;width:40px;height:40px;flex:none;display:flex;align-items:center;justify-content:center;background:rgba(255,255,255,.05);border-radius:12px}
+  .ach-info{min-width:0;flex:1}
+  .ach-info h4{margin:0 0 2px;font-family:var(--font-display);font-weight:400;font-size:13px;letter-spacing:.5px}
+  .ach-info p{margin:0;font-size:11.5px;color:var(--muted);line-height:1.4}
+  .ach-item .tag{font-size:11px;color:var(--muted);white-space:nowrap}
+  .hist-item{display:flex;align-items:center;gap:12px;padding:9px 12px;border-radius:14px;background:var(--panel);border:1px solid var(--panel-border)}
+  .hist-item .hs{margin-left:auto;font-family:var(--font-display);font-size:18px;color:var(--gold);white-space:nowrap}
+  .empty{text-align:center;color:var(--muted);padding:20px}
+  .skin-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(120px,1fr));gap:10px}
+  .skin{position:relative;display:flex;flex-direction:column;align-items:center;gap:3px;padding:10px 6px 9px;border-radius:14px;
+    background:var(--panel);border:1px solid var(--panel-border);cursor:pointer;color:var(--text);font:inherit;text-align:center}
+  .skin canvas{width:96px;height:62px;display:block}
+  .skin b{font-family:var(--font-display);font-weight:400;font-size:13px;letter-spacing:.5px}
+  .skin small{font-size:10.5px;color:var(--muted);line-height:1.3}
+  .skin.sel{border-color:var(--accent);box-shadow:0 0 14px rgba(0,229,255,.35);background:rgba(0,229,255,.08)}
+  .skin.sel small{color:var(--accent)}
+  .skin.locked{cursor:default}
+  .skin.locked canvas{filter:grayscale(1) brightness(.45)}
+  .skin .lock{position:absolute;top:7px;right:9px;font-size:13px}
+  .fp-train-desc{font-size:13px;color:var(--muted);line-height:1.5;margin:10px 0 0}
+  .ku-modal .ku-seg{width:100%}
+  @media (max-height:560px){
+    .ku-overlay .ku-card{max-height:calc(100vh - 16px);max-height:calc(100dvh - 16px);overflow-y:auto;padding:14px 18px;gap:7px}
+    .ku-overlay .ku-card h2{font-size:20px}
+    .fp-result .ku-big-score{font-size:34px}
+    .fp-result .medal{width:48px;height:48px;font-size:22px}
+    .ku-overlay .ku-over-stats{display:grid;grid-template-columns:1fr 1fr;column-gap:16px}
+    .ku-overlay .ku-card .ku-btn{min-height:38px;padding-top:8px;padding-bottom:8px}
+    #ov-over .ku-card,#ov-pause .ku-card{width:min(520px,94vw)}
+    .fp-btns{flex-direction:row;gap:10px}
+    .fp-btns .ku-btn{width:auto;flex:1 1 0}
+  }
+  /* «Меньше движения»: останавливаем и анимации набора (буквы логотипа, пульс, дрейф фона) */
+  body.fp-calm::before,body.fp-calm::after,body.fp-calm .ku-logo .ch,body.fp-calm .ku-new-best{animation:none!important}
+  /* невысокий экран: превью птицы в меню меньше — кнопки режимов видны сразу */
+  @media (max-height:700px){ .fp-bird{margin-top:8px} .fp-bird canvas{width:100px;height:66px} }
 </style>
 </head>
 <body class="ku">
@@ -46,157 +119,523 @@
   <!-- ═══ МЕНЮ ═══ -->
   <section id="screen-menu" class="ku-screen menu active">
     <h1 class="ku-logo">FLAPPY PRO</h1>
-    <p class="ku-tagline">Неоновая аркада • 6 тем • Медали</p>
-    <div class="ku-pills"><span>👆 Один тап</span><span>🎨 Тема каждые 10 очков</span><span>⚡ Скорость растёт</span><span>🏅 4 медали</span></div>
+    <p class="ku-tagline">Неоновая аркада • 4 режима</p>
+    <div class="ku-pills"><span>👆 Один тап</span><span>🎨 6 тем</span><span>🏅 Медали</span><span>📅 Испытание дня</span></div>
+    <button class="fp-bird" id="menu-bird" aria-label="Выбрать птицу"><canvas id="menu-bird-cv" width="256" height="168"></canvas><b id="menu-bird-name">Неон</b>сменить птицу</button>
     <div class="ku-menu-btns">
-      <button class="ku-btn big primary" id="btn-start">🐦 Играть<span class="best" id="menu-best">Рекорд: 0</span></button>
+      <button class="ku-btn big primary" id="btn-classic">🐦 Классика<span class="best" id="best-classic">Рекорд: 0</span></button>
+      <div class="ku-menu-duo">
+        <button class="ku-btn duo red" id="btn-hard">🔥 Хардкор<span class="best" id="best-hard">Рекорд: 0</span></button>
+        <button class="ku-btn duo gold" id="btn-daily">📅 Испытание<span class="best" id="best-daily">3 попытки</span></button>
+      </div>
+      <button class="ku-btn big blue" id="btn-train">🎯 Тренировка<span class="best" id="best-train">Без проигрыша</span></button>
     </div>
-    <div class="ku-menu-row"><button class="ku-btn ghost" id="btn-rules">📖 Правила</button></div>
+    <div class="ku-menu-row">
+      <button class="ku-btn ghost" id="btn-skins">🐤 Птицы</button>
+      <button class="ku-btn ghost" id="btn-stats">📊 Статистика</button>
+      <button class="ku-btn ghost" id="btn-ach">🏅 Достижения</button>
+      <button class="ku-btn ghost" id="btn-hist">📜 История</button>
+      <button class="ku-btn ghost" id="btn-rules">📖 Правила</button>
+      <button class="ku-btn ghost" id="btn-settings">⚙️ Настройки</button>
+    </div>
     <div class="medals" id="menu-medals">
-      <div class="medal bronze" title="10+ очков">🥉</div><div class="medal silver" title="25+ очков">🥈</div>
-      <div class="medal gold" title="50+ очков">🥇</div><div class="medal platinum" title="100+ очков">💎</div>
+      <div class="medal bronze" title="10 очков">🥉</div><div class="medal silver" title="20 очков">🥈</div>
+      <div class="medal gold" title="30 очков">🥇</div><div class="medal platinum" title="40 очков">💎</div>
     </div>
     <div class="ku-menu-stats" id="menu-medal-txt">Первая медаль — за 10 очков</div>
-    <div class="ku-menu-hint">Клавиши: Пробел / ↑ — взмах · P / Esc — пауза<br>На телефоне: тап по полю</div>
+    <div class="ku-menu-stats" id="menu-stats" style="margin-top:6px"></div>
+    <div class="ku-menu-hint">Клавиши: пробел / ↑ — взмах · P / Esc — пауза<br>На телефоне: тап по полю</div>
   </section>
 
   <!-- ═══ ИГРА ═══ -->
   <section id="screen-game" class="ku-screen fit">
     <header class="ku-top">
       <div class="ku-top-left"></div>
-      <div class="ku-top-title"><div class="t">FLAPPY PRO</div><div class="s">СЧЁТ: <b id="score-top">0</b></div></div>
+      <div class="ku-top-title"><div class="t" id="g-title">КЛАССИКА</div><div class="s">СЧЁТ: <b id="score-top">0</b></div></div>
       <div class="ku-top-actions">
-        <button class="ku-btn icon" id="btn-pause" aria-label="Пауза" title="Пауза"><svg viewBox="0 0 24 24"><line x1="9" y1="5" x2="9" y2="19"/><line x1="15" y1="5" x2="15" y2="19"/></svg></button>
+        <button class="ku-btn icon" id="btn-pause" aria-label="Пауза" title="Пауза (P)"><svg viewBox="0 0 24 24"><line x1="9" y1="5" x2="9" y2="19"/><line x1="15" y1="5" x2="15" y2="19"/></svg></button>
       </div>
     </header>
-    <div class="ku-hud">
-      <div class="ku-stat"><span>Очки</span><b id="score-val">0</b></div>
-      <div class="ku-stat gold"><span>Рекорд</span><b id="best-val">0</b></div>
-      <div class="ku-stat c2"><span>Тема</span><b id="theme-val">Ночь</b><div class="ku-pbar"><i id="progress-fill"></i></div></div>
-    </div>
-    <div id="stage">
-      <div class="ku-board" id="board">
-        <canvas id="c"></canvas>
-        <div id="fx"><div class="ku-chip" id="theme-chip"></div></div>
+    <div id="play">
+      <div class="ku-hud" id="hud">
+        <div class="ku-stat" id="hs1"><span>Очки</span><b>0</b></div>
+        <div class="ku-stat gold" id="hs2"><span>Рекорд</span><b>0</b></div>
+        <div class="ku-stat c2" id="hs3"><span>Тема</span><b>Ночь</b><div class="ku-pbar"><i></i></div></div>
+        <div class="ku-stat bad" id="hs4" hidden><span>Касания</span><b>0</b></div>
+      </div>
+      <div id="stage">
+        <div class="ku-board" id="board"><canvas id="cv" aria-label="Игровое поле"></canvas></div>
       </div>
     </div>
   </section>
 </main>
 
 <!-- ═══ ПАУЗА ═══ -->
-<div class="ku-overlay" id="menu-pause"><div class="ku-card">
-  <h2>⏸ ПАУЗА</h2>
-  <button class="ku-btn primary" id="btn-resume">Продолжить</button>
-  <button class="ku-btn" id="btn-p-restart">Заново</button>
+<div class="ku-overlay" id="ov-pause"><div class="ku-card" role="dialog" aria-modal="true" aria-labelledby="pause-h">
+  <h2 id="pause-h">⏸ ПАУЗА</h2>
+  <p id="pause-sub" class="fp-note" hidden></p>
+  <button class="ku-btn primary" id="btn-resume">▶ Продолжить</button>
+  <button class="ku-btn" id="btn-p-restart">🔄 Заново</button>
+  <button class="ku-btn" id="btn-p-finish" hidden>🏁 Завершить тренировку</button>
   <button class="ku-btn" id="btn-p-rules">📖 Правила</button>
-  <button class="ku-btn ghost" id="btn-quit">В меню</button>
+  <button class="ku-btn" id="btn-p-settings">⚙️ Настройки</button>
+  <button class="ku-btn ghost" id="btn-p-menu">В меню</button>
 </div></div>
 
 <!-- ═══ КОНЕЦ ИГРЫ ═══ -->
-<div class="ku-overlay" id="menu-game-over"><div class="ku-card">
-  <h2 class="lose">ИГРА ОКОНЧЕНА</h2>
-  <div class="ku-new-best" id="new-best" hidden>🏆 НОВЫЙ РЕКОРД!</div>
-  <div class="ku-big-score" id="final-score">0</div>
-  <div class="medals" id="medals-row">
-    <div class="medal bronze" id="medal-bronze" title="10+ очков">🥉</div>
-    <div class="medal silver" id="medal-silver" title="25+ очков">🥈</div>
-    <div class="medal gold" id="medal-gold" title="50+ очков">🥇</div>
-    <div class="medal platinum" id="medal-platinum" title="100+ очков">💎</div>
+<div class="ku-overlay" id="ov-over"><div class="ku-card" role="dialog" aria-modal="true" aria-labelledby="over-h">
+  <h2 class="lose" id="over-h">ИГРА ОКОНЧЕНА</h2>
+  <p id="over-sub" class="fp-note" hidden></p>
+  <div class="ku-new-best" id="over-best" hidden>🏆 НОВЫЙ РЕКОРД!</div>
+  <div class="fp-result"><div class="medal none" id="over-medal" title="Медаль">—</div><div class="ku-big-score" id="over-score">0</div></div>
+  <div class="ku-over-stats" id="over-stats"></div>
+  <p class="fp-ach" id="over-ach" hidden></p>
+  <p class="fp-note" id="over-note" hidden></p>
+  <div class="fp-btns">
+    <button class="ku-btn primary fp-wait" id="btn-again">🔄 Ещё раз</button>
+    <button class="ku-btn ghost fp-wait" id="btn-o-menu">В меню</button>
   </div>
-  <div class="ku-over-stats">
-    <div>Рекорд<b id="go-best">0</b></div>
-    <div>Тема<b id="go-theme">Ночь</b></div>
+</div></div>
+
+<!-- ═══ ТРЕНИРОВКА ═══ -->
+<div class="ku-overlay" id="ov-train"><div class="ku-modal" role="dialog" aria-modal="true" aria-labelledby="train-h">
+  <header><h2 id="train-h">🎯 Тренировка</h2><button class="ku-btn icon" data-close aria-label="Закрыть">✕</button></header>
+  <div class="ku-body">
+    <div class="ku-label" style="margin-bottom:8px">Трубы</div>
+    <div class="ku-seg" id="train-seg"><button data-p="easy">🐢 Спокойно</button><button data-p="classic">🐦 Классика</button><button data-p="hard">🔥 Хардкор</button></div>
+    <p class="fp-train-desc" id="train-desc"></p>
+    <ul class="ku-rules" style="margin-top:10px">
+      <li><b>Проиграть нельзя.</b> Врезались в трубу или землю — <b class="ku-bad">−1 очко</b> и серия с нуля, полёт продолжается.</li>
+      <li><b>Чистый пролёт</b> (без касания) — <b class="ku-good">+1 очко</b> и +1 к серии.</li>
+      <li>Закончить — в паузе, «🏁 Завершить тренировку».</li>
+    </ul>
   </div>
-  <button class="ku-btn primary" id="btn-restart">🔄 Играть снова</button>
-  <button class="ku-btn ghost" id="btn-go-menu">В меню</button>
+  <footer><button class="ku-btn primary" id="btn-train-go">▶ Начать</button></footer>
+</div></div>
+
+<!-- ═══ ПТИЦЫ ═══ -->
+<div class="ku-overlay" id="ov-skins"><div class="ku-modal" role="dialog" aria-modal="true" aria-labelledby="skins-h">
+  <header><h2 id="skins-h">🐤 Птицы <span class="ku-muted" id="skins-count"></span></h2><button class="ku-btn icon" data-close aria-label="Закрыть">✕</button></header>
+  <div class="ku-body">
+    <div class="skin-grid" id="skin-grid"></div>
+    <p class="ku-menu-hint" style="margin-top:12px">Птицы открываются медалями и достижениями. Форма тела у всех одинаковая — на сложность птица не влияет.</p>
+  </div>
+  <footer><button class="ku-btn primary" data-close>Готово</button></footer>
+</div></div>
+
+<!-- ═══ СТАТИСТИКА ═══ -->
+<div class="ku-overlay" id="ov-stats"><div class="ku-modal" role="dialog" aria-modal="true" aria-labelledby="stats-h">
+  <header><h2 id="stats-h">📊 Статистика</h2><button class="ku-btn icon" data-close aria-label="Закрыть">✕</button></header>
+  <div class="ku-body">
+    <div class="ku-seg fp-tabs" id="st-tabs"><button data-m="classic">Классика</button><button data-m="hard">Хардкор</button><button data-m="daily">Испытание</button><button data-m="train">Тренировка</button></div>
+    <div class="stats-grid" id="st-mode"></div>
+    <h3>Всего</h3>
+    <div class="stats-grid" id="st-total"></div>
+  </div>
+  <footer><button class="ku-btn danger" id="btn-reset">Сбросить</button><button class="ku-btn primary" data-close>Готово</button></footer>
+</div></div>
+
+<!-- ═══ ДОСТИЖЕНИЯ ═══ -->
+<div class="ku-overlay" id="ov-ach"><div class="ku-modal" role="dialog" aria-modal="true" aria-labelledby="ach-h">
+  <header><h2 id="ach-h">🏅 Достижения <span class="ku-muted" id="ach-count"></span></h2><button class="ku-btn icon" data-close aria-label="Закрыть">✕</button></header>
+  <div class="ku-body"><div class="list" id="ach-list"></div></div>
+</div></div>
+
+<!-- ═══ ИСТОРИЯ ═══ -->
+<div class="ku-overlay" id="ov-hist"><div class="ku-modal" role="dialog" aria-modal="true" aria-labelledby="hist-h">
+  <header><h2 id="hist-h">📜 История</h2><button class="ku-btn icon" data-close aria-label="Закрыть">✕</button></header>
+  <div class="ku-body"><div class="list" id="hist-list"></div></div>
 </div></div>
 
 <!-- ═══ ПРАВИЛА ═══ -->
-<div class="ku-overlay" id="menu-rules"><div class="ku-modal">
-  <header><h2>📖 Правила</h2><button class="ku-btn icon" id="btn-rules-x" aria-label="Закрыть">✕</button></header>
+<div class="ku-overlay" id="ov-rules"><div class="ku-modal" role="dialog" aria-modal="true" aria-labelledby="rules-h">
+  <header><h2 id="rules-h">📖 Правила</h2><button class="ku-btn icon" data-close aria-label="Закрыть">✕</button></header>
   <div class="ku-body">
     <h3>Цель</h3>
     <ul class="ku-rules">
-      <li>Пролетайте между трубами: <b>каждая пройденная труба — 1 очко</b>.</li>
-      <li>Касание трубы, земли или верхнего края — конец игры.</li>
+      <li>Пролетайте между трубами: <b>каждая пройденная труба — 1 очко</b>. Очко засчитывается, когда птица целиком пролетела трубу.</li>
+      <li>Касание трубы или земли — конец игры (в Тренировке — минус очко). Верхний край не опасен: птица в него просто упирается.</li>
     </ul>
     <h3>Управление</h3>
     <ul class="ku-rules">
-      <li><b>Тап / клик</b> по полю, <b>Пробел</b> или <b>↑</b> — взмах. Первый взмах запускает полёт.</li>
-      <li><b>P / Esc</b> — пауза. При уходе со вкладки игра сама встаёт на паузу.</li>
+      <li><b>Тап / клик</b> по полю, <b>пробел</b> или <b>↑</b> — взмах. Первый взмах запускает полёт; первая труба — через пару секунд.</li>
+      <li><b>P / Esc</b> — пауза. При уходе со вкладки игра сама встаёт на паузу; после паузы — отсчёт 3-2-1.</li>
     </ul>
-    <h3>Темы и сложность</h3>
+    <h3>Режимы</h3>
     <ul class="ku-rules">
-      <li>Каждые <b>10 очков</b> — новая тема (Ночь → Рассвет → Океан → Пламя → Кибер → Неон).</li>
-      <li>С каждым очком трубы летят быстрее, а зазор сужается (до 105 px).</li>
+      <li><b>🐦 Классика</b> — с каждым очком трубы летят чуть быстрее, а щель чуть уже (до 30 очков, дальше — без изменений).</li>
+      <li><b>🔥 Хардкор</b> — щели уже, скорость выше, трубы ходят вверх-вниз (стрелки ⇕ на краях), с третьей трубы дует ветер: ↑ — подбрасывает, ↓ — прижимает (стрелки справа сверху).</li>
+      <li><b>📅 Испытание дня</b> — трубы по зерну даты: сегодня у всех одни и те же. Правила Классики. В зачёт идут <b>3 попытки</b>, рекорд дня — лучшая из них. Попытка начинается с первого взмаха; выход в меню или «Заново» засчитывают её с набранным счётом. Дальше можно тренироваться на тех же трубах вне зачёта.</li>
+      <li><b>🎯 Тренировка</b> — без проигрыша: врезались — −1 очко и серия с нуля, полёт продолжается. Чистый пролёт — +1. Трубы: спокойные, как в Классике или как в Хардкоре.</li>
     </ul>
+    <h3>Темы</h3>
+    <ul class="ku-rules"><li>Каждые <b>10 очков</b> — новая тема: Ночь → Рассвет → Океан → Пламя → Кибер → Неон.</li></ul>
     <h3>Медали</h3>
-    <ul class="ku-rules"><li>🥉 10 очков · 🥈 25 · 🥇 50 · 💎 100</li></ul>
+    <ul class="ku-rules"><li>🥉 10 очков · 🥈 20 · 🥇 30 · 💎 40 — за одну игру в Классике, Хардкоре или Испытании дня.</li>
+      <li>Медали и достижения открывают новых птиц. Тело у всех птиц одного размера — на сложность выбор не влияет.</li></ul>
+    <h3>Честная игра</h3>
+    <ul class="ku-rules">
+      <li>Каждая щель проходима: высота следующей щели отличается от предыдущей не больше, чем птица успевает подняться или опуститься (с учётом хода подвижных труб и ветра).</li>
+      <li>Столкновения — по форме тела птицы (клюв и хвост не задевают) и по форме труб.</li>
+      <li>Скорость игры одинакова на любом экране и частоте (60/120 Гц).</li>
+    </ul>
   </div>
-  <footer><button class="ku-btn primary" id="btn-rules-ok">Понятно</button></footer>
+  <footer><button class="ku-btn primary" data-close>Понятно</button></footer>
+</div></div>
+
+<!-- ═══ НАСТРОЙКИ ═══ -->
+<div class="ku-overlay" id="ov-settings"><div class="ku-modal" role="dialog" aria-modal="true" aria-labelledby="set-h">
+  <header><h2 id="set-h">⚙️ Настройки</h2><button class="ku-btn icon" data-close aria-label="Закрыть">✕</button></header>
+  <div class="ku-body">
+    <label class="ku-switch-row">Звук<input type="checkbox" data-opt="sound"><span class="ku-switch"></span></label>
+    <label class="ku-switch-row">Вибрация<input type="checkbox" data-opt="vibro"><span class="ku-switch"></span></label>
+    <label class="ku-switch-row">Меньше движения<input type="checkbox" data-opt="calm"><span class="ku-switch"></span></label>
+    <p class="ku-menu-hint" style="text-align:left;margin-top:2px">«Меньше движения»: без тряски экрана и вспышек, меньше частиц, звёзды не мерцают.</p>
+  </div>
+  <footer><button class="ku-btn primary" data-close>Готово</button></footer>
 </div></div>
 
 <div class="ku-toast" id="toast"></div>
-
 <script>
 'use strict';
-const $ = id => document.getElementById(id);
-const store = {
-  get(k) { try { return localStorage.getItem(k); } catch (e) { return null; } },
-  set(k, v) { try { localStorage.setItem(k, String(v)); } catch (e) {} }
-};
-const fmt = n => Number(n || 0).toLocaleString('ru-RU');
 
-/**
- * AUDIO SYSTEM
- */
-const AudioSys = {
-  ctx: null,
-  init() {
-    try {
-      if (!this.ctx) this.ctx = new (window.AudioContext || window.webkitAudioContext)();
-      if (this.ctx.state === 'suspended') this.ctx.resume();
-    } catch (e) { this.ctx = null; }   // без Web Audio игра работает молча
-  },
-  tone(freq, type, dur, vol = 0.5, slide = null) {
-    if (!this.ctx) return;
-    try {
-      const o = this.ctx.createOscillator(), g = this.ctx.createGain();
-      o.type = type; o.connect(g); g.connect(this.ctx.destination);
-      const now = this.ctx.currentTime;
-      o.frequency.setValueAtTime(freq, now);
-      if (slide) o.frequency.exponentialRampToValueAtTime(slide, now + dur);
-      g.gain.setValueAtTime(vol, now);
-      g.gain.exponentialRampToValueAtTime(0.01, now + dur);
-      o.start(now); o.stop(now + dur);
-    } catch (e) {}
-  },
-  sfx: {
-    flap: () => AudioSys.tone(350, 'sine', 0.08, 0.25, 550),
-    score: () => { AudioSys.tone(660, 'sine', 0.08, 0.3, 990); },
-    die: () => { AudioSys.tone(150, 'sawtooth', 0.4, 0.4, 40); },
-    themeChange: () => { AudioSys.tone(500, 'sine', 0.15, 0.3, 1000); setTimeout(() => AudioSys.tone(750, 'sine', 0.2, 0.25), 120); },
+/* ═══ engine.js ═══ */
+/* ═══════════════════════════════════════════════════════════════════════════
+ * Движок «Флаппи» — чистая логика без DOM (проверяется в Node: tests/test_engine.js)
+ *
+ *  • Мир фиксированного размера в условных единицах: высота 640, земля с y = 584.
+ *    Экран только масштабирует картинку, поэтому трубы и физика одинаковы на любом
+ *    устройстве (у Испытания дня — одни и те же трубы у всех).
+ *  • Физика — фиксированный шаг 1/120 с. Взмах применяется в первом шаге, который
+ *    начинается не раньше нажатия (по метке времени события), — результат не зависит
+ *    от частоты кадров (60/120/144 Гц дают тот же полёт).
+ *  • Трубы генерируются по зерну. Центр щели уходит от предыдущего не дальше, чем
+ *    птица успевает подняться/опуститься за время между трубами (с учётом хода
+ *    подвижных труб Хардкора); щель не ближе 60 к потолку и к земле.
+ *  • Хитбокс — тело птицы (эллипс 36×27), повёрнутое вместе с ней; трубы — ровно как
+ *    нарисованы (ствол 56 + «колпак» 64×26 со скруглением 5). Клюв и хвост не задевают.
+ * ═════════════════════════════════════════════════════════════════════════ */
+const FE = (() => {
+  const HZ = 120, DT = 1 / HZ, STEP_MS = 1000 / HZ;
+  const MAX_LAG_MS = 100;                       // после фриза/фона не «перематываем» больше 0,1 с
+  const WORLD_H = 640, GROUND_Y = 584;
+  const BIRD_A = 18, BIRD_B = 13.5;             // полуоси тела-эллипса (= хитбокс)
+  // взмах поднимает на 67 ед за 0,3 с; предельная скорость падения 560 ед/с (≈ как в оригинале)
+  const GRAVITY = 1450, FLAP_V = -440, VMAX = 560;
+  const ROT_K = 1 / 520, ROT_MIN = -0.5, ROT_MAX = 1.2;   // наклон тела (рад) от вертикальной скорости
+  const PIPE_W = 56, CAP_W = 64, CAP_H = 26, CAP_R = 5;
+  const SPACING = 230;                          // шаг труб по центрам
+  const FIRST_X = 360;                          // первая труба — после разгона ≈ 2 с
+  const START_Y = 280, EDGE_MIN = 60;
+  const GEN_AHEAD = 1000, KEEP_BEHIND = 520;
+  const GHOST_STEPS = 60;                       // тренировка: 0,5 с после касания новое не засчитывается
+  const BOUNCE_V = FLAP_V * 0.85;               // тренировка: отскок от земли
+  const DEAD_ROT_V = 7;                         // после удара птица «клюёт носом», рад/с
+
+  // Параметры режимов. gap — высота щели, v — скорость полёта (ед/с), climb — какой подъём
+  // в секунду между трубами допускает генератор (ограничивает перепад соседних щелей).
+  const MODES = {
+    classic: { gap0: 172, gapMin: 138, gapStep: 1.2, v0: 150, vMax: 195, vStep: 1.5, climb: 105, maxDelta: 160 },
+    hard: {
+      gap0: 152, gapMin: 126, gapStep: 1, v0: 165, vMax: 212, vStep: 1.8, climb: 118, maxDelta: 170,
+      // подвижные трубы: доля растёт с 45 % до 85 %, ход ±(16…36), скорость щели не больше 50 ед/с
+      moving: { from: 1, p0: 0.45, p1: 0.85, ramp: 15, aMin: 16, aMax: 36, vMax: 50, pMin: 1.9, pMax: 3.1 },
+      // ветер: вертикальный, меняется плавно каждые 3,2 с; сила растёт со 110 до 240 ед/с² (тяжесть 1450)
+      wind: { from: 2, w0: 110, w1: 240, ramp: 20, seg: 3.2, fadeIn: 1.5 }
+    },
+    easy: { gap0: 190, gapMin: 190, gapStep: 0, v0: 135, vMax: 135, vStep: 0, climb: 95, maxDelta: 140 }
+  };
+  const MEDALS = [
+    { id: 'bronze', at: 10, name: 'Бронза' }, { id: 'silver', at: 20, name: 'Серебро' },
+    { id: 'gold', at: 30, name: 'Золото' }, { id: 'platinum', at: 40, name: 'Платина' }
+  ];
+
+  const clamp = (v, a, b) => v < a ? a : v > b ? b : v;
+  function fmix(h) {
+    h ^= h >>> 16; h = Math.imul(h, 0x85ebca6b); h ^= h >>> 13; h = Math.imul(h, 0xc2b2ae35); h ^= h >>> 16;
+    return h >>> 0;
   }
-};
-const vibrate = p => { try { if (navigator.vibrate) navigator.vibrate(p); } catch (e) {} };
+  function hashStr(s) {
+    let h = 2166136261 >>> 0;
+    for (let i = 0; i < s.length; i++) { h ^= s.charCodeAt(i); h = Math.imul(h, 16777619); }
+    return fmix(h >>> 0);
+  }
+  const pad2 = n => (n < 10 ? '0' : '') + n;
+  const dateKey = d => d.getFullYear() + '-' + pad2(d.getMonth() + 1) + '-' + pad2(d.getDate());
+  const dailySeed = key => hashStr('flappy-daily-v1:' + key);
 
-/**
- * THEMES — 6 тем по 10 очков; цвета — палитра набора ku-arcade (как фигуры Тетриса)
- */
-const K = { cyan: '#00e5ff', yellow: '#ffd60a', purple: '#c77dff', green: '#51f58b', red: '#ff5d7d', blue: '#5b8cff', orange: '#ff9f43', pink: '#ff4dd2' };
-const Themes = [
-  { name: 'Ночь',    bg1: '#070b24', bg2: '#151038', pipe: K.green,  pipeCap: K.cyan,   birdBody: K.yellow, birdWing: K.orange, star: '#eef2ff' },
-  { name: 'Рассвет', bg1: '#140a2e', bg2: '#2b0e3d', pipe: K.pink,   pipeCap: K.purple, birdBody: K.orange, birdWing: K.yellow },
-  { name: 'Океан',   bg1: '#041430', bg2: '#0a2540', pipe: K.cyan,   pipeCap: K.blue,   birdBody: K.orange, birdWing: K.yellow },
-  { name: 'Пламя',   bg1: '#1b0a1d', bg2: '#2d0d17', pipe: K.orange, pipeCap: K.yellow, birdBody: K.green,  birdWing: K.cyan },
-  { name: 'Кибер',   bg1: '#0c0a2c', bg2: '#1b1040', pipe: K.purple, pipeCap: K.blue,   birdBody: K.cyan,   birdWing: K.yellow },
-  { name: 'Неон',    bg1: '#050a28', bg2: '#0f1238', pipe: K.blue,   pipeCap: K.pink,   birdBody: K.yellow, birdWing: K.red },
+  // ГПСЧ mulberry32: состояние — одно число в run.rs (копируется вместе с забегом)
+  function rnd(run) {
+    const n = run.rc++;
+    if (run.rand) return run.rand(n);           // для тестов: «злой» генератор чисел
+    let a = (run.rs = (run.rs + 0x6D2B79F5) >>> 0);
+    let t = Math.imul(a ^ (a >>> 15), 1 | a);
+    t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
+    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+  }
+
+  const gapAt = (cfg, i) => Math.max(cfg.gapMin, cfg.gap0 - cfg.gapStep * i);
+  const speedAt = (cfg, n) => Math.min(cfg.vMax, cfg.v0 + cfg.vStep * n);     // n — сколько труб уже пройдено
+  // наибольший перепад центров соседних щелей (вместе с ходом подвижных труб)
+  const deltaAt = (cfg, i) => Math.min(cfg.maxDelta, cfg.climb * SPACING / speedAt(cfg, i));
+  const rotFor = vy => clamp(vy * ROT_K, ROT_MIN, ROT_MAX);
+  // половина высоты повёрнутого эллипса
+  const halfHeight = rot => { const s = Math.sin(rot), c = Math.cos(rot); return Math.sqrt(BIRD_A * BIRD_A * s * s + BIRD_B * BIRD_B * c * c); };
+  const centerAt = (p, time) => p.A ? p.c + p.A * Math.sin(p.w * time + p.ph) : p.c;
+  const medalFor = score => { let m = ''; for (const x of MEDALS) if (score >= x.at) m = x.id; return m; };
+
+  function cfgFor(mode, preset) {
+    if (mode === 'daily') return MODES.classic;
+    if (mode === 'train') return MODES[preset] || MODES.classic;
+    return MODES[mode] || MODES.classic;
+  }
+
+  /* Новый забег. o: { mode: classic|hard|daily|train, preset (для train): easy|classic|hard, seed,
+   *   rand?(n) — подмена ГПСЧ, windKey?(k) — подмена ветра (только для тестов) } */
+  function createRun(o) {
+    const mode = o.mode || 'classic';
+    const preset = mode === 'train' ? (MODES[o.preset] ? o.preset : 'classic') : '';
+    const cfg = cfgFor(mode, preset);
+    const seed = (o.seed >>> 0) || 1;
+    const run = {
+      mode, preset, cfg, seed, rs: seed, rc: 0, rand: o.rand || null, windKey: o.windKey || null,
+      t: 0, dead: false, over: false, deadT: 0, cause: '',
+      x: 0, y: START_Y, vy: 0, rot: 0, px: 0, py: START_Y, prot: 0,
+      pipes: [], next: 0, prevC: START_Y, prevA: 0,
+      score: 0, passes: 0, clean: 0, hits: 0, streak: 0, bestStreak: 0, flaps: 0,
+      ghost: 0, wind: 0, windT0: cfg.wind && cfg.wind.from === 0 ? 0 : -1
+    };
+    fill(run);
+    return run;
+  }
+
+  function genPipe(run) {
+    const cfg = run.cfg, i = run.next++;
+    // ровно 5 случайных чисел на трубу — последовательность не зависит от режима отрисовки
+    const u1 = rnd(run), u2 = rnd(run), u3 = rnd(run), u4 = rnd(run), u5 = rnd(run);
+    const g = gapAt(cfg, i);
+    let A = 0, w = 0, ph = 0;
+    const M = cfg.moving;
+    if (M && i >= M.from) {
+      const k = Math.min(1, (i - M.from) / M.ramp);
+      if (u2 < M.p0 + (M.p1 - M.p0) * k) {
+        A = M.aMin + (M.aMax - M.aMin) * (0.35 + 0.65 * k) * u3;
+        const period = M.pMin + (M.pMax - M.pMin) * u4;
+        w = Math.min(2 * Math.PI / period, M.vMax / A);   // щель движется не быстрее vMax
+        ph = u5 * 2 * Math.PI;
+      }
+    }
+    const lo = EDGE_MIN + g / 2 + A, hi = GROUND_Y - EDGE_MIN - g / 2 - A;
+    let c;
+    if (i === 0) c = START_Y + (u1 * 2 - 1) * 40;            // первая щель — рядом с птицей
+    else {
+      const d = Math.max(0, deltaAt(cfg, i) - A - run.prevA);  // запас на ход подвижных труб
+      const a = Math.max(lo, run.prevC - d), b = Math.min(hi, run.prevC + d);
+      c = a <= b ? a + (b - a) * u1 : run.prevC;
+    }
+    c = clamp(c, lo, hi);
+    run.prevC = c; run.prevA = A;
+    const p = { i, x: FIRST_X + i * SPACING, c, g, A, w, ph, cy: c, pcy: c, passed: false, hit: false };
+    p.cy = p.pcy = centerAt(p, run.t * DT);
+    run.pipes.push(p);
+  }
+  function fill(run) {
+    while (!run.pipes.length || run.pipes[run.pipes.length - 1].x < run.x + GEN_AHEAD) genPipe(run);
+  }
+
+  // ветер: плавная (косинусная) смена значений по ключевым точкам; ключ k — хеш зерна, без состояния
+  function windKey(run, k) {
+    if (run.windKey) return run.windKey(k);
+    return fmix((run.seed ^ Math.imul(k + 1, 0x9E3779B1)) >>> 0) / 4294967296 * 2 - 1;
+  }
+  function windAt(run, time) {
+    const W = run.cfg.wind;
+    if (!W || run.windT0 < 0) return 0;
+    const q = time / W.seg, k = Math.floor(q), f = q - k;
+    const a = windKey(run, k), b = windKey(run, k + 1);
+    const s = a + (b - a) * (1 - Math.cos(Math.PI * f)) / 2;
+    const amp = W.w0 + (W.w1 - W.w0) * Math.min(1, (run.passes - W.from) / W.ramp);
+    return s * amp * Math.min(1, (time - run.windT0) / W.fadeIn);
+  }
+
+  // таблица точек на границе эллипса: 72 точки (шаг 5°) — скруглённый угол колпака может «проскочить»
+  // между соседними точками не глубже ≈0,1 ед (только в пользу игрока; ложных ударов нет)
+  const NS = 72, CS = [], SN = [];
+  for (let k = 0; k < NS; k++) { CS.push(Math.cos(2 * Math.PI * k / NS)); SN.push(Math.sin(2 * Math.PI * k / NS)); }
+  function inRound(x, y, x0, y0, x1, y1, r) {
+    if (x < x0 || x > x1 || y < y0 || y > y1) return false;
+    const cx = clamp(x, x0 + r, x1 - r), cy = clamp(y, y0 + r, y1 - r);
+    return (x - cx) * (x - cx) + (y - cy) * (y - cy) <= r * r;
+  }
+  // Касается ли тело птицы (эллипс с центром bx,by, повёрнутый на rot) трубы p при центре щели cy
+  function hitTest(bx, by, rot, p, cy) {
+    const c = Math.cos(rot), s = Math.sin(rot);
+    const top = cy - p.g / 2, bot = cy + p.g / 2;
+    const xb0 = p.x - PIPE_W / 2, xb1 = p.x + PIPE_W / 2, xc0 = p.x - CAP_W / 2, xc1 = p.x + CAP_W / 2;
+    for (let k = 0; k < NS; k++) {
+      const lx = BIRD_A * CS[k], ly = BIRD_B * SN[k];
+      const x = bx + lx * c - ly * s, y = by + lx * s + ly * c;
+      if (x < xc0 || x > xc1 || (y > top && y < bot)) continue;   // мимо трубы или в щели
+      if (y <= top) {
+        if (y >= top - CAP_H) { if (inRound(x, y, xc0, top - CAP_H, xc1, top, CAP_R)) return true; }
+        else if (x >= xb0 && x <= xb1) return true;
+      } else {
+        if (y <= bot + CAP_H) { if (inRound(x, y, xc0, bot, xc1, bot + CAP_H, CAP_R)) return true; }
+        else if (x >= xb0 && x <= xb1) return true;
+      }
+    }
+    return false;
+  }
+
+  function kill(run, what, ev) {
+    run.dead = true; run.deadT = 0; run.cause = what;
+    if (run.vy < 0) run.vy = 0;
+    if (ev) ev('die', what);
+  }
+  function hit(run, p, ev, what) {
+    if (p) p.hit = true;
+    run.hits++; run.streak = 0; run.ghost = GHOST_STEPS;
+    if (run.score > 0) run.score--;
+    if (ev) ev('hit', what);
+  }
+  function pass(run, p, ev) {
+    p.passed = true; run.passes++;
+    const W = run.cfg.wind;
+    if (W && run.windT0 < 0 && run.passes >= W.from) run.windT0 = run.t * DT;
+    if (run.mode === 'train') {
+      if (p.hit) { if (ev) ev('pass', false); return; }
+      run.clean++; run.streak++; run.score++;
+      if (run.streak > run.bestStreak) run.bestStreak = run.streak;
+      if (ev) ev('pass', true);
+    } else {
+      run.score++;
+      if (ev) ev('score', run.score);
+    }
+  }
+
+  // после удара: птица падает на землю, мир стоит
+  function stepDead(run) {
+    run.deadT++;
+    run.vy = Math.min(VMAX * 1.2, run.vy + GRAVITY * DT);
+    run.y += run.vy * DT;
+    run.rot = Math.min(Math.PI / 2, run.rot + DEAD_ROT_V * DT);
+    const ey = halfHeight(run.rot);
+    if (run.y + ey >= GROUND_Y) {
+      run.y = GROUND_Y - ey; run.vy = 0;
+      if (run.rot >= Math.PI / 2 - 1e-9) run.over = true;
+    }
+    if (run.deadT > 2 * HZ) run.over = true;
+  }
+
+  /* Один шаг физики (1/120 с). flap — был ли взмах к началу шага; ev(type, arg) — события:
+   * flap, score, pass(clean), hit(what), die(what). */
+  function step(run, flap, ev) {
+    if (run.over) return;
+    run.t++;
+    run.px = run.x; run.py = run.y; run.prot = run.rot;
+    for (const p of run.pipes) p.pcy = p.cy;
+    if (run.dead) { stepDead(run); return; }
+    const cfg = run.cfg, time = run.t * DT, train = run.mode === 'train';
+    run.wind = windAt(run, time);
+    if (flap) { run.vy = FLAP_V; run.flaps++; if (ev) ev('flap'); }
+    run.vy = Math.min(VMAX, run.vy + (GRAVITY + run.wind) * DT);
+    run.y += run.vy * DT;
+    run.rot = rotFor(run.vy);
+    const ey = halfHeight(run.rot);
+    if (run.y - ey < 0) { run.y = ey; if (run.vy < 0) run.vy = 0; }   // потолок мягкий: птица упирается
+    run.x += speedAt(cfg, run.passes) * DT;
+    fill(run);
+    for (const p of run.pipes) p.cy = centerAt(p, time);
+    if (run.ghost > 0) run.ghost--;
+    // земля
+    if (run.y + ey >= GROUND_Y) {
+      run.y = GROUND_Y - ey;
+      if (!train) { kill(run, 'ground', ev); return; }
+      run.vy = BOUNCE_V;
+      if (!run.ghost) hit(run, null, ev, 'ground');
+    }
+    // трубы
+    for (const p of run.pipes) {
+      if (p.x - CAP_W / 2 > run.x + BIRD_A || p.x + CAP_W / 2 < run.x - BIRD_A) continue;
+      if (train && p.hit) continue;
+      if (hitTest(run.x, run.y, run.rot, p, p.cy)) {
+        if (!train) { kill(run, 'pipe', ev); return; }
+        if (run.ghost) p.hit = true; else hit(run, p, ev, 'pipe');
+      }
+    }
+    // пролёт засчитывается, когда птица целиком позади трубы (удариться о неё уже нельзя)
+    for (const p of run.pipes) if (!p.passed && run.x - BIRD_A > p.x + CAP_W / 2) pass(run, p, ev);
+    while (run.pipes.length && run.pipes[0].x < run.x - KEEP_BEHIND) run.pipes.shift();
+  }
+
+  /* Часы забега: шаг k идёт с t0 + k·STEP_MS. Нажатия копятся с метками времени и применяются
+   * в первом шаге, который начинается не раньше нажатия. */
+  const makeClock = t0 => ({ t0, taps: [] });
+  function pushTap(clock, ts) {
+    const q = clock.taps;
+    let i = q.length;
+    while (i > 0 && q[i - 1] > ts) i--;                 // метки событий почти всегда по порядку
+    q.splice(i, 0, ts);
+  }
+  function advance(run, clock, now, ev) {
+    const lag = now - (clock.t0 + run.t * STEP_MS);
+    if (lag > MAX_LAG_MS) clock.t0 += lag - MAX_LAG_MS;
+    let n = 0;
+    while (!run.over && clock.t0 + (run.t + 1) * STEP_MS <= now) {
+      const start = clock.t0 + run.t * STEP_MS;
+      let flap = false;
+      while (clock.taps.length && clock.taps[0] <= start) { clock.taps.shift(); flap = true; }
+      step(run, flap && !run.dead, ev);
+      n++;
+    }
+    return n;
+  }
+  const alphaOf = (run, clock, now) => clamp((now - (clock.t0 + run.t * STEP_MS)) / STEP_MS, 0, 1);
+  // продолжение после паузы: время игры стояло — сдвигаем и часы, и ещё не применённые нажатия
+  function resumeClock(clock, pausedAt, now) {
+    const d = now - pausedAt;
+    clock.t0 += d;
+    for (let i = 0; i < clock.taps.length; i++) clock.taps[i] += d;
+  }
+
+  function cloneRun(r) {
+    const c = Object.assign({}, r);
+    c.pipes = r.pipes.map(p => Object.assign({}, p));
+    return c;
+  }
+
+  return {
+    HZ, DT, STEP_MS, WORLD_H, GROUND_Y, BIRD_A, BIRD_B, GRAVITY, FLAP_V, VMAX, PIPE_W, CAP_W, CAP_H, CAP_R,
+    SPACING, FIRST_X, START_Y, EDGE_MIN, GHOST_STEPS, MODES, MEDALS,
+    createRun, fill, step, advance, alphaOf, makeClock, pushTap, resumeClock, cloneRun, hitTest, halfHeight, rotFor, centerAt,
+    gapAt, speedAt, deltaAt, windAt, medalFor, hashStr, dailySeed, dateKey, cfgFor
+  };
+})();
+
+/* ═══ render.js ═══ */
+/* ═══════════════════════════════════════════════════════════════════════════
+ * Отрисовка: темы и фон, трубы, птицы (8 скинов рисуются кодом), эффекты.
+ * Рисуем в единицах мира: масштаб = высота канваса / 640. Тело каждой птицы —
+ * ровно эллипс хитбокса (36×27); клюв, хвост, хохолок — украшения, о трубы не бьются.
+ * ═════════════════════════════════════════════════════════════════════════ */
+const K = { cyan: '#00e5ff', yellow: '#ffd60a', purple: '#c77dff', green: '#51f58b', red: '#ff5d7d', blue: '#5b8cff',
+  orange: '#ff9f43', pink: '#ff4dd2', text: '#eef2ff', muted: '#8f9ac2', ink: '#041018' };
+// 6 тем по 10 очков; цвета — палитра набора ku-arcade (как фигуры Тетриса)
+const THEMES = [
+  { name: 'Ночь', bg1: '#070b24', bg2: '#151038', pipe: K.green, cap: K.cyan, star: '#eef2ff' },
+  { name: 'Рассвет', bg1: '#140a2e', bg2: '#2b0e3d', pipe: K.pink, cap: K.purple },
+  { name: 'Океан', bg1: '#041430', bg2: '#0a2540', pipe: K.cyan, cap: K.blue },
+  { name: 'Пламя', bg1: '#1b0a1d', bg2: '#2d0d17', pipe: K.orange, cap: K.yellow },
+  { name: 'Кибер', bg1: '#0c0a2c', bg2: '#1b1040', pipe: K.purple, cap: K.blue },
+  { name: 'Неон', bg1: '#050a28', bg2: '#0f1238', pipe: K.blue, cap: K.pink }
 ];
-Themes.forEach(t => { t.star = t.star || t.pipe; t.particle = t.pipe; t.groundLine = t.pipe; t.birdEye = '#041018'; });
+THEMES.forEach(t => { t.star = t.star || t.pipe; });
+const MAX_AHEAD = 320;              // сколько мира видно перед птицей (не больше — меньше разницы между экранами)
+const MIN_ASPECT = 0.44, MAX_ASPECT = 0.8;
 
 function hexRgb(h) { const n = parseInt(h.slice(1), 16); return [n >> 16 & 255, n >> 8 & 255, n & 255]; }
 function rgba(h, a) { const [r, g, b] = hexRgb(h); return `rgba(${r},${g},${b},${a})`; }
-// roundRect с запасным путём (ctx.roundRect нет в Safari < 16 — раньше игра падала там каждый кадр)
+// roundRect с запасным путём (ctx.roundRect нет в Safari < 16)
 function rrect(ctx, x, y, w, h, r) {
   if (!(w > 0 && h > 0)) return false;
   const m = Math.min(w, h) / 2;
@@ -210,608 +649,1152 @@ function rrect(ctx, x, y, w, h, r) {
   ctx.closePath();
   return true;
 }
-function circleRect(cx, cy, r, x, y, w, h) {
-  const nx = Math.max(x, Math.min(cx, x + w)), ny = Math.max(y, Math.min(cy, y + h));
-  return (cx - nx) * (cx - nx) + (cy - ny) * (cy - ny) < r * r;
+
+/* ─── Птицы ─── */
+const BA = FE.BIRD_A, BB = FE.BIRD_B, TAU = Math.PI * 2;
+function ell(ctx, x, y, rx, ry, rot, fill) { ctx.beginPath(); ctx.ellipse(x, y, rx, ry, rot || 0, 0, TAU); ctx.fillStyle = fill; ctx.fill(); }
+function body(ctx, fill, glow) {
+  ctx.shadowColor = glow; ctx.shadowBlur = 14;
+  ell(ctx, 0, 0, BA, BB, 0, fill);
+  ctx.shadowBlur = 0;
 }
-
-/**
- * PARTICLE
- */
-class Particle {
-  constructor(x, y, color, speed = 4) {
-    this.x = x; this.y = y; this.color = color;
-    const a = Math.random() * Math.PI * 2, s = Math.random() * speed + 1;
-    this.vx = Math.cos(a) * s; this.vy = Math.sin(a) * s;
-    this.life = 1; this.decay = Math.random() * 0.025 + 0.015;
-    this.size = Math.random() * 5 + 2;
-  }
-  update() { this.x += this.vx; this.y += this.vy; this.vy += 0.12; this.vx *= 0.97; this.life -= this.decay; }
-  draw(ctx) {
-    ctx.globalAlpha = Math.max(0, this.life);
-    ctx.fillStyle = this.color;
-    ctx.fillRect(this.x - this.size / 2, this.y - this.size / 2, this.size * this.life, this.size * this.life);
-    ctx.globalAlpha = 1;
-  }
+function clipBody(ctx) { ctx.save(); ctx.beginPath(); ctx.ellipse(0, 0, BA, BB, 0, 0, TAU); ctx.clip(); }
+function eye(ctx, x, y, r, pupil, iris) {
+  ell(ctx, x, y, r, r, 0, iris || '#fff');
+  ell(ctx, x + r * 0.28, y, r * 0.47, r * 0.47, 0, pupil || K.ink);
+  ell(ctx, x + r * 0.05, y - r * 0.35, r * 0.18, r * 0.18, 0, 'rgba(255,255,255,.9)');
 }
+function beak(ctx, color, len, top, bot) {
+  ctx.beginPath(); ctx.moveTo(BA - 1.5, top == null ? -2.5 : top); ctx.lineTo(BA - 1.5 + len, 1); ctx.lineTo(BA - 1.5, bot == null ? 4.5 : bot); ctx.closePath();
+  ctx.fillStyle = color; ctx.fill();
+}
+function wingEll(ctx, w, color, x, y) { ell(ctx, x == null ? -4 : x, (y == null ? 2 : y) + w * 6, 10, 6, -0.3 + w * 0.15, color); }
 
-/**
- * GAME ENGINE
- * Физика идёт фиксированными шагами по 1/60 с (накопитель dt), поэтому на 90/120/144 Гц скорость та же,
- * что и на 60 Гц; все константы — прежние «за кадр 60 Гц». Отрисовка интерполирует между шагами.
- */
-const STEP = 1000 / 60;
-const GRAVITY = 0.38, FLAP_V = -7, WING_SPEED = 0.15;
-const PIPE_W = 52, CAP_H = 22, CAP_X = 6, GROUND_H = 30, PIPE_SPACING = 220;
-const BIRD_R = 16;   // радиус рисунка (тело — эллипс 17.6×13.6)
-const HIT_R = 14;    // хитбокс — круг по телу (раньше квадрат 32×32: смерть до касания + края «колпаков» не учитывались)
-
-const Game = {
-  canvas: $('c'),
-  ctx: null,
-  W: 0, H: 0, dpr: 1,
-
-  state: 'MENU', // MENU, READY, PLAYING, PAUSED, DEAD
-  resumeTo: 'PLAYING',
-  score: 0, best: parseInt(store.get('flappy_best'), 10) || 0, bestAtStart: 0,
-  bird: null, pipes: [], particles: [], stars: [],
-  frameCount: 0, shakeTimer: 0, groundX: 0, groundPX: 0,
-  lastTs: 0, acc: 0, deathTimer: 0, chipTimer: 0,
-
-  // Difficulty
-  baseSpeed: 2.2,
-  baseGap: 145,
-  speed: 2.2,
-  gap: 145,
-  themeIdx: 0, prevThemeIdx: 0, themeFade: 1,
-
-  get theme() { return Themes[this.themeIdx % Themes.length]; },
-
-  resize() {
-    const cv = this.canvas;
-    const w = cv.clientWidth, h = cv.clientHeight;
-    if (!w || !h) return;                       // экран игры скрыт
-    if (this.state === 'PLAYING' && this.W && (Math.abs(w - this.W) > 40 || Math.abs(h - this.H) > 40)) this.pause();
-    this.dpr = Math.min(window.devicePixelRatio || 1, 2.5);
-    this.W = w; this.H = h;
-    cv.width = Math.round(w * this.dpr);
-    cv.height = Math.round(h * this.dpr);
-    this.ctx = cv.getContext('2d');
-    this.makeStars();
-    if (this.bird) {
-      this.bird.x = Math.min(this.bird.x, w * 0.4);
-      if (this.state === 'READY') { this.bird.x = w * 0.28; this.bird.baseY = this.bird.y = this.bird.py = h * 0.45; }
-    }
-    this.draw(1);
-  },
-
-  makeStars() {
-    this.stars = [];
-    for (let i = 0; i < 50; i++) {
-      this.stars.push({
-        x: Math.random() * this.W,
-        y: Math.random() * this.H * 0.7,
-        size: Math.random() * 1.5 + 0.5,
-        speed: Math.random() * 0.3 + 0.1,
-        twinkle: Math.random() * Math.PI * 2
-      });
-    }
-  },
-
-  init() {
-    window.addEventListener('resize', () => this.resize());
-
-    // Ввод: один pointerdown = один взмах (мышь, палец, перо — без дубля от touch+mouse/click)
-    $('board').addEventListener('pointerdown', e => {
-      if (e.pointerType === 'mouse' && e.button !== 0) return;
-      e.preventDefault();
-      this.flap();
-    });
-    document.addEventListener('keydown', e => this.onKey(e));
-    // Ушли со вкладки / свернули — пауза (раньше игра продолжала с того же места без паузы)
-    document.addEventListener('visibilitychange', () => { if (document.hidden) this.pause(); });
-    window.addEventListener('pagehide', () => this.pause());
-
-    // Buttons
-    $('btn-start').onclick = () => { AudioSys.init(); this.startGame(); };
-    $('btn-restart').onclick = () => this.startGame();
-    $('btn-p-restart').onclick = () => this.startGame();
-    $('btn-resume').onclick = () => this.resume();
-    $('btn-pause').onclick = () => this.pause();
-    $('btn-quit').onclick = () => this.toMenu();
-    $('btn-go-menu').onclick = () => this.toMenu();
-    $('btn-rules').onclick = () => openRules(null);
-    $('btn-p-rules').onclick = () => openRules('menu-pause');
-    $('btn-rules-x').onclick = $('btn-rules-ok').onclick = closeRules;
-
-    this.updateMenu();
-    this.loop = this.loop.bind(this);
-    requestAnimationFrame(this.loop);           // единственный цикл rAF на всё время жизни страницы
-  },
-
-  onKey(e) {
-    if (e.ctrlKey || e.metaKey || e.altKey) return;
-    const k = e.code || e.key;
-    if (k === 'Space' || k === 'ArrowUp' || e.key === ' ') {
-      if (this.state === 'READY' || this.state === 'PLAYING') {
-        e.preventDefault();
-        if (!e.repeat) this.flap();              // удержание пробела не «строчит» взмахами
-      } else if (this.state === 'DEAD' && isOpen('menu-game-over') && !e.repeat && !(e.target.closest && e.target.closest('button'))) {
-        e.preventDefault();
-        this.startGame();
+const SKINS = [
+  { id: 'neon', name: 'Неон', ach: '', hint: 'Есть с самого начала', draw(ctx, t, w) {
+      body(ctx, K.yellow, K.yellow);
+      wingEll(ctx, w, K.orange);
+      ell(ctx, 2, 5, 9, 4.6, 0.2, 'rgba(255,255,255,.18)');
+      eye(ctx, 8, -4, 5.6); beak(ctx, K.orange, 9);
+    } },
+  { id: 'snegir', name: 'Снегирь', ach: 'bronze', hint: '🥉 Бронза: 10 очков', draw(ctx, t, w) {
+      body(ctx, '#56649a', K.red);
+      clipBody(ctx); ell(ctx, 4, 7.5, 17, 10, 0, '#ff5d7d'); ell(ctx, 7, -11.5, 13, 7, 0.1, '#1a1f36'); ctx.restore();
+      wingEll(ctx, w, '#2b3358');
+      ell(ctx, -5, 1.5 + w * 6, 7, 1.5, -0.3 + w * 0.15, 'rgba(255,255,255,.75)');
+      ell(ctx, 9, -3.5, 3.6, 3.6, 0, '#0b0d18'); ell(ctx, 9.6, -4.6, 1.1, 1.1, 0, '#fff');
+      beak(ctx, '#1b2033', 6.5, -3, 4.5);
+    } },
+  { id: 'kolibri', name: 'Колибри', ach: 'silver', hint: '🥈 Серебро: 20 очков', draw(ctx, t, w) {
+      ctx.beginPath(); ctx.moveTo(-15, -2); ctx.lineTo(-29, -8); ctx.lineTo(-23, 0); ctx.lineTo(-29, 7); ctx.lineTo(-15, 3); ctx.closePath();
+      ctx.fillStyle = '#1f9e6b'; ctx.fill();
+      const g = ctx.createLinearGradient(0, -BB, 0, BB); g.addColorStop(0, K.green); g.addColorStop(1, '#00a7c4');
+      body(ctx, g, K.green);
+      clipBody(ctx); ell(ctx, 11, 6, 8, 5.5, 0, K.pink); ctx.restore();
+      const f = Math.sin(t * 40);           // крылья колибри мелькают
+      for (const s of [f, -f * 0.6]) ell(ctx, -3, -7 + s * 7, 12, 4, -0.7 + s * 0.35, 'rgba(210,255,245,.5)');
+      eye(ctx, 9, -4, 4.6);
+      ctx.strokeStyle = '#1d2540'; ctx.lineWidth = 2.6; ctx.lineCap = 'round';
+      ctx.beginPath(); ctx.moveTo(16.5, -0.5); ctx.lineTo(35, 1.2); ctx.stroke();
+    } },
+  { id: 'phoenix', name: 'Феникс', ach: 'gold', hint: '🥇 Золото: 30 очков', draw(ctx, t, w) {
+      const cols = [K.yellow, K.orange, K.red];
+      for (let j = 2; j >= 0; j--) {
+        const len = 15 + 7 * j + Math.sin(t * 17 + j * 1.7) * 3, sp = (j - 1) * 5, tip = Math.sin(t * 13 + j) * 2.5;
+        ctx.beginPath(); ctx.moveTo(-12, sp * 0.4 - 4);
+        ctx.quadraticCurveTo(-12 - len * 0.6, sp - 8, -12 - len, sp + tip);
+        ctx.quadraticCurveTo(-12 - len * 0.6, sp + 8, -12, sp * 0.4 + 4);
+        ctx.globalAlpha *= 0.85; ctx.fillStyle = cols[j]; ctx.fill(); ctx.globalAlpha /= 0.85;
       }
-      return;
-    }
-    if (k === 'Escape' || k === 'KeyP') {
-      if (isOpen('menu-rules')) { e.preventDefault(); closeRules(); }
-      else if (this.state === 'PLAYING' || this.state === 'READY') { e.preventDefault(); this.pause(); }
-      else if (this.state === 'PAUSED') { e.preventDefault(); this.resume(); }
-    }
-  },
-
-  startGame() {
-    clearTimeout(this.deathTimer);
-    clearTimeout(this.chipTimer);
-    closeOverlays();
-    showScreen('game');
-    this.state = 'READY';
-    this.resize();
-    blurActive();
-
-    this.score = 0;
-    this.speed = this.baseSpeed;
-    this.gap = this.baseGap;
-    this.themeIdx = 0; this.prevThemeIdx = 0; this.themeFade = 1;
-    this.pipes = [];
-    this.particles = [];
-    this.shakeTimer = 0;
-    this.frameCount = 0;
-    this.groundX = this.groundPX = 0;
-    this.bestAtStart = this.best;
-    $('fx').querySelectorAll('.float-text').forEach(el => el.remove());
-    $('theme-chip').classList.remove('show');
-
-    this.bird = {
-      x: this.W * 0.28,
-      y: this.H * 0.45, py: this.H * 0.45, baseY: this.H * 0.45,
-      vy: 0,
-      r: BIRD_R,
-      wingPhase: 0,
-      bob: 0
-    };
-
-    this.spawnPipe();
-    this.updateHUD(false);
-    this.acc = 0; this.lastTs = 0;
-    this.draw(1);
-  },
-
-  pause() {
-    if (this.state !== 'PLAYING' && this.state !== 'READY') return;
-    this.resumeTo = this.state;
-    this.state = 'PAUSED';
-    $('menu-pause').classList.add('open');
-  },
-
-  resume() {
-    if (this.state !== 'PAUSED') return;
-    closeOverlays();
-    this.state = this.resumeTo;
-    this.lastTs = 0; this.acc = 0;               // время паузы не «догоняем»
-    blurActive();
-  },
-
-  toMenu() {
-    clearTimeout(this.deathTimer);
-    this.state = 'MENU';
-    closeOverlays();
-    showScreen('menu');
-    this.updateMenu();
-  },
-
-  spawnPipe() {
-    const minTop = 70;
-    const maxTop = this.H - this.gap - 100;
-    const top = minTop + Math.random() * Math.max(20, maxTop - minTop);
-    // зазор запоминается в трубе: раньше он менялся у всех труб сразу и нижние трубы «прыгали»
-    this.pipes.push({ x: this.W + 10, px: this.W + 10, top, gap: this.gap, scored: false });
-  },
-
-  flap() {
-    if (this.state === 'READY') this.state = 'PLAYING';    // первый взмах запускает полёт
-    if (this.state !== 'PLAYING') return;
-    AudioSys.init();                             // вернуть звук после ухода со вкладки (жест пользователя)
-    this.bird.vy = FLAP_V;
-    this.bird.wingPhase = Math.PI; // Wing flap animation
-    AudioSys.sfx.flap();
-  },
-
-  updateHUD(pop) {
-    const sv = $('score-val');
-    sv.textContent = this.score;
-    if (pop) { sv.classList.remove('pop'); void sv.offsetWidth; sv.classList.add('pop'); }
-    $('score-top').textContent = this.score;
-    $('best-val').textContent = this.best;
-    const tv = $('theme-val');
-    tv.textContent = this.theme.name;
-    tv.style.color = this.theme.pipe;
-    // Progress to next theme
-    $('progress-fill').style.width = (this.score % 10) * 10 + '%';
-  },
-
-  spawnFloatText(x, y, text, color) {
-    const el = document.createElement('div');
-    el.className = 'float-text';
-    el.textContent = text;
-    el.style.left = x + 'px';
-    el.style.top = y + 'px';
-    el.style.color = color;
-    $('fx').appendChild(el);
-    setTimeout(() => el.remove(), 800);
-  },
-
-  showThemeChip() {
-    const t = this.theme, ti = $('theme-chip');
-    ti.textContent = `🌟 Тема: ${t.name}`;
-    ti.style.color = t.pipe;                     // цвет новой темы (раньше брался цвет старой)
-    ti.style.borderColor = rgba(t.pipe, 0.45);
-    ti.classList.add('show');
-    clearTimeout(this.chipTimer);
-    this.chipTimer = setTimeout(() => ti.classList.remove('show'), 2000);
-  },
-
-  spawnParts(x, y, color, count, speed) {
-    for (let i = 0; i < count; i++) this.particles.push(new Particle(x, y, color, speed));
-  },
-
-  hitsPipe(p) {
-    const b = this.bird, botY = p.top + p.gap;
-    return circleRect(b.x, b.y, HIT_R, p.x, -200, PIPE_W, p.top - CAP_H + 200) ||           // верхняя труба
-           circleRect(b.x, b.y, HIT_R, p.x - CAP_X, p.top - CAP_H, PIPE_W + CAP_X * 2, CAP_H) || // её «колпак»
-           circleRect(b.x, b.y, HIT_R, p.x - CAP_X, botY, PIPE_W + CAP_X * 2, CAP_H) ||          // нижний «колпак»
-           circleRect(b.x, b.y, HIT_R, p.x, botY + CAP_H, PIPE_W, this.H);                       // нижняя труба
-  },
-
-  // Один шаг физики (1/60 с) в состоянии PLAYING
-  update() {
-    const t = this.theme;
-    const bird = this.bird;
-    bird.py = bird.y;
-    this.groundPX = this.groundX;
-    for (const p of this.pipes) p.px = p.x;
-
-    // Bird physics
-    bird.vy += GRAVITY;
-    bird.y += bird.vy;
-    bird.wingPhase += WING_SPEED;
-
-    // Ceiling/floor collision
-    if (bird.y - HIT_R < 0 || bird.y + HIT_R > this.H - GROUND_H) { this.die(); return; }
-
-    // Pipe update
-    for (const p of this.pipes) {
-      p.x -= this.speed;
-
-      // Score: ровно 1 очко за трубу (флаг scored)
-      if (!p.scored && p.x + PIPE_W < bird.x) {
-        p.scored = true;
-        this.score++;
-        AudioSys.sfx.score();
-        this.spawnFloatText(bird.x, bird.y - 30, '+1', t.particle);
-        this.spawnParts(bird.x, bird.y, t.particle, 12, 3);
-
-        if (this.score > this.best) {
-          this.best = this.score;
-          store.set('flappy_best', this.best);
-        }
-
-        // Theme change every 10 points
-        const newThemeIdx = Math.floor(this.score / 10) % Themes.length;
-        if (newThemeIdx !== this.themeIdx) {
-          this.prevThemeIdx = this.themeIdx;
-          this.themeIdx = newThemeIdx;
-          this.themeFade = 0;
-          AudioSys.sfx.themeChange();
-          this.showThemeChip();
-        }
-
-        // Difficulty scaling
-        this.speed = this.baseSpeed + this.score * 0.06;
-        this.gap = Math.max(105, this.baseGap - this.score * 0.5);
-        this.updateHUD(true);
+      for (let j = 0; j < 3; j++) {
+        const x = -3 + j * 5, h = 18 + Math.sin(t * 15 + j * 2) * 2 - j;
+        ctx.beginPath(); ctx.moveTo(x - 2.5, -11); ctx.quadraticCurveTo(x - 1, -h + 3, x + 1, -h); ctx.quadraticCurveTo(x + 2, -h + 5, x + 3, -11); ctx.closePath();
+        ctx.fillStyle = j === 1 ? K.yellow : K.orange; ctx.fill();
       }
-
-      // Collision
-      if (this.hitsPipe(p)) { this.die(); return; }
-    }
-    this.groundX += this.speed;
-
-    // Remove off-screen pipes
-    this.pipes = this.pipes.filter(p => p.x > -60);
-
-    // Spawn new pipes
-    if (this.pipes.length === 0 || this.pipes[this.pipes.length - 1].x < this.W - PIPE_SPACING) this.spawnPipe();
-
-    for (const s of this.stars) {
-      s.x -= s.speed;
-      if (s.x < -5) s.x = this.W + 5;
-    }
-    this.updateFx();
-  },
-
-  // Птица ждёт первого взмаха и покачивается
-  readyTick() {
-    const b = this.bird;
-    b.py = b.y;
-    b.bob += 0.08;
-    b.y = b.baseY + Math.sin(b.bob) * 8;
-    b.wingPhase += WING_SPEED;
-    this.updateFx();
-  },
-
-  // Частицы, тряска, мерцание — идут и после смерти (раньше взрыв «замерзал», а экран трясся бесконечно)
-  updateFx() {
-    for (const p of this.particles) p.update();
-    this.particles = this.particles.filter(p => p.life > 0);
-    if (this.shakeTimer > 0) this.shakeTimer--;
-    for (const s of this.stars) s.twinkle += 0.02;
-    if (this.themeFade < 1) this.themeFade = Math.min(1, this.themeFade + 1 / 45);
-  },
-
-  die() {
-    if (this.state !== 'PLAYING') return;
-    this.state = 'DEAD';
-    // замораживаем интерполяцию: иначе трубы, сдвинутые в этом шаге, «дрожали» бы после смерти
-    this.bird.py = this.bird.y;
-    for (const p of this.pipes) p.px = p.x;
-    this.groundPX = this.groundX;
-    AudioSys.sfx.die();
-    vibrate([50, 50, 50]);
-    this.shakeTimer = 15;
-
-    // Death explosion
-    this.spawnParts(this.bird.x, this.bird.y, K.red, 30, 5);
-    this.spawnParts(this.bird.x, this.bird.y, K.yellow, 15, 4);
-
-    // Show game over after a delay
-    clearTimeout(this.deathTimer);
-    this.deathTimer = setTimeout(() => this.showGameOver(), 600);
-  },
-
-  showGameOver() {
-    if (this.state !== 'DEAD') return;
-    $('final-score').textContent = fmt(this.score);
-    // «Новый рекорд» — только если прежний побит (раньше показывался и при ничьей)
-    $('new-best').hidden = !(this.score > this.bestAtStart);
-    MEDALS.forEach(m => $('medal-' + m.id).classList.toggle('earned', this.score >= m.threshold));
-    $('go-best').textContent = fmt(this.best);
-    $('go-theme').textContent = this.theme.name;
-    $('menu-game-over').classList.add('open');
-  },
-
-  loop(ts) {
-    requestAnimationFrame(this.loop);
-    const s = this.state;
-    if (s !== 'READY' && s !== 'PLAYING' && s !== 'DEAD') { this.lastTs = 0; return; }
-    // после смерти, когда взрыв и тряска отыграли, кадр статичен (он под оверлеем) — не рисуем зря
-    if (s === 'DEAD' && !this.particles.length && !this.shakeTimer && this.themeFade >= 1) { this.lastTs = 0; return; }
-    if (!this.lastTs) this.lastTs = ts;
-    let dt = ts - this.lastTs;
-    this.lastTs = ts;
-    if (dt > 100) dt = 100;                      // после фриза/фоновой вкладки не перематываем игру
-    if (dt < 0) dt = 0;
-    this.acc += dt;
-    let n = 0;
-    while (this.acc >= STEP && n++ < 8) {
-      this.acc -= STEP;
-      if (this.state === 'PLAYING') { this.update(); this.frameCount++; }
-      else if (this.state === 'READY') this.readyTick();
-      else if (this.state === 'DEAD') this.updateFx();
-      else break;
-    }
-    this.draw(Math.min(1, this.acc / STEP));
-  },
-
-  drawBg(t, alpha) {
-    const ctx = this.ctx;
-    const grad = ctx.createLinearGradient(0, 0, 0, this.H);
-    grad.addColorStop(0, t.bg1);
-    grad.addColorStop(1, t.bg2);
-    ctx.globalAlpha = alpha;
-    ctx.fillStyle = grad;
-    ctx.fillRect(0, 0, this.W, this.H);
-    ctx.globalAlpha = 1;
-  },
-
-  draw(a) {
-    const ctx = this.ctx;
-    if (!ctx || !this.W) return;
-    const t = this.theme, W = this.W, H = this.H;
-    ctx.setTransform(this.dpr, 0, 0, this.dpr, 0, 0);
-
-    // Background gradient (плавная смена темы)
-    this.drawBg(t, 1);
-    if (this.themeFade < 1) this.drawBg(Themes[this.prevThemeIdx], 1 - this.themeFade);
-
-    // Screen shake
-    ctx.save();
-    if (this.shakeTimer > 0) {
-      const intensity = this.shakeTimer * 0.8;
-      ctx.translate((Math.random() - 0.5) * intensity, (Math.random() - 0.5) * intensity);
-    }
-
-    // Stars
-    for (const s of this.stars) {
-      ctx.fillStyle = rgba(t.star, (0.3 + Math.sin(s.twinkle) * 0.3).toFixed(2));
+      const g = ctx.createRadialGradient(5, -5, 2, 0, 0, BA); g.addColorStop(0, K.yellow); g.addColorStop(0.5, K.orange); g.addColorStop(1, '#ff3d5a');
+      body(ctx, g, K.orange);
+      wingEll(ctx, w, '#ff4f3a');
+      ell(ctx, -4, 0.5 + w * 6, 6.5, 2.2, -0.3 + w * 0.15, 'rgba(255,214,10,.8)');
+      eye(ctx, 8, -4, 5, '#3a0a00'); beak(ctx, K.yellow, 9);
+    } },
+  { id: 'crystal', name: 'Кристалл', ach: 'platinum', hint: '💎 Платина: 40 очков', draw(ctx, t, w) {
+      const g = ctx.createLinearGradient(-BA, -BB, BA, BB); g.addColorStop(0, '#effdff'); g.addColorStop(0.45, '#7df3ff'); g.addColorStop(1, K.blue);
+      body(ctx, g, K.cyan);
+      clipBody(ctx);
+      ctx.strokeStyle = 'rgba(255,255,255,.6)'; ctx.lineWidth = 1;
+      const pts = [0, 55, 115, 175, 235, 300].map(d => [BA * Math.cos(d * Math.PI / 180), BB * Math.sin(d * Math.PI / 180)]);
       ctx.beginPath();
-      ctx.arc(s.x, s.y, s.size, 0, Math.PI * 2);
-      ctx.fill();
+      for (const [x, y] of pts) { ctx.moveTo(2, -1); ctx.lineTo(x, y); }
+      ctx.moveTo(pts[1][0], pts[1][1]); ctx.lineTo(pts[3][0], pts[3][1]); ctx.lineTo(pts[5][0], pts[5][1]);
+      ctx.stroke(); ctx.restore();
+      ctx.beginPath(); ctx.moveTo(-13, 1 + w * 5); ctx.lineTo(-3, -6 + w * 6); ctx.lineTo(4, 2 + w * 5); ctx.lineTo(-5, 8 + w * 4); ctx.closePath();
+      ctx.fillStyle = 'rgba(205,250,255,.85)'; ctx.fill();
+      ctx.beginPath(); ctx.moveTo(9, -9); ctx.lineTo(12.6, -4); ctx.lineTo(9, 0.5); ctx.lineTo(5.4, -4); ctx.closePath(); ctx.fillStyle = '#0b1a40'; ctx.fill();
+      ell(ctx, 8.4, -6, 1, 1, 0, '#fff');
+      beak(ctx, '#e3fcff', 8);
+      const s = 2.6 + Math.sin(t * 5) * 1.2;   // искра
+      ctx.fillStyle = '#fff'; ctx.beginPath();
+      ctx.moveTo(-7, -8 - s); ctx.lineTo(-6.2, -8.8); ctx.lineTo(-7 + s, -8); ctx.lineTo(-6.2, -7.2); ctx.lineTo(-7, -8 + s); ctx.lineTo(-7.8, -7.2); ctx.lineTo(-7 - s, -8); ctx.lineTo(-7.8, -8.8);
+      ctx.closePath(); ctx.fill();
+    } },
+  { id: 'ghost', name: 'Призрак', ach: 'hard10', hint: '🔥 10 очков в Хардкоре', draw(ctx, t, w) {
+      for (let j = 0; j < 3; j++) ell(ctx, -16 - j * 6, 5 + Math.sin(t * 6 + j) * 2.5, 6 - j * 1.4, 4.5 - j, 0, `rgba(225,215,255,${0.55 - j * 0.15})`);
+      body(ctx, 'rgba(236,230,255,.92)', K.purple);
+      wingEll(ctx, w * 0.6, 'rgba(199,125,255,.42)');
+      ell(ctx, 8.5, -4, 3, 4.6, 0, '#2a1840'); ell(ctx, 14, -3.5, 2.2, 3.8, 0, '#2a1840');
+      ell(ctx, 12.5, 5, 1.9, 1.9, 0, '#2a1840');
+    } },
+  { id: 'owl', name: 'Сова', ach: 'daily5', hint: '🗓️ Испытание дня в 5 разных дней', draw(ctx, t, w) {
+      ctx.fillStyle = '#7d5230';
+      ctx.beginPath(); ctx.moveTo(1, -10); ctx.lineTo(3, -21); ctx.lineTo(8, -11.5); ctx.closePath(); ctx.fill();
+      ctx.beginPath(); ctx.moveTo(8, -11.5); ctx.lineTo(13, -19); ctx.lineTo(14, -8.5); ctx.closePath(); ctx.fill();
+      body(ctx, '#b9844f', K.orange);
+      clipBody(ctx); ell(ctx, 2, 8, 14, 8.5, 0, '#ecd2a4');
+      ctx.strokeStyle = '#9b6b3c'; ctx.lineWidth = 1.2; ctx.beginPath();
+      for (const [x, y] of [[-4, 6], [2, 9], [8, 6]]) { ctx.moveTo(x - 2, y - 1.5); ctx.lineTo(x, y); ctx.lineTo(x + 2, y - 1.5); }
+      ctx.stroke(); ctx.restore();
+      wingEll(ctx, w, '#8f6236', -6, 2);
+      ell(ctx, 10.5, -2.5, 9, 8, 0, '#f3dfb8');
+      eye(ctx, 7, -3, 4.2, '#1a1206', K.yellow); eye(ctx, 13.8, -3, 4.2, '#1a1206', K.yellow);
+      ctx.beginPath(); ctx.moveTo(9.4, 1.5); ctx.lineTo(11.2, 6.5); ctx.lineTo(13, 1.5); ctx.closePath(); ctx.fillStyle = '#e0a030'; ctx.fill();
+    } },
+  { id: 'robot', name: 'Робот', ach: 'clean50', hint: '🤖 50 чистых подряд в Тренировке', draw(ctx, t, w) {
+      ctx.strokeStyle = '#8fa4c8'; ctx.lineWidth = 2; ctx.beginPath(); ctx.moveTo(2, -12); ctx.lineTo(-1, -21); ctx.stroke();
+      const on = Math.sin(t * 6) > 0;
+      ctx.shadowColor = K.red; ctx.shadowBlur = on ? 10 : 0; ell(ctx, -1, -22.5, 2.7, 2.7, 0, on ? K.red : '#6a1828'); ctx.shadowBlur = 0;
+      const g = ctx.createLinearGradient(0, -BB, 0, BB); g.addColorStop(0, '#d3ddf3'); g.addColorStop(1, '#58698f');
+      body(ctx, g, K.blue);
+      clipBody(ctx); ctx.strokeStyle = 'rgba(4,16,24,.35)'; ctx.lineWidth = 1;
+      ctx.beginPath(); ctx.moveTo(-3, -BB); ctx.lineTo(-3, BB); ctx.moveTo(-BA, 5); ctx.lineTo(BA, 5); ctx.stroke(); ctx.restore();
+      for (const [x, y] of [[-9, -6], [-9, 9], [3, 9.5], [-12, 1]]) ell(ctx, x, y, 1.1, 1.1, 0, '#eef3ff');
+      ctx.fillStyle = '#5a6c96';
+      if (rrect(ctx, -14, -2 + w * 5, 13, 7, 2)) ctx.fill();
+      ctx.shadowColor = K.cyan; ctx.shadowBlur = 8; ctx.fillStyle = K.cyan;
+      if (rrect(ctx, 4, -9, 14, 8, 3)) ctx.fill();
+      ctx.shadowBlur = 0; ell(ctx, 6.5 + (Math.sin(t * 4) + 1) * 4.5, -5, 1.5, 1.5, 0, '#fff');
+      ctx.beginPath(); ctx.moveTo(16.5, -1.5); ctx.lineTo(23, -0.5); ctx.lineTo(23, 3); ctx.lineTo(16.5, 4); ctx.closePath(); ctx.fillStyle = '#8392b6'; ctx.fill();
+    } }
+];
+const skinById = id => SKINS.find(s => s.id === id) || SKINS[0];
+function drawBird(ctx, skin, x, y, rot, t, wing, alpha) {
+  ctx.save();
+  ctx.translate(x, y); ctx.rotate(rot);
+  if (alpha < 1) ctx.globalAlpha = alpha;
+  skin.draw(ctx, t, wing);
+  ctx.restore();
+}
+// отдельная картинка птицы (меню, окно «Птицы»); bob — смещение по вертикали в единицах
+function drawBirdCard(cv, skin, t, wing, zoom, bob) {
+  const dpr = Math.min(window.devicePixelRatio || 1, 2), w = cv.clientWidth || 96, h = cv.clientHeight || 62;
+  if (cv.width !== Math.round(w * dpr) || cv.height !== Math.round(h * dpr)) { cv.width = Math.round(w * dpr); cv.height = Math.round(h * dpr); }
+  const ctx = cv.getContext('2d');
+  ctx.setTransform(1, 0, 0, 1, 0, 0); ctx.clearRect(0, 0, cv.width, cv.height);
+  // хвост Феникса до −41, клюв Колибри до +35, хохолок/антенна до −25 — всё помещается
+  const z = zoom || Math.min(w / 72, h / 52), s = dpr * z;
+  ctx.setTransform(s, 0, 0, s, cv.width / 2 + 3 * s, cv.height / 2 + (1 + (bob || 0)) * s);
+  drawBird(ctx, skin, 0, 0, 0, t, wing, 1);
+}
+
+/* ─── Сцена ─── */
+const View = { cv: null, ctx: null, dpr: 1, cssW: 0, cssH: 0, scale: 1, viewW: 360, birdSX: 90, stars: [], streaks: [] };
+function viewSetup(cv) { View.cv = cv; View.ctx = cv.getContext('2d'); }
+function viewResize(cssW, cssH) {
+  const cv = View.cv;
+  View.dpr = Math.min(window.devicePixelRatio || 1, 2);
+  cv.style.width = cssW + 'px'; cv.style.height = cssH + 'px';
+  cv.width = Math.max(1, Math.round(cssW * View.dpr)); cv.height = Math.max(1, Math.round(cssH * View.dpr));
+  View.cssW = cssW; View.cssH = cssH;
+  View.scale = cssH / FE.WORLD_H;
+  View.viewW = cssW / View.scale;
+  View.birdSX = Math.max(View.viewW - MAX_AHEAD, View.viewW * 0.24);
+  // звёзды — в координатах экрана, с параллаксом
+  let s = 12345;
+  const r = () => ((s = (Math.imul(s, 1103515245) + 12345) >>> 0) / 4294967296);
+  View.stars = [];
+  for (let i = 0; i < 55; i++) View.stars.push({ x: r() * View.viewW, y: r() * FE.GROUND_Y * 0.85, size: r() * 1.6 + 0.6, depth: 0.05 + r() * 0.12, tw: r() * TAU });
+  View.streaks = [];
+  for (let i = 0; i < 22; i++) View.streaks.push({ x: r() * View.viewW, y: r() * FE.GROUND_Y, len: 14 + r() * 26, sp: 0.7 + r() * 0.6 });
+}
+
+// S — состояние для кадра (см. ui.js: frameState)
+function drawScene(S) {
+  const ctx = View.ctx, run = S.run;
+  if (!ctx || !run || !View.cssW) return;
+  const W = View.viewW, H = FE.WORLD_H, a = S.alpha;
+  const sc = View.scale * View.dpr;
+  ctx.setTransform(sc, 0, 0, sc, 0, 0);
+  ctx.textAlign = 'center'; ctx.textBaseline = 'middle';   // до save(): restore() вернёт именно это
+  const th = THEMES[S.theme], camX = run.px + (run.x - run.px) * a;
+  const bx = View.birdSX;
+  // фон: градиент темы (плавная смена)
+  bg(ctx, th, 1, W, H);
+  if (S.themeFade < 1) bg(ctx, THEMES[S.prevTheme], 1 - S.themeFade, W, H);
+  ctx.save();
+  if (S.shake > 0) ctx.translate((Math.random() - 0.5) * S.shake, (Math.random() - 0.5) * S.shake);
+  // звёзды
+  const scroll = camX + S.readyScroll;
+  for (const st of View.stars) {
+    let x = (st.x - scroll * st.depth) % W; if (x < 0) x += W;
+    ctx.globalAlpha = S.calm ? 0.45 : 0.3 + Math.sin(st.tw + S.time * 1.2) * 0.25;
+    ctx.fillStyle = th.star;
+    ctx.fillRect(x, st.y, st.size, st.size);
+  }
+  ctx.globalAlpha = 1;
+  // ветер (Хардкор): штрихи по направлению ветра
+  if (S.windShow > 0.04) {
+    ctx.strokeStyle = S.wind < 0 ? K.cyan : K.orange; ctx.lineWidth = 1.4; ctx.lineCap = 'round';
+    const dir = S.wind < 0 ? -1 : 1;
+    for (const st of View.streaks) {
+      ctx.globalAlpha = Math.min(0.5, S.windShow * 0.6) * st.sp;
+      ctx.beginPath(); ctx.moveTo(st.x, st.y); ctx.lineTo(st.x + st.len * 0.35, st.y - dir * st.len); ctx.stroke();
     }
-
-    // Pipes
-    for (const p of this.pipes) {
-      const x = p.px + (p.x - p.px) * a;
-      const botY = p.top + p.gap;
-      const topH = p.top - CAP_H, botH = H - botY - CAP_H - GROUND_H;
-
-      ctx.shadowBlur = 12;
-      ctx.shadowColor = t.pipe;
-      ctx.fillStyle = t.pipe;
-      if (rrect(ctx, x, 0, PIPE_W, topH, [0, 0, 4, 4])) ctx.fill();
-      if (rrect(ctx, x, botY + CAP_H, PIPE_W, botH, [4, 4, 0, 0])) ctx.fill();
-
-      ctx.shadowColor = t.pipeCap;
-      ctx.fillStyle = t.pipeCap;
-      if (rrect(ctx, x - CAP_X, p.top - CAP_H, PIPE_W + CAP_X * 2, CAP_H, 5)) ctx.fill();
-      if (rrect(ctx, x - CAP_X, botY, PIPE_W + CAP_X * 2, CAP_H, 5)) ctx.fill();
-      ctx.shadowBlur = 0;
-
-      // блик слева и тень справа — объём, как у блоков Тетриса
-      ctx.fillStyle = 'rgba(255,255,255,0.22)';
-      if (topH > 0) ctx.fillRect(x + 5, 0, 6, topH);
-      if (botH > 0) ctx.fillRect(x + 5, botY + CAP_H, 6, botH);
-      ctx.fillRect(x - CAP_X + 4, p.top - CAP_H + 3, PIPE_W + CAP_X * 2 - 8, 3);
-      ctx.fillRect(x - CAP_X + 4, botY + 3, PIPE_W + CAP_X * 2 - 8, 3);
-      ctx.fillStyle = 'rgba(4,6,22,0.22)';
-      if (topH > 0) ctx.fillRect(x + PIPE_W - 9, 0, 9, topH);
-      if (botH > 0) ctx.fillRect(x + PIPE_W - 9, botY + CAP_H, 9, botH);
-    }
-
-    // Ground
-    const groundY = H - GROUND_H;
-    ctx.fillStyle = 'rgba(4,6,22,0.88)';
-    ctx.fillRect(0, groundY, W, GROUND_H);
-    ctx.shadowBlur = 8;
-    ctx.shadowColor = t.groundLine;
-    ctx.fillStyle = t.groundLine;
-    ctx.fillRect(0, groundY, W, 2);
+    ctx.globalAlpha = 1;
+  }
+  // трубы
+  for (const p of run.pipes) {
+    const x = p.x - camX + bx;
+    if (x + FE.CAP_W / 2 < -4 || x - FE.CAP_W / 2 > W + 4) continue;
+    pipe(ctx, x, p.pcy + (p.cy - p.pcy) * a, p, th);
+  }
+  // земля
+  const gy = FE.GROUND_Y;
+  ctx.fillStyle = 'rgba(4,6,22,.92)'; ctx.fillRect(0, gy, W, H - gy);
+  ctx.fillStyle = 'rgba(255,255,255,.045)';
+  const off = -(scroll % 24);
+  for (let x = off - 24; x < W + 24; x += 24) { ctx.beginPath(); ctx.moveTo(x, gy + 6); ctx.lineTo(x + 12, gy + 6); ctx.lineTo(x + 2, H); ctx.lineTo(x - 10, H); ctx.closePath(); ctx.fill(); }
+  ctx.shadowColor = th.pipe; ctx.shadowBlur = 8; ctx.fillStyle = th.pipe; ctx.fillRect(0, gy, W, 2.5); ctx.shadowBlur = 0;
+  // частицы и всплывающие числа (координаты мира)
+  for (const q of S.parts) { ctx.globalAlpha = Math.max(0, q.life); ctx.fillStyle = q.color; const z = q.size * Math.max(0.2, q.life); ctx.fillRect(q.x - camX + bx - z / 2, q.y - z / 2, z, z); }
+  ctx.globalAlpha = 1;
+  // птица
+  const by = run.py + (run.y - run.py) * a + S.bob;
+  const rot = run.prot + (run.rot - run.prot) * a;
+  let alpha = 1;
+  if (run.ghost > 0 && !run.dead) alpha = Math.sin(S.time * 38) > 0 ? 0.85 : 0.3;
+  if (S.ringT > 0) {                                 // кольцо-подсказка до первого тапа / вспышка касания
+    ctx.strokeStyle = S.ringColor; ctx.lineWidth = 2.5; ctx.globalAlpha = S.ringT;
+    ctx.beginPath(); ctx.arc(bx, by, 26 + (1 - S.ringT) * 22, 0, TAU); ctx.stroke(); ctx.globalAlpha = 1;
+  }
+  drawBird(ctx, S.skin, bx, by, rot, S.time, S.wing, alpha);
+  for (const f of S.floats) {
+    ctx.globalAlpha = Math.max(0, Math.min(1, f.life * 1.6));
+    ctx.font = "400 26px 'Russo One','Rubik',sans-serif";
+    ctx.fillStyle = f.color; ctx.shadowColor = f.color; ctx.shadowBlur = 12;
+    ctx.fillText(f.text, bx + f.dx, f.y);
+  }
+  ctx.shadowBlur = 0; ctx.globalAlpha = 1;
+  ctx.restore();
+  // вспышка удара
+  if (S.flash > 0) { ctx.fillStyle = `rgba(255,255,255,${S.flash * 0.55})`; ctx.fillRect(0, 0, W, H); }
+  // крупный счёт сверху по центру (не в левом верхнем углу)
+  if (S.state !== 'ready') {
+    ctx.font = "400 54px 'Russo One','Rubik',sans-serif";
+    ctx.lineWidth = 6; ctx.lineJoin = 'round'; ctx.strokeStyle = 'rgba(4,6,22,.75)'; ctx.strokeText(String(run.score), W / 2, 62);
+    ctx.fillStyle = '#fff'; ctx.shadowColor = th.pipe; ctx.shadowBlur = 16; ctx.fillText(String(run.score), W / 2, 62); ctx.shadowBlur = 0;
+  }
+  // ветер: стрелки справа сверху
+  if (S.windShow > 0.1 && S.state !== 'ready') {
+    const n = S.windShow > 0.66 ? 3 : S.windShow > 0.33 ? 2 : 1, up = S.wind < 0;
+    ctx.font = "600 12px 'Rubik',sans-serif"; ctx.textAlign = 'right'; ctx.fillStyle = K.muted;
+    ctx.fillText('ВЕТЕР', W - 12, 20);
+    ctx.font = "400 22px 'Russo One','Rubik',sans-serif"; ctx.fillStyle = up ? K.cyan : K.orange;
+    ctx.shadowColor = ctx.fillStyle; ctx.shadowBlur = 10;
+    ctx.fillText((up ? '↑' : '↓').repeat(n), W - 12, 42); ctx.shadowBlur = 0; ctx.textAlign = 'center';
+  }
+  // смена темы
+  if (S.banner && S.banner.life > 0) {
+    ctx.globalAlpha = Math.min(1, S.banner.life * 2);
+    ctx.font = "400 17px 'Russo One','Rubik',sans-serif";
+    const tw = ctx.measureText(S.banner.text).width + 28;
+    ctx.fillStyle = 'rgba(4,6,22,.72)'; if (rrect(ctx, W / 2 - tw / 2, 102, tw, 32, 10)) ctx.fill();
+    ctx.strokeStyle = rgba(th.pipe, 0.5); ctx.lineWidth = 1; ctx.stroke();
+    ctx.fillStyle = th.pipe; ctx.fillText(S.banner.text, W / 2, 119);
+    ctx.globalAlpha = 1;
+  }
+  // «Приготовьтесь» с подсказкой до первого тапа
+  if (S.state === 'ready') {
+    const cy = 150;
+    ctx.shadowColor = th.pipe; ctx.shadowBlur = 18; ctx.fillStyle = K.text;
+    ctx.font = "400 30px 'Russo One','Rubik',sans-serif"; ctx.fillText('ПРИГОТОВЬТЕСЬ!', W / 2, cy);
     ctx.shadowBlur = 0;
-
-    // Ground pattern (смещение копится в шагах физики — без рывков при смене скорости)
-    ctx.fillStyle = 'rgba(255,255,255,0.04)';
-    const off = -((this.groundPX + (this.groundX - this.groundPX) * a) % 20);
-    for (let x = off; x < W; x += 20) ctx.fillRect(x, groundY + 4, 10, GROUND_H - 4);
-
-    // Particles
-    for (const p of this.particles) p.draw(ctx);
-
-    // Bird
-    if (this.bird) {
-      const bird = this.bird;
-      const by = bird.py + (bird.y - bird.py) * a;
-      ctx.save();
-      ctx.translate(bird.x, by);
-
-      // Tilt based on velocity
-      const tilt = Math.max(-35, Math.min(60, bird.vy * 4));
-      ctx.rotate(tilt * Math.PI / 180);
-
-      // Body
-      ctx.shadowBlur = 15;
-      ctx.shadowColor = t.birdBody;
-      ctx.fillStyle = t.birdBody;
-      ctx.beginPath();
-      ctx.ellipse(0, 0, bird.r * 1.1, bird.r * 0.85, 0, 0, Math.PI * 2);
-      ctx.fill();
-      ctx.shadowBlur = 0;
-
-      // Wing
-      const wingFlap = Math.sin(bird.wingPhase) * 8;
-      ctx.fillStyle = t.birdWing;
-      ctx.beginPath();
-      ctx.ellipse(-4, 2 + wingFlap, bird.r * 0.6, bird.r * 0.35, -0.3, 0, Math.PI * 2);
-      ctx.fill();
-
-      // Eye (white)
-      ctx.fillStyle = '#fff';
-      ctx.beginPath();
-      ctx.arc(7, -4, 5, 0, Math.PI * 2);
-      ctx.fill();
-
-      // Pupil
-      ctx.fillStyle = t.birdEye;
-      ctx.beginPath();
-      ctx.arc(8.5, -4, 2.5, 0, Math.PI * 2);
-      ctx.fill();
-
-      // Beak
-      ctx.fillStyle = K.orange;
-      ctx.beginPath();
-      ctx.moveTo(bird.r * 1.1, -2);
-      ctx.lineTo(bird.r * 1.5, 1);
-      ctx.lineTo(bird.r * 1.1, 4);
-      ctx.closePath();
-      ctx.fill();
-
-      // Belly highlight
-      ctx.fillStyle = 'rgba(255,255,255,0.15)';
-      ctx.beginPath();
-      ctx.ellipse(2, 4, bird.r * 0.5, bird.r * 0.3, 0.2, 0, Math.PI * 2);
-      ctx.fill();
-
-      ctx.restore();
+    ctx.font = "500 15px 'Rubik',sans-serif"; ctx.fillStyle = K.muted;
+    S.readyLines.forEach((l, i) => ctx.fillText(l, W / 2, cy + 36 + i * 21));
+    ctx.globalAlpha = S.calm ? 1 : 0.6 + 0.4 * Math.sin(S.time * 4.5);
+    ctx.font = "600 16px 'Rubik',sans-serif"; ctx.fillStyle = th.pipe;
+    ctx.fillText('👆 Тап, пробел или ↑ — взмах', W / 2, FE.START_Y + 92);
+    ctx.globalAlpha = 1;
+  }
+  // отсчёт после паузы
+  if (S.state === 'countdown') {
+    const k = S.cdLeft, d = Math.ceil(k), fr = d - k;
+    ctx.fillStyle = 'rgba(3,5,16,.35)'; ctx.fillRect(0, 0, W, H);
+    const z = S.calm ? 1 : 1 + 0.25 * (1 - fr);
+    ctx.save(); ctx.translate(W / 2, 300); ctx.scale(z, z);
+    ctx.font = "400 96px 'Russo One','Rubik',sans-serif"; ctx.fillStyle = '#fff'; ctx.shadowColor = K.cyan; ctx.shadowBlur = 26;
+    ctx.globalAlpha = 0.35 + 0.65 * Math.min(1, fr * 3 + 0.2);
+    ctx.fillText(String(d), 0, 0); ctx.restore();
+    ctx.globalAlpha = 1; ctx.shadowBlur = 0;
+    ctx.strokeStyle = K.cyan; ctx.lineWidth = 4; ctx.beginPath(); ctx.arc(W / 2, 300, 74, -Math.PI / 2, -Math.PI / 2 + TAU * (1 - k / S.cdTotal)); ctx.stroke();
+  }
+}
+function bg(ctx, t, alpha, W, H) {
+  const g = ctx.createLinearGradient(0, 0, 0, H);
+  g.addColorStop(0, t.bg1); g.addColorStop(1, t.bg2);
+  ctx.globalAlpha = alpha; ctx.fillStyle = g; ctx.fillRect(0, 0, W, H); ctx.globalAlpha = 1;
+}
+function pipe(ctx, x, cy, p, th) {
+  const top = cy - p.g / 2, bot = cy + p.g / 2, bw = FE.PIPE_W, cw = FE.CAP_W, ch = FE.CAP_H, gy = FE.GROUND_Y;
+  const y1 = top - ch, y2 = bot + ch;
+  ctx.shadowBlur = 12; ctx.shadowColor = th.pipe; ctx.fillStyle = th.pipe;
+  if (y1 > -10) ctx.fillRect(x - bw / 2, -10, bw, y1 + 10);
+  if (gy > y2) ctx.fillRect(x - bw / 2, y2, bw, gy - y2);
+  ctx.shadowColor = th.cap; ctx.fillStyle = th.cap;
+  if (rrect(ctx, x - cw / 2, y1, cw, ch, FE.CAP_R)) ctx.fill();
+  if (rrect(ctx, x - cw / 2, bot, cw, ch, FE.CAP_R)) ctx.fill();
+  ctx.shadowBlur = 0;
+  // объём: блик слева, тень справа (как у блоков Тетриса)
+  ctx.fillStyle = 'rgba(255,255,255,.22)';
+  if (y1 > -10) ctx.fillRect(x - bw / 2 + 5, -10, 6, y1 + 10);
+  if (gy > y2) ctx.fillRect(x - bw / 2 + 5, y2, 6, gy - y2);
+  ctx.fillRect(x - cw / 2 + 4, y1 + 3, cw - 8, 3); ctx.fillRect(x - cw / 2 + 4, bot + 3, cw - 8, 3);
+  ctx.fillStyle = 'rgba(4,6,22,.22)';
+  if (y1 > -10) ctx.fillRect(x + bw / 2 - 9, -10, 9, y1 + 10);
+  if (gy > y2) ctx.fillRect(x + bw / 2 - 9, y2, 9, gy - y2);
+  // подвижная труба: стрелки ⇕ на колпаках
+  if (p.A) {
+    ctx.fillStyle = 'rgba(4,16,24,.6)';
+    for (const yc of [y1 + ch / 2 + 1.5, bot + ch / 2 + 1.5]) {
+      ctx.beginPath(); ctx.moveTo(x, yc - 8); ctx.lineTo(x + 5.5, yc - 2.5); ctx.lineTo(x - 5.5, yc - 2.5); ctx.closePath(); ctx.fill();
+      ctx.beginPath(); ctx.moveTo(x, yc + 5); ctx.lineTo(x + 5.5, yc - 0.5); ctx.lineTo(x - 5.5, yc - 0.5); ctx.closePath(); ctx.fill();
     }
+  }
+}
 
-    ctx.restore();
+/* ═══ ui.js ═══ */
+/* ═══════════════════════════════════════════════════════════════════════════
+ * Интерфейс: экраны, ввод, режимы, сохранение, статистика, достижения, история.
+ * ═════════════════════════════════════════════════════════════════════════ */
+const $ = id => document.getElementById(id);
+const fmt = n => Number(n || 0).toLocaleString('ru-RU');
+const KEYS = { best: 'flappy_best', stats: 'flappy_stats', ach: 'flappy_ach', hist: 'flappy_hist', daily: 'flappy_daily', settings: 'flappy_settings' };
+const store = {
+  raw(k) { try { return localStorage.getItem(k); } catch (e) { return null; } },
+  get(k) { const s = store.raw(k); if (s == null) return null; try { return JSON.parse(s); } catch (e) { return null; } },
+  set(k, v) { try { localStorage.setItem(k, typeof v === 'string' ? v : JSON.stringify(v)); } catch (e) {} }
+};
+// данные из хранилища могут быть испорчены — берём только конечные неотрицательные числа
+const num = (v, max) => (typeof v === 'number' && isFinite(v) && v > 0) ? Math.min(Math.floor(v), max || 1e9) : 0;
+const obj = v => (v && typeof v === 'object' && !Array.isArray(v)) ? v : {};
+const DAY_RE = /^\d{4}-\d{2}-\d{2}$/;
+const MODE_IDS = ['classic', 'hard', 'daily', 'train'];
+const MODE_NAME = { classic: 'Классика', hard: 'Хардкор', daily: 'Испытание дня', train: 'Тренировка' };
+const MODE_ICON = { classic: '🐦', hard: '🔥', daily: '📅', train: '🎯' };
+const PRESET_NAME = { easy: 'Спокойно', classic: 'Классика', hard: 'Хардкор' };
+const MEDAL_ICON = { bronze: '🥉', silver: '🥈', gold: '🥇', platinum: '💎' };
+const DAILY_TRIES = 3;
+const CD_STEP = 600, CD_MS = 3 * CD_STEP;      // отсчёт 3-2-1 после паузы
+const LOCK_MS = 700;                           // кнопки конца игры включаются через 0,7 с
 
-    // Подсказка до первого взмаха
-    if (this.state === 'READY') {
-      const cy = Math.max(70, H * 0.26);
-      ctx.textAlign = 'center';
-      ctx.textBaseline = 'middle';
-      ctx.shadowColor = t.pipe;
-      ctx.shadowBlur = 16;
-      ctx.fillStyle = '#eef2ff';
-      ctx.font = "400 24px 'Russo One', 'Rubik', sans-serif";
-      ctx.fillText('ПРИГОТОВЬСЯ!', W / 2, cy);
-      ctx.shadowBlur = 0;
-      ctx.globalAlpha = 0.6 + 0.4 * Math.sin(performance.now() / 280);
-      ctx.fillStyle = '#8f9ac2';
-      ctx.font = "500 14px 'Rubik', sans-serif";
-      ctx.fillText('Тап, пробел или ↑ — взмах', W / 2, cy + 30);
-      ctx.globalAlpha = 1;
-    }
+/* ═══ Настройки ═══ */
+const settings = (() => {
+  const o = obj(store.get(KEYS.settings));
+  let calm = false;
+  try { calm = window.matchMedia('(prefers-reduced-motion: reduce)').matches; } catch (e) {}
+  return {
+    sound: o.sound !== false, vibro: o.vibro !== false,
+    calm: typeof o.calm === 'boolean' ? o.calm : calm,
+    skin: typeof o.skin === 'string' ? o.skin : 'neon',
+    preset: Object.prototype.hasOwnProperty.call(FE.MODES, o.preset) ? o.preset : 'classic'
+  };
+})();
+const saveSettings = () => store.set(KEYS.settings, settings);
+
+/* ═══ Статистика ═══ */
+const blankMode = () => ({ games: 0, best: 0, sum: 0, passes: 0, flaps: 0, time: 0, clean: 0, hits: 0, bestStreak: 0 });
+function loadStats() {
+  const o = obj(store.get(KEYS.stats)), s = { modes: {}, medals: { bronze: 0, silver: 0, gold: 0, platinum: 0 } };
+  for (const m of MODE_IDS) {
+    const src = obj(obj(o.modes)[m]), d = blankMode();
+    for (const k in d) d[k] = num(src[k]);
+    s.modes[m] = d;
+  }
+  for (const k in s.medals) s.medals[k] = num(obj(o.medals)[k]);
+  // рекорд прежней версии (ключ flappy_best) — это рекорд Классики; ключ и дальше обновляется
+  const legacy = parseInt(store.raw(KEYS.best), 10);
+  if (legacy > 0 && legacy < 1e6) s.modes.classic.best = Math.max(s.modes.classic.best, legacy);
+  return s;
+}
+const stats = loadStats();
+function saveStats() { store.set(KEYS.stats, stats); store.set(KEYS.best, String(stats.modes.classic.best)); }
+const totalOf = k => MODE_IDS.reduce((s, m) => s + stats.modes[m][k], 0);
+
+/* ═══ Достижения ═══ */
+const ACH = [
+  { id: 'first', icon: '🐣', name: 'Первый пролёт', desc: 'Пролетите первую трубу' },
+  { id: 'bronze', icon: '🥉', name: 'Бронза', desc: '10 очков за игру (Классика, Хардкор или Испытание)' },
+  { id: 'silver', icon: '🥈', name: 'Серебро', desc: '20 очков за игру' },
+  { id: 'gold', icon: '🥇', name: 'Золото', desc: '30 очков за игру' },
+  { id: 'platinum', icon: '💎', name: 'Платина', desc: '40 очков за игру' },
+  { id: 'hard10', icon: '🔥', name: 'Хардкорщик', desc: '10 очков в Хардкоре' },
+  { id: 'hard25', icon: '☠️', name: 'Железные нервы', desc: '25 очков в Хардкоре' },
+  { id: 'daily1', icon: '📅', name: 'Вызов принят', desc: 'Сыграйте Испытание дня' },
+  { id: 'daily5', icon: '🗓️', name: 'Пять дней', desc: 'Испытание дня в 5 разных дней' },
+  { id: 'clean25', icon: '🎯', name: 'Снайпер', desc: '25 чистых пролётов подряд в Тренировке' },
+  { id: 'clean50', icon: '🤖', name: 'Автопилот', desc: '50 чистых пролётов подряд в Тренировке' },
+  { id: 'pipes500', icon: '🏁', name: 'Марафонец', desc: 'Всего 500 пролётов' },
+  { id: 'games50', icon: '🎮', name: 'Завсегдатай', desc: 'Сыграйте 50 игр' },
+  { id: 'oops', icon: '🙈', name: 'Бывает', desc: 'Закончите игру с нулём очков' },
+  { id: 'flock', icon: '🐦', name: 'Стая', desc: 'Откройте 5 птиц' }
+];
+const unlocked = (() => {
+  const o = obj(store.get(KEYS.ach)), r = {};
+  for (const a of ACH) { const v = num(o[a.id], 1e15); if (v) r[a.id] = v; }
+  return r;
+})();
+const saveAch = () => store.set(KEYS.ach, unlocked);
+const skinOpen = s => !s.ach || !!unlocked[s.ach];
+const currentSkin = () => { const s = skinById(settings.skin); return skinOpen(s) ? s : SKINS[0]; };
+
+/* ═══ История (последние 30 игр) ═══ */
+const history = (() => {
+  const a = store.get(KEYS.hist);
+  if (!Array.isArray(a)) return [];
+  return a.filter(e => e && typeof e === 'object' && MODE_IDS.includes(e.m) && num(e.t, 1e15) > 0 && typeof e.s === 'number' && isFinite(e.s)).slice(0, 30);
+})();
+
+/* ═══ Испытание дня: days[дата] = { b: рекорд дня, a: использовано попыток, s: очки попыток } ═══ */
+const daily = (() => {
+  const o = obj(store.get(KEYS.daily));
+  const d = { days: {}, last: DAY_RE.test(o.last) ? o.last : '', streak: num(o.streak), bestStreak: num(o.bestStreak) };
+  for (const [k, v0] of Object.entries(obj(o.days))) {
+    if (!DAY_RE.test(k)) continue;
+    const v = obj(v0), rec = { b: num(v.b), a: Math.min(num(v.a), DAILY_TRIES), s: Array.isArray(v.s) ? v.s.slice(0, DAILY_TRIES).map(x => num(x)) : [] };
+    if (rec.a || rec.b) d.days[k] = rec;          // пустые и испорченные записи не нужны
+  }
+  return d;
+})();
+function saveDaily() {
+  const keys = Object.keys(daily.days).sort();
+  while (keys.length > 120) delete daily.days[keys.shift()];
+  store.set(KEYS.daily, daily);
+}
+const dayPeek = k => daily.days[k] || { b: 0, a: 0, s: [] };
+const dayRec = k => daily.days[k] || (daily.days[k] = { b: 0, a: 0, s: [] });
+const dayNum = k => { const [y, m, d] = k.split('-').map(Number); return Math.round(Date.UTC(y, m - 1, d) / 864e5); };
+const today = () => FE.dateKey(new Date());
+const dailyStreak = () => (daily.last && dayNum(today()) - dayNum(daily.last) <= 1) ? daily.streak : 0;
+const daysPlayed = () => Object.values(daily.days).filter(d => d.a > 0).length;
+const dayLabel = k => { const [y, m, d] = k.split('-').map(Number); return new Date(y, m - 1, d).toLocaleDateString('ru-RU', { day: 'numeric', month: 'long' }); };
+
+/* ═══ Звук и вибрация ═══ */
+const Sound = {
+  ctx: null,
+  unlock() {
+    if (!settings.sound) return;
+    try {
+      if (!this.ctx) this.ctx = new (window.AudioContext || window.webkitAudioContext)();
+      if (this.ctx.state === 'suspended') this.ctx.resume();
+    } catch (e) { this.ctx = null; }            // без Web Audio игра работает молча
   },
-
-  updateMenu() {
-    $('menu-best').textContent = 'Рекорд: ' + fmt(this.best);
-    const got = MEDALS.filter(m => this.best >= m.threshold);
-    document.querySelectorAll('#menu-medals .medal').forEach((el, i) => el.classList.toggle('earned', this.best >= MEDALS[i].threshold));
-    const next = MEDALS.find(m => this.best < m.threshold);
-    $('menu-medal-txt').textContent = got.length
-      ? `Лучшая медаль: ${got[got.length - 1].name}` + (next ? ` • до следующей — ${next.threshold} очков` : '')
-      : 'Первая медаль — за 10 очков';
+  tone(f, type, dur, vol, slide, delay) {
+    if (!settings.sound || !this.ctx) return;
+    try {
+      const c = this.ctx, o = c.createOscillator(), g = c.createGain(), t0 = c.currentTime + (delay || 0);
+      o.type = type; o.frequency.setValueAtTime(f, t0);
+      if (slide) o.frequency.exponentialRampToValueAtTime(slide, t0 + dur);
+      g.gain.setValueAtTime(vol, t0); g.gain.exponentialRampToValueAtTime(0.001, t0 + dur);
+      o.connect(g); g.connect(c.destination); o.start(t0); o.stop(t0 + dur + 0.02);
+    } catch (e) {}
   }
 };
+const sfx = {
+  flap: () => Sound.tone(350, 'sine', 0.08, 0.16, 560),
+  score: () => Sound.tone(660, 'sine', 0.09, 0.22, 990),
+  hit: () => Sound.tone(240, 'square', 0.12, 0.1, 110),
+  die: () => Sound.tone(160, 'sawtooth', 0.35, 0.2, 45),
+  theme: () => { Sound.tone(500, 'sine', 0.15, 0.18, 1000); Sound.tone(750, 'sine', 0.2, 0.16, null, 0.12); },
+  medal: () => [523, 659, 784, 1046].forEach((f, i) => Sound.tone(f, 'sine', 0.14, 0.15, null, i * 0.09)),
+  ach: () => [659, 784, 1046].forEach((f, i) => Sound.tone(f, 'triangle', 0.12, 0.13, null, i * 0.08)),
+  tick: () => Sound.tone(520, 'sine', 0.07, 0.14),
+  go: () => Sound.tone(880, 'sine', 0.12, 0.16)
+};
+const vib = p => { if (settings.vibro) try { if (navigator.vibrate) navigator.vibrate(p); } catch (e) {} };
 
-const MEDALS = [
-  { id: 'bronze', threshold: 10, name: '🥉 бронза' },
-  { id: 'silver', threshold: 25, name: '🥈 серебро' },
-  { id: 'gold', threshold: 50, name: '🥇 золото' },
-  { id: 'platinum', threshold: 100, name: '💎 платина' }
-];
+const toastQ = [];
+let toastBusy = false;
+function queueToast(msg, kind) { toastQ.push([msg, kind]); if (!toastBusy) nextToast(); }
+function nextToast() {
+  const m = toastQ.shift();
+  if (!m) { toastBusy = false; return; }
+  toastBusy = true; KuArcade.toast(m[0], m[1], 2500);
+  setTimeout(nextToast, 2700);
+}
+
+/* ═══ Состояние партии ═══ */
+// state: menu → ready (ждём первый взмах) → play → dying (падение) → over; play ⇄ paused → countdown → play
+const G = {
+  state: 'menu', mode: 'classic', preset: 'classic',
+  run: null, clock: null, started: false, recorded: false,
+  now: 0, pausedAt: 0, pauseAlpha: 1, resumeTo: 'play', cdStart: 0, cdTick: 0, dieTs: 0, locked: false, lockTimer: 0,
+  dayKey: '', counted: false, attempt: 0, bestAtStart: 0,
+  theme: 0, prevTheme: 0, themeFade: 1, banner: null,
+  parts: [], floats: [], shake: 0, flash: 0, ring: null,
+  time: 0, wingPh: 0, wingBoost: 0, bob: 0, bobT: 0, readyScroll: 0, windShow: 0, windDir: 0, readyLines: [], menuT: 0
+};
 
 /* ═══ Экраны и окна ═══ */
-let rulesReturn = null;
+let screen = 'menu';
 function showScreen(name) {
+  screen = name;
   $('screen-menu').classList.toggle('active', name === 'menu');
   $('screen-game').classList.toggle('active', name === 'game');
+  document.body.classList.toggle('ku-calm', name === 'game');   // полноэкранный канвас — фон набора не анимируем
 }
-function isOpen(id) { return $(id).classList.contains('open'); }
-function closeOverlays() { document.querySelectorAll('.ku-overlay.open').forEach(o => o.classList.remove('open')); }
-function blurActive() { const a = document.activeElement; if (a && a !== document.body && a.blur) a.blur(); }
-function openRules(from) {
-  rulesReturn = from;
+const MODALS = ['ov-train', 'ov-skins', 'ov-stats', 'ov-ach', 'ov-hist', 'ov-rules', 'ov-settings'];
+const isOpen = id => $(id).classList.contains('open');
+const topModal = () => MODALS.find(isOpen) || null;
+let returnTo = null, lastFocus = null;
+function openModal(id, from) {
+  returnTo = from || null;
   if (from) $(from).classList.remove('open');
-  $('menu-rules').classList.add('open');
+  lastFocus = document.activeElement;
+  $(id).classList.add('open');
+  const x = $(id).querySelector('header [data-close]');
+  if (x) setTimeout(() => { try { x.focus({ preventScroll: true }); } catch (e) {} }, 0);
 }
-function closeRules() {
-  $('menu-rules').classList.remove('open');
-  if (rulesReturn) $(rulesReturn).classList.add('open');
-  rulesReturn = null;
+function closeModal(id) {
+  $(id).classList.remove('open');
+  if (returnTo && !topModal()) {
+    const r = returnTo; returnTo = null;
+    if (G.state === 'paused') $(r).classList.add('open');
+  } else {
+    try { if (lastFocus && lastFocus.focus && document.body.contains(lastFocus)) lastFocus.focus({ preventScroll: true }); } catch (e) {}
+  }
+}
+function closeAll() { document.querySelectorAll('.ku-overlay.open:not(.ku-dialog)').forEach(o => o.classList.remove('open')); returnTo = null; }
+function blurActive() { const a = document.activeElement; if (a && a !== document.body && a.blur) a.blur(); }
+
+/* ═══ Меню ═══ */
+const medalIcon = score => { const m = FE.medalFor(score); return m ? ' ' + MEDAL_ICON[m] : ''; };
+function refreshMenu() {
+  const M = stats.modes;
+  $('best-classic').textContent = 'Рекорд: ' + fmt(M.classic.best) + medalIcon(M.classic.best);
+  $('best-hard').textContent = 'Рекорд: ' + fmt(M.hard.best) + medalIcon(M.hard.best);
+  const rec = dayPeek(today()), left = DAILY_TRIES - rec.a;
+  $('best-daily').textContent = rec.a === 0 ? '3 попытки сегодня' : left > 0 ? `Ещё ${left} · рекорд ${rec.b}` : `Рекорд дня: ${rec.b}`;
+  $('best-train').textContent = M.train.bestStreak ? 'Без проигрыша · лучшая серия ' + M.train.bestStreak : 'Без проигрыша · трубы на выбор';
+  const best = Math.max(M.classic.best, M.hard.best, M.daily.best);
+  document.querySelectorAll('#menu-medals .medal').forEach((el, i) => el.classList.toggle('earned', best >= FE.MEDALS[i].at));
+  const got = FE.MEDALS.filter(m => best >= m.at), next = FE.MEDALS.find(m => best < m.at);
+  $('menu-medal-txt').textContent = got.length
+    ? `Лучшая медаль: ${MEDAL_ICON[got[got.length - 1].id]} ${got[got.length - 1].name.toLowerCase()}` + (next ? ` • до следующей — ${next.at} очков` : ' • все медали!')
+    : 'Первая медаль — за 10 очков';
+  const games = totalOf('games');
+  $('menu-stats').textContent = games ? `Игр: ${fmt(games)} • Пролётов: ${fmt(totalOf('passes'))} • Достижений: ${Object.keys(unlocked).length}/${ACH.length}` : '';
+  $('menu-bird-name').textContent = currentSkin().name;
 }
 
-Game.init();
+/* ═══ Партия ═══ */
+function startRun(mode) {
+  closeAll();
+  clearTimeout(G.lockTimer); G.locked = false;
+  G.mode = mode;
+  G.preset = mode === 'train' ? settings.preset : '';
+  let seed;
+  if (mode === 'daily') { G.dayKey = today(); seed = FE.dailySeed(G.dayKey); }
+  else { G.dayKey = ''; seed = (Math.random() * 4294967296) >>> 0; }
+  G.run = FE.createRun({ mode, preset: G.preset, seed });
+  G.clock = null; G.started = false; G.recorded = false; G.counted = false; G.attempt = 0;
+  G.bestAtStart = mode === 'train' ? stats.modes.train.bestStreak : mode === 'daily' ? dayPeek(G.dayKey).b : stats.modes[mode].best;
+  G.theme = 0; G.prevTheme = 0; G.themeFade = 1; G.banner = null;
+  G.parts = []; G.floats = []; G.shake = 0; G.flash = 0; G.ring = null;
+  G.bob = 0; G.bobT = 0; G.readyScroll = 0; G.windShow = 0; G.windDir = 0; G.wingBoost = 0;
+  G.readyLines = readyLines();
+  G.state = 'ready';
+  showScreen('game');
+  setupHud(); hud(false);
+  layout();
+  blurActive();
+}
+function readyLines() {
+  if (G.mode === 'hard') return ['Трубы ходят вверх-вниз ⇕', 'с третьей трубы — ветер'];
+  if (G.mode === 'train') return ['Трубы: ' + PRESET_NAME[G.preset].toLowerCase(), 'врезались — минус очко, полёт дальше'];
+  if (G.mode === 'daily') {
+    const rec = dayPeek(G.dayKey);
+    return rec.a < DAILY_TRIES ? [`Попытка ${rec.a + 1} из 3 — с первого взмаха`, 'трубы сегодня у всех одинаковые'] : ['Зачётные попытки закончились', 'тренировка на трубах дня — вне зачёта'];
+  }
+  return ['Пролетайте между трубами', 'с каждым очком — чуть быстрее'];
+}
+// первый взмах: старт часов физики (и списание попытки Испытания)
+function begin(ts) {
+  if (G.mode === 'daily') {
+    if (today() !== G.dayKey) { startRun('daily'); }            // наступил новый день, пока ждали
+    const rec = dayPeek(G.dayKey);
+    if (rec.a < DAILY_TRIES) {
+      const d = dayRec(G.dayKey);
+      d.a++; d.s.push(0);
+      G.counted = true; G.attempt = d.a; G.bestAtStart = d.b;
+      if (daily.last !== G.dayKey) {
+        daily.streak = daily.last && dayNum(G.dayKey) - dayNum(daily.last) === 1 ? daily.streak + 1 : 1;
+        daily.last = G.dayKey; daily.bestStreak = Math.max(daily.bestStreak, daily.streak);
+      }
+      saveDaily();
+    }
+  }
+  G.started = true; G.state = 'play';
+  G.clock = FE.makeClock(ts);
+  FE.pushTap(G.clock, ts);
+  setTitle();
+}
+function onTap(ts) {
+  if (G.state === 'ready') begin(ts);
+  else if (G.state === 'play') FE.pushTap(G.clock, ts);
+}
+function pause() {
+  if (G.state !== 'ready' && G.state !== 'play' && G.state !== 'countdown') return;
+  if (G.state === 'play') { G.pausedAt = performance.now(); G.pauseAlpha = FE.alphaOf(G.run, G.clock, G.pausedAt); }
+  G.resumeTo = G.state === 'ready' ? 'ready' : 'play';
+  G.state = 'paused';
+  fillPause();
+  $('ov-pause').classList.add('open');
+  blurActive();
+  draw();
+}
+function resume() {
+  if (G.state !== 'paused') return;
+  $('ov-pause').classList.remove('open');
+  blurActive();
+  if (G.resumeTo === 'ready') { G.state = 'ready'; return; }
+  G.state = 'countdown'; G.cdStart = performance.now(); G.cdTick = 3; sfx.tick();
+}
+function fillPause() {
+  const r = G.run, train = G.mode === 'train';
+  $('btn-p-finish').hidden = !(train && G.started);
+  let sub = '';
+  if (G.mode === 'daily' && G.started) sub = G.counted ? `Идёт попытка ${G.attempt} из 3: выход в меню или «Заново» засчитают её со счётом ${r.score}.` : 'Вне зачёта: тренировка на трубах дня.';
+  else if (train && G.started) sub = `Чистых: ${r.clean} · касаний: ${r.hits} · серия: ${r.streak}`;
+  $('pause-sub').textContent = sub; $('pause-sub').hidden = !sub;
+}
+function restart() { if (G.started && !G.recorded) recordRun(); startRun(G.mode); }
+function again() { if (G.locked) return; startRun(G.mode); }
+function toMenu() {
+  if (G.started && !G.recorded) recordRun();      // прерванная партия засчитывается с набранным счётом
+  clearTimeout(G.lockTimer); G.locked = false;
+  G.state = 'menu';
+  closeAll();
+  showScreen('menu');
+  refreshMenu();
+}
+function finishTraining() {
+  if (!G.started) { toMenu(); return; }
+  $('ov-pause').classList.remove('open');
+  showOver(true);
+}
+
+/* ═══ События движка ═══ */
+function onEv(type, arg) {
+  const r = G.run, th = THEMES[G.theme];
+  if (type === 'flap') { sfx.flap(); G.wingBoost = 0.25; }
+  else if (type === 'score') {
+    sfx.score(); float('+1', th.pipe); burst(r.x, r.y, th.pipe, 10, 170);
+    liveBest(); themeFor(r.score); hud(true);
+  } else if (type === 'pass') {
+    if (arg) { sfx.score(); float('+1', K.green); burst(r.x, r.y, K.green, 8, 150); }
+    liveBest(); themeFor(r.passes); hud(true);
+  } else if (type === 'hit') {
+    sfx.hit(); vib(35); float('−1', K.red);
+    G.ring = { t: 1, color: K.red }; G.shake = 5;
+    hud(true);
+  } else if (type === 'die') {
+    G.state = 'dying'; G.dieTs = G.now;
+    sfx.die(); vib([40, 40, 60]);
+    G.shake = 12; G.flash = 1;
+    burst(r.x, r.y, K.red, 26, 260); burst(r.x, r.y, K.yellow, 12, 200);
+  }
+}
+// всплывающие «+1 / −1» держатся рядом с птицей (координаты экрана по x)
+function float(text, color) { G.floats.push({ dx: 4, y: G.run.y - 36, text, color, life: 1 }); }
+function burst(x, y, color, n, speed) {
+  if (settings.calm) n = Math.min(n, 4);
+  for (let i = 0; i < n; i++) {
+    const a = Math.random() * Math.PI * 2, s = (0.3 + Math.random() * 0.7) * speed;
+    G.parts.push({ x, y, vx: Math.cos(a) * s, vy: Math.sin(a) * s - 40, color, size: 3 + Math.random() * 4, life: 1, decay: 1.1 + Math.random() * 0.9 });
+  }
+}
+function themeFor(n) {
+  const idx = Math.floor(n / 10) % THEMES.length;
+  if (idx === G.theme) return;
+  G.prevTheme = G.theme; G.theme = idx; G.themeFade = 0;
+  G.banner = { text: '🌟 Тема: ' + THEMES[idx].name, life: 1 };
+  sfx.theme();
+}
+// рекорды обновляются сразу (закрыли вкладку посреди игры — рекорд не пропадёт)
+function liveBest() {
+  const r = G.run, m = G.mode;
+  if (m === 'classic' || m === 'hard') {
+    if (r.score > stats.modes[m].best) { stats.modes[m].best = r.score; saveStats(); }
+  } else if (m === 'daily' && G.counted) {
+    const d = dayRec(G.dayKey);
+    d.s[G.attempt - 1] = r.score;
+    if (r.score > d.b) d.b = r.score;
+    saveDaily();
+    if (r.score > stats.modes.daily.best) { stats.modes.daily.best = r.score; saveStats(); }
+  } else if (m === 'train' && r.bestStreak > stats.modes.train.bestStreak) {
+    stats.modes.train.bestStreak = r.bestStreak; saveStats();
+  }
+}
+
+/* ═══ Конец партии ═══ */
+function recordRun() {
+  const r = G.run;
+  if (!r || !G.started || G.recorded) return null;
+  G.recorded = true;
+  const m = G.mode, ms = stats.modes[m], secs = Math.round(r.t / FE.HZ);
+  const scored = m === 'classic' || m === 'hard' || (m === 'daily' && G.counted);   // тренировка дня — вне зачёта
+  const res = { medal: '', newBest: false };
+  ms.games++; ms.passes += r.passes; ms.flaps += r.flaps; ms.time += secs;
+  if (m === 'train') {
+    ms.clean += r.clean; ms.hits += r.hits; ms.best = Math.max(ms.best, r.score);
+    res.newBest = r.bestStreak > G.bestAtStart;
+    ms.bestStreak = Math.max(ms.bestStreak, r.bestStreak);
+  } else if (scored) {
+    ms.sum += r.score;
+    res.medal = FE.medalFor(r.score);
+    if (res.medal) stats.medals[res.medal]++;
+    res.newBest = r.score > G.bestAtStart;
+    ms.best = Math.max(ms.best, r.score);
+    if (m === 'daily') liveBest();
+  }
+  const e = { t: Date.now(), m, s: r.score, dur: secs };
+  if (res.medal) e.md = res.medal;
+  if (m === 'train') Object.assign(e, { p: G.preset, c: r.clean, h: r.hits, k: r.bestStreak, n: r.passes });
+  if (m === 'daily') Object.assign(e, { d: G.dayKey, a: G.counted ? G.attempt : 0 });
+  history.unshift(e);
+  if (history.length > 30) history.length = 30;
+  saveStats(); store.set(KEYS.hist, history);
+  checkAch(r, scored);
+  return res;
+}
+function checkAch(r, scored) {
+  const m = G.mode, sc = r.score;
+  if (r.passes >= 1) award('first');
+  if (scored) {
+    for (const md of FE.MEDALS) if (sc >= md.at) award(md.id);
+    if (m === 'hard' && sc >= 10) award('hard10');
+    if (m === 'hard' && sc >= 25) award('hard25');
+    if (sc === 0) award('oops');
+  }
+  if (m === 'daily') { award('daily1'); if (daysPlayed() >= 5) award('daily5'); }
+  if (m === 'train') { if (r.bestStreak >= 25) award('clean25'); if (r.bestStreak >= 50) award('clean50'); }
+  if (totalOf('passes') >= 500) award('pipes500');
+  if (totalOf('games') >= 50) award('games50');
+  if (SKINS.filter(skinOpen).length >= 5) award('flock');
+}
+// при показе итога партии новые достижения пишутся в карточку (achSink), иначе — тостами
+let achSink = null;
+function award(id) {
+  if (unlocked[id]) return;
+  unlocked[id] = Date.now(); saveAch();
+  const a = ACH.find(x => x.id === id), sk = SKINS.find(s => s.ach === id);
+  if (achSink) { achSink.push(a.icon + ' ' + a.name + (sk ? ' → 🐤 ' + sk.name : '')); return; }
+  queueToast(`🏅 Достижение: ${a.name}`, 'gold');
+  if (sk) queueToast(`🐤 Новая птица: ${sk.name} — выберите её в меню`, 'good');
+  sfx.ach();
+}
+// итог партии: после падения (dying) или по «Завершить тренировку» (force)
+function showOver(force) {
+  if (G.state !== 'dying' && !force) return;
+  G.state = 'over';
+  achSink = [];
+  const res = recordRun() || { medal: '', newBest: false };
+  const got = achSink; achSink = null;
+  fillOver(res);
+  $('over-ach').textContent = got.length ? '🏅 Новое: ' + got.join(' · ') : '';
+  $('over-ach').hidden = !got.length;
+  if (got.length) sfx.ach();
+  $('ov-over').classList.add('open');
+  if (res.medal) { sfx.medal(); vib([20, 40, 20]); }
+  // защита от случайного тапа: кнопки включаются через 0,7 с (полоска на кнопках показывает ожидание)
+  G.locked = true;
+  for (const id of ['btn-again', 'btn-o-menu']) { const b = $(id); b.disabled = true; b.classList.remove('fp-wait'); void b.offsetWidth; b.classList.add('fp-wait'); }
+  clearTimeout(G.lockTimer);
+  G.lockTimer = setTimeout(() => { G.locked = false; $('btn-again').disabled = false; $('btn-o-menu').disabled = false; }, LOCK_MS);
+}
+function fillOver(res) {
+  const r = G.run, m = G.mode, train = m === 'train';
+  let title = 'ИГРА ОКОНЧЕНА', cls = 'lose', sub = '', note = '', againTxt = '🔄 Ещё раз';
+  const rows = [];
+  const time = s => Math.floor(s / 60) + ':' + String(s % 60).padStart(2, '0');
+  const secs = Math.round(r.t / FE.HZ);
+  if (train) {
+    title = 'ТРЕНИРОВКА'; cls = 'win'; sub = 'Трубы: ' + PRESET_NAME[G.preset].toLowerCase();
+    const pct = r.passes ? Math.round(r.clean / r.passes * 100) : 0;
+    rows.push(['Пролётов', fmt(r.passes)], ['Чистых', `${fmt(r.clean)} (${pct}%)`], ['Касаний', fmt(r.hits)], ['Лучшая серия', fmt(r.bestStreak)], ['Время', time(secs)]);
+  } else if (m === 'daily') {
+    const rec = dayPeek(G.dayKey), left = DAILY_TRIES - rec.a;
+    if (G.counted) { title = `ПОПЫТКА ${G.attempt} ИЗ 3`; sub = 'Испытание дня · ' + dayLabel(G.dayKey); }
+    else { title = 'ВНЕ ЗАЧЁТА'; sub = 'Испытание дня · тренировка на тех же трубах'; }
+    rows.push(['Рекорд дня', fmt(rec.b)], ['Зачётных попыток осталось', String(left)], ['Серия дней', fmt(dailyStreak())]);
+    againTxt = left > 0 ? `🔄 Попытка ${rec.a + 1} из 3` : '🔄 Потренироваться на этих трубах';
+    if (left === 0) note = 'Зачётные попытки на сегодня закончились. Новое испытание — завтра.';
+  } else {
+    rows.push(['Рекорд', fmt(stats.modes[m].best)], ['Взмахов', fmt(r.flaps)], ['Время', time(secs)]);
+  }
+  if (!train && (m !== 'daily' || G.counted)) {
+    const next = FE.MEDALS.find(x => r.score < x.at);
+    if (next && !note) note = `До медали «${next.name}» — ещё ${next.at - r.score} ${plural(next.at - r.score, 'очко', 'очка', 'очков')}.`;
+  }
+  const h = $('over-h'); h.textContent = title; h.className = cls;
+  $('over-sub').textContent = sub; $('over-sub').hidden = !sub;
+  $('over-best').textContent = train ? '🏆 ЛУЧШАЯ СЕРИЯ!' : m === 'daily' ? '🏆 РЕКОРД ДНЯ!' : '🏆 НОВЫЙ РЕКОРД!';
+  $('over-best').hidden = !res.newBest;
+  $('over-score').textContent = fmt(r.score);
+  const md = $('over-medal');
+  md.hidden = train;
+  md.className = 'medal ' + (res.medal || 'none') + (res.medal ? ' earned' : '');
+  md.textContent = res.medal ? MEDAL_ICON[res.medal] : '—';
+  md.title = res.medal ? 'Медаль: ' + FE.MEDALS.find(x => x.id === res.medal).name : 'Без медали';
+  $('over-stats').innerHTML = rows.map(([k, v]) => `<div>${k}<b>${v}</b></div>`).join('');
+  $('over-note').textContent = note; $('over-note').hidden = !note;
+  $('btn-again').textContent = againTxt;
+}
+const plural = (n, one, few, many) => { const a = n % 10, b = n % 100; return a === 1 && b !== 11 ? one : a >= 2 && a <= 4 && (b < 12 || b > 14) ? few : many; };
+
+/* ═══ Показатели ═══ */
+function stat(i) { const el = $('hs' + i); return { el, label: el.querySelector('span'), val: el.querySelector('b') }; }
+function setupHud() {
+  const train = G.mode === 'train';
+  const s2 = stat(2), s3 = stat(3);
+  s2.label.textContent = train ? 'Чистые' : G.mode === 'daily' ? 'Рекорд дня' : 'Рекорд';
+  s2.el.className = 'ku-stat ' + (train ? 'good' : 'gold');
+  s3.label.textContent = train ? 'Серия' : 'Тема';
+  s3.el.className = 'ku-stat ' + (train ? 'gold' : 'c2');
+  s3.el.querySelector('.ku-pbar').hidden = train;
+  s3.val.style.color = '';
+  $('hs4').hidden = !train;
+  setTitle();
+}
+function setTitle() {
+  let t = { classic: 'КЛАССИКА', hard: 'ХАРДКОР', daily: 'ИСПЫТАНИЕ', train: 'ТРЕНИРОВКА' }[G.mode];
+  if (G.mode === 'daily' && G.started) t = G.counted ? `ИСПЫТАНИЕ · ${G.attempt}/3` : 'ВНЕ ЗАЧЁТА';
+  $('g-title').textContent = t;
+}
+function setVal(i, v, pop) {
+  const b = stat(i).val, s = String(v);
+  if (b.textContent !== s) { b.textContent = s; if (pop) { b.classList.remove('pop'); void b.offsetWidth; b.classList.add('pop'); } }
+}
+function curBest() {
+  const r = G.run;
+  if (G.mode === 'daily') return G.counted ? Math.max(dayPeek(G.dayKey).b, r.score) : dayPeek(G.dayKey).b;
+  return Math.max(stats.modes[G.mode].best, r.score);
+}
+function hud(pop) {
+  const r = G.run;
+  if (!r) return;
+  $('score-top').textContent = r.score;
+  setVal(1, r.score, pop);
+  if (G.mode === 'train') { setVal(2, r.clean, pop); setVal(3, r.streak, pop); setVal(4, r.hits, pop); return; }
+  setVal(2, curBest());
+  const th = THEMES[G.theme], s3 = stat(3);
+  s3.val.textContent = th.name; s3.val.style.color = th.pipe;
+  s3.el.querySelector('.ku-pbar i').style.width = (r.score % 10) * 10 + '%';
+}
+
+/* ═══ Раскладка: поле подгоняется под экран с ограничением пропорций ═══ */
+let boardSize = '';
+function layout() {
+  if (screen !== 'game') return false;
+  const play = $('play'), hudEl = $('hud');
+  const land = window.matchMedia('(orientation: landscape) and (max-height: 560px)').matches;
+  const pw = play.clientWidth, ph = play.clientHeight;
+  if (!pw || !ph) return false;
+  const aw = land ? pw - hudEl.offsetWidth - 12 : pw;
+  const ah = land ? ph : ph - hudEl.offsetHeight - 8;
+  let ch = Math.floor(ah - 16), cw = Math.floor(Math.min(aw - 16, ch * MAX_ASPECT, 600));
+  if (cw / ch < MIN_ASPECT) ch = Math.floor(cw / MIN_ASPECT);
+  ch = Math.max(ch, 120); cw = Math.max(cw, 80);
+  const key = cw + 'x' + ch, changed = boardSize && boardSize !== key;
+  const big = changed && (() => { const [w0, h0] = boardSize.split('x').map(Number); return Math.abs(w0 - cw) > 40 || Math.abs(h0 - ch) > 40; })();
+  boardSize = key;
+  $('board').style.width = (cw + 16) + 'px';
+  $('board').style.height = (ch + 16) + 'px';
+  viewResize(cw, ch);
+  draw();
+  return big;
+}
+
+/* ═══ Цикл ═══ */
+function frameState(alpha) {
+  const ready = G.state === 'ready';
+  let ringT = 0, ringColor = K.cyan;
+  if (ready) { ringT = settings.calm ? 0.45 : 0.3 + 0.3 * Math.sin(G.time * 4); ringColor = THEMES[G.theme].pipe; }
+  else if (G.ring) { ringT = G.ring.t; ringColor = G.ring.color; }
+  return {
+    run: G.run, alpha, state: G.state, theme: G.theme, prevTheme: G.prevTheme, themeFade: G.themeFade,
+    shake: settings.calm ? 0 : G.shake, flash: settings.calm ? 0 : G.flash, calm: settings.calm,
+    readyScroll: G.readyScroll, time: G.time, parts: G.parts, floats: G.floats, skin: currentSkin(),
+    wing: G.state === 'dying' || G.state === 'over' ? 0.2 : Math.sin(G.wingPh), bob: G.bob, ringT, ringColor,
+    windShow: G.windShow, wind: G.windDir, banner: G.banner, readyLines: G.readyLines,
+    cdLeft: Math.max(0, CD_MS - (G.now - G.cdStart)) / CD_STEP, cdTotal: 3
+  };
+}
+function draw(alpha) {
+  if (screen !== 'game' || !G.run) return;
+  if (alpha == null) alpha = G.state === 'paused' || G.state === 'countdown' ? G.pauseAlpha : (G.clock && G.state !== 'ready' ? FE.alphaOf(G.run, G.clock, G.now) : 1);
+  drawScene(frameState(alpha));
+}
+function fx(dt) {
+  const r = G.run;
+  for (const q of G.parts) { q.x += q.vx * dt; q.y += q.vy * dt; q.vy += 700 * dt; q.life -= q.decay * dt; }
+  if (G.parts.length) G.parts = G.parts.filter(q => q.life > 0);
+  for (const f of G.floats) { f.y -= 46 * dt; f.life -= dt / 0.8; }
+  if (G.floats.length) G.floats = G.floats.filter(f => f.life > 0);
+  G.shake = Math.max(0, G.shake - 40 * dt);
+  G.flash = Math.max(0, G.flash - dt / 0.25);
+  if (G.ring && (G.ring.t -= dt / 0.45) <= 0) G.ring = null;
+  if (G.themeFade < 1) G.themeFade = Math.min(1, G.themeFade + dt / 0.75);
+  if (G.banner && (G.banner.life -= dt / 2.2) <= 0) G.banner = null;
+  if (G.state !== 'dying' && G.state !== 'over') { G.wingPh += dt * (G.wingBoost > 0 ? 30 : 13); G.wingBoost -= dt; }
+  // ветер: плавно показываем силу и направление
+  const W = r.cfg.wind, target = W ? Math.min(1, Math.abs(r.wind) / W.w1) : 0;
+  G.windShow += (target - G.windShow) * Math.min(1, dt * 6);
+  if (Math.abs(r.wind) > 1) G.windDir = r.wind;
+  if (G.windShow > 0.04) {
+    const v = FE.speedAt(r.cfg, r.passes), up = G.windDir < 0 ? -1 : 1;
+    for (const st of View.streaks) {
+      st.x -= (v * 0.5 + 40 * st.sp) * dt; st.y += up * (90 + 260 * G.windShow) * st.sp * dt;
+      if (st.x < -40) st.x += View.viewW + 80;
+      if (st.y > FE.GROUND_Y + 30) st.y -= FE.GROUND_Y + 60; else if (st.y < -30) st.y += FE.GROUND_Y + 60;
+    }
+  }
+}
+let lastTs = 0;
+function frame(ts) {
+  requestAnimationFrame(frame);
+  const dt = lastTs ? Math.min(0.05, Math.max(0, (ts - lastTs) / 1000)) : 0;
+  lastTs = ts; G.now = ts;
+  if (screen === 'menu') { menuBird(dt); return; }
+  if (screen !== 'game' || !G.run) return;
+  G.time += dt;
+  let alpha = 1;
+  const st = G.state;
+  if (st === 'ready') {
+    G.readyScroll += FE.speedAt(G.run.cfg, 0) * dt;
+    G.bobT += dt; G.bob = settings.calm ? 0 : Math.sin(G.bobT * 3.4) * 7;
+  } else if (st === 'play' || st === 'dying') {
+    G.bob *= Math.exp(-dt * 10);                 // покачивание «Приготовьтесь» плавно гаснет
+    FE.advance(G.run, G.clock, ts, onEv);
+    alpha = FE.alphaOf(G.run, G.clock, ts);
+    if (G.state === 'dying' && ((G.run.over && ts - G.dieTs > 650) || ts - G.dieTs > 1600)) showOver();
+  } else if (st === 'countdown') {
+    const left = CD_MS - (ts - G.cdStart);
+    if (left <= 0) {
+      FE.resumeClock(G.clock, G.pausedAt, ts);   // время паузы и отсчёта игра стояла
+      G.state = 'play'; sfx.go();
+      alpha = FE.alphaOf(G.run, G.clock, ts);
+    } else {
+      const d = Math.ceil(left / CD_STEP);
+      if (d !== G.cdTick) { G.cdTick = d; sfx.tick(); }
+      alpha = G.pauseAlpha;
+    }
+  } else {
+    // пауза / конец игры: кадр статичен (он под окном) — рисуем, только пока доигрывают эффекты
+    if (!G.parts.length && G.flash <= 0 && G.shake <= 0 && G.themeFade >= 1 && !G.floats.length) return;
+    alpha = st === 'paused' ? G.pauseAlpha : 1;
+  }
+  fx(dt);
+  drawScene(frameState(alpha));
+}
+function menuBird(dt) {
+  G.menuT += dt;
+  const cv = $('menu-bird-cv');
+  if (!cv.offsetParent) return;
+  drawBirdCard(cv, currentSkin(), G.menuT, Math.sin(G.menuT * 13), 0, settings.calm ? 0 : Math.sin(G.menuT * 2.6) * 3);
+}
+
+/* ═══ Ввод ═══ */
+// метка времени события (та же шкала, что у rAF); если браузер дал странную — «сейчас»
+function evTs(e) {
+  const now = performance.now(), t = e && e.timeStamp;
+  return (typeof t === 'number' && t > 0 && t <= now + 5 && now - t < 1000) ? t : now;
+}
+$('screen-game').addEventListener('pointerdown', e => {
+  Sound.unlock();
+  if (e.target.closest('button')) return;
+  if (e.pointerType === 'mouse' && e.button !== 0) return;
+  if (G.state === 'ready' || G.state === 'play') { e.preventDefault(); onTap(evTs(e)); }
+});
+$('screen-game').addEventListener('contextmenu', e => e.preventDefault());
+document.addEventListener('pointerdown', () => Sound.unlock(), true);
+document.addEventListener('keydown', e => {
+  if (e.ctrlKey || e.metaKey || e.altKey) return;
+  const k = e.code || e.key;
+  const flapKey = k === 'Space' || k === 'ArrowUp' || e.key === ' ' || e.key === 'ArrowUp';
+  const onCtl = e.target && e.target.closest && e.target.closest('button, input, label, a');
+  const modal = topModal();
+  if (modal) { if (k === 'Escape') { e.preventDefault(); closeModal(modal); } return; }
+  if (flapKey || k === 'Enter') Sound.unlock();
+  if (flapKey) {
+    if (G.state === 'ready' || G.state === 'play') { e.preventDefault(); if (!e.repeat) onTap(evTs(e)); }
+    else if (G.state === 'countdown' || G.state === 'dying') e.preventDefault();
+    else if (G.state === 'over' && !onCtl) { e.preventDefault(); if (!e.repeat && !G.locked) again(); }
+    return;
+  }
+  if (k === 'Escape' || k === 'KeyP') {
+    if (G.state === 'ready' || G.state === 'play' || G.state === 'countdown') { e.preventDefault(); pause(); }
+    else if (G.state === 'paused') { e.preventDefault(); resume(); }
+    else if (G.state === 'over' && k === 'Escape' && !G.locked) { e.preventDefault(); toMenu(); }
+    return;
+  }
+  if ((k === 'Enter' || k === 'NumpadEnter') && G.state === 'over' && !onCtl && !e.repeat && !G.locked) { e.preventDefault(); again(); }
+});
+// ушли со вкладки / свернули — пауза
+document.addEventListener('visibilitychange', () => { if (document.hidden) pause(); });
+window.addEventListener('pagehide', () => pause());
+let resizeT = 0;
+window.addEventListener('resize', () => {
+  clearTimeout(resizeT);
+  // поворот экрана или заметное изменение окна в полёте — пауза
+  if (G.state === 'play' && layout()) pause();
+  resizeT = setTimeout(layout, 80);
+});
+
+/* ═══ Окна: тренировка, птицы, статистика, достижения, история, настройки ═══ */
+const TRAIN_DESC = {
+  easy: 'Широкие щели, спокойная скорость, ничего не ускоряется — чтобы набить руку.',
+  classic: 'Как в Классике: с каждым пролётом щель чуть уже, а полёт быстрее.',
+  hard: 'Как в Хардкоре: узкие щели, трубы ходят вверх-вниз, дует ветер.'
+};
+function syncTrain() {
+  document.querySelectorAll('#train-seg button').forEach(b => b.classList.toggle('active', b.dataset.p === settings.preset));
+  $('train-desc').textContent = TRAIN_DESC[settings.preset];
+}
+document.querySelectorAll('#train-seg button').forEach(b => b.addEventListener('click', () => { settings.preset = b.dataset.p; saveSettings(); syncTrain(); }));
+$('btn-train-go').addEventListener('click', () => { $('ov-train').classList.remove('open'); startRun('train'); });
+
+function openSkins() {
+  if (!isOpen('ov-skins')) openModal('ov-skins');
+  const grid = $('skin-grid');
+  grid.innerHTML = '';
+  for (const s of SKINS) {
+    const open = skinOpen(s), sel = open && currentSkin().id === s.id;
+    const b = document.createElement('button');
+    b.className = 'skin' + (open ? '' : ' locked') + (sel ? ' sel' : '');
+    b.dataset.skin = s.id;
+    b.innerHTML = `<canvas></canvas><b>${s.name}</b><small>${open ? (sel ? '✓ Выбрана' : 'Выбрать') : s.hint}</small>` + (open ? '' : '<span class="lock" aria-hidden="true">🔒</span>');
+    b.setAttribute('aria-label', s.name + (open ? (sel ? ', выбрана' : '') : ', закрыта: ' + s.hint));
+    b.addEventListener('click', () => {
+      if (!open) { KuArcade.toast('🔒 ' + s.name + ': ' + s.hint, '', 2200); return; }
+      settings.skin = s.id; saveSettings(); refreshMenu(); openSkins();
+    });
+    grid.appendChild(b);
+    drawBirdCard(b.querySelector('canvas'), s, 0.4, 0.3, 0, 0);
+  }
+  $('skins-count').textContent = `${SKINS.filter(skinOpen).length}/${SKINS.length}`;
+}
+
+let stTab = 'classic';
+function card(label, value) { return `<div class="st-card"><div class="sv">${value}</div><div class="sl">${label}</div></div>`; }
+const dur = s => s >= 3600 ? Math.floor(s / 3600) + ' ч ' + Math.floor(s % 3600 / 60) + ' мин' : Math.floor(s / 60) + ':' + String(s % 60).padStart(2, '0');
+function renderStats() {
+  document.querySelectorAll('#st-tabs button').forEach(b => b.classList.toggle('active', b.dataset.m === stTab));
+  const m = stats.modes[stTab];
+  let h = '';
+  if (stTab === 'train') {
+    const pct = m.passes ? Math.round(m.clean / m.passes * 100) + '%' : '—';
+    h = card('Тренировок', fmt(m.games)) + card('Лучшая серия', fmt(m.bestStreak)) + card('Лучший счёт', fmt(m.best)) +
+      card('Чистых', fmt(m.clean)) + card('Касаний', fmt(m.hits)) + card('Точность', pct) + card('Время', dur(m.time));
+  } else {
+    h = card('Игр', fmt(m.games)) + card('Рекорд', fmt(m.best)) + card('Средний счёт', m.games ? (m.sum / m.games).toLocaleString('ru-RU', { maximumFractionDigits: 1 }) : '—') +
+      card('Пролётов', fmt(m.passes)) + card('Взмахов', fmt(m.flaps)) + card('Время', dur(m.time));
+    if (stTab === 'daily') {
+      const rec = dayPeek(today());
+      h += card('Сегодня', rec.a ? `${rec.b} · ${rec.a}/3` : '—') + card('Дней сыграно', fmt(daysPlayed())) + card('Серия дней', fmt(dailyStreak())) + card('Лучшая серия', fmt(daily.bestStreak));
+    }
+  }
+  $('st-mode').innerHTML = h;
+  const md = stats.medals;
+  $('st-total').innerHTML = card('Игр', fmt(totalOf('games'))) + card('Пролётов', fmt(totalOf('passes'))) + card('Время', dur(totalOf('time'))) +
+    card('Медали', `🥉${md.bronze} 🥈${md.silver}`) + card('Медали', `🥇${md.gold} 💎${md.platinum}`) + card('Достижения', `${Object.keys(unlocked).length}/${ACH.length}`);
+}
+document.querySelectorAll('#st-tabs button').forEach(b => b.addEventListener('click', () => { stTab = b.dataset.m; renderStats(); }));
+$('btn-reset').addEventListener('click', async () => {
+  const ok = await KuArcade.confirm('Сбросить статистику, рекорды и историю? Достижения, птицы и попытки сегодняшнего Испытания останутся.', { title: 'СБРОС', ok: 'Сбросить', danger: true });
+  if (!ok) return;
+  const fresh = loadStatsBlank();
+  stats.modes = fresh.modes; stats.medals = fresh.medals;
+  history.length = 0; store.set(KEYS.hist, history);
+  const t = today(), keep = daily.days[t];
+  daily.days = {}; if (keep) daily.days[t] = keep;   // сегодняшние попытки не возвращаем — иначе их можно «нафармить»
+  daily.last = keep && keep.a ? t : ''; daily.streak = keep && keep.a ? 1 : 0; daily.bestStreak = daily.streak;
+  saveDaily(); saveStats();
+  renderStats(); refreshMenu();
+  KuArcade.toast('Статистика сброшена', 'good');
+});
+function loadStatsBlank() { const s = { modes: {}, medals: { bronze: 0, silver: 0, gold: 0, platinum: 0 } }; for (const m of MODE_IDS) s.modes[m] = blankMode(); return s; }
+
+function renderAch() {
+  const dfmt = t => new Date(t).toLocaleDateString('ru-RU', { day: 'numeric', month: 'short' });
+  $('ach-count').textContent = `${Object.keys(unlocked).length}/${ACH.length}`;
+  $('ach-list').innerHTML = ACH.map(a => {
+    const got = unlocked[a.id], sk = SKINS.find(s => s.ach === a.id);
+    return `<div class="ach-item${got ? ' unlocked' : ''}"><div class="ach-icon">${a.icon}</div><div class="ach-info"><h4>${a.name}</h4><p>${a.desc}${sk ? ' · открывает птицу «' + sk.name + '»' : ''}</p></div>` +
+      `<span class="tag">${got ? dfmt(got) : '🔒'}</span></div>`;
+  }).join('');
+}
+function renderHist() {
+  if (!history.length) { $('hist-list').innerHTML = '<div class="empty">Пока пусто — сыграйте первую игру</div>'; return; }
+  const dfmt = t => new Date(t).toLocaleString('ru-RU', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' });
+  $('hist-list').innerHTML = history.map(e => {
+    let title = MODE_NAME[e.m], det = dur(num(e.dur));
+    if (e.m === 'train') { title += ' · ' + (PRESET_NAME[e.p] || '').toLowerCase(); det = `чистых ${num(e.c)} · касаний ${num(e.h)} · серия ${num(e.k)} · ` + det; }
+    if (e.m === 'daily') det = (num(e.a) ? `попытка ${Math.min(num(e.a), 3)} из 3` : 'вне зачёта') + ' · ' + det;
+    const md = MEDAL_ICON[e.md] || '';
+    return `<div class="hist-item"><div class="ach-icon">${MODE_ICON[e.m]}</div><div class="ach-info"><h4>${title}</h4><p>${dfmt(num(e.t, 1e15))} · ${det}</p></div><div class="hs">${md} ${fmt(Math.max(0, Math.floor(e.s)))}</div></div>`;
+  }).join('');
+}
+function openSettings(from) {
+  document.querySelectorAll('[data-opt]').forEach(i => { i.checked = !!settings[i.dataset.opt]; });
+  openModal('ov-settings', from);
+}
+const applyCalm = () => document.body.classList.toggle('fp-calm', settings.calm);
+document.querySelectorAll('[data-opt]').forEach(i => i.addEventListener('change', () => {
+  settings[i.dataset.opt] = i.checked; saveSettings();
+  if (i.dataset.opt === 'sound' && i.checked) Sound.unlock();
+  if (i.dataset.opt === 'calm') applyCalm();
+}));
+
+/* ═══ Кнопки ═══ */
+document.querySelectorAll('[data-close]').forEach(b => b.addEventListener('click', () => closeModal(b.closest('.ku-overlay').id)));
+document.querySelectorAll('.ku-overlay').forEach(o => o.addEventListener('click', e => { if (e.target === o && o.querySelector('.ku-modal')) closeModal(o.id); }));
+$('btn-classic').addEventListener('click', () => startRun('classic'));
+$('btn-hard').addEventListener('click', () => startRun('hard'));
+$('btn-daily').addEventListener('click', () => startRun('daily'));
+$('btn-train').addEventListener('click', () => { syncTrain(); openModal('ov-train'); });
+$('btn-skins').addEventListener('click', openSkins);
+$('menu-bird').addEventListener('click', openSkins);
+$('btn-stats').addEventListener('click', () => { renderStats(); openModal('ov-stats'); });
+$('btn-ach').addEventListener('click', () => { renderAch(); openModal('ov-ach'); });
+$('btn-hist').addEventListener('click', () => { renderHist(); openModal('ov-hist'); });
+$('btn-rules').addEventListener('click', () => openModal('ov-rules'));
+$('btn-settings').addEventListener('click', () => openSettings());
+$('btn-pause').addEventListener('click', () => pause());
+$('btn-resume').addEventListener('click', resume);
+$('btn-p-restart').addEventListener('click', restart);
+$('btn-p-finish').addEventListener('click', finishTraining);
+$('btn-p-rules').addEventListener('click', () => openModal('ov-rules', 'ov-pause'));
+$('btn-p-settings').addEventListener('click', () => openSettings('ov-pause'));
+$('btn-p-menu').addEventListener('click', toMenu);
+$('btn-again').addEventListener('click', again);
+$('btn-o-menu').addEventListener('click', () => { if (!G.locked) toMenu(); });
+
+/* ═══ Запуск ═══ */
+viewSetup($('cv'));
+applyCalm();
+refreshMenu();
+requestAnimationFrame(frame);
+if (document.fonts && document.fonts.ready) document.fonts.ready.then(() => { layout(); });
+
 </script>
 </body>
 </html>

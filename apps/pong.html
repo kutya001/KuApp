@@ -2,27 +2,143 @@
 <html lang="ru">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
-<title>Neon Pong</title>
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
+<title>Пинг-понг</title>
 <link rel="stylesheet" href="ku-arcade.css">
 <script src="ku-arcade.js"></script>
 <style>
   html,body{height:100%;overflow:hidden}
-  #screen-game,#screen-game *{touch-action:none}
-  #wrap{flex:1;min-height:0;width:100%;display:flex;align-items:center;justify-content:center}
-  #board{line-height:0}
-  #hud .ku-stat{min-width:78px}
-  #st-mid b{color:var(--gold)}
-  .ku-top-title .s .sub-score{display:none}
-  /* вдвоём: заголовок победителя в цвет его ракетки */
+  #screen-game,#screen-game *{touch-action:none;-webkit-user-select:none;user-select:none}
+
+  /* ═══ Игра ═══ */
+  #screen-game{padding-left:max(10px,env(safe-area-inset-left,0px));padding-right:max(10px,env(safe-area-inset-right,0px))}
+  #stage{flex:1;min-height:0;width:100%;display:flex;flex-direction:column;align-items:center;justify-content:flex-start;gap:8px}
+  #stage.mid{justify-content:center}           /* много свободного места (поле лёжа на узком экране) — по центру */
+  #hud{margin:0;flex-wrap:nowrap;gap:8px}
+  #hud .ku-stat{min-width:0;padding:5px 12px}
+  #hud .pl{min-width:92px;max-width:150px;position:relative}
+  #hud .pl span{max-width:100%;overflow:hidden;text-overflow:ellipsis}
+  #hud .pl b{font-size:20px}
+  #hud-mid{min-width:86px}
+  #hud-mid b{font-size:15px}
+  #hud-0{order:0} #hud-mid{order:1} #hud-1{order:2}
+  /* выигранные партии — точки под счётом */
+  .gm{display:flex;gap:4px;justify-content:center;min-height:6px;margin-top:2px}
+  .gm i{width:6px;height:6px;border-radius:50%;background:rgba(255,255,255,.16)}
+  .gm i.on{background:var(--gold);box-shadow:0 0 6px var(--gold)}
+  /* подача: значок-мяч у подающего */
+  .pl .srv{position:absolute;top:5px;right:7px;width:8px;height:8px;border-radius:50%;background:#fff;box-shadow:0 0 8px #fff;opacity:0;transition:opacity .2s}
+  .pl.on .srv{opacity:1}
+  #hud-1.ku-stat.on{border-color:var(--accent2);box-shadow:0 0 16px rgba(255,77,210,.3)}
+  #board{line-height:0;flex:none}
+  #board.cursor-none{cursor:none}
+  #cv{display:block}
+  #game-hint{margin:2px 0 0;min-height:18px;flex:none;transition:opacity .3s}
+  #game-hint.off{opacity:0}
+  .st-tag{display:inline-block;margin-left:6px;padding:1px 7px;border-radius:8px;font:400 10px/1.5 var(--font-display);letter-spacing:1px;color:#241500;background:var(--gold);vertical-align:1px}
+  .st-tag.c2{background:var(--accent2);color:#1a0412}
+  /* поле лёжа на невысоком экране: показатели — колонками по бокам поля */
+  #screen-game.side #stage{display:grid;grid-template-columns:minmax(0,1fr) auto minmax(0,1fr);grid-template-rows:auto auto 1fr;column-gap:10px;row-gap:8px;align-items:start;justify-items:center}
+  #screen-game.side #hud{display:contents}
+  #screen-game.side #board{grid-column:2;grid-row:1 / span 3;align-self:center}
+  #screen-game.side #hud-0{grid-column:1;grid-row:1;justify-self:end}
+  #screen-game.side #hud-mid{grid-column:1;grid-row:2;justify-self:end}
+  #screen-game.side #hud-1{grid-column:3;grid-row:1;justify-self:start}
+  #screen-game.side #hud .pl{min-width:96px;max-width:140px}
+  #screen-game.side #game-hint{display:none}
+  @media (max-height:520px){
+    #screen-game{padding-top:max(8px,env(safe-area-inset-top,0px));padding-bottom:max(6px,env(safe-area-inset-bottom,0px))}
+    #screen-game .ku-top{margin-bottom:6px}
+    #game-hint{display:none}
+  }
+
+  /* ═══ Окна ═══ */
+  .ku-modal .ku-field{width:100%;align-items:stretch;margin-top:10px}
+  .ku-modal .ku-field:first-child{margin-top:0}
+  .ku-modal .ku-seg{width:100%}
+  .ku-modal .ku-seg button{font-size:12.5px;padding:8px 3px}
+  .set-note{font-size:12px;color:var(--muted);margin:2px 2px 6px;line-height:1.45}
+  .set-note b{color:var(--text);font-weight:600}
+  .ku-set-row .ku-stepper b{min-width:56px}
+  .range-row{display:flex;align-items:center;gap:12px;padding:6px 2px 10px}
+  .range-row b{font-family:var(--font-display);font-weight:400;color:var(--accent);min-width:48px;text-align:right}
+  /* карточка итогов: в альбоме — информация и кнопки рядом */
+  .card-info,.card-btns{display:flex;flex-direction:column;gap:10px;min-width:0}
+  .games-line{font-family:var(--font-display);font-size:14px;color:var(--text);letter-spacing:.5px}
+  .games-line span{color:var(--muted);margin:0 4px}
+  .games-line .w{color:var(--good)} .games-line .l{color:var(--bad)}
   .ku-card h2.p1{background:linear-gradient(90deg,#00e5ff,#5b8cff);-webkit-background-clip:text;background-clip:text}
   .ku-card h2.p2{background:linear-gradient(90deg,#ff4dd2,#ff5d7d);-webkit-background-clip:text;background-clip:text}
-  /* низкий экран (телефон лёжа): счёт переезжает в шапку, поле получает высоту */
-  @media (max-height:520px){
-    #hud{display:none}
-    .ku-top-title .s .sub-desc{display:none}
-    .ku-top-title .s .sub-score{display:inline}
+  .new-ach{display:flex;flex-wrap:wrap;gap:6px;justify-content:center}
+  .new-ach span{font-size:12px;padding:4px 10px;border-radius:10px;color:#ffe38a;border:1px solid #ffd60a66;background:rgba(255,214,10,.08)}
+  .ku-card .note{font-size:12px;color:var(--muted);margin:0;line-height:1.4}
+  @media (orientation:landscape) and (max-height:520px){
+    #ov-pause .ku-card,#ov-over .ku-card{flex-direction:row;align-items:center;gap:22px;width:min(660px,94vw);padding:16px 22px}
+    #ov-pause .card-info,#ov-over .card-info{flex:1.15;gap:7px}
+    #ov-pause .card-btns,#ov-over .card-btns{flex:1;gap:8px}
+    .ku-card .ku-btn{padding:9px 14px}
+    .ku-card .ku-big-score{font-size:28px}
+    .ku-card .ku-over-stats{gap:3px;margin:2px 0}
+    .ku-card .ku-over-stats div{font-size:12.5px}
+    #ov-pause .card-btns{display:grid;grid-template-columns:1fr 1fr}
+    #ov-pause .card-btns .ku-btn{padding-left:8px;padding-right:8px;white-space:nowrap;font-size:14px}
+    #ov-pause #p-resume{grid-column:1 / -1}
   }
+  /* турнир: лестница */
+  .ladder{display:flex;flex-direction:column;gap:7px}
+  .rung{display:flex;align-items:center;gap:11px;padding:8px 10px;border-radius:14px;background:var(--panel);border:1px solid var(--panel-border);text-align:left;
+    font:inherit;color:var(--text);width:100%;cursor:default}
+  .rung .av{width:36px;height:36px;border-radius:50%;flex:none;display:flex;align-items:center;justify-content:center;font:400 15px var(--font-display);color:#041018;
+    background:var(--c);box-shadow:0 0 12px var(--c)}
+  .rung .nm{min-width:0;flex:1}
+  .rung h4{margin:0;font:400 13.5px var(--font-display);letter-spacing:.4px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .rung p{margin:1px 0 0;font-size:11.5px;color:var(--muted);line-height:1.35}
+  .rung .st{flex:none;font-size:18px;width:26px;text-align:center}
+  .rung.done{border-color:rgba(81,245,139,.4);background:rgba(81,245,139,.06)}
+  .rung.cur{border-color:var(--gold);background:rgba(255,214,10,.08);box-shadow:0 0 16px rgba(255,214,10,.22)}
+  .rung.lock{opacity:.5}
+  .rung.lock .av{filter:grayscale(.8);box-shadow:none}
+  .tour-cur{margin:12px 0 0;padding:10px 12px;border-radius:14px;border:1px solid var(--panel-border);background:rgba(255,255,255,.04);font-size:13px;line-height:1.45}
+  .tour-cur b{color:var(--gold)}
+  /* кампания: уровни */
+  .lv-grid{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:8px}
+  .lv{position:relative;display:flex;flex-direction:column;align-items:center;gap:3px;min-width:0;padding:9px 3px 7px;border-radius:13px;
+    background:var(--glass);border:1px solid var(--panel-border);color:var(--text);cursor:pointer;box-shadow:var(--shadow-btn);font:inherit;transition:transform .15s,border-color .15s}
+  .lv .n{font:400 17px/1 var(--font-display)}
+  .lv small{font-size:9.5px;line-height:1.2;color:var(--muted);max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .lv.done{border-color:rgba(0,229,255,.45);background:rgba(0,229,255,.08)}
+  .lv.done .n{color:var(--accent)}
+  .lv.cur{border-color:var(--gold);box-shadow:0 0 16px rgba(255,214,10,.35)}
+  .lv:disabled{opacity:.32;cursor:default}
+  .lv:not(:disabled):active{transform:scale(.95)}
+  @media (max-width:420px){ .lv-grid{grid-template-columns:repeat(5,minmax(0,1fr));gap:6px} .lv small{display:none} }
+  .lv-info{margin-top:12px;font-size:13px;color:var(--muted);line-height:1.45;min-height:38px}
+  .lv-info b{color:var(--text)}
+  /* статистика, достижения, история */
+  .stats-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(98px,1fr));gap:8px}
+  .st-card{background:var(--glass-panel);border:1px solid var(--panel-border);border-radius:14px;padding:10px 6px;text-align:center}
+  .st-card .sv{font-family:var(--font-display);font-size:17px;color:var(--accent);margin-top:2px}
+  .st-card .sl{font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:.8px;margin-top:3px;line-height:1.25}
+  .st-card.gold .sv{color:var(--gold)} .st-card.c2 .sv{color:var(--accent2)} .st-card.good .sv{color:var(--good)}
+  .lvl-table{width:100%;border-collapse:collapse;font-size:13px}
+  .lvl-table td,.lvl-table th{padding:6px 6px;border-bottom:1px solid rgba(255,255,255,.07);text-align:center}
+  .lvl-table th{font:400 10px var(--font-display);letter-spacing:1px;color:var(--muted);text-transform:uppercase}
+  .lvl-table td:first-child,.lvl-table th:first-child{text-align:left}
+  .lvl-table b{font-family:var(--font-display);font-weight:400}
+  .list{display:flex;flex-direction:column;gap:8px}
+  .ach-item{display:flex;align-items:center;gap:12px;padding:10px 12px;border-radius:14px;background:var(--panel);border:1px solid var(--panel-border)}
+  .ach-item.unlocked{border-color:rgba(255,214,10,.45);background:rgba(255,214,10,.07)}
+  .ach-item.unlocked h4{color:var(--gold)}
+  .ach-icon{font-size:22px;width:40px;height:40px;flex:none;display:flex;align-items:center;justify-content:center;background:rgba(255,255,255,.05);border-radius:12px}
+  .ach-item:not(.unlocked) .ach-icon{filter:grayscale(1);opacity:.5}
+  .ach-info{min-width:0;flex:1}
+  .ach-info h4{margin:0 0 2px;font-family:var(--font-display);font-weight:400;font-size:13px;letter-spacing:.5px}
+  .ach-info p{margin:0;font-size:11.5px;color:var(--muted);line-height:1.4}
+  .hist-res{flex:none;font:400 12px var(--font-display);padding:4px 8px;border-radius:9px;letter-spacing:.5px}
+  .hist-res.w{color:#03210f;background:var(--good)} .hist-res.l{color:#25030c;background:var(--bad)} .hist-res.n{color:#041018;background:var(--accent)}
+  .empty{text-align:center;color:var(--muted);padding:20px}
+  .set-btns{display:flex;gap:8px;flex-wrap:wrap}
+  .char-note{font-size:12px;color:var(--muted);margin:6px 2px 0;line-height:1.4;min-height:34px}
 </style>
 </head>
 <body class="ku">
@@ -30,1426 +146,2372 @@
 
   <!-- ═══ МЕНЮ ═══ -->
   <section id="screen-menu" class="ku-screen menu active">
-    <h1 class="ku-logo">NEON PONG</h1>
-    <p class="ku-tagline">Неоновая аркада • 10 уровней • Вдвоём</p>
-    <div class="ku-pills"><span>🏆 Кампания</span><span>🧱 Кирпичи и бонусы</span><span>🤖 ИИ · 3 уровня</span><span>👥 На одном экране</span></div>
-
-    <div class="ku-menu-btns" id="main-btns">
-      <button class="ku-btn big primary" id="btn-campaign">🎮 Кампания<span class="best" id="best-campaign">10 уровней</span></button>
+    <h1 class="ku-logo">ПИНГ-ПОНГ</h1>
+    <p class="ku-tagline">Матч • Турнир • Кампания • Вдвоём</p>
+    <div class="ku-pills"><span>🤖 ИИ · 4 уровня</span><span>🌀 Закрутка</span><span>🏆 7 соперников</span><span>👥 Вдвоём</span></div>
+    <div class="ku-menu-btns">
+      <button class="ku-btn big primary" id="btn-match">🏓 Матч с ИИ<span class="best" id="best-match">Профи · до 11</span></button>
+      <button class="ku-btn big accent2" id="btn-tour">🏆 Турнир<span class="best" id="best-tour">7 соперников</span></button>
       <div class="ku-menu-duo">
-        <button class="ku-btn duo green" id="btn-endless">♾ Выживание<span class="best" id="best-endless">Рекорд: 0</span></button>
-        <button class="ku-btn duo gold" id="btn-free">🤖 Матч с ИИ<span class="best">до 5 очков</span></button>
+        <button class="ku-btn duo green" id="btn-campaign">🎮 Кампания<span class="best" id="best-campaign">10 уровней</span></button>
+        <button class="ku-btn duo gold" id="btn-endless">♾ Выживание<span class="best" id="best-endless">Рекорд: 0</span></button>
       </div>
-      <button class="ku-btn big accent2" id="btn-2p">👥 Два игрока<span class="best">на одном экране · до 5 очков</span></button>
+      <button class="ku-btn big blue" id="btn-duo">👥 Вдвоём<span class="best" id="best-duo">на одном экране</span></button>
     </div>
-    <div class="ku-menu-btns" id="free-btns" style="display:none">
-      <div class="ku-field" style="margin-top:0">
-        <div class="ku-label">Сложность ИИ</div>
-        <div class="ku-seg" id="diff-seg">
-          <button data-diff="1">Легко</button>
-          <button data-diff="2" class="active">Средне</button>
-          <button data-diff="3">Сложно</button>
-        </div>
-      </div>
-      <button class="ku-btn big primary" id="btn-start-ai">▶ Старт<span class="best" id="best-free">Матч до 5 очков</span></button>
-      <button class="ku-btn ghost" id="btn-back-main">← Назад</button>
+    <div class="ku-menu-row">
+      <button class="ku-btn ghost" id="btn-rules">📖 Правила</button>
+      <button class="ku-btn ghost" id="btn-stats">📊 Статистика</button>
+      <button class="ku-btn ghost" id="btn-ach">🏅 Достижения</button>
+      <button class="ku-btn ghost" id="btn-history">📜 История</button>
+      <button class="ku-btn ghost" id="btn-settings">⚙️ Настройки</button>
     </div>
-
-    <div class="ku-menu-row"><button class="ku-btn ghost" id="btn-rules">📖 Правила</button></div>
-    <div class="ku-menu-stats" id="menu-stats"></div>
-    <div class="ku-menu-hint">Мышь, ← → или A D — ракетка · P / Esc — пауза<br>На телефоне: веди пальцем по полю · вдвоём — каждый в своей половине</div>
+    <div class="ku-menu-stats" id="menu-stats">Сыграй первый матч!</div>
+    <div class="ku-menu-hint">Палец, мышь или W S / ↑ ↓ — ракетка · тап, щелчок или пробел — подача · P — пауза<br>Вдвоём: каждый в своей половине экрана, клавиши W S и ↑ ↓</div>
   </section>
 
   <!-- ═══ ИГРА ═══ -->
   <section id="screen-game" class="ku-screen fit">
     <header class="ku-top">
       <div class="ku-top-left"></div>
-      <div class="ku-top-title">
-        <div class="t" id="g-title">КАМПАНИЯ · УР. 1</div>
-        <div class="s"><span class="sub-desc" id="g-sub">ОСНОВЫ</span><span class="sub-score" id="g-score">0 : 0</span></div>
-      </div>
+      <div class="ku-top-title"><div class="t" id="g-title">МАТЧ</div><div class="s" id="g-sub">ПАРТИЯ 1</div></div>
       <div class="ku-top-actions">
-        <button class="ku-btn icon" id="btn-pause" aria-label="Пауза"><svg viewBox="0 0 24 24"><line x1="9" y1="5" x2="9" y2="19"/><line x1="15" y1="5" x2="15" y2="19"/></svg></button>
+        <button class="ku-btn icon" id="btn-pause" aria-label="Пауза (P)" title="Пауза (P)"><svg viewBox="0 0 24 24"><line x1="9" y1="5" x2="9" y2="19"/><line x1="15" y1="5" x2="15" y2="19"/></svg></button>
       </div>
     </header>
-    <div class="ku-hud" id="hud">
-      <div class="ku-stat c2" id="st-top"><span id="lbl-top">ИИ</span><b id="score-top">0</b></div>
-      <div class="ku-stat" id="st-mid"><span id="lbl-mid">Цель</span><b id="val-mid">3</b></div>
-      <div class="ku-stat" id="st-bottom"><span id="lbl-bottom">Вы</span><b id="score-bottom">0</b></div>
+    <div id="stage">
+      <div class="ku-hud" id="hud">
+        <div class="ku-stat pl" id="hud-0"><i class="srv"></i><span id="hud-0-name">Вы</span><b id="hud-0-pts">0</b><div class="gm" id="hud-0-gm"></div></div>
+        <div class="ku-stat gold" id="hud-mid"><span id="hud-mid-l">Партии</span><b id="hud-mid-v">0 : 0</b></div>
+        <div class="ku-stat pl c2" id="hud-1"><i class="srv"></i><span id="hud-1-name">ИИ</span><b id="hud-1-pts">0</b><div class="gm" id="hud-1-gm"></div></div>
+      </div>
+      <div class="ku-board" id="board"><canvas id="cv" aria-label="Поле для пинг-понга"></canvas></div>
     </div>
-    <div id="wrap"><div class="ku-board" id="board"><canvas id="c"></canvas></div></div>
+    <div class="ku-hint" id="game-hint"></div>
   </section>
 </main>
 
 <!-- ═══ ПАУЗА ═══ -->
-<div class="ku-overlay" id="ov-pause"><div class="ku-card">
-  <h2>⏸ ПАУЗА</h2>
-  <button class="ku-btn primary" id="btn-resume">Продолжить</button>
-  <button class="ku-btn" id="btn-restart">Заново</button>
-  <button class="ku-btn" id="btn-rules2">📖 Правила</button>
-  <button class="ku-btn ghost" id="btn-quit">В меню</button>
+<div class="ku-overlay" id="ov-pause"><div class="ku-card" role="dialog" aria-modal="true">
+  <div class="card-info">
+    <h2>⏸ ПАУЗА</h2>
+    <p id="pause-info">—</p>
+  </div>
+  <div class="card-btns">
+    <button class="ku-btn primary" id="p-resume">Продолжить</button>
+    <button class="ku-btn" id="p-restart">↻ Заново</button>
+    <button class="ku-btn" id="p-rules">📖 Правила</button>
+    <button class="ku-btn" id="p-settings">⚙️ Настройки</button>
+    <button class="ku-btn ghost" id="p-menu">В меню</button>
+  </div>
 </div></div>
 
-<!-- ═══ УРОВЕНЬ ПРОЙДЕН / КАМПАНИЯ ПРОЙДЕНА ═══ -->
-<div class="ku-overlay" id="ov-level"><div class="ku-card">
-  <h2 class="win" id="lv-title">УРОВЕНЬ ПРОЙДЕН!</h2>
-  <p id="lv-sub"></p>
-  <div class="ku-big-score" id="lv-score"></div>
-  <div class="ku-over-stats" id="lv-stats"></div>
-  <button class="ku-btn primary" id="btn-next">Следующий уровень ▶</button>
-  <button class="ku-btn ghost" id="btn-lv-menu">В меню</button>
+<!-- ═══ ИТОГ МАТЧА / УРОВНЯ ═══ -->
+<div class="ku-overlay" id="ov-over"><div class="ku-card" role="dialog" aria-modal="true">
+  <div class="card-info">
+    <h2 id="o-title" class="win">ПОБЕДА!</h2>
+    <div class="ku-new-best" id="o-best" hidden>🏆 НОВЫЙ РЕКОРД!</div>
+    <div class="ku-big-score" id="o-score">0 : 0</div>
+    <div class="games-line" id="o-games"></div>
+    <p id="o-sub">—</p>
+    <div class="ku-over-stats" id="o-stats"></div>
+    <div class="new-ach" id="o-ach"></div>
+  </div>
+  <div class="card-btns">
+    <button class="ku-btn primary" id="o-next">Дальше ▶</button>
+    <button class="ku-btn" id="o-again">↻ Играть снова</button>
+    <button class="ku-btn" id="o-extra" hidden>Уровни</button>
+    <button class="ku-btn ghost" id="o-menu">В меню</button>
+  </div>
 </div></div>
 
-<!-- ═══ КОНЕЦ МАТЧА ═══ -->
-<div class="ku-overlay" id="ov-over"><div class="ku-card">
-  <h2 class="lose" id="go-title">ВЫ ПРОИГРАЛИ</h2>
-  <div class="ku-new-best" id="go-best" hidden>🏆 НОВЫЙ РЕКОРД!</div>
-  <div class="ku-big-score" id="go-score"></div>
-  <p id="go-desc"></p>
-  <div class="ku-over-stats" id="go-stats"></div>
-  <button class="ku-btn primary" id="btn-again">Повторить</button>
-  <button class="ku-btn ghost" id="btn-go-menu">В меню</button>
+<!-- ═══ НАСТРОЙКА МАТЧА (с ИИ / вдвоём) ═══ -->
+<div class="ku-overlay" id="ov-setup"><div class="ku-modal" role="dialog" aria-modal="true">
+  <header><h2 id="su-title">🏓 Матч с ИИ</h2><button class="ku-btn icon" data-close aria-label="Закрыть">✕</button></header>
+  <div class="ku-body">
+    <div id="su-ai">
+      <div class="ku-field"><div class="ku-label">Соперник</div>
+        <div class="ku-seg" id="su-level"><button data-v="0">Новичок</button><button data-v="1">Любитель</button><button data-v="2">Профи</button><button data-v="3">Мастер</button></div></div>
+      <div class="ku-field"><div class="ku-label">Характер</div>
+        <div class="ku-seg" id="su-char"><button data-v="even">Ровный</button><button data-v="wall">Стена</button><button data-v="attacker">Атака</button><button data-v="spinner">Винт</button></div></div>
+      <p class="char-note" id="su-char-note"></p>
+    </div>
+    <div class="ku-field"><div class="ku-label">Партия</div>
+      <div class="ku-seg" id="su-points"><button data-v="5">До 5</button><button data-v="11">До 11</button><button data-v="21">До 21</button></div></div>
+    <div class="ku-field"><div class="ku-label">Матч</div>
+      <div class="ku-seg" id="su-games"><button data-v="1">1 партия</button><button data-v="2">До 2 побед</button><button data-v="3">До 3 побед</button></div></div>
+    <label class="ku-switch-row">Выигрыш с разницей в 2 очка<input type="checkbox" id="su-win2"><span class="ku-switch"></span></label>
+    <p class="set-note" id="su-note"></p>
+  </div>
+  <footer><button class="ku-btn primary" id="su-play">▶ Играть</button></footer>
+</div></div>
+
+<!-- ═══ ТУРНИР ═══ -->
+<div class="ku-overlay" id="ov-tour"><div class="ku-modal" role="dialog" aria-modal="true">
+  <header><h2>🏆 Турнир <span class="ku-muted" id="tour-count"></span></h2><button class="ku-btn icon" data-close aria-label="Закрыть">✕</button></header>
+  <div class="ku-body">
+    <p class="set-note">Обыграйте всех по очереди. Проигрыш — не беда: можно переиграть того же соперника. Партии — с разницей в 2 очка.</p>
+    <div class="ladder" id="ladder"></div>
+    <div class="tour-cur" id="tour-cur"></div>
+  </div>
+  <footer><button class="ku-btn ghost" id="tour-reset">Начать заново</button><button class="ku-btn primary" id="tour-play">▶ Играть</button></footer>
+</div></div>
+
+<!-- ═══ КАМПАНИЯ ═══ -->
+<div class="ku-overlay" id="ov-levels"><div class="ku-modal" role="dialog" aria-modal="true">
+  <header><h2>🎮 Кампания <span class="ku-muted" id="lv-count"></span></h2><button class="ku-btn icon" data-close aria-label="Закрыть">✕</button></header>
+  <div class="ku-body">
+    <div class="lv-grid" id="lv-grid"></div>
+    <div class="lv-info" id="lv-info"></div>
+  </div>
+  <footer><button class="ku-btn primary" id="lv-play">▶ Играть</button></footer>
 </div></div>
 
 <!-- ═══ ПРАВИЛА ═══ -->
-<div class="ku-overlay" id="ov-rules"><div class="ku-modal">
-  <header><h2>📖 Правила</h2><button class="ku-btn icon" id="btn-rules-x" aria-label="Закрыть">✕</button></header>
+<div class="ku-overlay" id="ov-rules"><div class="ku-modal" role="dialog" aria-modal="true">
+  <header><h2>📖 Правила</h2><button class="ku-btn icon" data-close aria-label="Закрыть">✕</button></header>
   <div class="ku-body">
     <h3>Цель</h3>
     <ul class="ku-rules">
-      <li>Твоя ракетка — внизу. Отбивай мяч и забивай за спину соперника вверху.</li>
-      <li><b>Край ракетки</b> даёт острый угол, а ракетка в движении закручивает и разгоняет мяч.</li>
+      <li>Отбивайте мяч своей ракеткой и забивайте за спину соперника. Мяч, ушедший за вашу ракетку, — очко сопернику.</li>
+      <li>Ваша ракетка — <b class="ku-accent">бирюзовая</b> (на телефоне стоя — внизу, лёжа и на компьютере — слева), соперника — <b class="ku-accent2">розовая</b>.</li>
+    </ul>
+    <h3>Счёт и подача (как в настольном теннисе)</h3>
+    <ul class="ku-rules">
+      <li><b>Партия</b> — до 5, 11 или 21 очка. С правилом «разница в 2» при 10:10 (4:4, 20:20) играют «больше-меньше», пока кто-то не уйдёт вперёд на 2 очка (12:10, 15:13…).</li>
+      <li><b>Подача</b> переходит каждые 2 очка (в партии до 21 — каждые 5), а при «больше-меньше» — каждое очко. Первого подающего определяет жребий, в следующей партии первым подаёт тот, кто первым принимал.</li>
+      <li><b>Матч</b> — 1 партия, до 2 или до 3 побед в партиях.</li>
+      <li>Мяч лежит на ракетке подающего: подайте тапом по полю, щелчком или пробелом (через 3 с мяч уйдёт сам). С края поля подача идёт по диагонали к центру, а движение ракетки в момент подачи закручивает мяч.</li>
+    </ul>
+    <h3>Удары</h3>
+    <ul class="ku-rules">
+      <li><b>Место удара</b>: серединой ракетки мяч летит почти прямо, краем — под острым углом (до 42°). Вдоль поля мяч летит с одной и той же скоростью, поэтому удар краем — ещё и самый быстрый: к скорости вдоль поля добавляется боковая.</li>
+      <li><b>Закрутка</b>: если ракетка в момент удара движется, мяч уходит в сторону движения и дугой загибается обратно (вокруг мяча вращаются дуги). Закрученный мяч и от вашей ракетки чуть «соскальзывает».</li>
+      <li><b>Скорость</b> растёт с каждым ударом (+4,5 %): с 33 км/ч на подаче до предела 80 км/ч — длинный розыгрыш становится всё быстрее. Новый розыгрыш снова начинается с подачи.</li>
+      <li>Мяч никогда не летит почти вдоль ракеток и не ходит строго прямо — бесконечных розыгрышей не бывает.</li>
     </ul>
     <h3>Режимы</h3>
     <ul class="ku-rules">
-      <li><b>Кампания:</b> 10 уровней, ИИ всё сильнее, на поле появляются преграды и кирпичи. Набери 3–5 очков раньше ИИ, чтобы пройти уровень.</li>
-      <li><b>Выживание:</b> один пропущенный мяч — конец игры. С каждым голом мяч быстрее.</li>
-      <li><b>Матч с ИИ:</b> до 5 очков, сложность на выбор.</li>
-      <li><b>Два игрока:</b> на одном экране до 5 очков. Каждый ведёт пальцем в своей половине поля.</li>
+      <li><b>Матч с ИИ</b> — соперник 4 уровней (Новичок, Любитель, Профи, Мастер) и характера; длина партии и матча — на выбор.</li>
+      <li><b>Турнир</b> — 7 соперников по нарастающей: у каждого своё имя, характер и формат матча. Прогресс сохраняется; победа над последним — титул чемпиона.</li>
+      <li><b>Кампания</b> — 10 уровней с преградами и кирпичами: наберите 3–5 очков раньше ИИ. Открытые уровни можно переигрывать.</li>
+      <li><b>Выживание</b> — до первого пропущенного мяча: с каждым голом соперник сильнее, а подача быстрее. Рекорд — число голов.</li>
+      <li><b>Вдвоём</b> на одном экране: на телефоне каждый ведёт пальцем в своей половине (стоя — низ и верх, лёжа — лево и право).</li>
     </ul>
-    <h3>Кирпичи и бонусы</h3>
+    <h3>Соперники</h3>
     <ul class="ku-rules">
-      <li>Яркие кирпичи разбиваются от удара мяча, контурные преграды — нет.</li>
-      <li>Из кирпича иногда выпадает бонус — поймай его ракеткой: <b class="ku-accent">↔</b> — широкая ракетка на 10 с, <b class="ku-gold">●●●</b> — ещё два мяча.</li>
+      <li>ИИ играет «по-человечески»: замечает удар не сразу, ошибается в расчёте траектории (особенно после бортов и с закруткой), устаёт в длинных розыгрышах и чаще ошибается на высокой скорости.</li>
+      <li><b>Характеры</b>: Ровный — без затей; Стена — надёжно отбивает в центр; Атака — бьёт углами подальше от вас, но рискует; Винт — закручивает мяч. В турнире есть ещё Тихоня, Торопыга, Снайпер и Мастер.</li>
+    </ul>
+    <h3>Кирпичи и бонусы (кампания)</h3>
+    <ul class="ku-rules">
+      <li>Яркие кирпичи разбиваются от удара мяча, контурные преграды — нет. Из кирпича иногда падает бонус — поймайте его своей ракеткой: <b class="ku-accent">↔</b> — ракетка шире на 10 с, <b class="ku-gold">●●●</b> — ещё два мяча.</li>
     </ul>
     <h3>Управление</h3>
     <ul class="ku-rules">
-      <li>Телефон: веди пальцем по полю — ракетка следует за ним.</li>
-      <li>Компьютер: мышь, ← → или A D. Вдвоём: нижний игрок — A D, верхний — ← →.</li>
-      <li>P или Esc — пауза.</li>
+      <li><b>Телефон</b>: ведите пальцем в любом месте экрана — ракетка повторяет движение; быстрый тап — подача. Чувствительность — в настройках.</li>
+      <li><b>Компьютер</b>: мышь; клавиши W S или ↑ ↓ (поле лёжа), A D или ← → (поле стоя); пробел / Enter / щелчок — подача; P или Esc — пауза.</li>
+      <li><b>Вдвоём</b>: игрок 1 — W S (A D), игрок 2 — ↑ ↓ (← →); подаёт пробелом или Enter тот, чья подача.</li>
+    </ul>
+    <h3>Достижения и очки</h3>
+    <ul class="ku-rules">
+      <li>Статистика, история матчей и 15 достижений хранятся на этом устройстве. Очки в рейтинг платформы игра не отправляет.</li>
     </ul>
   </div>
-  <footer><button class="ku-btn primary" id="btn-rules-close">Понятно</button></footer>
+  <footer><button class="ku-btn primary" data-close>Понятно</button></footer>
 </div></div>
 
+<!-- ═══ СТАТИСТИКА ═══ -->
+<div class="ku-overlay" id="ov-stats"><div class="ku-modal" role="dialog" aria-modal="true">
+  <header><h2>📊 Статистика</h2><button class="ku-btn icon" data-close aria-label="Закрыть">✕</button></header>
+  <div class="ku-body" id="stats-body"></div>
+  <footer><button class="ku-btn primary" data-close>Готово</button></footer>
+</div></div>
+
+<!-- ═══ ДОСТИЖЕНИЯ ═══ -->
+<div class="ku-overlay" id="ov-ach"><div class="ku-modal" role="dialog" aria-modal="true">
+  <header><h2>🏅 Достижения <span class="ku-muted" id="ach-count"></span></h2><button class="ku-btn icon" data-close aria-label="Закрыть">✕</button></header>
+  <div class="ku-body"><div class="list" id="ach-list"></div></div>
+</div></div>
+
+<!-- ═══ ИСТОРИЯ ═══ -->
+<div class="ku-overlay" id="ov-history"><div class="ku-modal" role="dialog" aria-modal="true">
+  <header><h2>📜 История матчей</h2><button class="ku-btn icon" data-close aria-label="Закрыть">✕</button></header>
+  <div class="ku-body"><div class="list" id="hist-list"></div></div>
+</div></div>
+
+<!-- ═══ НАСТРОЙКИ ═══ -->
+<div class="ku-overlay" id="ov-settings"><div class="ku-modal" role="dialog" aria-modal="true">
+  <header><h2>⚙️ Настройки</h2><button class="ku-btn icon" data-close aria-label="Закрыть">✕</button></header>
+  <div class="ku-body">
+    <h3>Звук и эффекты</h3>
+    <label class="ku-switch-row">Звуки<input type="checkbox" data-opt="sound"><span class="ku-switch"></span></label>
+    <label class="ku-switch-row">Вибрация<input type="checkbox" data-opt="vibro"><span class="ku-switch"></span></label>
+    <label class="ku-switch-row">Тряска экрана<input type="checkbox" data-opt="shake"><span class="ku-switch"></span></label>
+    <h3>Управление</h3>
+    <div class="ku-set-row" style="padding-bottom:0">Чувствительность</div>
+    <div class="range-row"><input type="range" id="set-sens" min="50" max="200" step="10" aria-label="Чувствительность"><b id="set-sens-v">100%</b></div>
+    <p class="set-note">Палец и мышь: при 100 % ракетка точно под пальцем, выше — достаёт до краёв меньшим движением. Клавиши: скорость ракетки.</p>
+    <div class="ku-field"><div class="ku-label">Поле</div>
+      <div class="ku-seg" id="set-orient"><button data-v="auto">Авто</button><button data-v="v">Стоя</button><button data-v="h">Лёжа</button></div></div>
+    <h3>Партия по умолчанию</h3>
+    <div class="ku-field"><div class="ku-seg" id="set-points"><button data-v="5">До 5</button><button data-v="11">До 11</button><button data-v="21">До 21</button></div></div>
+    <div class="ku-field"><div class="ku-seg" id="set-games"><button data-v="1">1 партия</button><button data-v="2">До 2 побед</button><button data-v="3">До 3 побед</button></div></div>
+    <label class="ku-switch-row">Разница в 2 очка<input type="checkbox" data-opt="winBy2"><span class="ku-switch"></span></label>
+    <h3>Данные</h3>
+    <div class="set-btns"><button class="ku-btn sm danger" id="btn-reset">🗑 Сбросить статистику и прогресс</button></div>
+  </div>
+  <footer><button class="ku-btn primary" data-close>Готово</button></footer>
+</div></div>
+
+<div class="ku-toast" id="toast"></div>
 <script>
 'use strict';
-/**
- * ============================================================================
- * ENGINE CORE & UTILS
- * ============================================================================
- */
+
+/* ═══ core.js ═══ */
+/* ═══════════════════════════════════════════════════════════════════════════
+ * ПИНГ-ПОНГ · движок без DOM: физика мяча и ракеток, правила счёта и подачи, ИИ.
+ *
+ * Поле — в своих единицах: ширина FW = 360 (ось x, «поперёк»), длина FL = 600 (ось y).
+ * Сторона 0 (вы / игрок 1) — внизу, у y = FL; сторона 1 (ИИ / игрок 2) — вверху, у y = 0.
+ * На экране поле стоит вертикально (телефон) или повёрнуто на 90° (альбом, компьютер) —
+ * это забота отрисовки, движок об ориентации не знает.
+ *
+ * Скорость мяча — как в классическом Pong: вдоль поля он всегда летит со «скоростью розыгрыша»
+ * (base: растёт с каждым ударом до предела), а угол удара и закрутка меняют только боковую
+ * составляющую. Удар краем ракетки — острый угол и потому быстрый мяч; вдоль поля мяч
+ * продвигается всегда, «вечных» боковых траекторий не бывает.
+ *
+ * Время — фиксированный шаг DT = 1/120 с (одинаково на 60/120/144 Гц). Внутри шага мяч идёт
+ * подшагами не длиннее R/2, а ракетку ловит непрерывной проверкой пересечения её лицевой
+ * линии — на любой скорости мяч не проскакивает сквозь ракетку.
+ * ═════════════════════════════════════════════════════════════════════════ */
+const PC = (() => {
+  const FW = 360, FL = 600;
+  const R = 7;                       // радиус мяча
+  const PT = 12;                     // толщина ракетки
+  const INSET = 28;                  // от торца поля до тыльной стороны ракетки
+  const FACE = [FL - INSET - PT, INSET + PT];   // y лицевой линии ракетки: низ 560, верх 40
+  const PW = 84;                     // ширина ракетки
+  const DT = 1 / 120;                // шаг физики, с
+  const DEG = Math.PI / 180;
+  const MAX_ANGLE = 50 * DEG;        // боковая скорость — не больше tan 50° от скорости вдоль поля
+  const TAN_MAX = Math.tan(MAX_ANGLE);
+  const MAX_BOUNCE = 42 * DEG;       // угол от места удара: край ракетки
+  const MIN_ANGLE = 3 * DEG;         // после удара — не строго вдоль поля («вечные» прямые розыгрыши)
+  const TAN_MIN = Math.tan(MIN_ANGLE);
+  const SERVE_MAX = 30 * DEG;        // предел угла подачи
+  const SERVE_POS = 14 * DEG;        // подача с края — по диагонали к центру
+  const HIT_TOL = 0.75;              // мяч цепляет скруглённый угол ракетки: +0,75 R к полуширине
+  const FRICTION = 0.22;             // доля скорости ракетки, которую мяч получает вбок
+  const CURVE_K = 0.0009;            // закрутка на 1 ед/с скорости ракетки
+  const MAX_CURVE = 0.5;             // предел закрутки: боковое ускорение до 0,5 × скорость вдоль поля (за полёт — до ~20°)
+  const CURVE_TAU = 1.1;             // закрутка затухает за ~1 с
+  const SPIN_KICK = 0.3;             // закрученный мяч «соскальзывает» с ракетки: рад на 1 рад/с
+  const PV_MAX = 1600;               // скорость ракетки, учитываемая при ударе, ед/с
+  const HUMAN_VMAX = 2600;           // предел скорости ракетки человека (палец может «прыгнуть»)
+  const FOLLOW_TAU = 0.03;           // ракетка догоняет палец/мышь с запаздыванием ~30 мс
+  const KEY_SPEED = 540, KEY_ACC = 5200, KEY_DEC = 9000;   // клавиши: разгон за ~0,1 с
+  const SERVE_MIN = 0.35;            // раньше этого подать нельзя (случайный тап после гола)
+  const SERVE_AUTO = 3;              // человек не подал — мяч уходит сам
+  const POINT_PAUSE = 0.9, BREAK_PAUSE = 2.2;
+  const POWER_SPEED = 150, EXPAND_T = 10, EXPAND_W = 36;
+
+  const clamp = (v, a, b) => v < a ? a : v > b ? b : v;
+  const lerp = (a, b, t) => a + (b - a) * t;
+
+  // детерминированный ГПСЧ (mulberry32): тесты и повторы воспроизводимы
+  function rng(seed) {
+    let a = (seed >>> 0) || 0x9e3779b9;
+    return () => {
+      a = (a + 0x6D2B79F5) | 0;
+      let t = Math.imul(a ^ (a >>> 15), 1 | a);
+      t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
+      return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+    };
+  }
+  function gauss(r) {
+    let u = 0, v = 0;
+    while (u === 0) u = r();
+    v = r();
+    return Math.sqrt(-2 * Math.log(u)) * Math.cos(2 * Math.PI * v);
+  }
+
+  /* ── Полёт: вдоль поля — всегда скорость розыгрыша b.base, поперёк — не больше tan(MAX_ANGLE) от неё ──
+   * (после удара о угол преграды направление восстанавливается: та же скорость вдоль поля). */
+  function limitAngle(b, fallbackDir) {
+    const ay = Math.abs(b.vy);
+    if (Math.abs(ay - b.base) > 1e-9 * b.base) {
+      const sy = b.vy < 0 ? -1 : b.vy > 0 ? 1 : (fallbackDir || 1);
+      b.vx = ay > 1e-6 * b.base ? b.vx * (b.base / ay) : (b.vx < 0 ? -1 : 1) * b.base * TAN_MAX;
+      b.vy = sy * b.base;
+    }
+    const lim = b.base * TAN_MAX;
+    if (Math.abs(b.vx) <= lim) return false;
+    b.vx = (b.vx < 0 ? -1 : 1) * lim;
+    return true;
+  }
+  // задать направление: угол от оси поля (знак — к +x) и сторона по оси y; скорость вдоль поля — b.base
+  function setDir(b, theta, dirY) {
+    b.vy = (dirY < 0 ? -1 : 1) * b.base;
+    b.vx = b.base * Math.tan(clamp(theta, -MAX_ANGLE, MAX_ANGLE));
+  }
+  // угол полёта мяча от оси поля (знак — в сторону +x)
+  const angleOf = b => Math.atan2(b.vx, Math.abs(b.vy));
+
+  /* ═══ Правила счёта и подачи ═══
+   * o.points — до скольких очков партия (5 / 11 / 21), o.winBy2 — нужна разница в 2,
+   * o.games — побед в партиях для победы в матче (1 / 2 / 3), o.every — подач подряд у одного
+   * игрока (2; для партии до 21 — 5). При «больше-меньше» (обе стороны ≥ points − 1, с разницей в 2)
+   * подача меняется каждое очко. В следующей партии первым подаёт тот, кто первым принимал.
+   * o.survival — выживание: очки стороны 0 копятся без конца, первое очко стороны 1 — конец. */
+  class Score {
+    constructor(o) {
+      this.o = Object.assign({ points: 11, winBy2: true, games: 1, every: 2, survival: false }, o || {});
+      this.games = [0, 0];
+      this.pts = [0, 0];
+      this.done = [];            // счёт сыгранных партий
+      this.first = 0;            // первая подача текущей партии
+      this.matchFirst = 0;
+      this.over = false;
+      this.winner = -1;
+      this.gameNo = 1;
+    }
+    begin(first) { this.first = this.matchFirst = first; }
+    deuce() {
+      const o = this.o;
+      return !o.survival && o.winBy2 && this.pts[0] >= o.points - 1 && this.pts[1] >= o.points - 1;
+    }
+    server() {
+      const o = this.o, t = this.pts[0] + this.pts[1], n = Math.max(1, o.every);
+      let k;
+      if (this.deuce()) {
+        const D = 2 * (o.points - 1);
+        k = Math.floor(D / n) + (t - D);          // с «больше-меньше» — по очереди
+      } else k = Math.floor(t / n);
+      return k % 2 === 0 ? this.first : 1 - this.first;
+    }
+    // подач подряд осталось у текущего подающего (для подсказки «подача 2 из 2»)
+    servesLeft() {
+      const o = this.o, t = this.pts[0] + this.pts[1], n = Math.max(1, o.every);
+      if (this.deuce() || n === 1) return 1;
+      return n - (t % n);
+    }
+    point(side) {
+      const o = this.o, res = { game: false, match: false };
+      if (this.over) return res;
+      this.pts[side]++;
+      if (o.survival) {
+        if (side === 1) { this.over = true; this.winner = 1; res.game = res.match = true; this.done.push(this.pts.slice()); }
+        return res;
+      }
+      const a = this.pts[side], b = this.pts[1 - side];
+      if (a >= o.points && (!o.winBy2 || a - b >= 2)) {
+        this.games[side]++;
+        this.done.push(this.pts.slice());
+        res.game = true;
+        if (this.games[side] >= o.games) { this.over = true; this.winner = side; res.match = true; }
+      }
+      return res;
+    }
+    nextGame() { this.pts = [0, 0]; this.first = 1 - this.first; this.gameNo++; }
+    // «очко до победы в партии / матче» — для подписи «МАТЧБОЛ»
+    gamePoint(side) {
+      const o = this.o;
+      if (o.survival || this.over) return false;
+      const a = this.pts[side] + 1, b = this.pts[1 - side];
+      return a >= o.points && (!o.winBy2 || a - b >= 2);
+    }
+    matchPoint(side) { return this.gamePoint(side) && this.games[side] + 1 >= this.o.games; }
+  }
+
+  /* ═══ ИИ: уровни и характеры ═══
+   * Мастерство 0…1: Новичок 0, Любитель ⅓, Профи ⅔, Мастер 1; промежуточные — для турнира и кампании.
+   * react — задержка реакции на удар соперника, с; maxV/acc — скорость и разгон ракетки;
+   * err — ошибка прогноза точки встречи (σ, ед.) на дальней дистанции (у ракетки — 30 %);
+   * replan — как часто ИИ уточняет прогноз; miss — шанс грубой ошибки на мяч; speedMiss — добавка
+   * к ошибкам на предельной скорости; stretch — шанс «не успеть» за мячом, к которому надо далеко
+   * и быстро бежать (растёт с трудностью: расстояние / (время × скорость ракетки)); spinAware — насколько учитывает закрутку; wallErr — рост
+   * ошибки за каждый отскок от борта в прогнозе; aimSkill — точность «прицела»; fatigue — усталость
+   * за удар в розыгрыше (растут ошибка и задержка). */
+  const LEVELS = [
+    { name: 'Новичок', react: 0.38, maxV: 240, acc: 1300, err: 50, replan: 0.34, miss: 0.03, speedMiss: 0.22, stretch: 0.7, spinAware: 0, wallErr: 0.6, aimSkill: 0.3, fatigue: 0.05 },
+    { name: 'Любитель', react: 0.29, maxV: 310, acc: 1900, err: 36, replan: 0.26, miss: 0.016, speedMiss: 0.14, stretch: 0.6, spinAware: 0.4, wallErr: 0.35, aimSkill: 0.55, fatigue: 0.036 },
+    { name: 'Профи', react: 0.25, maxV: 330, acc: 2300, err: 24, replan: 0.19, miss: 0.008, speedMiss: 0.09, stretch: 0.5, spinAware: 0.8, wallErr: 0.18, aimSkill: 0.8, fatigue: 0.026 },
+    { name: 'Мастер', react: 0.2, maxV: 360, acc: 2700, err: 16, replan: 0.13, miss: 0.005, speedMiss: 0.08, stretch: 0.45, spinAware: 1, wallErr: 0.08, aimSkill: 1, fatigue: 0.018 }
+  ];
+  /* Характеры: множители к параметрам уровня и манера игры.
+   * aim: center — в середину, random — куда придётся, away — в сторону от соперника,
+   * smart — просчитывает, куда отскочит мяч, и бьёт подальше от соперника.
+   * amp — насколько далеко от центра ракетки целит; spin — доля ударов с закруткой;
+   * home — насколько возвращается в центр между ударами; risk — запас на свою неточность при ударе
+   * краем (в «сигмах» ошибки прогноза: чем меньше, тем смелее и тем чаще промахи). */
+  const CHARS = {
+    even:     { name: 'Ровный',    aim: 'random', amp: 0.45, risk: 1.5, spin: 0.15, home: 0.8, react: 1, err: 1, speed: 1, miss: 1 },
+    calm:     { name: 'Тихоня',    aim: 'center', amp: 0.25, risk: 2, spin: 0, home: 0.9, react: 1.08, err: 0.95, speed: 0.95, miss: 0.9 },
+    wall:     { name: 'Стена',     aim: 'center', amp: 0.2, risk: 2.2, spin: 0.05, home: 1, react: 1, err: 0.78, speed: 1, miss: 0.7 },
+    hasty:    { name: 'Торопыга',  aim: 'random', amp: 0.65, risk: 0.5, spin: 0.3, home: 0.5, react: 0.75, err: 1.45, speed: 1.12, miss: 1.35 },
+    spinner:  { name: 'Винт',      aim: 'random', amp: 0.4, risk: 1, spin: 0.85, home: 0.75, react: 1, err: 1.02, speed: 1.02, miss: 1.05 },
+    attacker: { name: 'Атака',     aim: 'away', amp: 0.72, risk: 0.6, spin: 0.4, home: 0.45, react: 0.95, err: 1.1, speed: 1.05, miss: 1.2 },
+    sniper:   { name: 'Снайпер',   aim: 'smart', amp: 0.85, risk: 1.1, spin: 0.15, home: 0.85, react: 1.02, err: 0.85, speed: 0.95, miss: 0.95 },
+    master:   { name: 'Мастер',    aim: 'smart', amp: 0.8, risk: 1.8, spin: 0.55, home: 0.85, react: 0.95, err: 0.9, speed: 1, miss: 0.9 }
+  };
+  function aiParams(skill, charId) {
+    const s = clamp(+skill || 0, 0, 1) * 3, i = Math.min(2, Math.floor(s)), f = s - i;
+    const A = LEVELS[i], B = LEVELS[i + 1], P = {};
+    for (const k in A) if (typeof A[k] === 'number') P[k] = lerp(A[k], B[k], f);
+    const C = CHARS[charId] || CHARS.even;
+    P.react *= C.react; P.err *= C.err; P.maxV *= C.speed; P.acc *= C.speed;
+    P.miss *= C.miss; P.speedMiss *= C.miss; P.stretch *= C.miss;
+    P.aim = C.aim; P.amp = C.amp; P.spin = C.spin; P.home = C.home; P.risk = C.risk;
+    P.skill = s / 3; P.char = CHARS[charId] ? charId : 'even';
+    return P;
+  }
+
+  /* ═══ Объекты ═══ */
+  class Ball {
+    constructor(id) {
+      this.id = id; this.x = FW / 2; this.y = FL / 2; this.vx = 0; this.vy = 0;
+      this.base = 0;             // скорость розыгрыша — вдоль поля, ед/с
+      this.curve = 0;            // закрутка: боковое ускорение = curve × vy (зеркалится при отскоках)
+      this.px = this.x; this.py = this.y;
+      this.active = true; this.held = -1;   // held — у чьей ракетки лежит (подача)
+      this.owner = -1;           // кто ударил последним
+      this.hits = 0;             // ударов ракеткой этим мячом
+    }
+    get speed() { return this.base; }
+  }
+  class Paddle {
+    constructor(side, w) {
+      this.side = side; this.w = w; this.baseW = w;
+      this.x = FW / 2; this.px = this.x; this.v = 0; this.vel = 0;
+      this.tx = FW / 2;          // цель (палец, мышь, ИИ)
+      this.ctl = 'target';       // target | keys | ai
+      this.keyDir = 0; this.keySpeed = KEY_SPEED;
+      this.maxV = 600; this.acc = 4000;   // для ИИ
+    }
+    get face() { return FACE[this.side]; }
+    // прямоугольник ракетки по y
+    get y0() { return this.side === 0 ? FACE[0] : INSET; }
+    get y1() { return this.side === 0 ? FACE[0] + PT : FACE[1]; }
+  }
+  const mkStats = () => ({ points: 0, hits: 0, aces: 0, maxHit: 0, serves: 0, servePts: 0, curveWins: 0, bricks: 0 });
+
+  /* ═══ Мир: партия/матч ═══ */
+  class World {
+    /* o.rules — правила (см. Score); o.sides — [{kind:'human'|'ai', skill, char, w}, …];
+     * o.serveSpeed / o.vmax / o.accel — скорость подачи, предел, прирост за удар (доля);
+     * o.obstacles — [{cx, cy, w, h, type:'solid'|'brick', color}] (кампания); o.powerups — бонусы;
+     * o.seed — зерно ГПСЧ; o.firstServer — кто подаёт первым (иначе жребий). */
+    constructor(o) {
+      o = o || {};
+      this.o = o;
+      this.seed = o.seed == null ? (Math.random() * 4294967296) >>> 0 : o.seed >>> 0;
+      this.rng = rng(this.seed);
+      this.score = new Score(o.rules);
+      this.serveSpeed = o.serveSpeed || 330;
+      this.vmax = o.vmax || 800;
+      this.accel = o.accel == null ? 0.045 : o.accel;
+      const sides = o.sides || [{ kind: 'human' }, { kind: 'ai', skill: 0.5 }];
+      this.sides = sides;
+      this.pads = [0, 1].map(s => new Paddle(s, (sides[s] && sides[s].w) || PW));
+      this.ai = [0, 1].map(s => sides[s] && sides[s].kind === 'ai' ? new AI(this, s, aiParams(sides[s].skill, sides[s].char)) : null);
+      this.obs = (o.obstacles || []).map((c, i) => ({
+        i, x0: c.cx - c.w / 2, x1: c.cx + c.w / 2, y0: c.cy - c.h / 2, y1: c.cy + c.h / 2,
+        type: c.type === 'brick' ? 'brick' : 'solid', color: c.color || '#ff5d7d', alive: true
+      }));
+      this.powerOn = !!o.powerups;
+      this.balls = []; this.powerups = []; this.events = [];
+      this.expand = [];
+      this.t = 0; this.phaseT = 0; this.phase = 'serve';
+      this.rally = 0; this.longest = 0; this.maxSpeed = 0;
+      this.nextId = 1;
+      this.stats = [mkStats(), mkStats()];
+      this.pt = null;
+      this.lastPoint = null;
+      this.gameJustEnded = false;
+      this.noHitT = 0;
+      const first = o.firstServer === 0 || o.firstServer === 1 ? o.firstServer : (this.rng() < 0.5 ? 0 : 1);
+      this.score.begin(first);
+      this.beginServe();
+    }
+
+    emit(...e) { this.events.push(e); }
+    drain() { const e = this.events; this.events = []; return e; }
+    isHuman(s) { return !this.ai[s]; }
+    get server() { return this.pt ? this.pt.server : this.score.server(); }
+
+    /* ── Ввод человека ── */
+    setTarget(side, x) {
+      const p = this.pads[side];
+      if (this.ai[side]) return;
+      p.ctl = 'target'; p.tx = clamp(x, p.w / 2, FW - p.w / 2);
+    }
+    setKeys(side, dir, speedK) {
+      const p = this.pads[side];
+      if (this.ai[side]) return;
+      p.keySpeed = KEY_SPEED * (speedK || 1);
+      if (dir) {
+        // переход с пальца/мыши на клавиши: скорость «догоняния» не превращается в инерцию
+        if (p.ctl !== 'keys') p.v = clamp(p.vel, -p.keySpeed, p.keySpeed);
+        p.ctl = 'keys'; p.keyDir = dir;
+      } else p.keyDir = 0;
+    }
+    requestServe(side) {
+      if (this.phase !== 'serve' || this.pt.server !== side || this.ai[side]) return false;
+      if (this.phaseT < SERVE_MIN) return false;
+      this.launch(side);
+      return true;
+    }
+    setAI(side, skill, charId) {
+      if (!this.ai[side]) return;
+      this.ai[side].P = aiParams(skill, charId);
+      const p = this.pads[side];
+      p.maxV = this.ai[side].P.maxV; p.acc = this.ai[side].P.acc;
+    }
+
+    /* ── Подача: мяч лежит у ракетки подающего ── */
+    beginServe() {
+      const s = this.score.server();
+      this.phase = 'serve'; this.phaseT = 0;
+      this.rally = 0; this.noHitT = 0;
+      const b = new Ball(this.nextId++);
+      b.held = s;
+      this.balls = [b];
+      this.placeHeld(b);
+      b.px = b.x; b.py = b.y;
+      this.pt = { server: s, recvTouched: false, rally: 0, lastHitter: -1, lastCurve: 0, lastSpeed: 0, t0: this.t };
+      this.stats[s].serves++;
+      for (const ai of this.ai) if (ai) ai.onServe();
+      this.emit('serve', s);
+    }
+    placeHeld(b) {
+      const p = this.pads[b.held];
+      b.x = p.x;
+      b.y = b.held === 0 ? FACE[0] - R - 0.5 : FACE[1] + R + 0.5;
+      b.vx = 0; b.vy = 0;
+    }
+    // подача: направление — от места подающего (с края — по диагонали к центру) и движения ракетки
+    launch(side) {
+      if (this.phase !== 'serve' || this.pt.server !== side) return;
+      const b = this.balls[0], p = this.pads[side], dir = side === 0 ? -1 : 1;
+      const pos = clamp((p.x - FW / 2) / Math.max(1, FW / 2 - p.w / 2), -1, 1);
+      const pv = clamp(p.vel, -PV_MAX, PV_MAX);
+      const sp = this.serveSpeed;
+      b.base = sp;
+      const lim = sp * Math.tan(SERVE_MAX), min = sp * TAN_MIN;
+      let vx = clamp(sp * Math.tan(-pos * SERVE_POS) + pv * FRICTION, -lim, lim);
+      if (Math.abs(vx) < min) vx = (vx < 0 || (vx === 0 && this.rng() < 0.5)) ? -min : min;
+      b.vx = vx; b.vy = dir * sp;
+      // закрутка против движения ракетки: мяч уходит в сторону движения и дугой загибается обратно
+      b.curve = clamp(-dir * pv * CURVE_K * 0.7, -MAX_CURVE * 0.7, MAX_CURVE * 0.7);
+      b.held = -1; b.owner = side;
+      this.phase = 'rally'; this.phaseT = 0;
+      this.rally = 1; this.pt.rally = 1; this.pt.lastHitter = side;
+      if (this.longest < 1) this.longest = 1;
+      this.pt.lastCurve = b.curve; this.pt.lastSpeed = sp;
+      this.emit('launch', side, sp, b.curve);
+    }
+
+    /* ── Один шаг DT ── */
+    step() {
+      const dt = DT;
+      this.t += dt; this.phaseT += dt;
+      for (const ai of this.ai) if (ai) ai.update(dt);
+      for (const p of this.pads) { p.px = p.x; this.movePaddle(p, dt); }
+      for (const b of this.balls) { b.px = b.x; b.py = b.y; }
+      for (const pu of this.powerups) { pu.px = pu.x; pu.py = pu.y; }
+      if (this.expand.length) this.tickExpand(dt);
+
+      if (this.phase === 'serve') {
+        const b = this.balls[0];
+        this.placeHeld(b);
+        if (!this.ai[b.held] && this.phaseT >= SERVE_AUTO) this.launch(b.held);
+      } else if (this.phase === 'rally') {
+        this.noHitT += dt;
+        for (const b of this.balls) if (b.active) this.stepBall(b, dt);
+        this.balls = this.balls.filter(b => b.active || b.held >= 0);
+        if (this.powerups.length) this.stepPowerups(dt);
+        // мяч 8 с мечется без ракеток (между преградами) — новый пологий угол выводит его из «ловушки»
+        if (this.noHitT > 8) {
+          this.noHitT = 0;
+          for (const b of this.balls) setDir(b, (b.vx < 0 ? -1 : 1) * (4 + 21 * this.rng()) * DEG, b.vy);
+        }
+        if (this.phase === 'rally' && !this.balls.length) { this.phase = 'point'; this.phaseT = 0; }
+      } else if (this.phase === 'point') {
+        if (this.phaseT >= POINT_PAUSE) {
+          if (this.score.over) { this.phase = 'end'; this.phaseT = 0; this.emit('end', this.score.winner); }
+          else if (this.gameJustEnded) { this.phase = 'break'; this.phaseT = 0; }
+          else this.beginServe();
+        }
+      } else if (this.phase === 'break') {
+        if (this.phaseT >= BREAK_PAUSE) {
+          this.gameJustEnded = false;
+          this.score.nextGame();
+          this.emit('newgame', this.score.gameNo);
+          this.beginServe();
+        }
+      }
+    }
+
+    movePaddle(p, dt) {
+      const x0 = p.x;
+      if (p.ctl === 'keys') {
+        const want = p.keyDir * p.keySpeed;
+        const a = (p.keyDir && Math.sign(want) === Math.sign(p.v || want) ? KEY_ACC : KEY_DEC) * dt;
+        p.v += clamp(want - p.v, -a, a);
+        p.x += p.v * dt;
+        p.tx = p.x;
+      } else if (p.ctl === 'ai') {
+        const d = p.tx - p.x;
+        // разгон и торможение «к точке»: скорость, с которой ещё можно остановиться у цели
+        const stopV = Math.sqrt(2 * p.acc * Math.abs(d) * 0.9);
+        const want = Math.sign(d) * Math.min(p.maxV, stopV);
+        const a = p.acc * dt;
+        p.v += clamp(want - p.v, -a, a);
+        if (Math.abs(d) <= Math.abs(p.v) * dt && Math.sign(p.v) === Math.sign(d)) { p.x = p.tx; p.v = 0; }
+        else p.x += p.v * dt;
+      } else {
+        const v = clamp((p.tx - p.x) / FOLLOW_TAU, -HUMAN_VMAX, HUMAN_VMAX);
+        p.x += v * dt;
+        if (Math.abs(p.tx - p.x) < 0.05) p.x = p.tx;
+        p.v = v;
+      }
+      const lo = p.w / 2, hi = FW - p.w / 2;
+      if (p.x < lo) { p.x = lo; if (p.v < 0) p.v = 0; } else if (p.x > hi) { p.x = hi; if (p.v > 0) p.v = 0; }
+      p.vel = (p.x - x0) / dt;   // фактическая скорость — для закрутки
+    }
+
+    stepBall(b, dt) {
+      const n = Math.max(1, Math.ceil(Math.hypot(b.vx, b.vy) * dt / (R * 0.5)));
+      const h = dt / n;
+      for (let i = 0; i < n && b.active; i++) this.subStep(b, h);
+    }
+
+    // подшаг мяча: закрутка → ракетки (непрерывно) → борта → преграды → гол
+    subStep(b, h) {
+      if (b.curve) curveStep(b, h);
+      const x0 = b.x, y0 = b.y;
+      let x1 = x0 + b.vx * h, y1 = y0 + b.vy * h;
+      // ракетки: пересекла ли передняя точка мяча лицевую линию ракетки на этом подшаге
+      for (let s = 0; s < 2; s++) {
+        const p = this.pads[s], face = FACE[s];
+        let l0, l1;
+        if (s === 0) { if (b.vy <= 0) continue; l0 = y0 + R; l1 = y1 + R; if (!(l0 <= face + 1e-7 && l1 > face)) continue; }
+        else { if (b.vy >= 0) continue; l0 = y0 - R; l1 = y1 - R; if (!(l0 >= face - 1e-7 && l1 < face)) continue; }
+        const t = (face - l0) / (l1 - l0);
+        const bx = x0 + (x1 - x0) * t;
+        if (Math.abs(bx - p.x) <= p.w / 2 + R * HIT_TOL) {
+          b.x = clamp(bx, R, FW - R);
+          b.y = s === 0 ? face - R - 0.01 : face + R + 0.01;
+          this.hitBall(b, p);
+          return;
+        }
+      }
+      // борта: зеркальное отражение (закрутка тоже «отражается» и слабеет)
+      if (x1 < R) { x1 = 2 * R - x1; b.vx = Math.abs(b.vx); b.curve = -b.curve * 0.6; this.emit('wall', R, y1); }
+      else if (x1 > FW - R) { x1 = 2 * (FW - R) - x1; b.vx = -Math.abs(b.vx); b.curve = -b.curve * 0.6; this.emit('wall', FW - R, y1); }
+      b.x = x1; b.y = y1;
+      for (const o of this.obs) {
+        if (!o.alive) continue;
+        if (collideRect(b, o, x0, y0)) {
+          limitAngle(b, b.owner === 0 ? -1 : 1);
+          if (o.type === 'brick') this.breakBrick(o, b);
+          else this.emit('obstacle', o.i, b.x, b.y);
+        }
+      }
+      // гол: мяч целиком за торцом
+      if (b.y - R > FL) this.pointTo(1, b);
+      else if (b.y + R < 0) this.pointTo(0, b);
+    }
+
+    hitBall(b, p) {
+      const s = p.side, dir = s === 0 ? -1 : 1;
+      const half = p.w / 2 + R * HIT_TOL;
+      const off = clamp((b.x - p.x) / half, -1, 1);
+      const inSp = b.base;
+      const sp = Math.min(this.vmax, inSp * (1 + this.accel));
+      const pv = clamp(p.vel, -PV_MAX, PV_MAX);
+      // закрученный мяч «соскальзывает» с ракетки вбок — в сторону, обратную изгибу его траектории
+      const kick = clamp(dir * b.curve * SPIN_KICK, -8 * DEG, 8 * DEG);
+      b.base = sp;
+      const lim = sp * TAN_MAX, min = sp * TAN_MIN;
+      // угол — от места удара; движение ракетки добавляет боковую скорость (трение)
+      let vx = clamp(sp * Math.tan(off * MAX_BOUNCE + kick) + pv * FRICTION, -lim, lim);
+      if (Math.abs(vx) < min) vx = (vx < 0 || (vx === 0 && (off < 0 || (off === 0 && this.rng() < 0.5)))) ? -min : min;
+      b.vx = vx; b.vy = dir * sp;
+      // закрутка от движения ракетки: мяч уходит в сторону движения и дугой загибается обратно
+      b.curve = clamp(-dir * pv * CURVE_K, -MAX_CURVE, MAX_CURVE);
+      b.owner = s; b.hits++;
+      this.noHitT = 0;
+      this.rally++;
+      const pt = this.pt;
+      pt.rally = this.rally; pt.lastHitter = s; pt.lastCurve = b.curve; pt.lastSpeed = sp;
+      if (s !== pt.server) pt.recvTouched = true;
+      if (this.rally > this.longest) this.longest = this.rally;
+      const st = this.stats[s];
+      st.hits++;
+      if (inSp > st.maxHit) st.maxHit = inSp;     // самый быстрый отбитый мяч
+      if (sp > this.maxSpeed) this.maxSpeed = sp;
+      this.emit('hit', s, sp, b.curve, off, b.x, b.y, inSp, b.vx, b.vy);
+    }
+
+    breakBrick(o, b) {
+      o.alive = false;
+      if (b.owner >= 0) this.stats[b.owner].bricks++;
+      const cx = (o.x0 + o.x1) / 2, cy = (o.y0 + o.y1) / 2;
+      this.emit('brick', o.i, cx, cy, o.color, b.owner);
+      if (this.powerOn && this.rng() < 0.2) {
+        const type = this.rng() < 0.5 ? 'expand' : 'multi';
+        this.powerups.push({ x: cx, y: cy, px: cx, py: cy, type, alive: true });
+        this.emit('powerSpawn', type, cx, cy);
+      }
+    }
+
+    stepPowerups(dt) {
+      const p = this.pads[0];
+      for (const u of this.powerups) {
+        u.y += POWER_SPEED * dt;
+        if (u.y + 12 >= p.y0 && u.y - 12 <= p.y1 && Math.abs(u.x - p.x) <= p.w / 2 + 12) {
+          u.alive = false; this.applyPower(u.type, u.x, u.y);
+        } else if (u.y > FL + 20) u.alive = false;
+      }
+      this.powerups = this.powerups.filter(u => u.alive);
+    }
+    applyPower(type, x, y) {
+      if (type === 'expand') {
+        const p = this.pads[0];
+        if (p.w < p.baseW + EXPAND_W * 2) { p.w += EXPAND_W; this.expand.push(EXPAND_T); }
+        else this.expand[this.expand.length - 1] = EXPAND_T;   // предел ширины — продлеваем
+      } else {
+        const src = this.balls.find(b => b.active && b.held < 0);
+        if (src && this.balls.length < 5) {
+          for (const a of [-15, 15]) {
+            const nb = new Ball(this.nextId++);
+            nb.x = src.x; nb.y = src.y; nb.px = src.x; nb.py = src.y;
+            nb.base = src.base; nb.owner = src.owner; nb.hits = src.hits;
+            setDir(nb, angleOf(src) + a * DEG, src.vy);
+            this.balls.push(nb);
+          }
+        }
+      }
+      this.emit('power', type, x, y);
+    }
+    tickExpand(dt) {
+      const p = this.pads[0];
+      for (let i = 0; i < this.expand.length; i++) this.expand[i] -= dt;
+      while (this.expand.length && this.expand[0] <= 0) {
+        this.expand.shift();
+        p.w = Math.max(p.baseW, p.w - EXPAND_W);
+        p.x = clamp(p.x, p.w / 2, FW - p.w / 2);
+        this.emit('expandEnd');
+      }
+    }
+
+    pointTo(w, b) {
+      b.active = false;
+      if (this.score.over) return;
+      const pt = this.pt;
+      const ace = pt.server === w && !pt.recvTouched && pt.lastHitter === w;
+      const curveWin = pt.lastHitter === w && Math.abs(pt.lastCurve) >= MAX_CURVE * 0.6;
+      const st = this.stats[w];
+      st.points++;
+      if (ace) st.aces++;
+      if (pt.server === w) st.servePts++;
+      if (curveWin) st.curveWins++;
+      const before = this.score.pts.slice();
+      const res = this.score.point(w);
+      const info = { ace, curveWin, rally: pt.rally, server: pt.server, before, after: this.score.pts.slice(),
+        game: res.game, match: res.match, speed: pt.lastSpeed, dur: this.t - pt.t0 };
+      this.lastPoint = info;
+      this.emit('point', w, info);
+      if (res.game) {
+        this.gameJustEnded = !res.match;
+        this.emit('game', w, this.score.done[this.score.done.length - 1].slice(), res.match);
+        // партия окончена — остальные мячи (мультимяч) убираем
+        for (const o of this.balls) o.active = false;
+        this.powerups = [];
+      }
+      if (res.match) this.emit('match', w);
+      // новый розыгрыш внутри мультимяча: счёт ударов заново
+      pt.recvTouched = false; pt.lastHitter = -1;
+    }
+
+    // прогноз: где мяч пересечёт лицевую линию стороны side (без ракеток, с бортами и преградами)
+    predict(b, side, spinK, maxT) {
+      const sim = { x: b.x, y: b.y, vx: b.vx, vy: b.vy, base: b.base || Math.abs(b.vy), curve: b.curve * (spinK == null ? 1 : spinK) };
+      const face = FACE[side], lim = maxT || 6;
+      let t = 0, bounces = 0;
+      const h0 = DT;
+      while (t < lim) {
+        const n = Math.max(1, Math.ceil(Math.hypot(sim.vx, sim.vy) * h0 / (R * 0.5)));
+        const h = h0 / n;
+        for (let i = 0; i < n; i++) {
+          if (sim.curve) curveStep(sim, h);
+          const x0 = sim.x, y0 = sim.y;
+          let x1 = x0 + sim.vx * h, y1 = y0 + sim.vy * h;
+          const l0 = side === 0 ? y0 + R : y0 - R, l1 = side === 0 ? y1 + R : y1 - R;
+          if (side === 0 ? (sim.vy > 0 && l0 <= face && l1 > face) : (sim.vy < 0 && l0 >= face && l1 < face)) {
+            const k = (face - l0) / (l1 - l0);
+            return { x: x0 + (x1 - x0) * k, t: t + h * k, bounces };
+          }
+          if (x1 < R) { x1 = 2 * R - x1; sim.vx = Math.abs(sim.vx); sim.curve = -sim.curve * 0.6; bounces++; }
+          else if (x1 > FW - R) { x1 = 2 * (FW - R) - x1; sim.vx = -Math.abs(sim.vx); sim.curve = -sim.curve * 0.6; bounces++; }
+          sim.x = x1; sim.y = y1;
+          for (const o of this.obs) if (o.alive && collideRect(sim, o, x0, y0)) { limitAngle(sim); bounces++; }
+          t += h;
+          if (sim.y < -40 || sim.y > FL + 40) return { x: sim.x, t, bounces, lost: true };
+        }
+      }
+      return { x: sim.x, t, bounces, lost: true };
+    }
+
+    // для тестов: мяч в игре с заданным полётом
+    injectBall(o) {
+      const b = new Ball(this.nextId++);
+      Object.assign(b, { x: o.x, y: o.y, vx: o.vx, vy: o.vy, base: Math.abs(o.vy), curve: o.curve || 0, owner: o.owner == null ? -1 : o.owner, held: -1 });
+      b.px = b.x; b.py = b.y;
+      this.balls = [b];
+      this.phase = 'rally'; this.phaseT = 0; this.noHitT = 0;
+      this.rally = 1;
+      this.pt = { server: o.owner == null ? 0 : o.owner, recvTouched: false, rally: 1, lastHitter: b.owner, lastCurve: b.curve, lastSpeed: b.base, t0: this.t };
+      return b;
+    }
+  }
+
+  // закрутка: боковое ускорение (эффект Магнуса), скорость вдоль поля не меняется; закрутка затухает
+  function curveStep(b, h) {
+    b.vx += b.curve * b.vy * h;
+    b.curve *= Math.exp(-h / CURVE_TAU);
+    if (Math.abs(b.curve) < 1e-3) b.curve = 0;
+    if (limitAngle(b)) b.curve = 0;      // упёрлись в предельный угол — изгиб прекращается
+  }
+  // мяч и прямоугольник преграды: выталкивание по нормали и отражение
+  function collideRect(b, o, px, py) {
+    const cx = clamp(b.x, o.x0, o.x1), cy = clamp(b.y, o.y0, o.y1);
+    let dx = b.x - cx, dy = b.y - cy;
+    const d2 = dx * dx + dy * dy;
+    if (d2 >= R * R) return false;
+    let nx, ny, push;
+    if (d2 > 1e-12) {
+      const d = Math.sqrt(d2); nx = dx / d; ny = dy / d; push = R - d;
+    } else {
+      // центр мяча внутри (подшаги ≤ R/2 — не должно случаться): по прошлой позиции
+      const l = px - o.x0, r = o.x1 - px, t = py - o.y0, bt = o.y1 - py;
+      const m = Math.min(Math.abs(l), Math.abs(r), Math.abs(t), Math.abs(bt));
+      if (m === Math.abs(t)) { nx = 0; ny = -1; push = b.y - o.y0 + R; }
+      else if (m === Math.abs(bt)) { nx = 0; ny = 1; push = o.y1 - b.y + R; }
+      else if (m === Math.abs(l)) { nx = -1; ny = 0; push = b.x - o.x0 + R; }
+      else { nx = 1; ny = 0; push = o.x1 - b.x + R; }
+    }
+    b.x += nx * (push + 0.01); b.y += ny * (push + 0.01);
+    const vn = b.vx * nx + b.vy * ny;
+    if (vn < 0) {
+      b.vx -= 2 * vn * nx; b.vy -= 2 * vn * ny;
+      b.curve = -b.curve * 0.6;
+    }
+    return true;
+  }
+
+  /* ═══ ИИ-игрок ═══ */
+  class AI {
+    constructor(world, side, P) {
+      this.w = world; this.s = side; this.P = P;
+      const p = world.pads[side];
+      p.ctl = 'ai'; p.maxV = P.maxV; p.acc = P.acc;
+      this.key = -1; this.reactT = 0; this.plan = null; this.replanT = 0;
+      this.z = 0; this.whiff = 0; this.slow = 1; this.errX = 0; this.off = 0; this.aimed = false; this.dash = 0;
+      this.serve = null;
+    }
+    get r() { return this.w.rng; }
+    onServe() { this.serve = null; this.key = -1; this.plan = null; }
+    home() {
+      const p = this.w.pads[this.s];
+      return FW / 2 + (p.x - FW / 2) * (1 - this.P.home);
+    }
+    update(dt) {
+      const W = this.w, p = W.pads[this.s], P = this.P;
+      p.ctl = 'ai'; p.maxV = P.maxV; p.acc = P.acc;
+      if (W.phase === 'serve') {
+        if (W.pt.server === this.s) this.doServe();
+        else p.tx = lerp(FW / 2, W.pads[1 - this.s].x, 0.25);   // принимает: чуть смещается к подающему
+        return;
+      }
+      if (W.phase !== 'rally') { p.tx = FW / 2; return; }
+      // мяч, который прилетит к нам раньше всех
+      const face = FACE[this.s];
+      let best = null, bestT = Infinity;
+      for (const b of W.balls) {
+        if (!b.active || b.held >= 0) continue;
+        const toward = this.s === 0 ? b.vy > 0 : b.vy < 0;
+        if (!toward) continue;
+        const lead = this.s === 0 ? b.y + R : b.y - R;
+        if (this.s === 0 ? lead > face : lead < face) continue;   // уже за линией ракетки
+        const t = Math.abs(face - lead) / Math.max(1, Math.abs(b.vy));
+        if (t < bestT) { bestT = t; best = b; }
+      }
+      if (!best) {
+        // мяч летит от нас: возвращаемся к «дому» спокойнее, чем бежим к мячу
+        this.key = -1;
+        p.maxV = P.maxV * 0.7;
+        p.tx = this.home();
+        return;
+      }
+      const key = best.id * 4096 + best.hits;
+      if (key !== this.key) {
+        // новый входящий мяч: заметить не сразу; ошибка прогноза — одна на мяч (без дрожи)
+        this.key = key;
+        const fat = this.fatigue();
+        this.reactT = P.react * (1 + 0.6 * fat) * (0.85 + 0.3 * this.r());
+        this.z = gauss(this.r);
+        // трудность мяча: сколько бежать и сколько на это времени — далёкий быстрый мяч ИИ может «не успеть»
+        const tru = W.predict(best, this.s, 1, 4), half = p.w / 2 + R * HIT_TOL;
+        const need = Math.max(0, Math.abs(tru.x - p.x) - half * 0.5);
+        const stretch = need / (Math.max(0.05, tru.t - this.reactT) * P.maxV);
+        const st = clamp((stretch - 0.3) / 0.7, 0, 1);
+        this.slow = this.r() < P.stretch * st * st * (3 - 2 * st) ? 0.5 + 0.3 * this.r() : 1;   // бежит, но медленнее нужного
+        this.whiff = this.r() < this.missChance(best, fat) ? (this.r() < 0.5 ? -1 : 1) * (0.25 + 0.75 * this.r()) : 0;
+        this.plan = null; this.replanT = 0; this.aimed = false; this.off = 0; this.dash = 0;
+      }
+      p.maxV = P.maxV * this.slow;
+      if (this.reactT > 0) { this.reactT -= dt; return; }       // ещё не среагировал — двигается как двигался
+      this.replanT -= dt;
+      if (!this.plan || this.replanT <= 0) {
+        const pr = W.predict(best, this.s, P.spinAware);
+        this.plan = pr;
+        this.replanT = P.replan * (0.8 + 0.4 * this.r());
+        const sp = best.speed, fat = this.fatigue();
+        // ошибка прогноза: тем меньше, чем ближе мяч; больше — на скорости, после бортов и от усталости
+        // закрученный мяч путает того, кто закрутку не читает
+        const spinConf = 1 + 1.4 * (1 - P.spinAware) * Math.min(1, Math.abs(best.curve) / MAX_CURVE);
+        const sigma = P.err * (0.3 + 0.7 * Math.min(1, pr.t / 1.1)) * (1 + pr.bounces * P.wallErr) *
+          (1 + 1.5 * fat) * (1 + Math.max(0, sp - 480) / 600) * spinConf;
+        this.errX = this.z * sigma;
+        this.sigma = sigma;
+      }
+      const left = Math.max(0, bestT);          // до встречи, с (по прямой — для решений «в последний момент»)
+      if (!this.aimed && left < 0.45) { this.aimed = true; this.aim(best); }
+      const half = p.w / 2 + R * HIT_TOL;
+      let x = this.plan.x + this.errX - this.off * half * 0.9;
+      // грубая ошибка («не рассчитал»): встаёт чуть мимо траектории мяча
+      if (this.whiff) x = this.plan.x + Math.sign(this.whiff) * (half + 4 + 18 * Math.abs(this.whiff));
+      // закрутка: в последний момент ракетка резко идёт вбок; рывок не выводит мяч за край ракетки
+      if (this.dash) {
+        const room = Math.max(0, half * 0.85 - Math.abs(this.off) * half * 0.9);
+        x += left < 0.1 ? this.dash * Math.min(30, room) : -this.dash * Math.min(12, room * 0.4);
+      }
+      p.tx = clamp(x, p.w / 2, FW - p.w / 2);
+    }
+    fatigue() { return Math.min(0.8, this.w.rally * this.P.fatigue); }
+    missChance(b, fat) {
+      const P = this.P, k = clamp((b.speed - 360) / 440, 0, 1);      // 0 — подача, 1 — предельная скорость
+      const spin = (1 - P.spinAware) * 0.1 * Math.min(1, Math.abs(b.curve) / MAX_CURVE);
+      return Math.min(0.6, P.miss + P.speedMiss * Math.pow(k, 1.6) + fat * 0.08 + spin);
+    }
+    // куда бить: смещение мяча от центра ракетки (−1…1) — от него зависит угол отскока
+    aim(b) {
+      const P = this.P, W = this.w, r = this.r;
+      const opp = W.pads[1 - this.s];
+      // краем — только если уверен: запас P.risk «сигм» своей ошибки до края ракетки
+      const half = W.pads[this.s].w / 2 + R * HIT_TOL;
+      const cap = Math.min(0.95, Math.max(0, (half - P.risk * (this.sigma || 0)) / (0.9 * half)));
+      let off;
+      if (P.aim === 'center') off = (r() * 2 - 1) * P.amp;
+      else if (P.aim === 'random') off = (r() * 2 - 1) * P.amp;
+      else if (P.aim === 'away') off = (opp.x < FW / 2 ? 1 : -1) * P.amp * (0.75 + 0.25 * r());
+      else off = this.smartAim(b, Math.min(P.amp, cap));
+      // точность: чем ниже мастерство, тем сильнее разброс
+      off = clamp(off + gauss(r) * 0.22 * (1 - P.aimSkill), -cap, cap);
+      this.off = off;
+      this.dash = r() < P.spin ? (r() < 0.5 ? -1 : 1) : 0;
+    }
+    // перебор смещений (в пределах уверенности cap): куда прилетит мяч у соперника — выбираем
+    // точку подальше от того места, где он, скорее всего, будет (после удара игроки смещаются к центру);
+    // учитывает и «соскальзывание» закрученного мяча с ракетки
+    smartAim(b, cap) {
+      const W = this.w, s = this.s, opp = W.pads[1 - s], P = this.P;
+      const sp = Math.min(W.vmax, b.speed * (1 + W.accel)), dir = s === 0 ? -1 : 1;
+      const x = this.plan ? this.plan.x : b.x, y = s === 0 ? FACE[0] - R : FACE[1] + R;
+      const oppX = lerp(opp.x, FW / 2, 0.4);
+      const kick = clamp(dir * b.curve * 0.8 * SPIN_KICK * P.spinAware, -8 * DEG, 8 * DEG);
+      let best = 0, bestScore = -Infinity;
+      for (let i = -6; i <= 6; i++) {
+        const off = i / 6 * cap;
+        const sim = { x, y, vx: sp * Math.tan(off * MAX_BOUNCE + kick), vy: dir * sp, base: sp, curve: 0 };
+        limitAngle(sim);
+        const pr = W.predict(sim, 1 - s, 0, 3);
+        const sc = Math.abs(pr.x - oppX) - 20 * off * off * (1.15 - P.aimSkill);
+        if (sc > bestScore) { bestScore = sc; best = off; }
+      }
+      return best;
+    }
+    // своя подача: выйти на место, подождать, подать (иногда — с закруткой)
+    doServe() {
+      const W = this.w, p = W.pads[this.s], P = this.P, r = this.r;
+      if (!this.serve) {
+        this.serve = {
+          pos: FW / 2 + (r() * 2 - 1) * (FW / 2 - p.w / 2) * 0.6,
+          at: 0.55 + 0.6 * r() + P.react,
+          dash: r() < P.spin ? (r() < 0.5 ? -1 : 1) : 0
+        };
+      }
+      const S = this.serve;
+      p.tx = S.pos;
+      if (W.phaseT < S.at) return;
+      if (S.dash) {
+        p.tx = clamp(S.pos + S.dash * 70, p.w / 2, FW - p.w / 2);
+        if (Math.abs(p.vel) > P.maxV * 0.55 || W.phaseT > S.at + 0.4) W.launch(this.s);
+      } else if (Math.abs(p.x - S.pos) < 4 || W.phaseT > S.at + 1.5) W.launch(this.s);
+    }
+  }
+
+  /* ═══ Кампания: 10 уровней (координаты — в единицах поля) ═══
+   * aiSkill — мастерство ИИ, aiW — ширина его ракетки, serve/vmax — скорость подачи и предел,
+   * target — до скольких очков (без разницы в 2). */
+  const C = { red: '#ff5d7d', yellow: '#ffd60a', cyan: '#00e5ff', blue: '#5b8cff', orange: '#ff9f43', purple: '#c77dff', green: '#51f58b' };
+  const CAMPAIGN = [
+    { name: 'Основы', aiSkill: 0, aiChar: 'calm', aiW: 84, serve: 270, vmax: 580, target: 3, obstacles: [] },
+    { name: 'Ускорение', aiSkill: 0.14, aiChar: 'even', aiW: 84, serve: 300, vmax: 630, target: 3, obstacles: [] },
+    { name: 'Преграда', aiSkill: 0.24, aiChar: 'even', aiW: 84, serve: 300, vmax: 650, target: 3,
+      obstacles: [{ cx: 180, cy: 300, w: 80, h: 18, type: 'solid', color: C.red }] },
+    { name: 'Кирпичи', aiSkill: 0.32, aiChar: 'calm', aiW: 76, serve: 310, vmax: 670, target: 3,
+      obstacles: [{ cx: 76, cy: 300, w: 60, h: 18, type: 'brick', color: C.cyan }, { cx: 180, cy: 300, w: 60, h: 18, type: 'brick', color: C.yellow },
+        { cx: 284, cy: 300, w: 60, h: 18, type: 'brick', color: C.cyan }] },
+    { name: 'Скорость света', aiSkill: 0.48, aiChar: 'hasty', aiW: 76, serve: 380, vmax: 770, target: 4, obstacles: [] },
+    { name: 'Лабиринт', aiSkill: 0.4, aiChar: 'even', aiW: 76, serve: 330, vmax: 630, target: 3,
+      obstacles: [{ cx: 116, cy: 214, w: 100, h: 14, type: 'solid', color: C.blue }, { cx: 244, cy: 386, w: 100, h: 14, type: 'solid', color: C.blue }] },
+    { name: 'Защита ИИ', aiSkill: 0.36, aiChar: 'calm', aiW: 100, serve: 330, vmax: 650, target: 3,
+      obstacles: [{ cx: 180, cy: 100, w: 140, h: 18, type: 'brick', color: C.orange }] },
+    { name: 'Узкий проход', aiSkill: 0.72, aiChar: 'attacker', aiW: 74, serve: 340, vmax: 670, target: 3,
+      obstacles: [{ cx: 74, cy: 300, w: 74, h: 144, type: 'solid', color: C.purple }, { cx: 286, cy: 300, w: 74, h: 144, type: 'solid', color: C.purple }] },
+    { name: 'Минное поле', aiSkill: 0.66, aiChar: 'spinner', aiW: 76, serve: 350, vmax: 760, target: 3,
+      obstacles: [54, 134, 226, 306].flatMap(cx => [250, 350].map(cy => ({ cx, cy, w: 40, h: 18, type: 'brick', color: C.green }))) },
+    { name: 'Финал: Мастер', aiSkill: 0.85, aiChar: 'master', aiW: 92, serve: 360, vmax: 790, target: 5,
+      obstacles: [{ cx: 180, cy: 300, w: 100, h: 28, type: 'solid', color: C.red }] }
+  ];
+
+  /* ═══ Турнир: лестница соперников ═══ */
+  const TOUR = [
+    { name: 'Айбек', nick: 'Новичок', skill: 0, char: 'calm', points: 5, games: 1, color: '#51f58b',
+      about: 'Только взял ракетку. Играет в середину, ошибается на быстрых мячах.' },
+    { name: 'Нургуль', f: true, nick: 'Торопыга', skill: 0.2, char: 'hasty', points: 11, games: 1, color: '#ffd60a',
+      about: 'Реагирует мгновенно, но часто бьёт мимо. Не давайте ей передышки.' },
+    { name: 'Тимур', nick: 'Стена', skill: 0.36, char: 'wall', points: 11, games: 1, color: '#5b8cff',
+      about: 'Отбивает почти всё, но без затей — в центр. Ищите острые углы.' },
+    { name: 'Айгерим', f: true, nick: 'Винт', skill: 0.5, char: 'spinner', points: 11, games: 1, color: '#c77dff',
+      about: 'Мастер закрутки: мяч гнётся дугой и соскальзывает с ракетки.' },
+    { name: 'Эрлан', nick: 'Ураган', skill: 0.64, char: 'attacker', points: 11, games: 1, color: '#ff9f43',
+      about: 'Атакует углами подальше от вас и рискует — на скорости ошибается.' },
+    { name: 'Жылдыз', f: true, nick: 'Снайпер', skill: 0.8, char: 'sniper', points: 11, games: 1, color: '#ff5d7d',
+      about: 'Просчитывает отскоки от бортов и кладёт мяч туда, где вас нет.' },
+    { name: 'Бакыт', nick: 'Мастер', skill: 1, char: 'master', points: 11, games: 2, color: '#ff4dd2',
+      about: 'Чемпион клуба. Финал — до двух побед в партиях до 11.' }
+  ];
+
+  // правила матча по длине партии: подача по 2 (до 21 — по 5)
+  const rulesFor = (points, winBy2, games) => ({ points, winBy2: !!winBy2, games: games || 1, every: points >= 21 ? 5 : 2 });
+
+  return {
+    FW, FL, R, PT, PW, INSET, FACE, DT, DEG, MAX_ANGLE, TAN_MAX, MAX_BOUNCE, MIN_ANGLE, SERVE_MAX, MAX_CURVE, HIT_TOL,
+    SERVE_AUTO, SERVE_MIN, POINT_PAUSE, BREAK_PAUSE, EXPAND_T,
+    LEVELS, CHARS, CAMPAIGN, TOUR, rulesFor, aiParams,
+    Score, World, Ball, Paddle, AI, rng, gauss, clamp, limitAngle, angleOf, setDir
+  };
+})();
+
+/* ═══ render.js ═══ */
+/* ═══════════════════════════════════════════════════════════════
+ * ПИНГ-ПОНГ · отрисовка поля на канвасе.
+ * Поле рисуется в единицах движка; ориентация — одно преобразование:
+ *  • 'v' (стоя): x → вправо, y → вниз; вы внизу, соперник вверху;
+ *  • 'h' (лёжа): поле повёрнуто на 90° по часовой — вы слева, соперник справа.
+ * Текст всегда рисуется «прямо» (textAt), у игрока 2 в режиме стоя — вверх ногами (к нему лицом).
+ * ═════════════════════════════════════════════════════════════ */
+const Render = (() => {
+  const { FW, FL, R, PT, FACE } = PC;
+  const COL = { cyan: '#00e5ff', pink: '#ff4dd2', yellow: '#ffd60a', purple: '#c77dff', green: '#51f58b',
+    red: '#ff5d7d', blue: '#5b8cff', orange: '#ff9f43', text: '#eef2ff', muted: '#8f9ac2' };
+  const SIDE_COL = [COL.cyan, COL.pink];
+  const FONT = "'Russo One','Rubik',system-ui,sans-serif";
+  let cv = null, ctx = null;
+  let orient = 'v', k = 1, dpr = 1, cssW = FW, cssH = FL;
+  let sideCol = SIDE_COL.slice();
+
+  const parts = [], floats = [];
+  const trails = new Map();          // id мяча → недавние позиции
+  let shakeA = 0, flashes = [], banner = null, rnd = Math.random;
+  let time = 0;
+
+  function hexA(hex, a) {
+    const n = parseInt(hex.slice(1), 16);
+    return `rgba(${n >> 16},${(n >> 8) & 255},${n & 255},${a})`;
+  }
+  function rr(c, x, y, w, h, r) {
+    c.beginPath();
+    if (c.roundRect) { c.roundRect(x, y, w, h, r); return; }
+    r = Math.min(r, w / 2, h / 2);
+    c.moveTo(x + r, y); c.arcTo(x + w, y, x + w, y + h, r); c.arcTo(x + w, y + h, x, y + h, r);
+    c.arcTo(x, y + h, x, y, r); c.arcTo(x, y, x + w, y, r); c.closePath();
+  }
+
+  function init(canvas) { cv = canvas; ctx = cv.getContext('2d'); }
+  // размер поля на экране: s — CSS-пикселей на единицу поля
+  function setLayout(o, s, ratio) {
+    orient = o; k = s; dpr = ratio;
+    cssW = Math.round((o === 'v' ? FW : FL) * s);
+    cssH = Math.round((o === 'v' ? FL : FW) * s);
+    cv.style.width = cssW + 'px'; cv.style.height = cssH + 'px';
+    cv.width = Math.round(cssW * dpr); cv.height = Math.round(cssH * dpr);
+  }
+  function setColors(c0, c1) { sideCol = [c0 || SIDE_COL[0], c1 || SIDE_COL[1]]; }
+  // поле → экран (CSS px канваса)
+  function toScreen(x, y) { return orient === 'v' ? [x * k, y * k] : [(FL - y) * k, x * k]; }
+  // экран (CSS px от левого верхнего угла канваса) → поле
+  function toField(sx, sy) { return orient === 'v' ? [sx / k, sy / k] : [sy / k, FL - sx / k]; }
+  function fieldTransform(sx, sy) {
+    const m = k * dpr;
+    if (orient === 'v') ctx.setTransform(m, 0, 0, m, sx * dpr, sy * dpr);
+    else ctx.setTransform(0, m, -m, 0, FL * m + sx * dpr, sy * dpr);
+  }
+  // текст «прямо» в точке поля; flip — повернуть на 180° (игрок 2 стоя смотрит с другой стороны)
+  function textAt(x, y, str, size, color, alpha, opt) {
+    opt = opt || {};
+    const [sx, sy] = toScreen(x, y);
+    ctx.save();
+    ctx.setTransform(dpr, 0, 0, dpr, (opt.ox || 0) * dpr, (opt.oy || 0) * dpr);
+    ctx.translate(sx, sy);
+    if (opt.flip) ctx.rotate(Math.PI);
+    ctx.globalAlpha = alpha == null ? 1 : alpha;
+    ctx.font = opt.font || `${size}px ${FONT}`;        // opt.font — полная строка шрифта CSS
+    ctx.textAlign = opt.align || 'center'; ctx.textBaseline = 'middle';
+    if (opt.glow) { ctx.shadowColor = color; ctx.shadowBlur = opt.glow; }
+    ctx.fillStyle = color;
+    ctx.fillText(str, 0, 0);
+    ctx.restore();
+  }
+
+  /* ── Эффекты ── */
+  function burst(x, y, color, n, spd, life) {
+    for (let i = 0; i < n && parts.length < 260; i++) {
+      const a = rnd() * Math.PI * 2, v = (0.3 + rnd()) * (spd || 160);
+      parts.push({ x, y, vx: Math.cos(a) * v, vy: Math.sin(a) * v, life: 1, decay: 1 / ((life || 0.5) * (0.6 + 0.8 * rnd())), size: 1.5 + rnd() * 2.5, color });
+    }
+  }
+  // искры веером в сторону полёта мяча после удара
+  function spray(x, y, dirY, color, n) {
+    for (let i = 0; i < n && parts.length < 260; i++) {
+      const a = (rnd() - 0.5) * 2.2, v = 90 + rnd() * 200;
+      parts.push({ x, y, vx: Math.sin(a) * v, vy: dirY * Math.cos(a) * v, life: 1, decay: 1 / (0.25 + rnd() * 0.35), size: 1.2 + rnd() * 2, color });
+    }
+  }
+  function float(x, y, text, color, size, flip) { floats.push({ x, y, text, color, size: size || 16, life: 1, flip: !!flip }); }
+  function shake(a) { shakeA = Math.max(shakeA, a); }
+  function flash(side, color) { flashes.push({ side, color, life: 1 }); }
+  function showBanner(title, sub, color, dur) { banner = { title, sub, color: color || COL.yellow, t: 0, dur: dur || 2 }; }
+  function clear() { parts.length = 0; floats.length = 0; trails.clear(); flashes = []; banner = null; shakeA = 0; }
+
+  function update(dt) {
+    time += dt;
+    for (const p of parts) { p.x += p.vx * dt; p.y += p.vy * dt; p.vx *= 0.96; p.vy *= 0.96; p.life -= p.decay * dt; }
+    for (let i = parts.length - 1; i >= 0; i--) if (parts[i].life <= 0) parts.splice(i, 1);
+    for (const f of floats) { f.life -= dt * 0.9; }
+    for (let i = floats.length - 1; i >= 0; i--) if (floats[i].life <= 0) floats.splice(i, 1);
+    for (const f of flashes) f.life -= dt * 2.2;
+    flashes = flashes.filter(f => f.life > 0);
+    if (shakeA > 0) { shakeA *= Math.pow(0.002, dt); if (shakeA < 0.3) shakeA = 0; }
+    if (banner) { banner.t += dt; if (banner.t > banner.dur) banner = null; }
+  }
+
+  const field = (sx, sy) => toField(sx, sy);
+
+  /* ── Кадр ── */
+  // W — мир, a — доля шага для плавности, ui — {scores, names, serveHint, duo, shakeOn, reduce, curveOn}
+  function draw(W, a, ui) {
+    ui = ui || {};
+    const c = ctx;
+    c.setTransform(dpr, 0, 0, dpr, 0, 0);
+    c.clearRect(0, 0, cssW, cssH);
+    let sx = 0, sy = 0;
+    if (shakeA > 0 && ui.shakeOn !== false) { sx = (rnd() * 2 - 1) * shakeA; sy = (rnd() * 2 - 1) * shakeA; }
+    fieldTransform(sx, sy);
+
+    // фон поля
+    c.fillStyle = 'rgba(4,6,22,.62)';
+    c.fillRect(-20, -20, FW + 40, FL + 40);
+    // подсветка торцов: у каждого — цвет его ракетки
+    let g = c.createLinearGradient(0, 0, 0, 70);
+    g.addColorStop(0, hexA(sideCol[1], 0.2)); g.addColorStop(1, hexA(sideCol[1], 0));
+    c.fillStyle = g; c.fillRect(0, 0, FW, 70);
+    g = c.createLinearGradient(0, FL, 0, FL - 70);
+    g.addColorStop(0, hexA(sideCol[0], 0.2)); g.addColorStop(1, hexA(sideCol[0], 0));
+    c.fillStyle = g; c.fillRect(0, FL - 70, FW, 70);
+    for (const f of flashes) {
+      const y0 = f.side === 0 ? FL - 160 : 0;
+      g = c.createLinearGradient(0, f.side === 0 ? FL : 0, 0, f.side === 0 ? FL - 160 : 160);
+      g.addColorStop(0, hexA(f.color, 0.55 * f.life)); g.addColorStop(1, hexA(f.color, 0));
+      c.fillStyle = g; c.fillRect(0, y0, FW, 160);
+    }
+    // сетка
+    c.strokeStyle = 'rgba(255,255,255,.04)'; c.lineWidth = 1;
+    c.beginPath();
+    for (let x = 30; x < FW; x += 30) { c.moveTo(x, 0); c.lineTo(x, FL); }
+    for (let y = 30; y < FL; y += 30) { c.moveTo(0, y); c.lineTo(FW, y); }
+    c.stroke();
+    // боковые борта
+    c.strokeStyle = 'rgba(255,255,255,.12)'; c.lineWidth = 2;
+    c.beginPath(); c.moveTo(1, 0); c.lineTo(1, FL); c.moveTo(FW - 1, 0); c.lineTo(FW - 1, FL); c.stroke();
+    // сетка стола (средняя линия) и круг
+    c.setLineDash([10, 9]);
+    c.strokeStyle = 'rgba(255,255,255,.2)'; c.lineWidth = 2;
+    c.beginPath(); c.moveTo(0, FL / 2); c.lineTo(FW, FL / 2); c.stroke();
+    c.setLineDash([]);
+    c.strokeStyle = 'rgba(255,255,255,.08)';
+    c.beginPath(); c.arc(FW / 2, FL / 2, 36, 0, Math.PI * 2); c.stroke();
+
+    // крупный счёт в своих половинах (как в классическом Pong)
+    if (ui.scores) {
+      const big = Math.round(Math.min(cssW, cssH) * 0.2);
+      const off = orient === 'v' ? 74 : 96;
+      textAt(FW / 2, FL / 2 + off, String(ui.scores[0]), big, sideCol[0], 0.13, { ox: sx, oy: sy });
+      textAt(FW / 2, FL / 2 - off, String(ui.scores[1]), big, sideCol[1], 0.13, { ox: sx, oy: sy, flip: ui.duo && orient === 'v' });
+    }
+
+    fieldTransform(sx, sy);
+    // преграды кампании
+    for (const o of W.obs) if (o.alive) drawObstacle(c, o);
+    // бонусы
+    for (const u of W.powerups) {
+      const x = u.px + (u.x - u.px) * a, y = u.py + (u.y - u.py) * a;
+      drawPower(c, u.type, x, y);
+    }
+    // частицы
+    for (const p of parts) {
+      c.globalAlpha = Math.max(0, p.life);
+      c.fillStyle = p.color;
+      c.beginPath(); c.arc(p.x, p.y, p.size * (0.4 + 0.6 * p.life), 0, Math.PI * 2); c.fill();
+    }
+    c.globalAlpha = 1;
+
+    // мячи: след, свечение, метка закрутки
+    const live = new Set();
+    for (const b of W.balls) {
+      if (!b.active) continue;
+      live.add(b.id);
+      const x = b.held >= 0 ? b.x : b.px + (b.x - b.px) * a, y = b.held >= 0 ? b.y : b.py + (b.y - b.py) * a;
+      const col = b.owner >= 0 ? sideCol[b.owner] : COL.text;
+      let tr = trails.get(b.id);
+      if (!tr || b.held >= 0) { tr = []; trails.set(b.id, tr); }
+      if (b.held < 0) { tr.push(x, y); if (tr.length > 36) tr.splice(0, 2); }
+      drawBall(c, x, y, col, tr, b, ui);
+    }
+    for (const id of trails.keys()) if (!live.has(id)) trails.delete(id);
+
+    // ракетки
+    for (const p of W.pads) {
+      const x = p.px + (p.x - p.px) * a;
+      drawPaddle(c, p, x, sideCol[p.side]);
+    }
+
+    // подача: кольцо-отсчёт вокруг мяча и подпись
+    if (W.phase === 'serve' && W.balls[0]) {
+      const b = W.balls[0], s = b.held, p = W.pads[s];
+      const x = p.px + (p.x - p.px) * a, y = b.y;
+      const human = !W.ai[s];
+      const kT = human ? Math.min(1, W.phaseT / PC.SERVE_AUTO) : 0;
+      c.strokeStyle = hexA(sideCol[s], 0.85); c.lineWidth = 2;
+      const pulse = 1 + 0.12 * Math.sin(time * 7);
+      c.beginPath(); c.arc(x, y, (R + 7) * pulse, 0, Math.PI * 2); c.stroke();
+      if (human) {
+        c.strokeStyle = hexA(COL.text, 0.8); c.lineWidth = 2.5;
+        c.beginPath(); c.arc(x, y, R + 11, -Math.PI / 2, -Math.PI / 2 + Math.PI * 2 * (1 - kT)); c.stroke();
+      }
+      if (ui.serveLabel) {
+        const fnt = "600 13px 'Rubik',system-ui,sans-serif";
+        if (orient === 'v') {
+          // стоя: над ракеткой, со стороны поля
+          textAt(x, s === 0 ? FACE[0] - 52 : FACE[1] + 52, ui.serveLabel, 13, COL.text, 0.85, { ox: sx, oy: sy, flip: ui.duo && s === 1, font: fnt });
+        } else {
+          // лёжа: сбоку от мяча (выше или ниже — где больше места), текст уходит к центру поля
+          const lx = x + (x < FW / 2 ? 1 : -1) * 30, ly = s === 0 ? FACE[0] - 4 : FACE[1] + 4;
+          textAt(lx, ly, ui.serveLabel, 13, COL.text, 0.85, { ox: sx, oy: sy, font: fnt, align: s === 0 ? 'left' : 'right' });
+        }
+      }
+    }
+
+    // всплывающие подписи
+    for (const f of floats) {
+      textAt(f.x, f.y - (1 - f.life) * 40 * (f.flip ? -1 : 1), f.text, f.size, f.color, Math.min(1, f.life * 1.6), { ox: sx, oy: sy, glow: 12, flip: f.flip && orient === 'v' });
+    }
+
+    // табло между партиями
+    if (banner) {
+      const t = banner.t, al = Math.min(1, t * 4, (banner.dur - t) * 3);
+      c.setTransform(dpr, 0, 0, dpr, 0, 0);
+      c.globalAlpha = al * 0.86;
+      c.fillStyle = 'rgba(3,5,16,.9)';
+      const bh = Math.min(120, cssH * 0.34);
+      c.fillRect(0, cssH / 2 - bh / 2, cssW, bh);
+      c.globalAlpha = 1;
+      const ts = Math.round(Math.min(30, cssW / 12));
+      textAt(...field(cssW / 2, cssH / 2 - bh * 0.14), banner.title, ts, banner.color, al, { glow: 18 });
+      if (banner.sub) { const fs = Math.round(Math.max(12, ts * 0.5)); textAt(...field(cssW / 2, cssH / 2 + bh * 0.24), banner.sub, fs, COL.text, al * 0.9, { font: `500 ${fs}px 'Rubik',system-ui,sans-serif` }); }
+    }
+    c.setTransform(dpr, 0, 0, dpr, 0, 0);
+    c.globalAlpha = 1;
+  }
+
+  function drawObstacle(c, o) {
+    const x = o.x0, y = o.y0, w = o.x1 - o.x0, h = o.y1 - o.y0, col = o.color;
+    if (o.type === 'solid') {
+      c.fillStyle = hexA(col, 0.16);
+      rr(c, x, y, w, h, 5); c.fill();
+      c.shadowBlur = 10; c.shadowColor = col;
+      c.strokeStyle = col; c.lineWidth = 2;
+      rr(c, x + 1, y + 1, w - 2, h - 2, 4); c.stroke();
+      c.shadowBlur = 0;
+    } else {
+      c.shadowBlur = 10; c.shadowColor = col;
+      c.fillStyle = col;
+      rr(c, x, y, w, h, 5); c.fill();
+      c.shadowBlur = 0;
+      const g = c.createLinearGradient(0, y, 0, y + h);
+      g.addColorStop(0, 'rgba(255,255,255,.45)'); g.addColorStop(0.5, 'rgba(255,255,255,0)'); g.addColorStop(1, 'rgba(0,0,0,.3)');
+      c.fillStyle = g; rr(c, x, y, w, h, 5); c.fill();
+    }
+  }
+  function drawPower(c, type, x, y) {
+    const col = type === 'expand' ? COL.blue : COL.yellow;
+    c.shadowBlur = 12; c.shadowColor = col; c.fillStyle = col;
+    c.beginPath(); c.arc(x, y, 11, 0, Math.PI * 2); c.fill();
+    c.shadowBlur = 0;
+    c.fillStyle = c.strokeStyle = '#041018';
+    // значок «поперёк поля» — в обеих ориентациях он идёт вдоль ракетки
+    if (type === 'expand') {
+      c.lineWidth = 2; c.lineCap = 'round';
+      c.beginPath();
+      c.moveTo(x - 6, y); c.lineTo(x + 6, y);
+      c.moveTo(x - 3, y - 3); c.lineTo(x - 6, y); c.lineTo(x - 3, y + 3);
+      c.moveTo(x + 3, y - 3); c.lineTo(x + 6, y); c.lineTo(x + 3, y + 3);
+      c.stroke();
+    } else {
+      for (const dx of [-5, 0, 5]) { c.beginPath(); c.arc(x + dx, y, 2.1, 0, Math.PI * 2); c.fill(); }
+    }
+  }
+  function drawBall(c, x, y, col, tr, b, ui) {
+    // след: тонкая линия, светлеет к мячу — изгиб от закрутки виден сразу
+    const n = tr.length / 2;
+    if (n > 2) {
+      for (let i = 1; i < n; i++) {
+        const t = i / n;
+        c.strokeStyle = hexA(col, 0.35 * t);
+        c.lineWidth = R * 1.5 * t;
+        c.lineCap = 'round';
+        c.beginPath(); c.moveTo(tr[(i - 1) * 2], tr[(i - 1) * 2 + 1]); c.lineTo(tr[i * 2], tr[i * 2 + 1]); c.stroke();
+      }
+    }
+    const sp = Math.hypot(b.vx, b.vy);
+    c.shadowBlur = 14 + Math.min(14, sp / 60); c.shadowColor = col;
+    c.fillStyle = col;
+    c.beginPath(); c.arc(x, y, R, 0, Math.PI * 2); c.fill();
+    c.shadowBlur = 0;
+    c.fillStyle = 'rgba(255,255,255,.92)';
+    c.beginPath(); c.arc(x, y, R * 0.55, 0, Math.PI * 2); c.fill();
+    // закрутка: дуги вращаются вокруг мяча (быстрее — сильнее закрутка)
+    if (ui.curveOn !== false && Math.abs(b.curve) > 0.05) {
+      const s = Math.min(1, Math.abs(b.curve) / PC.MAX_CURVE), rot = time * 14 * Math.sign(b.curve);
+      c.strokeStyle = hexA('#ffffff', 0.35 + 0.5 * s); c.lineWidth = 1.6;
+      for (let j = 0; j < 2; j++) {
+        const a0 = rot + j * Math.PI;
+        c.beginPath(); c.arc(x, y, R + 4, a0, a0 + 0.9 + 0.8 * s); c.stroke();
+      }
+    }
+  }
+  function drawPaddle(c, p, x, col) {
+    const y0 = p.y0, h = PT, w = p.w;
+    // след движения: размытая «тень» при быстром ходе
+    const v = p.vel || 0;
+    if (Math.abs(v) > 250) {
+      c.globalAlpha = Math.min(0.35, Math.abs(v) / 3000);
+      c.fillStyle = col;
+      rr(c, x - w / 2 - v * 0.03, y0 + 2, w, h - 4, 5); c.fill();
+      c.globalAlpha = 1;
+    }
+    c.shadowBlur = 16; c.shadowColor = col;
+    const g = c.createLinearGradient(0, y0, 0, y0 + h);
+    if (p.side === 0) { g.addColorStop(0, '#ffffff'); g.addColorStop(0.35, col); g.addColorStop(1, col); }
+    else { g.addColorStop(0, col); g.addColorStop(0.65, col); g.addColorStop(1, '#ffffff'); }
+    c.fillStyle = g;
+    rr(c, x - w / 2, y0, w, h, 6); c.fill();
+    c.shadowBlur = 0;
+    c.fillStyle = 'rgba(255,255,255,.45)';
+    rr(c, x - w / 2 + 9, y0 + 3.5, w - 18, h - 7, 3); c.fill();
+    // широкая ракетка (бонус): метки по краям
+    if (w > p.baseW + 1) {
+      c.fillStyle = COL.blue;
+      c.fillRect(x - w / 2 + 3, y0 + 2, 3, h - 4); c.fillRect(x + w / 2 - 6, y0 + 2, 3, h - 4);
+    }
+  }
+
+  return { init, setLayout, setColors, toField, toScreen, draw, update, burst, spray, float, shake, flash, showBanner, clear,
+    get orient() { return orient; }, get scale() { return k; }, COL, SIDE_COL };
+})();
+
+/* ═══ ui.js ═══ */
+/* ═══════════════════════════════════════════════════════════════
+ * ПИНГ-ПОНГ · экраны, ввод, цикл игры, статистика, достижения, звук.
+ * ═════════════════════════════════════════════════════════════ */
 const $ = id => document.getElementById(id);
-const canvas = $('c');
-const ctx = canvas.getContext('2d');
-let W = 360, H = 640, DPR = 1;                 // размер поля в CSS-пикселях
+const $$ = sel => Array.from(document.querySelectorAll(sel));
+const { FW, FL } = PC;
+const STEP_MS = 1000 / 120;                   // шаг физики (PC.DT) в мс
+const LEVEL_SKILL = [0, 1 / 3, 2 / 3, 1];
+const LEVEL_NAMES = PC.LEVELS.map(l => l.name);
+const AI_CHARS = ['even', 'wall', 'attacker', 'spinner'];
+const CHAR_NOTES = {
+  even: 'Играет без затей: куда придётся, иногда с закруткой.',
+  wall: 'Отбивает почти всё, но в центр. Ищите острые углы.',
+  attacker: 'Бьёт углами подальше от вас и рискует — чаще ошибается.',
+  spinner: 'Закручивает почти каждый мяч: траектория гнётся дугой.'
+};
+const KMH = 0.1;                              // условный масштаб: 1 ед/с поля = 0,1 км/ч
+const kmh = v => Math.round(v * KMH);
+const clamp = PC.clamp;
+Render.init($('cv'));
+const coarse = () => !!(window.matchMedia && matchMedia('(pointer: coarse)').matches);
+const reduceMotion = () => !!(window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches);
+/* ── Состояние (партия, ввод, цикл) ── */
+let S = null;                // текущая партия: {cfg, mode, world, …}
+let paused = false;
+const keys = new Set();      // зажатые клавиши (event.code)
+const touches = new Map();   // касание → {side, x, y, t, moved}
+let last = 0, acc = 0;       // время прошлого кадра и накопитель для шагов физики, мс
+let hintKey = '';            // что сейчас написано в подсказке под полем
+const esc = s => String(s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+const plural = (n, a, b, c) => { const m = Math.abs(n) % 100, d = m % 10; return m > 10 && m < 20 ? c : d === 1 ? a : d >= 2 && d <= 4 ? b : c; };
 
-const STEP = 1000 / 60;      // фиксированный шаг физики: все константы игры подобраны под 60 тиков/с
-const MAX_STEPS = 5;         // не больше 5 догоняющих шагов за кадр (после лагов — пропускаем)
-const SERVE_TICKS = 60;      // пауза перед подачей — 1 с
-const AI_Y = 28;             // верхняя ракетка зеркальна нижней (H − 40)
-const PADDLE_W = 90;
-const KEY_LEAD = 26;         // клавиатура: цель на 26 px впереди центра → ~9 px за тик
-const MAX_SPEED = 18;        // предел скорости мяча
-const MAX_SPIN = 8;          // предел «подкрутки» от движения ракетки (резкий свайп пальцем давал vx 30–40)
-const EXPAND_TICKS = 600;    // бонус «широкая ракетка» — 10 с
+/* ═══ Хранилище (всё в try/catch, данные проверяются) ═══
+ * pong_stats — статистика и рекорды (поля прежней версии: played, wins, campaign, endless, freeW, freeL);
+ * pong_settings — настройки; pong_history — последние матчи; pong_ach — достижения; pong_tour — турнир. */
+const store = {
+  get(k, d) { try { const v = localStorage.getItem(k); if (v === null) return d; const o = JSON.parse(v); return o === null ? d : o; } catch (e) { return d; } },
+  set(k, v) { try { localStorage.setItem(k, JSON.stringify(v)); } catch (e) {} },
+  del(k) { try { localStorage.removeItem(k); } catch (e) {} }
+};
+const KEYS = { stats: 'pong_stats', set: 'pong_settings', hist: 'pong_history', ach: 'pong_ach', tour: 'pong_tour' };
+const asObj = o => (o && typeof o === 'object' && !Array.isArray(o)) ? o : {};
+const num = (v, d) => (typeof v === 'number' && isFinite(v)) ? v : (d || 0);
+const nat = v => Math.max(0, Math.floor(num(v)));
 
-// палитра набора ku-arcade (как фигуры Тетриса)
-const COL = { cyan: '#00e5ff', pink: '#ff4dd2', yellow: '#ffd60a', purple: '#c77dff', green: '#51f58b',
-              red: '#ff5d7d', blue: '#5b8cff', orange: '#ff9f43', text: '#eef2ff', muted: '#8f9ac2' };
-const P1_COLOR = COL.cyan;   // нижняя ракетка (вы / игрок 1)
-const P2_COLOR = COL.pink;   // верхняя ракетка (ИИ / игрок 2)
-
-// Utils
-const rand = (min, max) => Math.random() * (max - min) + min;
-const clamp = (val, min, max) => Math.max(min, Math.min(max, val));
-
-function circleRectIntersect(cx, cy, radius, rx, ry, rw, rh) {
-  let testX = cx;
-  let testY = cy;
-  if (cx < rx) testX = rx; else if (cx > rx + rw) testX = rx + rw;
-  if (cy < ry) testY = ry; else if (cy > ry + rh) testY = ry + rh;
-  const distX = cx - testX;
-  const distY = cy - testY;
-  return (distX * distX + distY * distY) <= radius * radius;
+const DEF_SET = { sound: true, vibro: true, shake: true, sens: 1, orient: 'auto', points: 11, winBy2: true, games: 1, aiLevel: 1, aiChar: 'even' };
+function loadSettings() {
+  const o = asObj(store.get(KEYS.set, {})), s = Object.assign({}, DEF_SET);
+  for (const k of ['sound', 'vibro', 'shake', 'winBy2']) if (typeof o[k] === 'boolean') s[k] = o[k];
+  if (typeof o.sens === 'number' && isFinite(o.sens)) s.sens = clamp(Math.round(o.sens * 10) / 10, 0.5, 2);
+  if (['auto', 'v', 'h'].includes(o.orient)) s.orient = o.orient;
+  if ([5, 11, 21].includes(o.points)) s.points = o.points;
+  if ([1, 2, 3].includes(o.games)) s.games = o.games;
+  if ([0, 1, 2, 3].includes(o.aiLevel)) s.aiLevel = o.aiLevel;
+  if (AI_CHARS.includes(o.aiChar)) s.aiChar = o.aiChar;
+  return s;
 }
+const settings = loadSettings();
+const saveSettings = () => store.set(KEYS.set, settings);
 
-// roundRect с запасным вариантом для старых браузеров (Safari < 16)
-function rr(c, x, y, w, h, r) {
-  c.beginPath();
-  if (c.roundRect) { c.roundRect(x, y, w, h, r); return; }
-  r = Math.min(r, w / 2, h / 2);
-  c.moveTo(x + r, y); c.arcTo(x + w, y, x + w, y + h, r); c.arcTo(x + w, y + h, x, y + h, r);
-  c.arcTo(x, y + h, x, y, r); c.arcTo(x, y, x + w, y, r); c.closePath();
+const STAT_KEYS = ['played', 'wins', 'campaign', 'endless', 'freeW', 'freeL', 'duo', 'tourMatches', 'tourWins', 'titles',
+  'gamesW', 'gamesL', 'ptsW', 'ptsL', 'aces', 'longest', 'fastest', 'curveWins', 'bricks', 'time', 'streak', 'bestStreak',
+  'hits', 'survRuns', 'campPlayed'];
+function loadStats() {
+  const o = asObj(store.get(KEYS.stats, {})), s = {};
+  for (const k of STAT_KEYS) s[k] = nat(o[k]);
+  s.campaign = Math.min(PC.CAMPAIGN.length, s.campaign);
+  const arr4 = a => [0, 1, 2, 3].map(i => Array.isArray(a) ? nat(a[i]) : 0);
+  s.aiW = arr4(o.aiW); s.aiL = arr4(o.aiL);
+  return s;
 }
-function hexRgba(hex, a) {
-  const n = parseInt(hex.slice(1), 16);
-  return `rgba(${n >> 16},${(n >> 8) & 255},${n & 255},${a})`;
-}
+let stats = loadStats();
+const saveStats = () => store.set(KEYS.stats, stats);
 
-/**
- * ============================================================================
- * AUDIO SYSTEM (Web Audio API Synthesizer)
- * ============================================================================
- */
+function loadTour() {
+  const o = asObj(store.get(KEYS.tour, {}));
+  return { stage: Math.min(PC.TOUR.length - 1, nat(o.stage)), best: Math.min(PC.TOUR.length, nat(o.best)) };
+}
+let tour = loadTour();
+const saveTour = () => store.set(KEYS.tour, tour);
+
+const MODES = ['match', 'tour', 'campaign', 'survival', 'duo'];
+function loadHistory() {
+  const a = store.get(KEYS.hist, []);
+  if (!Array.isArray(a)) return [];
+  return a.filter(h => h && typeof h === 'object' && MODES.includes(h.mode)).slice(0, 40).map(h => ({
+    t: num(h.t), mode: h.mode, opp: typeof h.opp === 'string' ? h.opp.slice(0, 60) : '',
+    res: ['W', 'L', 'P1', 'P2'].includes(h.res) ? h.res : 'L',
+    games: Array.isArray(h.games) ? h.games.slice(0, 2).map(nat) : [0, 0],
+    scores: Array.isArray(h.scores) ? h.scores.slice(0, 5).filter(Array.isArray).map(x => x.slice(0, 2).map(nat)) : [],
+    dur: nat(h.dur), goals: nat(h.goals)
+  }));
+}
+let matchLog = loadHistory();
+const saveHistory = () => store.set(KEYS.hist, matchLog);
+
+/* ═══ Звук: короткие синтезированные звуки ═══ */
 const AudioSys = {
   ctx: null,
   init() {
     try {
-      if (!this.ctx) {
-        const AudioContext = window.AudioContext || window.webkitAudioContext;
-        this.ctx = new AudioContext();
-      }
+      if (!this.ctx) this.ctx = new (window.AudioContext || window.webkitAudioContext)();
       if (this.ctx.state === 'suspended') this.ctx.resume();
     } catch (e) { this.ctx = null; }
   },
-  playTone(freq, type, duration, vol = 0.5, slideFreq = null) {
-    if (!this.ctx) return;
-    const osc = this.ctx.createOscillator();
-    const gain = this.ctx.createGain();
-    osc.type = type;
-    osc.connect(gain);
-    gain.connect(this.ctx.destination);
-
-    const now = this.ctx.currentTime;
-    osc.frequency.setValueAtTime(freq, now);
-    if (slideFreq) {
-      osc.frequency.exponentialRampToValueAtTime(slideFreq, now + duration);
-    }
-
-    gain.gain.setValueAtTime(vol, now);
-    gain.gain.exponentialRampToValueAtTime(0.01, now + duration);
-
-    osc.start(now);
-    osc.stop(now + duration);
+  tone(f, type, dur, vol, f2, delay) {
+    if (!settings.sound || !this.ctx) return;
+    try {
+      const c = this.ctx, t = c.currentTime + (delay || 0), o = c.createOscillator(), g = c.createGain();
+      o.type = type; o.frequency.setValueAtTime(f, t);
+      if (f2) o.frequency.exponentialRampToValueAtTime(f2, t + dur);
+      g.gain.setValueAtTime(vol, t); g.gain.exponentialRampToValueAtTime(0.001, t + dur);
+      o.connect(g); g.connect(c.destination); o.start(t); o.stop(t + dur + 0.02);
+    } catch (e) {}
   },
-  playNoise(duration, vol = 0.5) {
-    if (!this.ctx) return;
-    const bufferSize = this.ctx.sampleRate * duration;
-    const buffer = this.ctx.createBuffer(1, bufferSize, this.ctx.sampleRate);
-    const data = buffer.getChannelData(0);
-    for (let i = 0; i < bufferSize; i++) data[i] = Math.random() * 2 - 1;
-
-    const noise = this.ctx.createBufferSource();
-    noise.buffer = buffer;
-
-    // Bandpass filter for retro explosion sound
-    const filter = this.ctx.createBiquadFilter();
-    filter.type = 'lowpass';
-    filter.frequency.value = 1000;
-
-    const gain = this.ctx.createGain();
-    gain.gain.setValueAtTime(vol, this.ctx.currentTime);
-    gain.gain.exponentialRampToValueAtTime(0.01, this.ctx.currentTime + duration);
-
-    noise.connect(filter);
-    filter.connect(gain);
-    gain.connect(this.ctx.destination);
-    noise.start();
-  },
-  sfx: {
-    hitPlayer: () => AudioSys.playTone(600, 'square', 0.1, 0.3),
-    hitAI: () => AudioSys.playTone(400, 'square', 0.1, 0.3),
-    hitWall: () => AudioSys.playTone(250, 'triangle', 0.05, 0.2),
-    score: () => { AudioSys.playTone(800, 'sine', 0.1, 0.4, 1200); setTimeout(() => AudioSys.playTone(1200, 'sine', 0.2, 0.4, 1600), 100); },
-    lose: () => { AudioSys.playTone(300, 'sawtooth', 0.3, 0.4, 100); setTimeout(() => AudioSys.playTone(200, 'sawtooth', 0.4, 0.4, 50), 200); },
-    blockBreak: () => { AudioSys.playTone(800, 'square', 0.05, 0.2, 400); AudioSys.playNoise(0.1, 0.2); },
-    powerup: () => { AudioSys.playTone(400, 'sine', 0.1, 0.3, 800); setTimeout(() => AudioSys.playTone(600, 'sine', 0.2, 0.3, 1200), 100); },
-    winLevel: () => {
-      [440, 554, 659, 880].forEach((f, i) => {
-        setTimeout(() => AudioSys.playTone(f, 'square', 0.2, 0.3), i * 150);
-      });
-    }
+  noise(dur, vol, freq) {
+    if (!settings.sound || !this.ctx) return;
+    try {
+      const c = this.ctx, n = Math.floor(c.sampleRate * dur), b = c.createBuffer(1, n, c.sampleRate), d = b.getChannelData(0);
+      for (let i = 0; i < n; i++) d[i] = (Math.random() * 2 - 1) * (1 - i / n);
+      const s = c.createBufferSource(), g = c.createGain(), f = c.createBiquadFilter();
+      f.type = 'lowpass'; f.frequency.value = freq || 1200;
+      s.buffer = b; g.gain.value = vol; s.connect(f); f.connect(g); g.connect(c.destination); s.start();
+    } catch (e) {}
   }
 };
+const sfx = {
+  hit: (side, sp) => AudioSys.tone((side === 0 ? 560 : 420) + Math.min(400, sp * 0.35), 'square', 0.07, 0.06),
+  serve: () => AudioSys.tone(700, 'triangle', 0.08, 0.07, 980),
+  wall: () => AudioSys.tone(240, 'triangle', 0.05, 0.05),
+  win: () => { AudioSys.tone(800, 'sine', 0.1, 0.09, 1200); AudioSys.tone(1200, 'sine', 0.18, 0.08, 1600, 0.09); },
+  lose: () => { AudioSys.tone(320, 'sawtooth', 0.22, 0.06, 140); },
+  game: () => [523, 659, 784].forEach((f, i) => AudioSys.tone(f, 'square', 0.12, 0.05, 0, i * 0.09)),
+  victory: () => [523, 659, 784, 1047, 1319].forEach((f, i) => AudioSys.tone(f, 'square', 0.16, 0.05, 0, i * 0.11)),
+  defeat: () => { AudioSys.tone(300, 'sawtooth', 0.3, 0.06, 100); AudioSys.tone(200, 'sawtooth', 0.4, 0.06, 60, 0.22); },
+  brick: () => { AudioSys.tone(800, 'square', 0.05, 0.05, 400); AudioSys.noise(0.1, 0.08, 1000); },
+  power: () => { AudioSys.tone(400, 'sine', 0.1, 0.08, 800); AudioSys.tone(600, 'sine', 0.2, 0.08, 1200, 0.1); },
+  ach: () => [659, 784, 1046].forEach((f, i) => AudioSys.tone(f, 'sine', 0.12, 0.06, 0, i * 0.09)),
+  click: () => AudioSys.tone(900, 'sine', 0.04, 0.03)
+};
+const buzz = p => { if (!settings.vibro) return; try { if (navigator.vibrate) navigator.vibrate(p); } catch (e) {} };
 
-function vibrate(ms) {
-  try { if (navigator.vibrate) navigator.vibrate(ms); } catch (e) {}
-}
-
-/**
- * ============================================================================
- * GAME ENTITIES   (всё обновляется раз в тик = 1/60 с)
- * ============================================================================
- */
-
-class Particle {
-  constructor(x, y, color, speedScale = 1) {
-    this.x = x; this.y = y;
-    const angle = rand(0, Math.PI * 2);
-    const speed = rand(2, 8) * speedScale;
-    this.vx = Math.cos(angle) * speed;
-    this.vy = Math.sin(angle) * speed;
-    this.life = 1.0;
-    this.decay = rand(0.02, 0.05);
-    this.color = color;
-    this.size = rand(2, 5);
-  }
-  update() {
-    this.x += this.vx; this.y += this.vy;
-    this.life -= this.decay;
-  }
-  draw(ctx) {
-    ctx.globalAlpha = Math.max(0, this.life);
-    ctx.fillStyle = this.color;
-    ctx.beginPath(); ctx.arc(this.x, this.y, this.size * this.life, 0, Math.PI * 2); ctx.fill();
-    ctx.globalAlpha = 1;
-  }
-}
-
-class FloatingText {
-  constructor(x, y, text, color) {
-    this.x = x; this.y = y; this.text = text; this.color = color;
-    this.life = 1.0; this.vy = -1;
-  }
-  update() {
-    this.y += this.vy; this.life -= 0.02;
-  }
-  draw(ctx) {
-    ctx.globalAlpha = Math.max(0, this.life);
-    ctx.fillStyle = this.color;
-    ctx.shadowColor = this.color; ctx.shadowBlur = 10;
-    ctx.font = "15px 'Russo One', 'Rubik', sans-serif";
-    ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
-    ctx.fillText(this.text, this.x, this.y);
-    ctx.shadowBlur = 0;
-    ctx.globalAlpha = 1;
-  }
-}
-
-class Ball {
-  constructor(x, y) {
-    this.x = x; this.y = y;
-    this.px = x; this.py = y;          // позиция на прошлом тике — для плавной отрисовки
-    this.r = 7;
-    this.baseSpeed = 0;
-    this.vx = 0; this.vy = 0;
-    this.color = '#fff';
-    this.trail = [];
-    this.active = true;
-  }
-  serve(dir, speed) {
-    this.baseSpeed = speed;
-    const angle = rand(-0.2, 0.2); // Уменьшен разброс угла для более предсказуемой траектории
-    const vx = Math.sin(angle) * speed * 0.5; // Нормализованный горизонтальный компонент
-    const vy = dir * Math.sqrt(speed * speed - vx * vx); // Вертикальный компонент сохраняет общую скорость
-    this.vx = vx;
-    this.vy = vy;
-  }
-  update() {
-    if (!this.active) return;
-    this.x += this.vx;
-    this.y += this.vy;
-
-    // Trail
-    this.trail.push({ x: this.x, y: this.y });
-    if (this.trail.length > 10) this.trail.shift();
-
-    // Wall bounce (Left/Right)
-    if (this.x - this.r < 0) {
-      this.x = this.r; this.vx = Math.abs(this.vx);
-      AudioSys.sfx.hitWall(); Game.spawnParticles(this.x, this.y, '#fff', 5, 0.5);
-    } else if (this.x + this.r > W) {
-      this.x = W - this.r; this.vx = -Math.abs(this.vx);
-      AudioSys.sfx.hitWall(); Game.spawnParticles(this.x, this.y, '#fff', 5, 0.5);
-    }
-  }
-  draw(ctx, a) {
-    if (!this.active) return;
-    // Trail
-    const n = this.trail.length;
-    this.trail.forEach((t, i) => {
-      ctx.fillStyle = this.color;
-      ctx.globalAlpha = (i / n) * 0.4;
-      ctx.beginPath(); ctx.arc(t.x, t.y, this.r * (i / n), 0, Math.PI * 2); ctx.fill();
-    });
-    ctx.globalAlpha = 1;
-
-    // Ball glow
-    const x = this.px + (this.x - this.px) * a, y = this.py + (this.y - this.py) * a;
-    ctx.shadowBlur = 16; ctx.shadowColor = this.color;
-    ctx.fillStyle = this.color;
-    ctx.beginPath(); ctx.arc(x, y, this.r, 0, Math.PI * 2); ctx.fill();
-    ctx.shadowBlur = 0;
-    ctx.fillStyle = 'rgba(255,255,255,.85)';
-    ctx.beginPath(); ctx.arc(x - 2, y - 2, this.r * 0.38, 0, Math.PI * 2); ctx.fill();
-  }
-}
-
-class Paddle {
-  constructor(y, isAI, color, w = PADDLE_W) {
-    this.w = w; this.h = 12;
-    this.x = W / 2 - this.w / 2;
-    this.px = this.x;
-    this.y = y;
-    this.isAI = isAI;
-    this.color = color;
-    this.vx = 0;
-    this.targetX = W / 2;            // цель для человека — центр ракетки
-    this.keyHeld = false;
-
-    // AI params
-    this.aiSpeed = 5;
-    this.aiError = 0;
-
-    // AI state — предсказанная точка удара
-    this.predictedX = W / 2;
-    this.isReacting = false;
-
-    // AI «мозг» — задержка реакции и инерция
-    this.reactionDelay = 0;
-    this.lastPredictionTime = 0;
-    this.movementNoise = 0;
-  }
-
-  /**
-   * Предсказывает X-координату, где мяч пересечёт линию ракетки AI.
-   * Учитывает отскоки от стен и препятствия.
-   */
-  predictBallIntersection(ball) {
-    // Симулируем траекторию мяча до уровня ракетки (та же физика, что в игре)
-    const sim = { x: ball.x, y: ball.y, vx: ball.vx, vy: ball.vy, r: ball.r };
-
-    const aiY = this.y + this.h / 2;
-    const maxSteps = 600; // защита от бесконечного цикла
-
-    for (let step = 0; step < maxSteps; step++) {
-      sim.x += sim.vx;
-      sim.y += sim.vy;
-
-      // Отскок от стен
-      if (sim.x - sim.r < 0) { sim.x = sim.r; sim.vx = Math.abs(sim.vx); }
-      else if (sim.x + sim.r > W) { sim.x = W - sim.r; sim.vx = -Math.abs(sim.vx); }
-
-      // Проверка столкновения с препятствиями
-      for (const obs of Game.entities.obstacles) {
-        if (!obs.active) continue;
-        if (circleRectIntersect(sim.x, sim.y, sim.r, obs.rect.left, obs.rect.top, obs.rect.w, obs.rect.h)) {
-          Game.bounceOff(sim, obs.rect);
-        }
-      }
-
-      // Мяч достиг уровня AI
-      if (sim.vy < 0 && sim.y <= aiY) {
-        return sim.x;
-      }
-
-      // Мяч улетел в другую сторону (от AI)
-      if (sim.vy > 0 && sim.y > aiY + 100) {
-        return null;
-      }
-    }
-
-    return sim.x; // fallback
-  }
-
-  update(balls) {
-    const prevX = this.x;
-    if (this.isAI) {
-      // Находим лучший мяч для отслеживания (ближайший летящий к AI)
-      let targetBall = null;
-      let minDist = Infinity;
-      balls.forEach(b => {
-        if (!b.active) return;
-        if (b.vy < 0) {
-          const dist = this.y - b.y;
-          if (dist > 0 && dist < minDist) { minDist = dist; targetBall = b; }
-        }
-      });
-
-      // Если нет мяча, летящего к AI — ищем ближайший активный
-      if (!targetBall) {
-        balls.forEach(b => {
-          if (!b.active) return;
-          const dist = Math.abs(this.y - b.y);
-          if (dist < minDist) { minDist = dist; targetBall = b; }
-        });
-      }
-
-      if (targetBall && targetBall.vy < 0) {
-        // Мяч летит к AI — предсказываем точку пересечения
-        const now = Date.now();
-
-        // Пересчитываем предсказание с задержкой реакции (имитация «мозга»)
-        const aiLevel = this.aiError <= 5 ? 'hard' : this.aiError <= 20 ? 'medium' : 'easy';
-        const reactionTimes = { hard: 60, medium: 180, easy: 380 };
-        const noiseAmounts = { hard: 3, medium: 12, easy: 30 };
-
-        // Мяч только что повернул к AI: первый расчёт — только после задержки реакции.
-        // (Раньше задержка ограничивала лишь повторные расчёты, а прошлый расчёт всегда был
-        // «старым» — AI реагировал на удар игрока мгновенно и не пропускал ничего.)
-        if (!this.isReacting) {
-          this.isReacting = true;
-          this.lastPredictionTime = now;
-          this.hasPlan = false;
-        }
-
-        if (now - this.lastPredictionTime > reactionTimes[aiLevel]) {
-          this.predictedX = this.predictBallIntersection(targetBall);
-          this.lastPredictionTime = now;
-          this.hasPlan = true;
-
-          // Добавляем «шум» — имитация неточности позиционирования
-          this.movementNoise = (Math.random() - 0.5) * noiseAmounts[aiLevel];
-        }
-
-        const center = this.x + this.w / 2;
-        if (this.hasPlan) {
-          const targetCenter = (this.predictedX || W / 2) + this.movementNoise;
-          const deadZone = 6; // мёртвая зона — AI не дёргается на каждом пикселе
-
-          if (center < targetCenter - deadZone) {
-            this.x += this.aiSpeed;
-          } else if (center > targetCenter + deadZone) {
-            this.x -= this.aiSpeed;
-          }
-        } else {
-          // ещё не среагировал — по инерции возвращается к центру, как пока мяч летел от него
-          const returnSpeed = this.aiSpeed * 0.5;
-          if (center < W / 2 - 20) this.x += returnSpeed;
-          else if (center > W / 2 + 20) this.x -= returnSpeed;
-        }
-      } else if (targetBall) {
-        // Мяч есть, но летит от AI (vy > 0) — готовимся к возврату
-        const center = this.x + this.w / 2;
-        const returnSpeed = this.aiSpeed * 0.5;
-        if (center < W / 2 - 20) this.x += returnSpeed;
-        else if (center > W / 2 + 20) this.x -= returnSpeed;
-        this.isReacting = false;
-      } else {
-        // Нет мячей — возвращаемся в центр
-        const center = this.x + this.w / 2;
-        const returnSpeed = this.aiSpeed * 0.4;
-        if (center < W / 2 - 15) this.x += returnSpeed;
-        else if (center > W / 2 + 15) this.x -= returnSpeed;
-        this.isReacting = false;
-      }
-    } else {
-      // Ракетка человека плавно догоняет цель (палец / мышь / клавиши)
-      this.x += (this.targetX - (this.x + this.w / 2)) * 0.35;
-    }
-
-    // Clamp to screen and calculate paddle velocity
-    const newX = clamp(this.x, 0, W - this.w);
-    this.vx = newX - prevX;
-    this.x = newX;
-  }
-  draw(ctx, a) {
-    const x = this.px + (this.x - this.px) * a;
-    ctx.shadowBlur = 16; ctx.shadowColor = this.color;
-    const g = ctx.createLinearGradient(0, this.y, 0, this.y + this.h);
-    g.addColorStop(0, '#fff'); g.addColorStop(0.35, this.color); g.addColorStop(1, this.color);
-    ctx.fillStyle = g;
-    rr(ctx, x, this.y, this.w, this.h, 6); ctx.fill();
-    ctx.shadowBlur = 0;
-
-    // Inner bright core
-    ctx.fillStyle = '#fff';
-    ctx.globalAlpha = 0.45;
-    rr(ctx, x + 10, this.y + 3, this.w - 20, this.h - 6, 3); ctx.fill();
-    ctx.globalAlpha = 1;
-  }
-}
-
-/*
- * Координаты преград заданы для «эталонного» поля телефона 390×844
- * (ракетка ИИ на y=70, игрока на H−40). x > 0 — отступ левого края блока от левой стенки,
- * x < 0 — отступ правого края от правой стенки (зеркально), 'center' — по центру;
- * y — верхний край. На поле другого размера центр блока переносится пропорционально,
- * размер блока остаётся прежним.
- */
-const REF_W = 390, REF_TOP = 82, REF_BOTTOM = 804;
-function obstacleRect(cfg) {
-  let cx, cy;
-  if (cfg.x === 'center') cx = W / 2;
-  else {
-    const left = cfg.x >= 0 ? cfg.x : REF_W + cfg.x - cfg.w;
-    cx = (left + cfg.w / 2) / REF_W * W;
-  }
-  if (cfg.y === 'center') cy = H / 2;
-  else {
-    const f = (cfg.y + cfg.h / 2 - REF_TOP) / (REF_BOTTOM - REF_TOP);
-    const top = AI_Y + 12, bottom = H - 40;
-    cy = top + f * (bottom - top);
-  }
-  const left = cx - cfg.w / 2, top = cy - cfg.h / 2;
-  return { left, right: left + cfg.w, top, bottom: top + cfg.h, w: cfg.w, h: cfg.h };
-}
-
-class Obstacle {
-  constructor(cfg) {
-    this.cfg = cfg;
-    this.type = cfg.type; // 'solid', 'breakable'
-    this.color = cfg.color;
-    this.active = true;
-    this.hp = cfg.type === 'breakable' ? 1 : Infinity;
-    this.place();
-  }
-  place() { this.rect = obstacleRect(this.cfg); }
-  draw(ctx) {
-    if (!this.active) return;
-    const { left: x, top: y, w, h } = this.rect, c = this.color;
-    if (this.type === 'solid') {
-      // неразрушимая преграда — неоновый контур со стеклом внутри
-      ctx.fillStyle = hexRgba(c, 0.16);
-      rr(ctx, x, y, w, h, 5); ctx.fill();
-      ctx.shadowBlur = 12; ctx.shadowColor = c;
-      ctx.strokeStyle = c; ctx.lineWidth = 2;
-      rr(ctx, x + 1, y + 1, w - 2, h - 2, 4); ctx.stroke();
-      ctx.shadowBlur = 0;
-    } else {
-      // кирпич — как блок Тетриса: свечение, градиент, блик сверху
-      ctx.shadowBlur = 12; ctx.shadowColor = c;
-      ctx.fillStyle = c;
-      rr(ctx, x, y, w, h, 5); ctx.fill();
-      ctx.shadowBlur = 0;
-      const g = ctx.createLinearGradient(0, y, 0, y + h);
-      g.addColorStop(0, 'rgba(255,255,255,.45)'); g.addColorStop(0.5, 'rgba(255,255,255,0)'); g.addColorStop(1, 'rgba(0,0,0,.3)');
-      ctx.fillStyle = g;
-      rr(ctx, x, y, w, h, 5); ctx.fill();
-      ctx.strokeStyle = 'rgba(255,255,255,.2)'; ctx.lineWidth = 1;
-      rr(ctx, x + 0.5, y + 0.5, w - 1, h - 1, 5); ctx.stroke();
-    }
-  }
-}
-
-class PowerUp {
-  constructor(x, y, type) {
-    this.x = x; this.y = y; this.r = 12;
-    this.vy = 3; // Always falls down to player
-    this.type = type; // 'expand', 'multiball'
-    this.active = true;
-    this.color = type === 'expand' ? COL.blue : COL.yellow;
-  }
-  update() {
-    this.y += this.vy;
-    if (this.y > H + this.r) this.active = false;
-  }
-  draw(ctx) {
-    if (!this.active) return;
-    ctx.shadowBlur = 12; ctx.shadowColor = this.color;
-    ctx.fillStyle = this.color;
-    ctx.beginPath(); ctx.arc(this.x, this.y, this.r, 0, Math.PI * 2); ctx.fill();
-    ctx.shadowBlur = 0;
-
-    // значок рисуем линиями — без зависимости от шрифта
-    ctx.fillStyle = ctx.strokeStyle = '#041018';
-    if (this.type === 'expand') {
-      ctx.lineWidth = 2; ctx.lineCap = 'round';
-      ctx.beginPath();
-      ctx.moveTo(this.x - 6, this.y); ctx.lineTo(this.x + 6, this.y);
-      ctx.moveTo(this.x - 3, this.y - 3); ctx.lineTo(this.x - 6, this.y); ctx.lineTo(this.x - 3, this.y + 3);
-      ctx.moveTo(this.x + 3, this.y - 3); ctx.lineTo(this.x + 6, this.y); ctx.lineTo(this.x + 3, this.y + 3);
-      ctx.stroke();
-    } else {
-      for (const dx of [-5, 0, 5]) { ctx.beginPath(); ctx.arc(this.x + dx, this.y, 2.2, 0, Math.PI * 2); ctx.fill(); }
-    }
-  }
-}
-
-/**
- * ============================================================================
- * LEVELS CONFIGURATION
- * ============================================================================
- */
-const Levels = [
-  { name: "УРОВЕНЬ 1", desc: "Основы", aiSpeed: 3.5, aiError: 35, ballSpeed: 4.5, aiWidth: 90, targetScore: 3, obstacles: [] },
-  { name: "УРОВЕНЬ 2", desc: "Ускорение", aiSpeed: 4.5, aiError: 25, ballSpeed: 5.5, aiWidth: 90, targetScore: 3, obstacles: [] },
-  { name: "УРОВЕНЬ 3", desc: "Преграда", aiSpeed: 5, aiError: 20, ballSpeed: 6, aiWidth: 90, targetScore: 3,
-    obstacles: [{ x: 'center', y: 'center', w: 80, h: 20, type: 'solid', color: COL.red }] },
-  { name: "УРОВЕНЬ 4", desc: "Кирпичи", aiSpeed: 5.5, aiError: 15, ballSpeed: 6.5, aiWidth: 80, targetScore: 3,
-    obstacles: [
-      { x: 'center', y: 'center', w: 60, h: 20, type: 'breakable', color: COL.yellow },
-      { x: 50, y: 'center', w: 60, h: 20, type: 'breakable', color: COL.cyan },
-      { x: -50, y: 'center', w: 60, h: 20, type: 'breakable', color: COL.cyan }
-    ] },
-  { name: "УРОВЕНЬ 5", desc: "Скорость света", aiSpeed: 7, aiError: 8, ballSpeed: 8, aiWidth: 80, targetScore: 4, obstacles: [] },
-  { name: "УРОВЕНЬ 6", desc: "Лабиринт", aiSpeed: 6.5, aiError: 12, ballSpeed: 7, aiWidth: 80, targetScore: 3,
-    obstacles: [
-      { x: 80, y: 250, w: 100, h: 15, type: 'solid', color: COL.blue },
-      { x: -80, y: 350, w: 100, h: 15, type: 'solid', color: COL.blue }
-    ] },
-  { name: "УРОВЕНЬ 7", desc: "Защита ИИ", aiSpeed: 5.5, aiError: 2, ballSpeed: 7, aiWidth: 120, targetScore: 3,
-    obstacles: [
-      { x: 'center', y: 150, w: 140, h: 20, type: 'breakable', color: COL.orange }
-    ] },
-  { name: "УРОВЕНЬ 8", desc: "Узкий проход", aiSpeed: 6.5, aiError: 8, ballSpeed: 7.5, aiWidth: 70, targetScore: 3,
-    obstacles: [
-      { x: 40, y: 'center', w: 80, h: 200, type: 'solid', color: COL.purple },
-      { x: -40, y: 'center', w: 80, h: 200, type: 'solid', color: COL.purple }
-    ] },
-  { name: "УРОВЕНЬ 9", desc: "Минное поле", aiSpeed: 7.5, aiError: 2, ballSpeed: 8, aiWidth: 80, targetScore: 3,
-    obstacles: Array.from({ length: 8 }, (_, i) => ({ x: -120 + (i % 4) * 80, y: 250 + Math.floor(i / 4) * 50, w: 40, h: 20, type: 'breakable', color: COL.green }))
-  },
-  { name: "УРОВЕНЬ 10", desc: "Финал: Мастер", aiSpeed: 9, aiError: 0, ballSpeed: 9, aiWidth: 100, targetScore: 5,
-    obstacles: [{ x: 'center', y: 'center', w: 100, h: 30, type: 'solid', color: COL.red }] }
+const ACH = [
+  { id: 'first_win', icon: '🥇', title: 'Первая победа', desc: 'Выиграйте матч у ИИ (матч или турнир)' },
+  { id: 'ace', icon: '🎯', title: 'Эйс', desc: 'Выиграйте очко прямо с подачи — соперник не коснулся мяча' },
+  { id: 'rally30', icon: '🔁', title: 'Марафон', desc: 'Розыгрыш из 30 ударов и больше' },
+  { id: 'speed', icon: '⚡', title: 'Скорость света', desc: 'Отбейте мяч на предельной скорости — 80 км/ч' },
+  { id: 'curve', icon: '🌀', title: 'Крученый', desc: 'Выиграйте очко сильно закрученным мячом' },
+  { id: 'deuce', icon: '⚖️', title: 'Больше-меньше', desc: 'Выиграйте у ИИ партию после 10:10' },
+  { id: 'comeback', icon: '🔥', title: 'Камбэк', desc: 'Выиграйте у ИИ партию, уступая 5 очков и больше' },
+  { id: 'shutout', icon: '🧹', title: 'Всухую', desc: 'Выиграйте у ИИ партию до 11 или 21, не отдав ни очка' },
+  { id: 'pro', icon: '💪', title: 'Профи повержен', desc: 'Победите в матче ИИ «Профи» или сильнее' },
+  { id: 'master', icon: '👑', title: 'Мастер повержен', desc: 'Победите ИИ «Мастер»' },
+  { id: 'champ', icon: '🏆', title: 'Чемпион', desc: 'Выиграйте турнир — все 7 соперников' },
+  { id: 'campaign', icon: '🎮', title: 'Кампания пройдена', desc: 'Пройдите все 10 уровней кампании' },
+  { id: 'bricks', icon: '🧱', title: 'Разрушитель', desc: 'Разбейте 50 кирпичей' },
+  { id: 'survivor', icon: '♾', title: 'Выживший', desc: 'Забейте 10 голов в выживании' },
+  { id: 'friends', icon: '👥', title: 'Дружеский матч', desc: 'Сыграйте матч вдвоём' }
 ];
-
-const DIFF_NAMES = { 1: 'Легко', 2: 'Средне', 3: 'Сложно' };
-
-/* ── Рекорды (localStorage, всё в try/catch) ── */
-const STATS_KEY = 'pong_stats';
-function loadStats() {
-  try { const s = JSON.parse(localStorage.getItem(STATS_KEY) || '{}'); return s && typeof s === 'object' ? s : {}; }
-  catch (e) { return {}; }
+let unlocked = (() => { const o = asObj(store.get(KEYS.ach, {})), u = {}; for (const a of ACH) if (num(o[a.id]) > 0) u[a.id] = o[a.id]; return u; })();
+const achQueue = [];
+let achTimer = 0;
+function unlock(id) {
+  if (unlocked[id]) return;
+  const a = ACH.find(x => x.id === id);
+  if (!a) return;
+  unlocked[id] = Date.now();
+  store.set(KEYS.ach, unlocked);
+  if (S) S.newAch.push(a);
+  sfx.ach(); buzz([30, 40, 60]);
+  if (S && (S.ended || S.world.score.over)) return;      // в конце матча — видно в окне итогов
+  achQueue.push(`🏅 Достижение: ${a.title}`);
+  if (!achTimer) nextAchToast();
 }
-function saveStats(s) { try { localStorage.setItem(STATS_KEY, JSON.stringify(s)); } catch (e) {} }
+function nextAchToast() {
+  const m = achQueue.shift();
+  if (!m) { achTimer = 0; return; }
+  toast(m, 'gold', 2400);
+  achTimer = setTimeout(nextAchToast, 2600);
+}
 
-/* ── Экраны и оверлеи ── */
-const open = id => $(id).classList.add('open');
-const close = id => $(id).classList.remove('open');
+/* ═══ Экраны и окна ═══ */
+let curScreen = 'menu';
+const OVERLAYS = ['ov-pause', 'ov-over', 'ov-setup', 'ov-tour', 'ov-levels', 'ov-rules', 'ov-stats', 'ov-ach', 'ov-history', 'ov-settings'];
 const isOpen = id => $(id).classList.contains('open');
+const anyOverlay = () => OVERLAYS.some(isOpen) || !!document.querySelector('.ku-dialog');
+let returnTo = null;                          // окно, в которое вернуться после правил/настроек (пауза)
+function openOv(id) {
+  const el = $(id);
+  el.classList.add('open');
+  keys.clear();
+  setTimeout(() => {
+    if (!el.classList.contains('open')) return;
+    const b = el.querySelector('.ku-card .ku-btn.primary, .ku-modal footer .ku-btn.primary, .ku-modal footer .ku-btn, .ku-btn');
+    if (b) try { b.focus({ preventScroll: true }); } catch (e) {}
+  }, 30);
+}
+function closeOv(id) { $(id).classList.remove('open'); }
+function closeAll() { OVERLAYS.forEach(closeOv); returnTo = null; }
+function closeModal(id) {
+  closeOv(id);
+  if (returnTo && returnTo !== id) { const r = returnTo; returnTo = null; openOv(r); }
+}
+function toast(m, kind, ms) { if (window.KuArcade) KuArcade.toast(m, ((kind || '') + (curScreen === 'game' ? ' top' : '')).trim(), ms); }
 function showScreen(name) {
+  curScreen = name;
   $('screen-menu').classList.toggle('active', name === 'menu');
   $('screen-game').classList.toggle('active', name === 'game');
-  document.body.classList.toggle('ku-calm', name === 'game');   // фон набора не анимируем под канвасом
+  document.body.classList.toggle('ku-calm', name === 'game');
+  if (name === 'menu') refreshMenu();
 }
-function pop(el) { el.classList.remove('pop'); void el.offsetWidth; el.classList.add('pop'); }
-function fillStats(el, rows) {
-  el.textContent = '';
-  rows.forEach(([label, value]) => {
-    const d = document.createElement('div'), b = document.createElement('b');
-    d.textContent = label; b.textContent = value; d.appendChild(b); el.appendChild(d);
+$$('[data-close]').forEach(b => b.addEventListener('click', () => { sfx.click(); closeModal(b.closest('.ku-overlay').id); }));
+// тап по подложке модального окна закрывает его (карточки паузы/итогов — нет)
+$$('.ku-overlay').forEach(o => o.addEventListener('click', e => { if (e.target === o && o.querySelector('.ku-modal')) closeModal(o.id); }));
+
+/* ═══ Меню ═══ */
+function charName(id) { return (PC.CHARS[id] || PC.CHARS.even).name; }
+function fmtFormat(points, games) { return `до ${points}` + (games > 1 ? ` · до ${games} побед` : ''); }
+function refreshMenu() {
+  $('best-match').textContent = `${LEVEL_NAMES[settings.aiLevel]} · ${charName(settings.aiChar)} · ${fmtFormat(settings.points, settings.games)}`;
+  const o = PC.TOUR[tour.stage];
+  $('best-tour').textContent = tour.stage > 0 ? `Соперник ${tour.stage + 1} из ${PC.TOUR.length}: ${o.name} «${o.nick}»`
+    : stats.titles ? `🏆 Титулов: ${stats.titles} · новый турнир` : `${PC.TOUR.length} соперников · лестница`;
+  const done = stats.campaign;
+  $('best-campaign').textContent = done >= PC.CAMPAIGN.length ? '🏆 Пройдена' : `Уровень ${done + 1} из ${PC.CAMPAIGN.length}`;
+  $('best-endless').textContent = 'Рекорд: ' + stats.endless;
+  $('best-duo').textContent = 'на одном экране · ' + fmtFormat(settings.points, settings.games);
+  const got = ACH.filter(a => unlocked[a.id]).length;
+  $('menu-stats').textContent = stats.played ? `Сыграно матчей: ${stats.played} • Побед над ИИ: ${stats.wins} • Достижений: ${got}/${ACH.length}` : 'Сыграй первый матч!';
+}
+
+/* ── Настройка матча (с ИИ / вдвоём) ── */
+let setupMode = 'match';
+function segSet(id, v) { $$(`#${id} button`).forEach(b => b.classList.toggle('active', b.dataset.v === String(v))); }
+function renderSetup() {
+  $('su-title').textContent = setupMode === 'duo' ? '👥 Вдвоём' : '🏓 Матч с ИИ';
+  $('su-ai').hidden = setupMode === 'duo';
+  segSet('su-level', settings.aiLevel); segSet('su-char', settings.aiChar);
+  segSet('su-points', settings.points); segSet('su-games', settings.games);
+  $('su-win2').checked = settings.winBy2;
+  $('su-char-note').textContent = CHAR_NOTES[settings.aiChar];
+  const p = settings.points, every = p >= 21 ? 5 : 2;
+  $('su-note').innerHTML = `Подача — по ${every} ${plural(every, 'очку', 'очка', 'очков')}` +
+    (settings.winBy2 ? `, при ${p - 1}:${p - 1} — по одной, до разницы в 2.` : `; партия до ${p} без «больше-меньше».`) +
+    (settings.games > 1 ? ` Матч — до <b>${settings.games}</b> ${plural(settings.games, 'победы', 'побед', 'побед')} в партиях.` : '') +
+    (setupMode === 'duo' ? '<br>Игрок 1 — W S (A D) или нижняя/левая половина экрана, игрок 2 — ↑ ↓ (← →) или верхняя/правая.' : '');
+}
+function bindSeg(id, key, conv) {
+  $$(`#${id} button`).forEach(b => b.addEventListener('click', () => { sfx.click(); settings[key] = conv(b.dataset.v); saveSettings(); renderSetup(); renderSettings(); }));
+}
+bindSeg('su-level', 'aiLevel', v => +v);
+bindSeg('su-char', 'aiChar', v => v);
+bindSeg('su-points', 'points', v => +v);
+bindSeg('su-games', 'games', v => +v);
+$('su-win2').addEventListener('change', () => { settings.winBy2 = $('su-win2').checked; saveSettings(); renderSetup(); renderSettings(); });
+$('su-play').addEventListener('click', () => { if (setupMode === 'duo') startDuo(); else startMatch(); });
+$('btn-match').addEventListener('click', () => { AudioSys.init(); sfx.click(); setupMode = 'match'; renderSetup(); openOv('ov-setup'); });
+$('btn-duo').addEventListener('click', () => { AudioSys.init(); sfx.click(); setupMode = 'duo'; renderSetup(); openOv('ov-setup'); });
+
+/* ── Турнир ── */
+function renderTour() {
+  const T = PC.TOUR;
+  $('tour-count').textContent = stats.titles ? `· титулов: ${stats.titles}` : '';
+  $('ladder').innerHTML = T.map((o, i) => {
+    const st = i < tour.stage ? 'done' : i === tour.stage ? 'cur' : 'lock';
+    const icon = st === 'done' ? '✅' : st === 'cur' ? '▶' : '🔒';
+    const fmt = o.games > 1 ? `до ${o.games} побед по ${o.points}` : `партия до ${o.points}`;
+    return `<div class="rung ${st}"><div class="av" style="--c:${o.color}">${esc(o.name[0])}</div>` +
+      `<div class="nm"><h4>${i + 1}. ${esc(o.name)} «${esc(o.nick)}»</h4><p>${levelLabel(o.skill)} · ${fmt}</p></div>` +
+      `<div class="st">${icon}</div></div>`;
+  }).join('');
+  const o = T[tour.stage];
+  $('tour-cur').innerHTML = `Следующий соперник: <b>${esc(o.name)} «${esc(o.nick)}»</b><br>${esc(o.about)}`;
+  $('tour-play').textContent = `▶ Играть: ${o.name}`;
+  $('tour-reset').hidden = tour.stage === 0;
+}
+// название уровня по мастерству (для промежуточных — ближайший снизу с плюсом)
+function levelLabel(skill) {
+  const s = skill * 3, i = Math.floor(s + 1e-6), f = s - i;
+  if (i >= 3 || (i === 2 && f >= 0.67)) return LEVEL_NAMES[3];
+  return f >= 0.67 ? LEVEL_NAMES[i + 1] : LEVEL_NAMES[i] + (f >= 0.34 ? '+' : '');
+}
+$('btn-tour').addEventListener('click', () => { AudioSys.init(); sfx.click(); renderTour(); openOv('ov-tour'); });
+$('tour-play').addEventListener('click', () => startTour());
+$('tour-reset').addEventListener('click', async () => {
+  const ok = await KuArcade.confirm('Начать турнир с первого соперника? Пройденные этапы обнулятся (титулы и статистика сохранятся).', { title: 'ТУРНИР ЗАНОВО', ok: 'Начать заново', danger: true });
+  if (!ok) return;
+  tour.stage = 0; saveTour(); renderTour(); refreshMenu();
+});
+
+/* ── Кампания ── */
+let lvSel = 0;
+function renderLevels() {
+  const done = stats.campaign, n = PC.CAMPAIGN.length;
+  $('lv-count').textContent = `· ${Math.min(done, n)}/${n}`;
+  $('lv-grid').innerHTML = PC.CAMPAIGN.map((L, i) => {
+    const op = i <= done, d = i < done;
+    return `<button class="lv${d ? ' done' : ''}${i === lvSel ? ' cur' : ''}" data-i="${i}" ${op ? '' : 'disabled'} aria-label="Уровень ${i + 1}: ${esc(L.name)}${op ? '' : ' — закрыт'}">` +
+      `<span class="n">${op ? i + 1 : '🔒'}</span><small>${op ? esc(L.name) : 'закрыт'}</small></button>`;
+  }).join('');
+  const L = PC.CAMPAIGN[lvSel];
+  const bricks = L.obstacles.filter(o => o.type === 'brick').length, solid = L.obstacles.length - bricks;
+  $('lv-info').innerHTML = `<b>Уровень ${lvSel + 1} · ${esc(L.name)}</b><br>До ${L.target} ${plural(L.target, 'очка', 'очков', 'очков')} · ИИ: ${levelLabel(L.aiSkill)}, ${charName(L.aiChar).toLowerCase()}` +
+    (solid ? ` · преград: ${solid}` : '') + (bricks ? ` · кирпичей: ${bricks}` : '') + (lvSel < done ? ' · ✅ пройден' : '');
+  $('lv-play').textContent = `▶ Уровень ${lvSel + 1}`;
+}
+$('lv-grid').addEventListener('click', e => {
+  const b = e.target.closest('.lv'); if (!b || b.disabled) return;
+  sfx.click();
+  const i = +b.dataset.i;
+  if (i === lvSel) { startLevel(i); return; }      // повторный тап — играть
+  lvSel = i; renderLevels();
+});
+$('lv-play').addEventListener('click', () => startLevel(lvSel));
+$('btn-campaign').addEventListener('click', () => {
+  AudioSys.init(); sfx.click();
+  lvSel = Math.min(stats.campaign, PC.CAMPAIGN.length - 1);
+  renderLevels(); openOv('ov-levels');
+});
+$('btn-endless').addEventListener('click', () => { AudioSys.init(); startSurvival(); });
+
+/* ═══ Партия ═══ */
+function begin(cfg) {
+  AudioSys.init();
+  closeAll();
+  const W = new PC.World({
+    rules: cfg.rules, sides: cfg.sides, obstacles: cfg.obstacles, powerups: cfg.powerups,
+    serveSpeed: cfg.serveSpeed || 330, vmax: cfg.vmax || 800
   });
-  el.style.display = rows.length ? '' : 'none';
+  S = {
+    cfg, mode: cfg.mode, world: W, ended: false, playT: 0, newAch: [], names: cfg.names,
+    g: { maxDef: 0, deuce: false }, goals: 0, bestBefore: stats.endless
+  };
+  Render.clear();
+  Render.setColors(Render.SIDE_COL[0], cfg.oppColor || Render.SIDE_COL[1]);
+  $('g-title').textContent = cfg.title;
+  $('hud-0-name').textContent = cfg.names[0];
+  $('hud-1-name').textContent = cfg.names[1];
+  $('hud-1-pts').style.color = cfg.oppColor || '';
+  paused = false; acc = 0; last = 0; hintKey = '';
+  keys.clear(); touches.clear();
+  showScreen('game');
+  layout();
+  requestAnimationFrame(layout);            // после показа экрана размеры точнее
+  updateHud();
+  if (cfg.mode !== 'survival' && cfg.mode !== 'campaign') {
+    const fs = W.score.matchFirst;
+    Render.showBanner(cfg.mode === 'duo' ? `ПОДАЁТ ИГРОК ${fs + 1}` : fs === 0 ? 'ВАША ПОДАЧА' : 'ПОДАЁТ СОПЕРНИК', `Жребий · ${fmtFormat(cfg.rules.points, cfg.rules.games)}`, '#ffd60a', 1.6);
+  }
+  try { if (document.activeElement && document.activeElement.blur) document.activeElement.blur(); } catch (e) {}
+}
+function startMatch() {
+  const lv = settings.aiLevel, ch = settings.aiChar;
+  begin({ mode: 'match', rules: PC.rulesFor(settings.points, settings.winBy2, settings.games),
+    sides: [{ kind: 'human' }, { kind: 'ai', skill: LEVEL_SKILL[lv], char: ch }],
+    names: ['Вы', 'ИИ'], title: `МАТЧ · ${LEVEL_NAMES[lv].toUpperCase()}`, aiLevel: lv, aiChar: ch, skill: LEVEL_SKILL[lv] });
+}
+function startTour() {
+  const i = tour.stage, o = PC.TOUR[i];
+  begin({ mode: 'tour', tourIdx: i, rules: PC.rulesFor(o.points, true, o.games),
+    sides: [{ kind: 'human' }, { kind: 'ai', skill: o.skill, char: o.char }],
+    names: ['Вы', o.name], title: `ТУРНИР · ${i + 1}/${PC.TOUR.length} · ${o.nick.toUpperCase()}`, skill: o.skill, oppColor: o.color });
+}
+function startLevel(i) {
+  const L = PC.CAMPAIGN[i];
+  lvSel = i;
+  begin({ mode: 'campaign', levelIdx: i, rules: { points: L.target, winBy2: false, games: 1, every: 2 },
+    sides: [{ kind: 'human' }, { kind: 'ai', skill: L.aiSkill, char: L.aiChar, w: L.aiW }],
+    obstacles: L.obstacles, powerups: true, serveSpeed: L.serve, vmax: L.vmax,
+    names: ['Вы', 'ИИ'], title: `КАМПАНИЯ · УР. ${i + 1}`, skill: L.aiSkill });
+}
+const SURV = { skill0: 0.05, skillStep: 0.065, serve0: 300, serveStep: 10, serveMax: 480 };
+function startSurvival() {
+  begin({ mode: 'survival', rules: { survival: true, every: 1 },
+    sides: [{ kind: 'human' }, { kind: 'ai', skill: SURV.skill0, char: 'even' }], serveSpeed: SURV.serve0, vmax: 800,
+    names: ['Вы', 'ИИ'], title: 'ВЫЖИВАНИЕ' });
+}
+function startDuo() {
+  begin({ mode: 'duo', rules: PC.rulesFor(settings.points, settings.winBy2, settings.games),
+    sides: [{ kind: 'human' }, { kind: 'human' }], names: ['Игрок 1', 'Игрок 2'], title: 'ВДВОЁМ' });
+}
+const vsAI = () => S && S.mode !== 'duo';
+
+/* ── Показатели ── */
+function dots(n, won) { let h = ''; for (let i = 0; i < n; i++) h += `<i class="${i < won ? 'on' : ''}"></i>`; return h; }
+function updateHud() {
+  if (!S) return;
+  const W = S.world, sc = W.score, o = sc.o;
+  const surv = S.mode === 'survival';
+  $('hud-0-pts').textContent = sc.pts[0];
+  if (surv) {
+    $('hud-0-name').textContent = 'Голы';
+    $('hud-1-name').textContent = 'Сила ИИ';
+    $('hud-1-pts').textContent = Math.round(W.ai[1].P.skill * 100) + '%';
+  } else $('hud-1-pts').textContent = sc.pts[1];
+  $('hud-0-gm').innerHTML = o.games > 1 ? dots(o.games, sc.games[0]) : '';
+  $('hud-1-gm').innerHTML = o.games > 1 ? dots(o.games, sc.games[1]) : '';
+  const serving = W.phase === 'serve' || W.phase === 'rally' ? W.server : -1;
+  $('hud-0').classList.toggle('on', serving === 0);
+  $('hud-1').classList.toggle('on', serving === 1);
+  let ml, mv;
+  if (S.mode === 'campaign') { ml = 'Цель'; mv = o.points; }
+  else if (surv) { ml = 'Рекорд'; mv = Math.max(stats.endless, sc.pts[0]); }
+  else if (o.games > 1) { ml = 'Партии'; mv = `${sc.games[0]} : ${sc.games[1]}`; }
+  else { ml = 'Партия'; mv = `до ${o.points}`; }
+  $('hud-mid-l').textContent = ml; $('hud-mid-v').textContent = mv;
+  // подзаголовок: партия и особые моменты
+  let sub;
+  if (S.mode === 'campaign') sub = PC.CAMPAIGN[S.cfg.levelIdx].name.toUpperCase();
+  else if (surv) sub = 'ДО ПЕРВОГО ПРОПУСКА';
+  else sub = (o.games > 1 ? `ПАРТИЯ ${sc.gameNo} · ` : '') + `ДО ${o.points}` + (o.winBy2 ? '' : ' БЕЗ РАЗНИЦЫ');
+  let tag = '';
+  // метки — только пока партия идёт (после решающего очка счёт уже окончательный)
+  if (!sc.over && !surv && !W.gameJustEnded && (W.phase === 'serve' || W.phase === 'rally' || W.phase === 'point')) {
+    if (sc.deuce() && sc.pts[0] === sc.pts[1]) tag = '<span class="st-tag">БОЛЬШЕ-МЕНЬШЕ</span>';
+    else {
+      const mp = [0, 1].find(s => sc.matchPoint(s)), gp = [0, 1].find(s => sc.gamePoint(s));
+      if (mp !== undefined) tag = `<span class="st-tag${mp === 1 ? ' c2' : ''}">МАТЧБОЛ</span>`;
+      else if (gp !== undefined) tag = `<span class="st-tag${gp === 1 ? ' c2' : ''}">${o.games > 1 ? 'ГЕЙМБОЛ' : 'МАТЧБОЛ'}</span>`;
+    }
+  }
+  $('g-sub').innerHTML = esc(sub) + tag;
+}
+function popScore(side) {
+  const el = $(side === 0 ? 'hud-0-pts' : 'hud-1-pts');
+  el.classList.remove('pop'); void el.offsetWidth; el.classList.add('pop');
+}
+function serveHint() {
+  const W = S && S.world, el = $('game-hint');
+  const key = W ? W.phase + (W.pt ? W.pt.server : '') + S.mode : '';
+  if (key === hintKey) return;
+  hintKey = key;
+  if (!W || W.phase !== 'serve') { el.classList.add('off'); return; }
+  const s = W.pt.server, sc = W.score, every = sc.o.every;
+  // номер подачи в серии: «1 из 2» (при «больше-меньше» и в выживании — по одной)
+  const nth = every > 1 && !sc.deuce() && !sc.o.survival ? ` (${every - sc.servesLeft() + 1} из ${every})` : '';
+  let t;
+  if (W.ai[s]) t = `Подаёт соперник${nth} — готовьтесь`;
+  else if (S.mode === 'duo') t = `Подаёт игрок ${s + 1}${nth}: ${coarse() ? 'тап в своей половине' : 'пробел, Enter или тап'}`;
+  else t = coarse() ? `Ваша подача${nth}: тап по полю, ведите палец — закрутка` : `Ваша подача${nth}: щелчок, пробел или Enter`;
+  el.textContent = t; el.classList.remove('off');
+}
+function serveLabel() {
+  const W = S.world;
+  if (W.phase !== 'serve') return '';
+  const s = W.pt.server;
+  if (S.mode === 'duo') return `ПОДАЁТ ИГРОК ${s + 1}`;
+  return s === 0 ? 'ВАША ПОДАЧА' : 'ПОДАЧА';
 }
 
-/**
- * ============================================================================
- * MAIN GAME CONTROLLER
- * ============================================================================
- */
-const Game = {
-  state: 'MENU', // MENU, PLAYING, PAUSED, TRANSITION
-  mode: 'CAMPAIGN', // CAMPAIGN, ENDLESS, FREE_AI, MULTIPLAYER
-  levelIdx: 0,
-  aiDifficulty: 2, // 1: Easy, 2: Med, 3: Hard
-  score: { player: 0, ai: 0 },
-  targetScore: 3,
-  config: null,
-  keys: { a: false, d: false, left: false, right: false },
-  touches: new Map(),           // id касания → 'top' | 'bottom' (зона закрепляется при касании)
-
-  entities: {
-    balls: [],
-    player: null,
-    ai: null, // AI or Player 2
-    obstacles: [],
-    particles: [],
-    powerups: [],
-    texts: []
-  },
-
-  shakeAmt: 0,
-  hitStopFrame: 0,
-  bgOffset: 0,
-  combo: 0,
-  serveTimer: 0,                // тики до подачи (вместо setTimeout — останавливается на паузе)
-  serveDir: 1,
-  expands: [],                  // тики до конца каждого бонуса «широкая ракетка»
-  match: { bricks: 0, bestRally: 0 },
-  acc: 0, lastT: 0,
-  endTimer: 0,
-  rulesFromPause: false,
-
-  // Размер поля = свободное место под шапкой и HUD (рамка .ku-board — 16 px)
-  layout() {
-    if (!$('screen-game').classList.contains('active')) return;
-    const wrap = $('wrap');
-    const nw = Math.floor(clamp(wrap.clientWidth - 16, 200, 540));
-    const nh = Math.floor(Math.max(240, wrap.clientHeight - 16));
-    const dpr = Math.min(2, window.devicePixelRatio || 1);
-    if (nw === W && nh === H && dpr === DPR && canvas.width === Math.round(nw * dpr)) return;
-    const sx = nw / W, sy = nh / H;
-    W = nw; H = nh; DPR = dpr;
-    canvas.style.width = W + 'px'; canvas.style.height = H + 'px';
-    canvas.width = Math.round(W * DPR); canvas.height = Math.round(H * DPR);
-    if (this.state !== 'MENU' && this.entities.player) {
-      this.rescale(sx, sy);
-      this.draw(1);
-    }
-  },
-
-  // Поле поменяло размер посреди партии (поворот, панель браузера) — переносим объекты
-  rescale(sx, sy) {
-    const E = this.entities;
-    E.balls.forEach(b => {
-      b.x = clamp(b.x * sx, b.r, W - b.r); b.y *= sy; b.px = b.x; b.py = b.y; b.trail = [];
-    });
-    E.powerups.forEach(p => { p.x *= sx; p.y *= sy; });
-    E.particles = []; E.texts = [];
-    E.obstacles.forEach(o => o.place());
-    [E.player, E.ai].forEach(p => {
-      p.x = clamp(p.x * sx, 0, W - p.w); p.px = p.x;
-      p.targetX *= sx; p.predictedX = (p.predictedX || W / 2) * sx;
-    });
-    E.player.y = H - 40;
-    E.ai.y = AI_Y;
-  },
-
-  init() {
-    window.addEventListener('resize', () => this.layout());
-    this.setupInputs();
-    this.refreshMenu();
-    requestAnimationFrame(t => this.loop(t));
-  },
-
-  setupInputs() {
-    // Тач: каждое касание закрепляется за своей половиной поля в момент касания
-    // (вдвоём палец, заехавший за середину, не перехватывает чужую ракетку)
-    const board = $('board');
-    const onTouch = e => {
-      e.preventDefault();
-      const ended = e.type === 'touchend' || e.type === 'touchcancel';
-      const rect = canvas.getBoundingClientRect();
-      for (const t of e.changedTouches) {
-        if (ended) { this.touches.delete(t.identifier); continue; }
-        if (this.state !== 'PLAYING') continue;
-        const x = t.clientX - rect.left, y = t.clientY - rect.top;
-        let side = this.touches.get(t.identifier);
-        if (!side) {
-          side = this.mode === 'MULTIPLAYER' && y < H / 2 ? 'top' : 'bottom';
-          this.touches.set(t.identifier, side);
+/* ── События мира → звук, эффекты, статистика ── */
+function handleEvents(evs) {
+  const W = S.world, C = Render.COL;
+  for (const e of evs) {
+    switch (e[0]) {
+      case 'serve': updateHud(); break;
+      case 'launch': sfx.serve(); updateHud(); break;
+      case 'hit': {
+        const [, side, sp, , , x, y, inSp] = e;
+        sfx.hit(side, sp);
+        Render.spray(x, y, side === 0 ? -1 : 1, side === 0 ? C.cyan : (S.cfg.oppColor || C.pink), 8);
+        if (!W.ai[side]) buzz(12);
+        Render.shake(Math.min(4, sp / 300));
+        if (W.rally >= 30 && (W.rally === 30 || W.rally % 10 === 0)) Render.float(x, side === 0 ? y - 40 : y + 40, `${W.rally} УДАРОВ!`, C.yellow, 15);
+        if (W.rally >= 30) unlock('rally30');
+        if (vsAI() && side === 0) {
+          stats.hits++;
+          if (inSp > stats.fastest) stats.fastest = Math.round(inSp);
+          if (inSp >= W.vmax - 1 && W.vmax >= 780) unlock('speed');    // мяч на предельной скорости
         }
-        const pad = side === 'top' ? this.entities.ai : this.entities.player;
-        if (pad && !pad.isAI) pad.targetX = clamp(x, 0, W);
+        if (W.rally > stats.longest) stats.longest = W.rally;
+        break;
       }
-    };
-    ['touchstart', 'touchmove', 'touchend', 'touchcancel'].forEach(t => board.addEventListener(t, onTouch, { passive: false }));
-
-    // Mouse controls (в любом месте игрового экрана)
-    $('screen-game').addEventListener('pointermove', e => {
-      if (e.pointerType === 'touch' || this.state !== 'PLAYING') return;
-      if (this.mode === 'MULTIPLAYER') return; // In multiplayer, mouse is disabled to avoid single-player advantage, use keys
-      const rect = canvas.getBoundingClientRect();
-      this.entities.player.targetX = clamp(e.clientX - rect.left, 0, W);
-    });
-
-    // Keyboard: один игрок — ← → или A D; вдвоём — A D нижний, ← → верхний
-    const KEYMAP = { ArrowLeft: 'left', ArrowRight: 'right', KeyA: 'a', KeyD: 'd' };
-    window.addEventListener('keydown', e => {
-      if (KEYMAP[e.code]) {
-        this.keys[KEYMAP[e.code]] = true;
-        if (this.state === 'PLAYING') e.preventDefault();
+      case 'wall': sfx.wall(); Render.burst(e[1], e[2], '#ffffff', 4, 90, 0.3); break;
+      case 'obstacle': sfx.wall(); Render.burst(e[2], e[3], '#ffffff', 5, 100, 0.3); break;
+      case 'brick': {
+        sfx.brick(); Render.burst(e[2], e[3], e[4], 24, 220, 0.6); Render.shake(5);
+        if (e[5] === 0) { stats.bricks++; if (stats.bricks >= 50) unlock('bricks'); }   // кирпич разбит вашим мячом
+        break;
       }
-      if ((e.code === 'Escape' || e.code === 'KeyP') && !e.repeat) {
-        if (isOpen('ov-rules')) { this.closeRules(); return; }
-        if (this.state === 'PLAYING') this.pause();
-        else if (this.state === 'PAUSED') this.resume();
-      }
-    });
-    window.addEventListener('keyup', e => { if (KEYMAP[e.code]) this.keys[KEYMAP[e.code]] = false; });
-    // окно потеряло фокус — отпускаем клавиши, иначе ракетка «залипает»
-    window.addEventListener('blur', () => { for (const k in this.keys) this.keys[k] = false; });
-    document.addEventListener('visibilitychange', () => { if (document.hidden) this.pause(); });
+      case 'powerSpawn': Render.float(e[2], e[3] - 10, e[1] === 'expand' ? '↔' : '●●●', e[1] === 'expand' ? C.blue : C.yellow, 16); break;
+      case 'power': sfx.power(); Render.float(e[2], e[3] - 24, e[1] === 'expand' ? 'ШИРЕ!' : 'МУЛЬТИМЯЧ!', e[1] === 'expand' ? C.blue : C.yellow, 16); Render.burst(e[2], e[3], e[1] === 'expand' ? C.blue : C.yellow, 16, 160, 0.5); break;
+      case 'expandEnd': sfx.wall(); break;
+      case 'point': onPoint(e[1], e[2]); break;
+      case 'game': onGame(e[1], e[2], e[3]); break;
+      case 'newgame': updateHud(); break;
+      case 'end': onEnd(); break;
+    }
+  }
+}
+function onPoint(w, info) {
+  const W = S.world, C = Render.COL, sc = W.score;
+  const human = !W.ai[w], loserSide = 1 - w;
+  if (S.mode === 'duo' || human) sfx.win(); else sfx.lose();
+  buzz(w === 0 || S.mode === 'duo' ? 25 : [40, 30, 40]);
+  Render.flash(loserSide, w === 0 ? C.cyan : (S.cfg.oppColor || C.pink));
+  Render.burst(PC.FW / 2, loserSide === 0 ? PC.FL - 10 : 10, w === 0 ? C.cyan : (S.cfg.oppColor || C.pink), 40, 260, 0.8);
+  Render.shake(9);
+  const fy = loserSide === 0 ? PC.FL - 110 : 110;
+  const label = info.ace ? 'ЭЙС!' : info.curveWin ? 'ЗАКРУТКА!' : '+1';
+  Render.float(PC.FW / 2, fy, label, w === 0 ? C.cyan : (S.cfg.oppColor || C.pink), info.ace || info.curveWin ? 22 : 20, S.mode === 'duo' && w === 1);
+  popScore(w);
+  // статистика и достижения (только против ИИ)
+  if (vsAI()) {
+    if (w === 0) {
+      stats.ptsW++;
+      if (info.ace) { stats.aces++; unlock('ace'); }
+      if (info.curveWin) { stats.curveWins++; unlock('curve'); }
+    } else stats.ptsL++;
+    const def = sc.pts[1] - sc.pts[0];
+    if (def > S.g.maxDef) S.g.maxDef = def;
+    if (sc.o.points >= 11 && sc.pts[0] >= sc.o.points - 1 && sc.pts[1] >= sc.o.points - 1) S.g.deuce = true;
+  }
+  if (S.mode === 'survival' && w === 0) {
+    S.goals = sc.pts[0];
+    const skill = Math.min(1, SURV.skill0 + SURV.skillStep * S.goals);
+    W.setAI(1, skill, 'even');
+    W.serveSpeed = Math.min(SURV.serveMax, SURV.serve0 + SURV.serveStep * S.goals);
+    if (S.goals >= 10) unlock('survivor');
+    if (S.goals === S.bestBefore + 1 && S.bestBefore > 0) Render.float(PC.FW / 2, PC.FL / 2, 'НОВЫЙ РЕКОРД!', C.yellow, 20);
+  }
+  saveStats();
+  updateHud();
+}
+function onGame(w, score, isMatch) {
+  const C = Render.COL;
+  if (vsAI() && S.mode !== 'survival') {
+    if (w === 0) {
+      if (S.mode === 'match' || S.mode === 'tour') stats.gamesW++;
+      const o = S.world.score.o;
+      if (S.g.deuce && o.points >= 11) unlock('deuce');
+      if (S.g.maxDef >= 5) unlock('comeback');
+      if (o.points >= 11 && score[1] === 0) unlock('shutout');
+    } else if (S.mode === 'match' || S.mode === 'tour') stats.gamesL++;
+  }
+  S.g = { maxDef: 0, deuce: false };
+  if (!isMatch) {
+    sfx.game();
+    const who = S.mode === 'duo' ? `ИГРОК ${w + 1}` : w === 0 ? 'ВАША' : S.names[1].toUpperCase();
+    const t = S.mode === 'duo' || w === 1 ? `ПАРТИЯ — ${who}` : 'ПАРТИЯ ВАША!';
+    const sc = S.world.score;
+    Render.showBanner(t, `${score[0]} : ${score[1]} · по партиям ${sc.games[0]} : ${sc.games[1]}`, w === 0 ? C.cyan : (S.cfg.oppColor || C.pink), PC.BREAK_PAUSE + PC.POINT_PAUSE - 0.2);
+  }
+  saveStats();
+}
 
-    // Menus logic
-    $('btn-free').addEventListener('click', () => {
-      $('main-btns').style.display = 'none';
-      $('free-btns').style.display = 'flex';
-    });
-    $('btn-back-main').addEventListener('click', () => {
-      $('free-btns').style.display = 'none';
-      $('main-btns').style.display = 'flex';
-    });
+/* ── Конец матча / уровня / выживания ── */
+function onEnd() {
+  if (!S || S.ended) return;
+  S.ended = true;
+  keys.clear();
+  const W = S.world, sc = W.score, mode = S.mode, won = sc.winner === 0;
+  stats.played++;
+  stats.time += Math.round(S.playT);
+  const dur = Math.round(S.playT);
+  const entry = { t: Date.now(), mode, opp: '', res: won ? 'W' : 'L', games: sc.games.slice(), scores: sc.done.map(x => x.slice()), dur, goals: 0 };
+  const view = { title: '', cls: 'win', best: false, big: '', games: '', sub: '', rows: [], btns: [] };
+  const gamesLine = () => sc.done.length > 1 || sc.o.games > 1 ? sc.done.map(([a, b]) => `<b class="${a > b ? 'w' : 'l'}">${a}:${b}</b>`).join('<span>·</span>') : '';
+  const rallyRow = () => W.longest >= 2 ? ['Лучший розыгрыш', `${W.longest} ${plural(W.longest, 'удар', 'удара', 'ударов')}`] : null;
+  const fast = Math.max(W.stats[0].maxHit, W.stats[1].maxHit);
+  const speedRow = () => fast > 0 ? ['Самый быстрый мяч', `${kmh(fast)} км/ч`] : null;
+  const timeRow = () => ['Время', fmtDur(dur)];
 
-    const diffBtns = document.querySelectorAll('#diff-seg button');
-    diffBtns.forEach(btn => btn.addEventListener('click', () => {
-      diffBtns.forEach(b => b.classList.toggle('active', b === btn));
-      this.aiDifficulty = parseInt(btn.dataset.diff, 10);
-    }));
-
-    // Start Buttons
-    const start = (mode) => { AudioSys.init(); this.mode = mode; this.levelIdx = 0; this.startLevel(); };
-    $('btn-campaign').addEventListener('click', () => start('CAMPAIGN'));
-    $('btn-endless').addEventListener('click', () => start('ENDLESS'));
-    $('btn-start-ai').addEventListener('click', () => start('FREE_AI'));
-    $('btn-2p').addEventListener('click', () => start('MULTIPLAYER'));
-
-    $('btn-pause').addEventListener('click', () => this.pause());
-    $('btn-resume').addEventListener('click', () => this.resume());
-    $('btn-restart').addEventListener('click', () => this.startLevel());
-    $('btn-quit').addEventListener('click', () => this.showMenu());
-    $('btn-go-menu').addEventListener('click', () => this.showMenu());
-    $('btn-lv-menu').addEventListener('click', () => this.showMenu());
-    $('btn-again').addEventListener('click', () => this.startLevel());
-    $('btn-next').addEventListener('click', () => {
-      // после последнего уровня кнопка запускает кампанию заново
-      this.levelIdx = this.levelIdx >= Levels.length - 1 ? 0 : this.levelIdx + 1;
-      this.startLevel();
-    });
-
-    $('btn-rules').addEventListener('click', () => { this.rulesFromPause = false; open('ov-rules'); });
-    $('btn-rules2').addEventListener('click', () => { this.rulesFromPause = true; close('ov-pause'); open('ov-rules'); });
-    $('btn-rules-close').addEventListener('click', () => this.closeRules());
-    $('btn-rules-x').addEventListener('click', () => this.closeRules());
-  },
-
-  closeRules() {
-    close('ov-rules');
-    if (this.rulesFromPause && this.state === 'PAUSED') open('ov-pause');
-    this.rulesFromPause = false;
-  },
-
-  pause() {
-    if (this.state !== 'PLAYING') return;
-    this.state = 'PAUSED';
-    open('ov-pause');
-  },
-
-  resume() {
-    if (this.state !== 'PAUSED') return;
-    close('ov-pause'); close('ov-rules');
-    this.state = 'PLAYING';
-  },
-
-  refreshMenu() {
-    const st = loadStats();
-    const lv = st.campaign | 0;
-    $('best-campaign').textContent = lv >= Levels.length ? '🏆 Пройдена! · 10 уровней' : lv ? `Пройдено уровней: ${lv} из ${Levels.length}` : `${Levels.length} уровней · ИИ всё сильнее`;
-    $('best-endless').textContent = 'Рекорд: ' + (st.endless | 0);
-    $('best-free').textContent = (st.freeW || st.freeL) ? `Побед: ${st.freeW | 0} · поражений: ${st.freeL | 0}` : 'Матч до 5 очков';
-    $('menu-stats').textContent = st.played ? `Сыграно матчей: ${st.played} • Побед над ИИ: ${st.wins | 0}` : 'Сыграй первый матч!';
-  },
-
-  showMenu() {
-    clearTimeout(this.endTimer);
-    this.state = 'MENU';
-    ['ov-pause', 'ov-level', 'ov-over', 'ov-rules'].forEach(close);
-    $('free-btns').style.display = 'none';
-    $('main-btns').style.display = 'flex';
-    this.touches.clear();
-    this.refreshMenu();
-    showScreen('menu');
-  },
-
-  startLevel() {
-    clearTimeout(this.endTimer);
-    ['ov-pause', 'ov-level', 'ov-over', 'ov-rules'].forEach(close);
-    showScreen('game');
-    this.layout();
-    this.state = 'PLAYING';
-
-    this.score.player = 0;
-    this.score.ai = 0;
-    this.combo = 0;
-    this.match = { bricks: 0, bestRally: 0 };
-    this.shakeAmt = 0; this.hitStopFrame = 0;
-    this.expands = [];
-    this.touches.clear();
-
-    let config;
-    if (this.mode === 'CAMPAIGN' || this.mode === 'ENDLESS') {
-      config = Levels[Math.min(this.levelIdx, Levels.length - 1)];
-    } else if (this.mode === 'FREE_AI') {
-      const speedMap = { 1: 3.5, 2: 5.5, 3: 8 };
-      const errMap = { 1: 35, 2: 15, 3: 0 };
-      const bSpeedMap = { 1: 5, 2: 7, 3: 9 };
-      config = { aiWidth: 90, aiSpeed: speedMap[this.aiDifficulty], aiError: errMap[this.aiDifficulty], ballSpeed: bSpeedMap[this.aiDifficulty], targetScore: 5, obstacles: [] };
+  if (mode === 'match' || mode === 'tour') {
+    if (won) {
+      stats.wins++; stats.streak++; stats.bestStreak = Math.max(stats.bestStreak, stats.streak);
+      unlock('first_win');
+      if (S.cfg.skill >= 2 / 3 - 1e-6) unlock('pro');
+      if (S.cfg.skill >= 1 - 1e-6) unlock('master');
+    } else stats.streak = 0;
+    if (mode === 'match') {
+      if (won) { stats.freeW++; stats.aiW[S.cfg.aiLevel]++; } else { stats.freeL++; stats.aiL[S.cfg.aiLevel]++; }
+      entry.opp = `${LEVEL_NAMES[S.cfg.aiLevel]} · ${charName(S.cfg.aiChar)}`;
     } else {
-      config = { aiWidth: 90, aiSpeed: 0, aiError: 0, ballSpeed: 6, targetScore: 5, obstacles: [] };
-    }
-    this.config = config;
-    this.targetScore = this.mode === 'ENDLESS' ? Infinity : config.targetScore;
-
-    this.entities.player = new Paddle(H - 40, false, P1_COLOR);
-    this.entities.ai = new Paddle(AI_Y, this.mode !== 'MULTIPLAYER', P2_COLOR, config.aiWidth);
-    this.entities.ai.aiSpeed = config.aiSpeed;
-    this.entities.ai.aiError = config.aiError;
-
-    this.entities.balls = [];
-    this.entities.particles = [];
-    this.entities.powerups = [];
-    this.entities.texts = [];
-    this.buildObstacles(config.obstacles);
-
-    this.setupHUD();
-    this.scheduleServe();            // первая подача — через секунду, как после гола
-    this.acc = 0;
-  },
-
-  setupHUD() {
-    const m = this.mode, cfg = this.config;
-    let title, sub, top = 'ИИ', bottom = 'Вы';
-    if (m === 'CAMPAIGN') { title = `КАМПАНИЯ · УР. ${this.levelIdx + 1}`; sub = cfg.desc; }
-    else if (m === 'ENDLESS') { title = 'ВЫЖИВАНИЕ'; sub = 'До первого пропуска'; }
-    else if (m === 'FREE_AI') { title = 'МАТЧ С ИИ'; sub = 'Сложность: ' + DIFF_NAMES[this.aiDifficulty]; }
-    else { title = 'ДВА ИГРОКА'; sub = 'На одном экране'; top = 'Игрок 2'; bottom = 'Игрок 1'; }
-    $('g-title').textContent = title;
-    $('g-sub').textContent = sub.toUpperCase();
-    $('lbl-top').textContent = top;
-    $('lbl-bottom').textContent = m === 'ENDLESS' ? 'Голы' : bottom;
-    $('st-top').style.display = m === 'ENDLESS' ? 'none' : '';
-    $('lbl-mid').textContent = m === 'ENDLESS' ? 'Рекорд' : 'Цель';
-    $('val-mid').textContent = m === 'ENDLESS' ? (loadStats().endless | 0) : this.targetScore;
-    this.updateScoreUI();
-  },
-
-  buildObstacles(obsConfig) {
-    this.entities.obstacles = obsConfig.map(cfg => new Obstacle(cfg));
-  },
-
-  // Подача через SERVE_TICKS; направление случайное, выбирается заранее (для метки подачи)
-  scheduleServe() {
-    this.serveTimer = SERVE_TICKS;
-    this.serveDir = Math.random() > 0.5 ? 1 : -1;
-  },
-
-  // Точка подачи — центр поля; если там преграда (уровни 3, 4, 10), то край преграды
-  // со стороны подачи (раньше мяч рождался внутри блока и сразу разбивал/«прошивал» его)
-  servePoint() {
-    const p = { x: W / 2, y: H / 2 }, r = 7;
-    for (const o of this.entities.obstacles) {
-      if (o.active && circleRectIntersect(p.x, p.y, r, o.rect.left, o.rect.top, o.rect.w, o.rect.h)) {
-        p.y = this.serveDir > 0 ? o.rect.bottom + r + 1 : o.rect.top - r - 1;
+      stats.tourMatches++;
+      const i = S.cfg.tourIdx, o = PC.TOUR[i];
+      entry.opp = `${o.name} «${o.nick}»`;
+      if (won) {
+        stats.tourWins++;
+        tour.best = Math.max(tour.best, i + 1);
+        if (i >= PC.TOUR.length - 1) { stats.titles++; tour.stage = 0; unlock('champ'); S.champion = true; }
+        else tour.stage = i + 1;
+        saveTour();
       }
     }
-    return p;
-  },
-
-  spawnBall() {
-    let speed = this.config.ballSpeed;
-    if (this.mode === 'ENDLESS') speed += this.score.player * 0.2; // Мягкий рост сложности
-
-    const p = this.servePoint();
-    const b = new Ball(p.x, p.y);
-    b.serve(this.serveDir, speed);
-
-    // Clear old balls, push new
-    this.entities.balls = [b];
-    this.combo = 0;
-  },
-
-  spawnParticles(x, y, color, count = 10, speedScale = 1) {
-    for (let i = 0; i < count; i++) this.entities.particles.push(new Particle(x, y, color, speedScale));
-  },
-
-  spawnText(x, y, text, color) {
-    this.entities.texts.push(new FloatingText(x, y, text, color));
-  },
-
-  // Отскок от преграды: ось по прошлой позиции, мяч выталкивается наружу (не застревает внутри)
-  bounceOff(ball, r) {
-    const prevX = ball.x - ball.vx, prevY = ball.y - ball.vy;
-    let vertical;
-    if (prevY + ball.r <= r.top || prevY - ball.r >= r.bottom) vertical = true;
-    else if (prevX + ball.r <= r.left || prevX - ball.r >= r.right) vertical = false;
-    else {
-      const dy = Math.min(Math.abs(ball.y + ball.r - r.top), Math.abs(r.bottom - (ball.y - ball.r)));
-      const dx = Math.min(Math.abs(ball.x + ball.r - r.left), Math.abs(r.right - (ball.x - ball.r)));
-      vertical = dy <= dx;
+    view.title = S.champion ? '🏆 ВЫ ЧЕМПИОН!' : won ? 'ПОБЕДА!' : 'ПОРАЖЕНИЕ';
+    view.cls = won ? 'win' : 'lose';
+    view.big = sc.o.games > 1 ? `${sc.games[0]} : ${sc.games[1]}` : `${sc.done[0][0]} : ${sc.done[0][1]}`;
+    view.games = gamesLine();
+    if (mode === 'tour') {
+      const o = PC.TOUR[S.cfg.tourIdx], nx = PC.TOUR[tour.stage], a = o.f ? 'а' : '';
+      view.sub = S.champion ? 'Все соперники повержены — титул ваш!'
+        : won ? `${o.name} повержен${a}. Следующий соперник — ${nx.name} «${nx.nick}».`
+        : `${o.name} «${o.nick}» оказал${o.f ? 'ась' : 'ся'} сильнее. Попробуйте ещё раз!`;
+    } else view.sub = `${LEVEL_NAMES[S.cfg.aiLevel]} · ${charName(S.cfg.aiChar)} · ${fmtFormat(sc.o.points, sc.o.games)}`;
+    view.rows = [['Очки', `${W.stats[0].points} : ${W.stats[1].points}`], ['Эйсы', W.stats[0].aces], rallyRow(), speedRow(), timeRow()];
+    if (mode === 'tour') {
+      const ladder = () => { toMenu(); renderTour(); openOv('ov-tour'); };
+      if (S.champion) view.btns = [['🏆 Турнирная лестница', 'primary', ladder]];
+      else if (won) view.btns = [['Следующий соперник ▶', 'primary', () => startTour()], ['🏆 Турнирная лестница', '', ladder]];
+      else view.btns = [['↻ Переиграть', 'primary', () => startTour()], ['🏆 Турнирная лестница', '', ladder]];
+    } else view.btns = [['↻ Реванш', 'primary', () => begin(S.cfg)], ['⚙ Настроить матч', '', () => { toMenu(); setupMode = 'match'; renderSetup(); openOv('ov-setup'); }]];
+    if (won) sfx.victory(); else sfx.defeat();
+  } else if (mode === 'campaign') {
+    const i = S.cfg.levelIdx, L = PC.CAMPAIGN[i], lastLv = i >= PC.CAMPAIGN.length - 1;
+    stats.campPlayed++;
+    entry.opp = `Уровень ${i + 1} · ${L.name}`;
+    if (won) {
+      stats.wins++;
+      stats.campaign = Math.max(stats.campaign, i + 1);
+      if (stats.campaign >= PC.CAMPAIGN.length) unlock('campaign');
     }
-    if (vertical) {
-      if (ball.y < (r.top + r.bottom) / 2) { ball.vy = -Math.abs(ball.vy); ball.y = r.top - ball.r - 0.5; }
-      else { ball.vy = Math.abs(ball.vy); ball.y = r.bottom + ball.r + 0.5; }
-    } else {
-      if (ball.x < (r.left + r.right) / 2) { ball.vx = -Math.abs(ball.vx); ball.x = r.left - ball.r - 0.5; }
-      else { ball.vx = Math.abs(ball.vx); ball.x = r.right + ball.r + 0.5; }
-    }
-  },
+    view.title = won ? (lastLv ? '🏆 КАМПАНИЯ ПРОЙДЕНА!' : 'УРОВЕНЬ ПРОЙДЕН!') : 'ВЫ ПРОИГРАЛИ';
+    view.cls = won ? 'win' : 'lose';
+    view.big = `${sc.pts[0]} : ${sc.pts[1]}`;
+    view.sub = won ? (lastLv ? 'Все 10 уровней позади. ИИ повержен!' : `Уровень ${i + 1} · ${L.name}`) : `Уровень ${i + 1} · ${L.name}. Машина оказалась сильнее.`;
+    const bricks = W.stats[0].bricks + W.stats[1].bricks;
+    if (L.obstacles.some(o => o.type === 'brick')) view.rows.push(['Кирпичей разбито', bricks]);
+    view.rows.push(rallyRow(), timeRow());
+    const next = won && !lastLv ? i + 1 : won ? 0 : i;
+    view.btns = won
+      ? [[lastLv ? '↻ Кампания с начала' : `Уровень ${i + 2} ▶`, 'primary', () => startLevel(next)], ['↻ Повторить уровень', '', () => startLevel(i)], ['🎮 Уровни', '', () => { toMenu(); lvSel = next; renderLevels(); openOv('ov-levels'); }]]
+      : [['↻ Повторить уровень', 'primary', () => startLevel(i)], ['🎮 Уровни', '', () => { toMenu(); lvSel = i; renderLevels(); openOv('ov-levels'); }]];
+    if (won) sfx.victory(); else sfx.defeat();
+  } else if (mode === 'survival') {
+    const goals = sc.pts[0];
+    stats.survRuns++;
+    entry.goals = goals; entry.res = 'L'; entry.opp = `ИИ до ${Math.round(W.ai[1].P.skill * 100)}%`;
+    if (goals > stats.endless) { stats.endless = goals; view.best = true; }
+    view.title = 'ИГРА ОКОНЧЕНА'; view.cls = 'lose';
+    view.big = String(goals);
+    view.sub = `${plural(goals, 'Гол', 'Гола', 'Голов')} до первого пропуска`;
+    view.rows = [['Рекорд', stats.endless], ['Сила ИИ в конце', Math.round(W.ai[1].P.skill * 100) + '%'], rallyRow(), timeRow()];
+    view.btns = [['↻ Играть снова', 'primary', () => startSurvival()]];
+    sfx.defeat();
+  } else {
+    stats.duo++;
+    unlock('friends');
+    entry.res = won ? 'P1' : 'P2'; entry.opp = 'Игрок 1 — Игрок 2';
+    view.title = `ИГРОК ${sc.winner + 1} ПОБЕДИЛ!`; view.cls = sc.winner === 0 ? 'p1' : 'p2';
+    view.big = sc.o.games > 1 ? `${sc.games[0]} : ${sc.games[1]}` : `${sc.done[0][0]} : ${sc.done[0][1]}`;
+    view.games = gamesLine();
+    view.sub = sc.winner === 0 ? 'Игрок 1 (бирюзовый) сильнее' : 'Игрок 2 (розовый) сильнее';
+    view.rows = [['Очки', `${W.stats[0].points} : ${W.stats[1].points}`], ['Эйсы', `${W.stats[0].aces} : ${W.stats[1].aces}`], rallyRow(), speedRow(), timeRow()];
+    view.btns = [['↻ Реванш', 'primary', () => begin(S.cfg)], ['⚙ Настроить', '', () => { toMenu(); setupMode = 'duo'; renderSetup(); openOv('ov-setup'); }]];
+    sfx.victory();
+  }
+  matchLog.unshift(entry);
+  if (matchLog.length > 40) matchLog.length = 40;
+  saveHistory();
+  saveStats();
+  setTimeout(() => { if (S && S.ended && curScreen === 'game') showOver(view); }, 450);
+}
+function fmtDur(s) { s = Math.max(0, Math.round(s)); const m = Math.floor(s / 60); return `${m}:${String(s % 60).padStart(2, '0')}`; }
+let overBtns = [];
+function showOver(v) {
+  const h = $('o-title');
+  h.textContent = v.title; h.className = v.cls;
+  $('o-best').hidden = !v.best;
+  $('o-score').textContent = v.big;
+  $('o-games').innerHTML = v.games || '';
+  $('o-games').hidden = !v.games;
+  $('o-sub').textContent = v.sub;
+  const st = $('o-stats');
+  st.textContent = '';
+  for (const [l, val] of v.rows.filter(Boolean)) { const d = document.createElement('div'), b = document.createElement('b'); d.textContent = l; b.textContent = val; d.appendChild(b); st.appendChild(d); }
+  $('o-ach').innerHTML = S.newAch.map(a => `<span>${a.icon} ${esc(a.title)}</span>`).join('');
+  overBtns = v.btns;
+  const ids = ['o-next', 'o-again', 'o-extra'];
+  ids.forEach((id, i) => {
+    const b = $(id), d = v.btns[i];
+    b.hidden = !d;
+    if (d) { b.textContent = d[0]; b.className = 'ku-btn' + (d[1] ? ' ' + d[1] : ''); }
+  });
+  openOv('ov-over');
+}
+['o-next', 'o-again', 'o-extra'].forEach((id, i) => $(id).addEventListener('click', () => { sfx.click(); const d = overBtns[i]; if (d) d[2](); }));
+$('o-menu').addEventListener('click', () => { sfx.click(); toMenu(); });
 
-  handleCollisions() {
-    const player = this.entities.player;
-    const ai = this.entities.ai;
+function toMenu() {
+  if (S && !S.ended) { stats.time += Math.round(S.playT); saveStats(); }
+  S = null; paused = false;
+  closeAll();
+  keys.clear(); touches.clear();
+  Render.clear();
+  showScreen('menu');
+}
 
-    this.entities.balls.forEach(ball => {
-      if (!ball.active) return;
+/* ── Пауза ── */
+function pause() {
+  if (!S || paused || S.ended || curScreen !== 'game') return;
+  paused = true;
+  keys.clear();
+  const W = S.world, sc = W.score;
+  let info;
+  if (S.mode === 'survival') info = `Голов: ${sc.pts[0]} · рекорд: ${Math.max(stats.endless, sc.pts[0])}`;
+  else if (S.mode === 'campaign') info = `Уровень ${S.cfg.levelIdx + 1} · ${PC.CAMPAIGN[S.cfg.levelIdx].name} · счёт ${sc.pts[0]} : ${sc.pts[1]}`;
+  else info = `Счёт ${sc.pts[0]} : ${sc.pts[1]}` + (sc.o.games > 1 ? ` · партии ${sc.games[0]} : ${sc.games[1]}` : '') + ` · ${S.names[1]}`;
+  $('pause-info').textContent = info;
+  openOv('ov-pause');
+}
+function resume() {
+  if (!paused) return;
+  closeAll();
+  paused = false; last = 0;
+  try { if (document.activeElement && document.activeElement.blur) document.activeElement.blur(); } catch (e) {}
+}
+$('btn-pause').addEventListener('click', () => { sfx.click(); pause(); });
+$('p-resume').addEventListener('click', () => { sfx.click(); resume(); });
+$('p-restart').addEventListener('click', () => { sfx.click(); if (S) { const c = S.cfg; if (S && !S.ended) { stats.time += Math.round(S.playT); saveStats(); } begin(c); } });
+$('p-menu').addEventListener('click', () => { sfx.click(); toMenu(); });
+$('p-rules').addEventListener('click', () => { sfx.click(); closeOv('ov-pause'); returnTo = 'ov-pause'; openOv('ov-rules'); });
+$('p-settings').addEventListener('click', () => { sfx.click(); closeOv('ov-pause'); returnTo = 'ov-pause'; renderSettings(); openOv('ov-settings'); });
+document.addEventListener('visibilitychange', () => { if (document.hidden) pause(); });
+window.addEventListener('pagehide', () => { if (S && !S.ended && S.playT > 0) { stats.time += Math.round(S.playT); S.playT = 0; saveStats(); } });
 
-      // Paddle Collisions. isTop — верхняя ракетка (ИИ или игрок 2)
-      const checkPaddle = (pad, isTop) => {
-        // мяч уже летит от ракетки или пролетел её — не отбиваем (иначе двойной удар / «телепорт»)
-        if (isTop ? (ball.vy > 0 || ball.y < pad.y) : (ball.vy < 0 || ball.y > pad.y + pad.h)) return;
-        if (!circleRectIntersect(ball.x, ball.y, ball.r, pad.x, pad.y, pad.w, pad.h)) return;
+/* ═══ Раскладка: поле стоя или лёжа, во всю свободную площадь ═══ */
+function decideOrient() {
+  if (settings.orient === 'v' || settings.orient === 'h') return settings.orient;
+  const vw = window.innerWidth, vh = window.innerHeight;
+  const head = 64, hud = 60;
+  const sV = Math.min((vw - 36) / FW, (vh - head - hud - 30) / FL);
+  const short = vh <= 560;
+  const sH = short ? Math.min((vw - 36 - 2 * 120) / FL, (vh - head - 24) / FW) : Math.min((vw - 36) / FL, (vh - head - hud - 30) / FW);
+  return sH > sV * 1.08 ? 'h' : 'v';
+}
+function layout() {
+  if (curScreen !== 'game' || !S) return;
+  const sg = $('screen-game'), stage = $('stage');
+  const o = decideOrient();
+  const side = o === 'h' && window.innerHeight <= 560;
+  sg.classList.toggle('lay-h', o === 'h'); sg.classList.toggle('lay-v', o === 'v'); sg.classList.toggle('side', side);
+  const sw = stage.clientWidth, sh = stage.clientHeight;
+  if (!sw || !sh) return;
+  let aw, ah;
+  if (side) {
+    const cw = Math.max($('hud-0').offsetWidth, $('hud-mid').offsetWidth, $('hud-1').offsetWidth, 96);
+    aw = sw - 2 * (cw + 10) - 16; ah = sh - 16;
+  } else {
+    aw = sw - 16; ah = sh - $('hud').offsetHeight - 8 - 16;
+  }
+  const fw = o === 'v' ? FW : FL, fh = o === 'v' ? FL : FW;
+  const s = Math.max(0.3, Math.min(aw / fw, ah / fh, 1.75));
+  Render.setLayout(o, s, Math.min(2, window.devicePixelRatio || 1));
+  stage.classList.toggle('mid', !side && ah - fh * s > sh * 0.3);
+}
+let layoutRaf = 0;
+const queueLayout = () => { cancelAnimationFrame(layoutRaf); layoutRaf = requestAnimationFrame(layout); };
+window.addEventListener('resize', queueLayout);
+if (window.ResizeObserver) new ResizeObserver(queueLayout).observe($('stage'));
 
-        const hitFactor = (ball.x - (pad.x + pad.w / 2)) / (pad.w / 2); // -1 to 1
+/* ═══ Ввод ═══ */
+const P1_NEG = ['KeyW', 'KeyA'], P1_POS = ['KeyS', 'KeyD'], P2_NEG = ['ArrowUp', 'ArrowLeft'], P2_POS = ['ArrowDown', 'ArrowRight'];
+const GAME_KEYS = new Set([...P1_NEG, ...P1_POS, ...P2_NEG, ...P2_POS]);
+const keyDir = (neg, pos) => Math.sign(pos.filter(c => keys.has(c)).length - neg.filter(c => keys.has(c)).length);
+function applyKeys() {
+  const W = S.world;
+  if (S.mode === 'duo') {
+    W.setKeys(0, keyDir(P1_NEG, P1_POS), settings.sens);
+    W.setKeys(1, keyDir(P2_NEG, P2_POS), settings.sens);
+  } else W.setKeys(0, Math.sign(keyDir(P1_NEG, P1_POS) + keyDir(P2_NEG, P2_POS)), settings.sens);
+}
+// подача с клавиатуры/мыши: в одиночных режимах — вы, вдвоём — тот, чья подача
+function serveBy(side) {
+  if (!S || paused || S.ended) return;
+  const W = S.world;
+  if (W.phase !== 'serve') return;
+  const s = side == null ? W.pt.server : side;
+  W.requestServe(s);
+}
+window.addEventListener('keydown', e => {
+  if (document.querySelector('.ku-dialog')) return;
+  const c = e.code;
+  if (c === 'Escape' || c === 'KeyP') {
+    if (e.repeat) return;
+    const modal = ['ov-rules', 'ov-settings', 'ov-stats', 'ov-ach', 'ov-history', 'ov-setup', 'ov-tour', 'ov-levels'].find(isOpen);
+    if (modal) { if (c === 'Escape') { e.preventDefault(); closeModal(modal); } return; }
+    if (curScreen !== 'game' || !S) return;
+    e.preventDefault();
+    if (paused) resume(); else if (!S.ended) pause();
+    return;
+  }
+  if (curScreen !== 'game' || !S || paused || S.ended || anyOverlay()) return;
+  if (GAME_KEYS.has(c)) { keys.add(c); e.preventDefault(); }
+  if (c === 'Space' || c === 'Enter' || c === 'NumpadEnter') { e.preventDefault(); if (!e.repeat) serveBy(S.mode === 'duo' ? null : 0); }
+});
+window.addEventListener('keyup', e => keys.delete(e.code));
+window.addEventListener('blur', () => keys.clear());
 
-        // Сохраняем текущую скорость без автоматического ускорения, ограничиваем максимум
-        const speedMag = Math.min(Math.hypot(ball.vx, ball.vy), MAX_SPEED);
-
-        // Применяем english/спин на основе точки удара по ракетке + передача скорости движения ракетки
-        const maxAngle = 0.75;
-        const angle = hitFactor * maxAngle;
-        const paddleSpin = clamp((pad.vx || 0) * 0.35, -MAX_SPIN, MAX_SPIN);
-        ball.vx = Math.sin(angle) * speedMag + paddleSpin;
-        ball.vy = (isTop ? 1 : -1) * Math.abs(Math.cos(angle) * speedMag);
-
-        // Push ball out to prevent sticking
-        ball.y = isTop ? pad.y + pad.h + ball.r + 2 : pad.y - ball.r - 2;
-
-        ball.color = pad.color;
-        this.spawnParticles(ball.x, ball.y, pad.color, 15);
-        this.shakeAmt = 5;
-        this.hitStopFrame = 3; // Freeze for 3 ticks for impact
-
-        if (pad.isAI) AudioSys.sfx.hitAI(); else AudioSys.sfx.hitPlayer();
-        vibrate(15);
-
-        this.combo++;
-        this.match.bestRally = Math.max(this.match.bestRally, this.combo);
-        if (this.combo > 3 && !pad.isAI) {
-          this.spawnText(pad.x + pad.w / 2, isTop ? pad.y + pad.h + 22 : pad.y - 20, `КОМБО ×${this.combo}`, pad.color);
-        }
-      };
-
-      checkPaddle(player, false);
-      checkPaddle(ai, true);
-
-      // Obstacle Collisions
-      this.entities.obstacles.forEach(obs => {
-        if (!obs.active) return;
-        if (circleRectIntersect(ball.x, ball.y, ball.r, obs.rect.left, obs.rect.top, obs.rect.w, obs.rect.h)) {
-          this.bounceOff(ball, obs.rect);
-
-          this.spawnParticles(ball.x, ball.y, obs.color, 10);
-          AudioSys.sfx.hitWall();
-
-          if (obs.type === 'breakable') {
-            obs.hp--;
-            if (obs.hp <= 0) {
-              obs.active = false;
-              AudioSys.sfx.blockBreak();
-              this.spawnParticles(obs.rect.left + obs.rect.w / 2, obs.rect.top + obs.rect.h / 2, obs.color, 30, 2);
-              this.shakeAmt = 10;
-              this.match.bricks++;
-
-              // 20% chance to drop powerup
-              if (Math.random() < 0.2) {
-                const type = Math.random() < 0.5 ? 'expand' : 'multiball';
-                this.entities.powerups.push(new PowerUp(obs.rect.left + obs.rect.w / 2, obs.rect.top, type));
-              }
-            }
-          }
-        }
-      });
-    });
-
-    // Powerup Collisions (Player only)
-    this.entities.powerups.forEach(pu => {
-      if (!pu.active) return;
-      if (circleRectIntersect(pu.x, pu.y, pu.r, player.x, player.y, player.w, player.h)) {
-        pu.active = false;
-        AudioSys.sfx.powerup();
-        this.spawnText(pu.x, pu.y - 16, pu.type === 'expand' ? 'ШИРЕ!' : 'МУЛЬТИМЯЧ!', pu.color);
-        this.applyPowerUp(pu.type);
-      }
-    });
-  },
-
-  // ширина ракетки игрока меняется вокруг её центра
-  setPlayerWidth(w) {
-    const p = this.entities.player, cx = p.x + p.w / 2;
-    p.w = w;
-    p.x = clamp(cx - w / 2, 0, W - w); p.px = p.x;
-  },
-
-  applyPowerUp(type) {
-    if (type === 'expand') {
-      this.setPlayerWidth(Math.min(this.entities.player.w + 40, 180));
-      this.expands.push(EXPAND_TICKS);       // через 10 с игрового времени −40 (не меньше 90)
-    } else if (type === 'multiball') {
-      const activeBalls = this.entities.balls.filter(b => b.active);
-      if (activeBalls.length > 0 && activeBalls.length < 5) {
-        const src = activeBalls[0];
-        const b1 = new Ball(src.x, src.y);
-        b1.vx = src.vx * 0.8 + 1.5;
-        b1.vy = src.vy;
-        b1.color = src.color;
-        const b2 = new Ball(src.x, src.y);
-        b2.vx = src.vx * 0.8 - 1.5;
-        b2.vy = src.vy;
-        b2.color = src.color;
-        this.entities.balls.push(b1, b2);
-      }
-    }
-  },
-
-  checkScoring() {
-    for (const ball of this.entities.balls) {
-      if (!ball.active) continue;
-      if (ball.y < 0) {
-        ball.active = false;
-        this.scoreGoal('player');
-      } else if (ball.y > H) {
-        ball.active = false;
-        this.scoreGoal('ai');
-      }
-      if (this.state !== 'PLAYING') return;   // матч закончился — остальные мячи не считаем
-    }
-
-    // Все мячи вне игры — подача через секунду (один раз, а не каждый кадр)
-    if (this.serveTimer === 0 && this.entities.balls.every(b => !b.active)) this.scheduleServe();
-  },
-
-  scoreGoal(scorer) {
-    if (this.state !== 'PLAYING') return;
-    this.shakeAmt = 20;
-    AudioSys.sfx.score();
-    vibrate(50);
-
-    if (scorer === 'player') {
-      this.score.player++;
-      this.spawnParticles(W / 2, 20, P1_COLOR, 50, 3);
-    } else {
-      this.score.ai++;
-      this.spawnParticles(W / 2, H - 20, P2_COLOR, 50, 3);
-    }
-
-    this.updateScoreUI(scorer);
-
-    if (this.mode === 'CAMPAIGN') {
-      if (this.score.player >= this.targetScore) {
-        this.levelComplete();
-      } else if (this.score.ai >= this.targetScore) {
-        this.gameOver();
-      }
-    } else if (this.mode === 'ENDLESS') {
-      // Endless mode - if AI scores, game over.
-      if (scorer === 'ai') this.gameOver();
-    } else if (this.mode === 'FREE_AI' || this.mode === 'MULTIPLAYER') {
-      if (this.score.player >= this.targetScore || this.score.ai >= this.targetScore) {
-        this.gameOver();
-      }
-    }
-  },
-
-  updateScoreUI(scorer) {
-    $('score-top').textContent = this.score.ai;
-    $('score-bottom').textContent = this.score.player;
-    $('g-score').textContent = this.mode === 'ENDLESS' ? 'ГОЛЫ: ' + this.score.player : `${this.score.ai} : ${this.score.player}`;
-    if (scorer === 'player') pop($('score-bottom'));
-    if (scorer === 'ai') pop($('score-top'));
-  },
-
-  // результат матча → статистика в localStorage
-  record(fn) { const st = loadStats(); fn(st); st.played = (st.played | 0) + 1; saveStats(st); return st; },
-
-  levelComplete() {
-    this.state = 'TRANSITION';
-    AudioSys.sfx.winLevel();
-    const lvNum = this.levelIdx + 1, cfg = this.config;
-    const last = this.levelIdx >= Levels.length - 1;
-    this.record(st => { st.wins = (st.wins | 0) + 1; st.campaign = Math.max(st.campaign | 0, lvNum); });
-
-    $('lv-title').textContent = last ? '🏆 КАМПАНИЯ ПРОЙДЕНА!' : 'УРОВЕНЬ ПРОЙДЕН!';
-    $('lv-sub').textContent = last ? 'Все 10 уровней позади. ИИ повержен!' : `Уровень ${lvNum} · ${cfg.desc}`;
-    $('lv-score').textContent = `${this.score.player} : ${this.score.ai}`;
-    const rows = [];
-    if (cfg.obstacles.some(o => o.type === 'breakable')) rows.push(['Кирпичей разбито', this.match.bricks]);
-    if (this.match.bestRally) rows.push(['Лучшая серия ударов', this.match.bestRally]);
-    fillStats($('lv-stats'), rows);
-    $('btn-next').textContent = last ? 'Играть снова' : `Уровень ${lvNum + 1} ▶`;
-    this.endTimer = setTimeout(() => open('ov-level'), 700);
-  },
-
-  gameOver() {
-    this.state = 'TRANSITION';
-    const t = $('go-title'), m = this.mode;
-    let newBest = false, rows = [], desc = '', big = `${this.score.player} : ${this.score.ai}`;
-    if (m === 'MULTIPLAYER') {
-      const p1Wins = this.score.player > this.score.ai;
-      t.textContent = p1Wins ? 'ИГРОК 1 ПОБЕДИЛ!' : 'ИГРОК 2 ПОБЕДИЛ!';
-      t.className = p1Wins ? 'p1' : 'p2';
-      desc = p1Wins ? 'Нижняя ракетка сильнее' : 'Верхняя ракетка сильнее';
-      rows = [['Игрок 1', this.score.player], ['Игрок 2', this.score.ai]];
-      this.record(() => {});
-      AudioSys.sfx.winLevel(); // No real loss sound for multiplayer win
-    } else if (m === 'FREE_AI') {
-      const p1Wins = this.score.player > this.score.ai;
-      t.textContent = p1Wins ? 'ВЫ ПОБЕДИЛИ!' : 'ВЫ ПРОИГРАЛИ';
-      t.className = p1Wins ? 'win' : 'lose';
-      desc = 'Сложность: ' + DIFF_NAMES[this.aiDifficulty];
-      this.record(st => {
-        if (p1Wins) { st.wins = (st.wins | 0) + 1; st.freeW = (st.freeW | 0) + 1; } else st.freeL = (st.freeL | 0) + 1;
-      });
-      if (p1Wins) AudioSys.sfx.winLevel(); else AudioSys.sfx.lose();
-    } else if (m === 'ENDLESS') {
-      t.textContent = 'ИГРА ОКОНЧЕНА';
-      t.className = 'lose';
-      const st = this.record(s => {
-        if (this.score.player > (s.endless | 0)) { s.endless = this.score.player; newBest = true; }
-      });
-      big = String(this.score.player);
-      desc = 'Голов забито до первого пропуска';
-      rows = [['Рекорд', st.endless | 0]];
-      AudioSys.sfx.lose();
-    } else {
-      t.textContent = 'ВЫ ПРОИГРАЛИ';
-      t.className = 'lose';
-      desc = `Уровень ${this.levelIdx + 1} · ${this.config.desc}. Машина оказалась сильнее.`;
-      this.record(() => {});
-      AudioSys.sfx.lose();
-    }
-    if (this.match.bestRally) rows.push(['Лучшая серия ударов', this.match.bestRally]);
-    $('go-best').hidden = !newBest;
-    $('go-score').textContent = big;
-    $('go-desc').textContent = desc;
-    fillStats($('go-stats'), rows);
-    $('btn-again').textContent = m === 'CAMPAIGN' ? 'Повторить уровень' : 'Играть снова';
-    this.endTimer = setTimeout(() => open('ov-over'), 700);
-  },
-
-  // Клавиатура: зажатая клавиша ведёт цель ракетки, отпущенная — останавливает ракетку
-  applyKeys(pad, dir) {
-    if (dir) { pad.targetX = clamp(pad.x + pad.w / 2 + dir * KEY_LEAD, pad.w / 2, W - pad.w / 2); pad.keyHeld = true; }
-    else if (pad.keyHeld) { pad.targetX = pad.x + pad.w / 2; pad.keyHeld = false; }
-  },
-
-  updateEffects() {
-    if (this.shakeAmt > 0) this.shakeAmt *= 0.9;
-    if (this.shakeAmt < 0.5) this.shakeAmt = 0;
-    this.entities.particles.forEach(p => p.update());
-    this.entities.texts.forEach(t => t.update());
-    this.entities.particles = this.entities.particles.filter(p => p.life > 0);
-    this.entities.texts = this.entities.texts.filter(t => t.life > 0);
-  },
-
-  // Один тик игры (1/60 с)
-  update() {
-    if (this.state === 'TRANSITION') { this.updateEffects(); return; }   // догорают частицы
-    if (this.state !== 'PLAYING') return;
-    const E = this.entities;
-
-    // позиции прошлого тика — для плавной отрисовки между тиками
-    E.balls.forEach(b => { b.px = b.x; b.py = b.y; });
-    E.player.px = E.player.x; E.ai.px = E.ai.x;
-
-    if (this.hitStopFrame > 0) {
-      this.hitStopFrame--;
-      return; // Skip update for hit stop effect
-    }
-
-    this.bgOffset += 0.5;
-
-    if (this.serveTimer > 0 && --this.serveTimer === 0) this.spawnBall();
-    if (this.expands.length) {
-      this.expands = this.expands.map(t => t - 1);
-      while (this.expands.length && this.expands[0] <= 0) {
-        this.expands.shift();
-        this.setPlayerWidth(Math.max(PADDLE_W, E.player.w - 40));
-      }
-    }
-
-    // Manual input: keyboard
-    const ad = (this.keys.d ? 1 : 0) - (this.keys.a ? 1 : 0);
-    const arrows = (this.keys.right ? 1 : 0) - (this.keys.left ? 1 : 0);
-    if (this.mode === 'MULTIPLAYER') { this.applyKeys(E.player, ad); this.applyKeys(E.ai, arrows); }
-    else this.applyKeys(E.player, clamp(ad + arrows, -1, 1));
-
-    E.player.update(E.balls);
-    E.ai.update(E.balls);
-
-    E.balls.forEach(b => b.update());
-    E.powerups.forEach(p => p.update());
-    this.updateEffects();
-
-    // Clean up dead entities
-    E.powerups = E.powerups.filter(p => p.active);
-    E.obstacles = E.obstacles.filter(o => o.active);
-
-    this.handleCollisions();
-    this.checkScoring();
-  },
-
-  draw(a) {
-    const E = this.entities;
-    ctx.setTransform(DPR, 0, 0, DPR, 0, 0);
-    ctx.clearRect(0, 0, W, H);
-    ctx.fillStyle = 'rgba(4,6,22,.55)';
-    ctx.fillRect(0, 0, W, H);
-
-    // подсветка ворот: сверху — цвет соперника, снизу — ваш
-    let g = ctx.createLinearGradient(0, 0, 0, 40);
-    g.addColorStop(0, hexRgba(P2_COLOR, 0.16)); g.addColorStop(1, hexRgba(P2_COLOR, 0));
-    ctx.fillStyle = g; ctx.fillRect(0, 0, W, 40);
-    g = ctx.createLinearGradient(0, H, 0, H - 40);
-    g.addColorStop(0, hexRgba(P1_COLOR, 0.16)); g.addColorStop(1, hexRgba(P1_COLOR, 0));
-    ctx.fillStyle = g; ctx.fillRect(0, H - 40, W, 40);
-
-    ctx.save();
-
-    // Screen Shake
-    if (this.shakeAmt > 0) {
-      ctx.translate(rand(-this.shakeAmt, this.shakeAmt), rand(-this.shakeAmt, this.shakeAmt));
-    }
-
-    // Dynamic Grid Background
-    ctx.strokeStyle = 'rgba(255,255,255,.035)';
-    ctx.lineWidth = 1;
-    ctx.beginPath();
-    const gridSz = 40;
-    for (let x = (this.bgOffset / 2) % gridSz; x < W; x += gridSz) { ctx.moveTo(x, 0); ctx.lineTo(x, H); }
-    for (let y = this.bgOffset % gridSz; y < H; y += gridSz) { ctx.moveTo(0, y); ctx.lineTo(W, y); }
-    ctx.stroke();
-
-    // Center Line
-    ctx.setLineDash([12, 12]);
-    ctx.strokeStyle = 'rgba(255,255,255,.13)';
-    ctx.lineWidth = 2;
-    ctx.beginPath(); ctx.moveTo(0, H / 2); ctx.lineTo(W, H / 2); ctx.stroke();
-    ctx.setLineDash([]);
-    ctx.beginPath(); ctx.arc(W / 2, H / 2, 34, 0, Math.PI * 2); ctx.stroke();
-
-    // Вдвоём: подписи зон касания (верхний игрок читает перевёрнутую)
-    if (this.mode === 'MULTIPLAYER') {
-      ctx.font = "20px 'Russo One', 'Rubik', sans-serif";
-      ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
-      ctx.fillStyle = hexRgba(P1_COLOR, 0.13);
-      ctx.fillText('ИГРОК 1', W / 2, H * 0.75);
-      ctx.save(); ctx.translate(W / 2, H * 0.25); ctx.rotate(Math.PI);
-      ctx.fillStyle = hexRgba(P2_COLOR, 0.13);
-      ctx.fillText('ИГРОК 2', 0, 0);
-      ctx.restore();
-    }
-
-    // Подача: сходящееся кольцо в точке подачи
-    if (this.serveTimer > 0 && this.state !== 'TRANSITION' && E.player) {
-      const k = this.serveTimer / SERVE_TICKS, sp = this.servePoint();
-      ctx.strokeStyle = hexRgba(COL.text, 0.5 * (1 - k) + 0.2);
-      ctx.lineWidth = 2;
-      ctx.beginPath(); ctx.arc(sp.x, sp.y, 7 + 14 * k, 0, Math.PI * 2); ctx.stroke();
-      ctx.fillStyle = hexRgba(COL.text, 0.8 * (1 - k));
-      ctx.beginPath(); ctx.arc(sp.x, sp.y, 7, 0, Math.PI * 2); ctx.fill();
-    }
-
-    if (E.player) {
-      E.obstacles.forEach(o => o.draw(ctx));
-      E.powerups.forEach(p => p.draw(ctx));
-      E.particles.forEach(p => p.draw(ctx));
-      E.balls.forEach(b => b.draw(ctx, a));
-      E.player.draw(ctx, a);
-      E.ai.draw(ctx, a);
-      E.texts.forEach(t => t.draw(ctx));
-    }
-
-    ctx.restore();
-  },
-
-  // Фиксированный шаг: физика тикает 60 раз в секунду при любой частоте экрана (60/90/120/144 Гц)
-  loop(now) {
-    requestAnimationFrame(t => this.loop(t));
-    const dt = this.lastT ? Math.min(now - this.lastT, 250) : STEP;
-    this.lastT = now;
-    if (this.state === 'MENU' || this.state === 'PAUSED') return;   // экран скрыт / кадр заморожен
-    this.acc += dt;
-    let n = 0;
-    while (this.acc >= STEP && n < MAX_STEPS) { this.update(); this.acc -= STEP; n++; }
-    if (n === MAX_STEPS) this.acc = 0;     // не догоняем бесконечно после долгого лага
-    this.draw(this.state === 'PLAYING' ? this.acc / STEP : 1);
+// экран → поле (с учётом поворота); точки вне поля продолжаются за край
+function screenToField(cx, cy) {
+  const r = $('cv').getBoundingClientRect();
+  return Render.toField(cx - r.left, cy - r.top);
+}
+function steer(side, gx) {
+  const x = FW / 2 + (gx - FW / 2) * settings.sens;
+  S.world.setTarget(side, x);
+}
+const gameEl = $('screen-game');
+function touchSide(gy) { return S.mode === 'duo' ? (gy > FL / 2 ? 0 : 1) : 0; }
+gameEl.addEventListener('touchstart', e => {
+  if (!S || paused || S.ended || anyOverlay()) return;
+  if (e.target.closest && e.target.closest('button')) return;
+  e.preventDefault();
+  AudioSys.init();
+  for (const t of e.changedTouches) {
+    const [gx, gy] = screenToField(t.clientX, t.clientY);
+    const side = touchSide(gy);
+    touches.set(t.identifier, { side, x: t.clientX, y: t.clientY, t: performance.now(), moved: 0 });
+    steer(side, gx);
+  }
+}, { passive: false });
+gameEl.addEventListener('touchmove', e => {
+  if (!S || paused || S.ended) return;
+  e.preventDefault();
+  for (const t of e.changedTouches) {
+    const rec = touches.get(t.identifier);
+    if (!rec) continue;
+    rec.moved = Math.max(rec.moved, Math.hypot(t.clientX - rec.x, t.clientY - rec.y));
+    const [gx] = screenToField(t.clientX, t.clientY);
+    steer(rec.side, gx);
+  }
+}, { passive: false });
+const touchEnd = e => {
+  for (const t of e.changedTouches) {
+    const rec = touches.get(t.identifier);
+    if (!rec) continue;
+    touches.delete(t.identifier);
+    // быстрый тап без движения — подача (своя сторона)
+    if (e.type === 'touchend' && performance.now() - rec.t < 320 && rec.moved < 16) serveBy(rec.side);
   }
 };
+gameEl.addEventListener('touchend', touchEnd);
+gameEl.addEventListener('touchcancel', touchEnd);
+gameEl.addEventListener('pointermove', e => {
+  if (e.pointerType === 'touch' || !S || paused || S.ended || S.mode === 'duo') return;
+  const [gx] = screenToField(e.clientX, e.clientY);
+  steer(0, gx);
+});
+gameEl.addEventListener('pointerdown', e => {
+  if (e.pointerType === 'touch' || e.button !== 0 || !S || paused || S.ended) return;
+  if (e.target.closest && e.target.closest('button')) return;
+  AudioSys.init();
+  serveBy(S.mode === 'duo' ? null : 0);
+});
 
-// Start
-Game.init();
+/* ═══ Цикл: фиксированный шаг физики, отрисовка с интерполяцией ═══ */
+function frame(now) {
+  requestAnimationFrame(frame);
+  const dt = last ? Math.min(250, now - last) : STEP_MS;
+  last = now;
+  if (curScreen !== 'game' || !S) return;
+  const W = S.world;
+  if (!paused) {
+    if (!S.ended) S.playT += dt / 1000;
+    acc += dt;
+    let n = 0;
+    while (acc >= STEP_MS - 1e-6 && n < 12) {
+      applyKeys();
+      W.step();
+      handleEvents(W.drain());
+      acc -= STEP_MS; n++;
+      if (!S) return;          // из обработчика могли выйти в меню
+    }
+    if (n >= 12) acc = 0;      // после долгой задержки не догоняем
+    Render.update(dt / 1000);
+  }
+  serveHint();
+  const sc = W.score;
+  Render.draw(W, paused ? 1 : Math.min(1, acc / STEP_MS), {
+    scores: S.mode === 'survival' ? [sc.pts[0], ''] : sc.pts, duo: S.mode === 'duo', shakeOn: settings.shake && !reduceMotion(),
+    serveLabel: serveLabel()
+  });
+}
+requestAnimationFrame(frame);
+
+/* ═══ Окна: правила, статистика, достижения, история, настройки ═══ */
+$('btn-rules').addEventListener('click', () => { sfx.click(); openOv('ov-rules'); });
+$('btn-stats').addEventListener('click', () => { sfx.click(); renderStats(); openOv('ov-stats'); });
+$('btn-ach').addEventListener('click', () => { sfx.click(); renderAch(); openOv('ov-ach'); });
+$('btn-history').addEventListener('click', () => { sfx.click(); renderHistory(); openOv('ov-history'); });
+$('btn-settings').addEventListener('click', () => { sfx.click(); renderSettings(); openOv('ov-settings'); });
+
+function card(label, value, cls) { return `<div class="st-card${cls ? ' ' + cls : ''}"><div class="sv">${esc(value)}</div><div class="sl">${esc(label)}</div></div>`; }
+function renderStats() {
+  const s = stats, pct = (a, b) => a + b ? Math.round(100 * a / (a + b)) + '%' : '—';
+  let h = '<h3>Общее</h3><div class="stats-grid">';
+  h += card('Матчей сыграно', s.played) + card('Побед над ИИ', s.wins, 'good') + card('Серия побед: сейчас / лучшая', `${s.streak} / ${s.bestStreak}`, 'gold');
+  h += card('Время в игре', fmtLong(s.time)) + card('Вдвоём', s.duo, 'c2') + card('Достижений', `${ACH.filter(a => unlocked[a.id]).length}/${ACH.length}`, 'gold');
+  h += '</div><h3>Игра против ИИ</h3><div class="stats-grid">';
+  h += card('Очков выиграно', s.ptsW, 'good') + card('Очков проиграно', s.ptsL) + card('Доля очков', pct(s.ptsW, s.ptsL));
+  h += card('Партий выиграно', s.gamesW, 'good') + card('Партий проиграно', s.gamesL) + card('Эйсов', s.aces, 'gold');
+  h += card('Лучший розыгрыш', s.longest) + card('Самый быстрый отбитый мяч', s.fastest ? kmh(s.fastest) + ' км/ч' : '—', 'c2') + card('Очков закруткой', s.curveWins);
+  h += card('Ударов ракеткой', s.hits) + card('Кирпичей разбито', s.bricks) + card('Рекорд выживания', s.endless, 'gold');
+  h += '</div><h3>Матчи с ИИ по уровням</h3><table class="lvl-table"><tr><th>Уровень</th><th>Побед</th><th>Поражений</th><th>Доля</th></tr>';
+  LEVEL_NAMES.forEach((n, i) => { h += `<tr><td>${n}</td><td><b class="ku-good">${s.aiW[i]}</b></td><td><b class="ku-bad">${s.aiL[i]}</b></td><td>${pct(s.aiW[i], s.aiL[i])}</td></tr>`; });
+  h += '</table><h3>Турнир и кампания</h3><div class="stats-grid">';
+  h += card('Титулов чемпиона', s.titles, 'gold') + card('Матчей в турнире', s.tourMatches) + card('Побед в турнире', s.tourWins, 'good');
+  h += card('Лучший этап турнира', `${tour.best}/${PC.TOUR.length}`) + card('Кампания', `${s.campaign}/${PC.CAMPAIGN.length}`, 'good') + card('Забегов выживания', s.survRuns);
+  h += '</div>';
+  $('stats-body').innerHTML = h;
+}
+function fmtLong(sec) { const m = Math.floor(sec / 60), hh = Math.floor(m / 60); return hh ? `${hh} ч ${m % 60} мин` : m ? `${m} мин` : `${sec} с`; }
+function renderAch() {
+  const got = ACH.filter(a => unlocked[a.id]).length;
+  $('ach-count').textContent = `${got}/${ACH.length}`;
+  $('ach-list').innerHTML = ACH.map(a => {
+    const u = unlocked[a.id];
+    return `<div class="ach-item${u ? ' unlocked' : ''}"><div class="ach-icon">${a.icon}</div><div class="ach-info"><h4>${esc(a.title)}</h4><p>${esc(a.desc)}${u ? ' • ' + new Date(u).toLocaleDateString('ru-RU') : ''}</p></div></div>`;
+  }).join('');
+}
+const MODE_NAMES = { match: '🏓 Матч', tour: '🏆 Турнир', campaign: '🎮 Кампания', survival: '♾ Выживание', duo: '👥 Вдвоём' };
+function renderHistory() {
+  if (!matchLog.length) { $('hist-list').innerHTML = '<div class="empty">Пока пусто — сыграйте первый матч!</div>'; return; }
+  $('hist-list').innerHTML = matchLog.map(h => {
+    let badge, cls, detail;
+    if (h.mode === 'survival') { badge = `${h.goals} ${plural(h.goals, 'гол', 'гола', 'голов')}`; cls = 'n'; detail = h.opp; }
+    else if (h.mode === 'duo') { badge = h.res === 'P1' ? 'Игрок 1' : 'Игрок 2'; cls = 'n'; detail = ''; }
+    else { badge = h.res === 'W' ? 'Победа' : 'Поражение'; cls = h.res === 'W' ? 'w' : 'l'; detail = h.opp; }
+    const sc = h.scores.map(x => x.join(':')).join(', ');
+    const when = h.t ? new Date(h.t).toLocaleString('ru-RU', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' }) : '';
+    const parts = [detail, sc && h.mode !== 'survival' ? sc : '', h.dur ? '⏱ ' + fmtDur(h.dur) : '', when].filter(Boolean);
+    return `<div class="ach-item"><div class="ach-info"><h4>${MODE_NAMES[h.mode] || ''}</h4><p>${esc(parts.join(' • '))}</p></div><span class="hist-res ${cls}">${esc(badge)}</span></div>`;
+  }).join('');
+}
+function renderSettings() {
+  $$('#ov-settings input[data-opt]').forEach(el => { el.checked = !!settings[el.dataset.opt]; });
+  $('set-sens').value = Math.round(settings.sens * 100);
+  $('set-sens-v').textContent = Math.round(settings.sens * 100) + '%';
+  segSet('set-orient', settings.orient); segSet('set-points', settings.points); segSet('set-games', settings.games);
+}
+$$('#ov-settings input[data-opt]').forEach(el => el.addEventListener('change', () => {
+  settings[el.dataset.opt] = el.checked; saveSettings();
+  if (el.dataset.opt === 'sound' && el.checked) { AudioSys.init(); sfx.click(); }
+  if (el.dataset.opt === 'vibro' && el.checked) buzz(20);
+  refreshMenu();
+}));
+$('set-sens').addEventListener('input', () => {
+  settings.sens = clamp(Math.round(+$('set-sens').value / 10) / 10, 0.5, 2);
+  $('set-sens-v').textContent = Math.round(settings.sens * 100) + '%';
+  saveSettings();
+});
+$$('#set-orient button').forEach(b => b.addEventListener('click', () => { sfx.click(); settings.orient = b.dataset.v; saveSettings(); renderSettings(); queueLayout(); }));
+$$('#set-points button').forEach(b => b.addEventListener('click', () => { sfx.click(); settings.points = +b.dataset.v; saveSettings(); renderSettings(); refreshMenu(); }));
+$$('#set-games button').forEach(b => b.addEventListener('click', () => { sfx.click(); settings.games = +b.dataset.v; saveSettings(); renderSettings(); refreshMenu(); }));
+$('btn-reset').addEventListener('click', async () => {
+  const ok = await KuArcade.confirm('Удалить статистику, историю, достижения, прогресс кампании и турнира? Настройки сохранятся.', { title: 'СБРОС', ok: 'Сбросить', danger: true });
+  if (!ok) return;
+  [KEYS.stats, KEYS.hist, KEYS.ach, KEYS.tour].forEach(k => store.del(k));
+  stats = loadStats(); matchLog = loadHistory(); tour = loadTour(); unlocked = {};
+  refreshMenu();
+  toast('Статистика и прогресс сброшены', 'good');
+});
+
+refreshMenu();
+
 </script>
 </body>
 </html>

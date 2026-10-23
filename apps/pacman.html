@@ -8,25 +8,36 @@
 <script src="ku-arcade.js"></script>
 <style>
   html,body{height:100%;overflow:hidden}
-  #screen-game,#screen-game *{touch-action:none}
+  #screen-game,#screen-game *{touch-action:none;-webkit-user-select:none;user-select:none}
+  #screen-game{-webkit-touch-callout:none}
 
-  /* Сцена: поле + экранная крестовина (в ландшафте на телефоне — рядом) */
+  /* ═══ МЕНЮ ═══ */
+  #hero{display:block;margin:14px auto 0;width:min(300px,80vw);height:46px}
+  #screen-menu .ku-menu-row .ku-btn{padding-left:14px;padding-right:14px}
+
+  /* ═══ ИГРА ═══ */
   #stage{flex:1;min-height:0;width:100%;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:12px}
-  #board{line-height:0;flex:none}
+  #board{line-height:0;flex:none;padding:6px}
+  #board canvas{border-radius:10px}
   #pad{flex:none}
   #pad svg{width:22px;height:22px;fill:currentColor}
   #pad .mid svg{width:18px;height:18px;fill:none;stroke:currentColor;stroke-width:2.4;stroke-linecap:round}
-  #lives{display:flex;gap:3px;align-items:center;min-height:21px}
-  #lives svg{width:15px;height:15px;filter:drop-shadow(0 0 4px rgba(255,214,10,.55))}
-  #hero{display:block;margin:18px auto 0;width:min(300px,80vw);height:46px}
+  #screen-game .ku-hud{flex-wrap:nowrap}
+  #screen-game .ku-stat{min-width:76px}
+  .ku-top-title .s{max-width:46vw;overflow:hidden;text-overflow:ellipsis}
 
-  /* на десктопе с мышью крестовина не нужна — клавиатура */
+  /* крестовина: на компьютере с мышью не нужна; в настройках — всегда / скрыть */
   @media (min-width:821px) and (hover:hover) and (pointer:fine){#pad{display:none}}
+  body.pad-on #pad{display:grid!important}
+  body.pad-off #pad{display:none!important}
   @media (orientation:landscape) and (max-height:560px){
-    #stage{flex-direction:row;gap:20px}
+    #stage{flex-direction:row;gap:22px}
     /* телефон боком: показатели колонкой слева, вся высота — полю */
-    #screen-game{position:relative}
-    #screen-game .ku-hud{position:absolute;left:max(14px,env(safe-area-inset-left,0px));top:72px;flex-direction:column;margin:0;z-index:2}
+    #screen-game{position:relative;padding-top:6px}
+    #screen-game .ku-top{margin-bottom:2px}
+    #screen-game .ku-hud{position:absolute;left:max(14px,env(safe-area-inset-left,0px));top:70px;flex-direction:column;margin:0;z-index:2}
+    #screen-game .ku-stat{padding:4px 10px;min-width:70px}
+    #screen-game .ku-stat b{font-size:15px}
   }
   /* низкие экраны (360×640): компактнее шапка, показатели и крестовина */
   @media (max-height:720px){
@@ -38,6 +49,49 @@
     #pad{grid-template-columns:repeat(3,50px);grid-template-rows:repeat(3,50px);gap:5px}
     #pad button{width:50px;height:50px}
   }
+
+  /* ═══ ОКНА ═══ */
+  .stats-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(96px,1fr));gap:8px}
+  .st-card{background:var(--panel);border:1px solid var(--panel-border);border-radius:14px;padding:10px 6px;text-align:center}
+  .st-card .sv{font-family:var(--font-display);font-size:17px;color:var(--accent);margin-top:2px;white-space:nowrap}
+  .st-card .sl{font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:.8px;margin-top:3px}
+  .st-card.gold .sv{color:var(--gold)}
+  .ku-modal .ku-seg{width:100%}
+  .pm-tabs{margin-bottom:12px}
+  .list{display:flex;flex-direction:column;gap:8px}
+  .ach-item{display:flex;align-items:center;gap:12px;padding:10px 12px;border-radius:14px;background:var(--panel);border:1px solid var(--panel-border)}
+  .ach-item.unlocked{border-color:rgba(255,214,10,.45);background:rgba(255,214,10,.07)}
+  .ach-item.unlocked h4{color:var(--gold)}
+  .ach-item:not(.unlocked) .ach-icon{filter:grayscale(1);opacity:.45}
+  .ach-icon{font-size:22px;width:40px;height:40px;flex:none;display:flex;align-items:center;justify-content:center;background:rgba(255,255,255,.05);border-radius:12px}
+  .ach-info{min-width:0}
+  .ach-info h4{margin:0 0 2px;font-family:var(--font-display);font-weight:400;font-size:13px;letter-spacing:.5px}
+  .ach-info p{margin:0;font-size:11.5px;color:var(--muted);line-height:1.4}
+  .hist-item{display:flex;align-items:center;gap:10px;padding:9px 12px;border-radius:14px;background:var(--panel);border:1px solid var(--panel-border)}
+  .hist-item .hs{font-family:var(--font-display);font-size:16px;color:var(--accent);min-width:74px}
+  .hist-item .hs.best{color:var(--gold)}
+  .hist-item .hi{flex:1;min-width:0;font-size:12px;color:var(--muted);line-height:1.4}
+  .hist-item .hi b{color:var(--text);font-weight:600}
+  .empty{text-align:center;color:var(--muted);padding:20px}
+  .fruit-table{display:grid;grid-template-columns:repeat(auto-fill,minmax(130px,1fr));gap:6px 10px;margin:4px 0 6px}
+  .fruit-table div{display:flex;align-items:center;gap:8px;font-size:13px}
+  .fruit-table canvas{width:26px;height:26px;flex:none}
+  .fruit-table b{font-family:var(--font-display);font-weight:400;color:var(--gold)}
+  .ghost-list{display:flex;flex-direction:column;gap:8px;margin:4px 0}
+  .ghost-list div{display:flex;align-items:flex-start;gap:10px;font-size:13.5px;line-height:1.45}
+  .ghost-list canvas{width:26px;height:26px;flex:none;margin-top:1px}
+  .ku-set-row{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:8px 0}
+  .set-btns{display:flex;gap:8px;flex-wrap:wrap}
+  .over-ach{font-size:13px;color:var(--gold);text-align:center;line-height:1.5}
+  .ku-over-stats{max-width:320px}
+  @media (max-height:560px){
+    .ku-overlay .ku-card{max-height:calc(100vh - 16px);max-height:calc(100dvh - 16px);overflow-y:auto;padding:14px 18px;gap:6px}
+    .ku-overlay .ku-card h2{font-size:20px;margin:0}
+    .ku-overlay .ku-big-score{font-size:28px}
+    .ku-overlay .ku-over-stats{display:grid;grid-template-columns:1fr 1fr 1fr;column-gap:14px;max-width:480px}
+    .ku-overlay .ku-card .ku-btn{min-height:36px;padding-top:7px;padding-bottom:7px}
+    #over .ku-card{max-width:540px}
+  }
 </style>
 </head>
 <body class="ku">
@@ -46,22 +100,29 @@
   <!-- ═══ МЕНЮ ═══ -->
   <section id="screen-menu" class="ku-screen menu active">
     <h1 class="ku-logo">PAC-MAN</h1>
-    <p class="ku-tagline">Неоновая аркада • Лабиринт • Рекорды</p>
+    <p class="ku-tagline">Аркада 1980 • Фрукты • Рекорды</p>
     <canvas id="hero" aria-hidden="true"></canvas>
-    <div class="ku-pills"><span>👻 4 привидения</span><span>⚡ Энерджайзеры</span><span>🌀 Туннели</span><span>♾ Уровни</span></div>
+    <div class="ku-pills"><span>👻 4 характера</span><span>🍒 Фрукты</span><span>⚡ Энерджайзеры</span><span>🌀 4 лабиринта</span></div>
     <div class="ku-menu-btns">
-      <button class="ku-btn big primary" id="btn-play">🎮 Играть<span class="best" id="menu-best">Рекорд: 0</span></button>
+      <button class="ku-btn big primary" id="btn-classic">🎮 Классика<span class="best" id="best-classic">Рекорд: 0</span></button>
+      <button class="ku-btn big accent2" id="btn-mazes">🌀 Лабиринты<span class="best" id="best-mazes">3 новых лабиринта</span></button>
     </div>
-    <div class="ku-menu-row"><button class="ku-btn ghost" id="btn-rules">📖 Правила</button></div>
+    <div class="ku-menu-row">
+      <button class="ku-btn ghost" id="btn-rules">📖 Правила</button>
+      <button class="ku-btn ghost" id="btn-stats">📊 Статистика</button>
+      <button class="ku-btn ghost" id="btn-ach">🏅 Достижения</button>
+      <button class="ku-btn ghost" id="btn-history">📜 История</button>
+      <button class="ku-btn ghost" id="btn-settings">⚙️ Настройки</button>
+    </div>
     <div class="ku-menu-stats" id="menu-stats">Сыграно игр: 0 • Лучший уровень: 1</div>
-    <div class="ku-menu-hint">Клавиши: ← ↑ → ↓ / WASD — движение · P / Esc — пауза<br>На телефоне: свайпы по полю или крестовина · поворот можно нажать заранее</div>
+    <div class="ku-menu-hint">Клавиши: ← ↑ → ↓ / WASD — движение · P / Esc — пауза · M — звук<br>На телефоне: свайпы по полю или крестовина · поворот можно нажать заранее</div>
   </section>
 
   <!-- ═══ ИГРА ═══ -->
   <section id="screen-game" class="ku-screen fit">
     <header class="ku-top">
       <div class="ku-top-left"></div>
-      <div class="ku-top-title"><div class="t">PAC-MAN</div><div class="s">УРОВЕНЬ <b id="top-level">1</b></div></div>
+      <div class="ku-top-title"><div class="t">PAC-MAN</div><div class="s" id="g-sub">КЛАССИКА</div></div>
       <div class="ku-top-actions">
         <button class="ku-btn icon" id="btn-pause" aria-label="Пауза"><svg viewBox="0 0 24 24"><line x1="9" y1="5" x2="9" y2="19"/><line x1="15" y1="5" x2="15" y2="19"/></svg></button>
       </div>
@@ -69,1182 +130,1958 @@
     <div class="ku-hud">
       <div class="ku-stat"><span>Очки</span><b id="score">0</b></div>
       <div class="ku-stat gold"><span>Рекорд</span><b id="best">0</b></div>
-      <div class="ku-stat"><span>Жизни</span><b id="lives"></b></div>
+      <div class="ku-stat c2"><span>Уровень</span><b id="level">1</b></div>
     </div>
     <div id="stage">
-      <div id="board" class="ku-board"><canvas id="gameCanvas"></canvas></div>
+      <div id="board" class="ku-board"><canvas id="gameCanvas" aria-label="Лабиринт Pac-Man"></canvas></div>
       <div id="pad" class="ku-pad">
-        <button class="up" data-d="UP" aria-label="Вверх"><svg viewBox="0 0 24 24"><path d="M12 5l8 12H4z"/></svg></button>
-        <button class="left" data-d="LEFT" aria-label="Влево"><svg viewBox="0 0 24 24"><path d="M5 12l12-8v16z"/></svg></button>
+        <button class="up" data-d="up" aria-label="Вверх"><svg viewBox="0 0 24 24"><path d="M12 5l8 12H4z"/></svg></button>
+        <button class="left" data-d="left" aria-label="Влево"><svg viewBox="0 0 24 24"><path d="M5 12l12-8v16z"/></svg></button>
         <button class="mid" id="pad-pause" aria-label="Пауза"><svg viewBox="0 0 24 24"><line x1="9" y1="6" x2="9" y2="18"/><line x1="15" y1="6" x2="15" y2="18"/></svg></button>
-        <button class="right" data-d="RIGHT" aria-label="Вправо"><svg viewBox="0 0 24 24"><path d="M19 12L7 20V4z"/></svg></button>
-        <button class="down" data-d="DOWN" aria-label="Вниз"><svg viewBox="0 0 24 24"><path d="M12 19L4 7h16z"/></svg></button>
+        <button class="right" data-d="right" aria-label="Вправо"><svg viewBox="0 0 24 24"><path d="M19 12L7 20V4z"/></svg></button>
+        <button class="down" data-d="down" aria-label="Вниз"><svg viewBox="0 0 24 24"><path d="M12 19L4 7h16z"/></svg></button>
       </div>
     </div>
   </section>
 </main>
 
-<!-- ═══ ПРАВИЛА ═══ -->
-<div class="ku-overlay" id="rules">
-  <div class="ku-modal">
-    <header><h2>📖 Правила</h2><button class="ku-btn icon" id="btn-rules-x" aria-label="Закрыть">✕</button></header>
-    <div class="ku-body">
-      <h3>Цель</h3>
-      <ul class="ku-rules">
-        <li><b>Съешьте все точки</b> в лабиринте — откроется следующий уровень.</li>
-        <li>Точка — <b>10</b> очков, энерджайзер (большая точка) — <b>50</b>.</li>
-        <li>Жизней <b>3</b>: касание привидения стоит одной жизни.</li>
-      </ul>
-      <h3>Привидения</h3>
-      <ul class="ku-rules">
-        <li><b style="color:#ff3b3b">Блинки</b> гонится прямо за вами, <b style="color:#ffb8ff">Пинки</b> заходит спереди, <b style="color:#00ffff">Инки</b> и <b style="color:#ffb852">Клайд</b> — хитрее.</li>
-        <li>Привидения то разбегаются по углам, то начинают охоту.</li>
-        <li><b>Энерджайзер</b> на 6 секунд делает их синими — синих можно съесть: <b>200 → 400 → 800 → 1600</b> очков подряд. Белое мигание — испуг скоро закончится.</li>
-        <li>Съеденное привидение возвращается глазами в домик и выходит снова.</li>
-      </ul>
-      <h3>Лабиринт</h3>
-      <ul class="ku-rules">
-        <li>Туннели слева и справа переносят на другую сторону. Привидения в туннеле медленнее.</li>
-      </ul>
-      <h3>Управление</h3>
-      <ul class="ku-rules">
-        <li>Стрелки или WASD, свайпы по полю, экранная крестовина.</li>
-        <li>Поворот можно нажать заранее — Pac-Man свернёт на ближайшем перекрёстке.</li>
-        <li>P или Esc — пауза.</li>
-      </ul>
-    </div>
-    <footer><button class="ku-btn primary" id="btn-rules-ok">Понятно</button></footer>
-  </div>
-</div>
-
 <!-- ═══ ПАУЗА ═══ -->
-<div class="ku-overlay" id="pause">
-  <div class="ku-card">
-    <h2>⏸ ПАУЗА</h2>
-    <button class="ku-btn primary" id="btn-resume">Продолжить</button>
-    <button class="ku-btn" id="btn-restart">Заново</button>
-    <button class="ku-btn" id="btn-rules2">📖 Правила</button>
-    <button class="ku-btn ghost" id="btn-quit">В меню</button>
-  </div>
-</div>
+<div class="ku-overlay" id="pause"><div class="ku-card" role="dialog" aria-modal="true">
+  <h2>⏸ ПАУЗА</h2>
+  <p id="pause-info">—</p>
+  <button class="ku-btn primary" id="btn-resume">Продолжить</button>
+  <button class="ku-btn" id="btn-restart">🔄 Заново</button>
+  <button class="ku-btn" id="btn-rules2">📖 Правила</button>
+  <button class="ku-btn" id="btn-settings2">⚙️ Настройки</button>
+  <button class="ku-btn ghost" id="btn-quit">В меню</button>
+</div></div>
 
 <!-- ═══ КОНЕЦ ИГРЫ ═══ -->
-<div class="ku-overlay" id="over">
-  <div class="ku-card">
-    <h2 class="lose">ИГРА ОКОНЧЕНА</h2>
-    <div class="ku-new-best" id="over-best" hidden>🏆 НОВЫЙ РЕКОРД!</div>
-    <div class="ku-big-score" id="over-score">0</div>
-    <div class="ku-over-stats">
-      <div>Уровень<b id="over-level">1</b></div>
-      <div>Привидений съедено<b id="over-ghosts">0</b></div>
-      <div>Рекорд<b id="over-record">0</b></div>
-    </div>
-    <button class="ku-btn primary" id="btn-again">Играть снова</button>
-    <button class="ku-btn ghost" id="btn-over-menu">В меню</button>
+<div class="ku-overlay" id="over"><div class="ku-card" role="dialog" aria-modal="true">
+  <h2 class="lose">ИГРА ОКОНЧЕНА</h2>
+  <div class="ku-new-best" id="over-best" hidden>🏆 НОВЫЙ РЕКОРД!</div>
+  <div class="ku-big-score" id="over-score">0</div>
+  <div class="ku-over-stats">
+    <div>Уровень<b id="over-level">1</b></div>
+    <div>Привидения<b id="over-ghosts">0</b></div>
+    <div>Фрукты<b id="over-fruits">0</b></div>
+    <div>Время<b id="over-time">0:00</b></div>
+    <div>Рекорд<b id="over-record">0</b></div>
   </div>
-</div>
+  <div class="over-ach" id="over-ach" hidden></div>
+  <button class="ku-btn primary" id="btn-again">Играть снова</button>
+  <button class="ku-btn ghost" id="btn-over-menu">В меню</button>
+</div></div>
+
+<!-- ═══ ПРАВИЛА ═══ -->
+<div class="ku-overlay" id="rules"><div class="ku-modal" role="dialog" aria-modal="true">
+  <header><h2>📖 Правила</h2><button class="ku-btn icon" data-close aria-label="Закрыть">✕</button></header>
+  <div class="ku-body">
+    <h3>Цель</h3>
+    <ul class="ku-rules">
+      <li><b>Съешьте все точки</b> в лабиринте — откроется следующий уровень. С каждым уровнем всё быстрее, а испуг короче.</li>
+      <li>Жизней <b>3</b>: одна в игре, запасные — значки внизу слева. Касание привидения стоит жизни.</li>
+      <li>Одна <b>дополнительная жизнь</b> — за 10 000 очков.</li>
+    </ul>
+    <h3>Привидения</h3>
+    <div class="ghost-list" id="rules-ghosts"></div>
+    <ul class="ku-rules">
+      <li>Привидения то <b>разбегаются</b> по своим углам, то <b>охотятся</b> (на 1 уровне: 7 с разбег → 20 с охота → 7 → 20 → 5 → 20 → 5 → охота до конца; дальше разбег короче). При каждой смене они разворачиваются.</li>
+      <li>Сначала в лабиринте только Блинки; остальные выходят из домика, когда вы съедите нужное число точек (на 1 уровне Инки — после 30, Клайд — ещё после 60) или если долго не едите точки.</li>
+      <li>Когда точек остаётся мало, <b>Блинки ускоряется</b> («Круиз Элрой») и гонится за вами даже во время разбега.</li>
+      <li>В туннелях привидения медленнее. В двух местах над домиком и над стартом Pac-Man они не сворачивают вверх.</li>
+    </ul>
+    <h3>Энерджайзер</h3>
+    <ul class="ku-rules">
+      <li>Большая точка разворачивает привидений и делает их <b>синими</b>: их можно съесть — <b>200 → 400 → 800 → 1600</b> очков подряд за один энерджайзер.</li>
+      <li>Белое мигание — испуг скоро кончится. Испуг короче с каждым уровнем (6 с на 1-м), на 17-м и с 19-го привидения уже не синеют — только разворачиваются.</li>
+      <li>Съеденное привидение улетает глазами в домик и выходит снова.</li>
+    </ul>
+    <h3>Фрукты</h3>
+    <ul class="ku-rules">
+      <li>Дважды за уровень — после 70 и 170 съеденных точек — под домиком появляется фрукт на 9–10 секунд.</li>
+    </ul>
+    <div class="fruit-table" id="rules-fruits"></div>
+    <ul class="ku-rules">
+      <li>Фрукты пройденных уровней показаны внизу справа.</li>
+    </ul>
+    <h3>Очки</h3>
+    <ul class="ku-rules">
+      <li>Точка — <b>10</b>, энерджайзер — <b>50</b>, привидения — <b>200…1600</b>, фрукты — <b>100…5000</b>.</li>
+      <li>Pac-Man на мгновение замедляется, когда ест точки, и быстрее на пустых коридорах; углы он «срезает» — привидения нет.</li>
+    </ul>
+    <h3>Режимы</h3>
+    <ul class="ku-rules">
+      <li><b>Классика</b> — лабиринт аркады 1980 года. <b>Лабиринты</b> — три своих лабиринта («Сетка», «Лесенка», «Сквозняк»), каждый на 2 уровня, правила те же. Рекорды — отдельно.</li>
+    </ul>
+    <h3>Управление</h3>
+    <ul class="ku-rules">
+      <li>Стрелки или WASD, свайпы по полю, экранная крестовина. Поворот можно нажать заранее — Pac-Man свернёт в первом же проходе.</li>
+      <li>P или Esc — пауза, M — звук. Игра встаёт на паузу, если свернуть вкладку.</li>
+    </ul>
+  </div>
+  <footer><button class="ku-btn primary" data-close>Понятно</button></footer>
+</div></div>
+
+<!-- ═══ СТАТИСТИКА ═══ -->
+<div class="ku-overlay" id="stats"><div class="ku-modal" role="dialog" aria-modal="true">
+  <header><h2>📊 Статистика</h2><button class="ku-btn icon" data-close aria-label="Закрыть">✕</button></header>
+  <div class="ku-body">
+    <div class="ku-seg pm-tabs" id="st-tabs"><button data-k="classic">Классика</button><button data-k="mazes">Лабиринты</button><button data-k="all">Всего</button></div>
+    <div class="stats-grid" id="st-grid"></div>
+  </div>
+  <footer><button class="ku-btn primary" data-close>Готово</button></footer>
+</div></div>
+
+<!-- ═══ ДОСТИЖЕНИЯ ═══ -->
+<div class="ku-overlay" id="ach"><div class="ku-modal" role="dialog" aria-modal="true">
+  <header><h2>🏅 Достижения <span class="ku-muted" id="ach-count"></span></h2><button class="ku-btn icon" data-close aria-label="Закрыть">✕</button></header>
+  <div class="ku-body"><div class="list" id="ach-list"></div></div>
+</div></div>
+
+<!-- ═══ ИСТОРИЯ ═══ -->
+<div class="ku-overlay" id="history"><div class="ku-modal" role="dialog" aria-modal="true">
+  <header><h2>📜 История</h2><button class="ku-btn icon" data-close aria-label="Закрыть">✕</button></header>
+  <div class="ku-body"><div class="list" id="history-list"></div></div>
+</div></div>
+
+<!-- ═══ НАСТРОЙКИ ═══ -->
+<div class="ku-overlay" id="settings"><div class="ku-modal" role="dialog" aria-modal="true">
+  <header><h2>⚙️ Настройки</h2><button class="ku-btn icon" data-close aria-label="Закрыть">✕</button></header>
+  <div class="ku-body">
+    <h3>Звук и вибрация</h3>
+    <label class="ku-switch-row">Звуки<input type="checkbox" data-opt="sound"><span class="ku-switch"></span></label>
+    <label class="ku-switch-row">Вибрация<input type="checkbox" data-opt="vibration"><span class="ku-switch"></span></label>
+    <h3>Управление</h3>
+    <div class="ku-field"><div class="ku-label">Экранная крестовина</div>
+      <div class="ku-seg" id="set-pad"><button data-v="auto">Авто</button><button data-v="on">Всегда</button><button data-v="off">Скрыть</button></div></div>
+    <label class="ku-switch-row">Свайпы по полю<input type="checkbox" data-opt="swipe"><span class="ku-switch"></span></label>
+    <h3>Данные</h3>
+    <div class="set-btns"><button class="ku-btn sm danger" id="btn-reset">🗑 Сбросить статистику</button></div>
+  </div>
+  <footer><button class="ku-btn primary" data-close>Готово</button></footer>
+</div></div>
 
 <div class="ku-toast" id="toast"></div>
-
 <script>
 'use strict';
-/**
- * Классический Пакман
- * Игровая логика, ИИ призраков и рендеринг на Canvas.
- * Логика идёт фиксированным шагом 60 Гц (накопитель времени), поэтому все скорости —
- * в пикселях за тик, а таймеры — в тиках, независимо от частоты экрана (60/120/144 Гц).
+
+/* ═══ engine.js ═══ */
+/* ═══ Pac-Man — движок по правилам аркады Namco (1980), без DOM ═══
+ * Координаты — в клетках лабиринта 28×31: центр клетки (c, r) — точка (c + 0.5, r + 0.5).
+ * Время — тики логики по 1/60 с (фиксированный шаг: одинаково на 60, 120 и 144 Гц).
+ * Таблицы скоростей, испуга, «Круиза Элроя», разбега/охоты и выхода из домика — по
+ * «The Pac-Man Dossier» (J. Pittman). Pac-Man «срезает» углы, привидения — нет.
  */
+const PM = (() => {
+  const FPS = 60;
+  const COLS = 28, ROWS = 31;
+  // 100 % скорости аркады — 75,75757625 пикселя в секунду при клетке 8 пикселей
+  const SPEED_100 = 75.75757625 / 8 / FPS;            // ≈ 0,158 клетки за тик
+  const EYES_SPEED = 2 * SPEED_100;                   // глаза летят домой быстро
+  const LEAVE_SPEED = 0.5 * SPEED_100;                // выход из домика
+  const BOB_SPEED = 0.4 * SPEED_100, BOB_AMP = 0.4;   // покачивание в домике
+  const EPS = 1e-7;
 
-// --- КОНСТАНТЫ И НАСТРОЙКИ ---
-const TILE_SIZE = 20;
-const FPS = 60;
-const STEP_MS = 1000 / FPS;
-const GHOST_SPEED_NORMAL = 1.5;
-const GHOST_SPEED_FRIGHTENED = 0.8;
-const PACMAN_SPEED = 2;
-const FRIGHT_TICKS = 6 * FPS;    // 6 секунд испуга
-const DEATH_TICKS = 2 * FPS;     // пауза после гибели
-const WIN_TICKS = 2 * FPS;       // пауза после зачистки уровня
+  // Длительности фаз (в тиках)
+  const READY_LEVEL = 150, READY_LIFE = 120, INTRO_HIDE = 50;   // «ГОТОВЬСЯ!» (в начале уровня 50 тиков без героев)
+  const EAT_FREEZE = 60;                                         // пауза после съеденного привидения
+  const DIE_FREEZE = 50, DIE_ANIM = 100, DIE_TOTAL = 180;        // гибель: замирание → анимация → пусто
+  const CLEAR_FREEZE = 60, CLEAR_FLASH = 12, CLEAR_TOTAL = 60 + 8 * 12;  // уровень пройден: стены мигают 4 раза
+  const FLASH_TICKS = 14;                                        // одно мигание испуганного привидения (7 белых + 7 синих)
+  const EXTRA_LIFE_AT = 10000;
 
-const DIR = {
-    UP: { x: 0, y: -1, code: 0 },
-    RIGHT: { x: 1, y: 0, code: 1 },
-    DOWN: { x: 0, y: 1, code: 2 },
-    LEFT: { x: -1, y: 0, code: 3 },
-    NONE: { x: 0, y: 0, code: -1 }
-};
+  // ── Направления. Порядок DIRS — приоритет при равных расстояниях: вверх, влево, вниз, вправо (как в аркаде) ──
+  const UP = { x: 0, y: -1, k: 'up' }, LEFT = { x: -1, y: 0, k: 'left' },
+        DOWN = { x: 0, y: 1, k: 'down' }, RIGHT = { x: 1, y: 0, k: 'right' };
+  UP.rev = DOWN; DOWN.rev = UP; LEFT.rev = RIGHT; RIGHT.rev = LEFT;
+  const DIRS = [UP, LEFT, DOWN, RIGHT];
+  const DIR = { up: UP, left: LEFT, down: DOWN, right: RIGHT };
 
-// Состояния призраков
-const GHOST_STATE = {
-    SCATTER: 0,
-    CHASE: 1,
-    FRIGHTENED: 2,
-    EATEN: 3,
-    IN_PEN: 4
-};
+  // ── Типы клеток ──
+  const T_EMPTY = 0, T_WALL = 1, T_VOID = 2, T_DOOR = 3, T_HOUSE = 4, T_TUNNEL = 5;
 
-// Типы элементов карты
-const MAP_TYPES = {
-    EMPTY: 0,
-    WALL: 1,
-    PELLET: 2,
-    POWER_PELLET: 3,
-    GHOST_DOOR: 4,
-    TUNNEL: 5
-};
+  // ── Общие точки всех лабиринтов (домик в центре, как в аркаде) ──
+  const POS = {
+    pac: { x: 14, y: 23.5 },
+    door: { x: 14, y: 11.5 },          // над дверью: отсюда выходят привидения и сюда прилетают глаза
+    house: { x: 14, y: 14.5 },         // центр домика
+    home: [{ x: 14, y: 11.5 }, { x: 14, y: 14.5 }, { x: 12, y: 14.5 }, { x: 16, y: 14.5 }],  // Блинки, Пинки, Инки, Клайд
+    fruit: { x: 14, y: 17.5 }
+  };
+  const EYES_TARGET = { c: 13, r: 11 };  // глаза целятся в клетку над левой половиной двери
+  // Цели разбега — за пределами лабиринта: каждое привидение кружит у «своего» угла
+  const SCATTER = [{ c: 25, r: -3 }, { c: 2, r: -3 }, { c: 27, r: 32 }, { c: 0, r: 32 }];
+  const GHOST_IDS = ['blinky', 'pinky', 'inky', 'clyde'];
 
-// Классическая карта (28x31)
-// 1: Стена, 2: Точка, 3: Энерджайзер, 0: Пусто, 4: Дверь, 5: Туннель
-const rawMap = [
-    [1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1],
-    [1,2,2,2,2,2,2,2,2,2,2,2,2,1,1,2,2,2,2,2,2,2,2,2,2,2,2,1],
-    [1,2,1,1,1,1,2,1,1,1,1,1,2,1,1,2,1,1,1,1,1,2,1,1,1,1,2,1],
-    [1,3,1,1,1,1,2,1,1,1,1,1,2,1,1,2,1,1,1,1,1,2,1,1,1,1,3,1],
-    [1,2,1,1,1,1,2,1,1,1,1,1,2,1,1,2,1,1,1,1,1,2,1,1,1,1,2,1],
-    [1,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,1],
-    [1,2,1,1,1,1,2,1,1,2,1,1,1,1,1,1,1,1,2,1,1,2,1,1,1,1,2,1],
-    [1,2,1,1,1,1,2,1,1,2,1,1,1,1,1,1,1,1,2,1,1,2,1,1,1,1,2,1],
-    [1,2,2,2,2,2,2,1,1,2,2,2,2,1,1,2,2,2,2,1,1,2,2,2,2,2,2,1],
-    [1,1,1,1,1,1,2,1,1,1,1,1,0,1,1,0,1,1,1,1,1,2,1,1,1,1,1,1],
-    [0,0,0,0,0,1,2,1,1,1,1,1,0,1,1,0,1,1,1,1,1,2,1,0,0,0,0,0],
-    [0,0,0,0,0,1,2,1,1,0,0,0,0,0,0,0,0,0,0,1,1,2,1,0,0,0,0,0],
-    [0,0,0,0,0,1,2,1,1,0,1,1,1,4,4,1,1,1,0,1,1,2,1,0,0,0,0,0],
-    [1,1,1,1,1,1,2,1,1,0,1,0,0,0,0,0,0,1,0,1,1,2,1,1,1,1,1,1],
-    [5,0,0,0,0,0,2,0,0,0,1,0,0,0,0,0,0,1,0,0,0,2,0,0,0,0,0,5],
-    [1,1,1,1,1,1,2,1,1,0,1,0,0,0,0,0,0,1,0,1,1,2,1,1,1,1,1,1],
-    [0,0,0,0,0,1,2,1,1,0,1,1,1,1,1,1,1,1,0,1,1,2,1,0,0,0,0,0],
-    [0,0,0,0,0,1,2,1,1,0,0,0,0,0,0,0,0,0,0,1,1,2,1,0,0,0,0,0],
-    [0,0,0,0,0,1,2,1,1,0,1,1,1,1,1,1,1,1,0,1,1,2,1,0,0,0,0,0],
-    [1,1,1,1,1,1,2,1,1,0,1,1,1,1,1,1,1,1,0,1,1,2,1,1,1,1,1,1],
-    [1,2,2,2,2,2,2,2,2,2,2,2,2,1,1,2,2,2,2,2,2,2,2,2,2,2,2,1],
-    [1,2,1,1,1,1,2,1,1,1,1,1,2,1,1,2,1,1,1,1,1,2,1,1,1,1,2,1],
-    [1,2,1,1,1,1,2,1,1,1,1,1,2,1,1,2,1,1,1,1,1,2,1,1,1,1,2,1],
-    [1,3,2,2,1,1,2,2,2,2,2,2,2,0,0,2,2,2,2,2,2,2,1,1,2,2,3,1],
-    [1,1,1,2,1,1,2,1,1,2,1,1,1,1,1,1,1,1,2,1,1,2,1,1,2,1,1,1],
-    [1,1,1,2,1,1,2,1,1,2,1,1,1,1,1,1,1,1,2,1,1,2,1,1,2,1,1,1],
-    [1,2,2,2,2,2,2,1,1,2,2,2,2,1,1,2,2,2,2,1,1,2,2,2,2,2,2,1],
-    [1,2,1,1,1,1,1,1,1,1,1,1,2,1,1,2,1,1,1,1,1,1,1,1,1,1,2,1],
-    [1,2,1,1,1,1,1,1,1,1,1,1,2,1,1,2,1,1,1,1,1,1,1,1,1,1,2,1],
-    [1,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,1],
-    [1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1]
-];
-const ROWS = rawMap.length, COLS = rawMap[0].length;
-const MAP_W = COLS * TILE_SIZE, MAP_H = ROWS * TILE_SIZE;
+  /* ── Лабиринты ──
+   * '#' стена, '.' точка, 'o' энерджайзер, ' ' пусто, 'T' туннель (привидения медленнее),
+   * '-' дверь домика, 'h' домик, 'x' пустота за стенами (не рисуется, не проходима). */
+  const MAZE_DEFS = [
+    {
+      id: 'classic', name: 'Классика', wall: '#5b8cff', glow: '#00e5ff',
+      // «красные зоны» аркады: в этих 4 клетках привидения в разбеге и охоте не поворачивают вверх
+      noUp: [[12, 11], [15, 11], [12, 23], [15, 23]],
+      rows: [
+        '############################',
+        '#............##............#',
+        '#.####.#####.##.#####.####.#',
+        '#o####.#####.##.#####.####o#',
+        '#.####.#####.##.#####.####.#',
+        '#..........................#',
+        '#.####.##.########.##.####.#',
+        '#.####.##.########.##.####.#',
+        '#......##....##....##......#',
+        '######.##### ## #####.######',
+        'xxxxx#.##### ## #####.#xxxxx',
+        'xxxxx#.##          ##.#xxxxx',
+        'xxxxx#.## ###--### ##.#xxxxx',
+        '######.## #hhhhhh# ##.######',
+        'TTTTTT.   #hhhhhh#   .TTTTTT',
+        '######.## #hhhhhh# ##.######',
+        'xxxxx#.## ######## ##.#xxxxx',
+        'xxxxx#.##          ##.#xxxxx',
+        'xxxxx#.## ######## ##.#xxxxx',
+        '######.## ######## ##.######',
+        '#............##............#',
+        '#.####.#####.##.#####.####.#',
+        '#.####.#####.##.#####.####.#',
+        '#o..##.......  .......##..o#',
+        '###.##.##.########.##.##.###',
+        '###.##.##.########.##.##.###',
+        '#......##....##....##......#',
+        '#.##########.##.##########.#',
+        '#.##########.##.##########.#',
+        '#..........................#',
+        '############################'
+      ]
+    }
+  ];
 
-// Координаты баз призраков и спавна
-const SPAWN = {
-    PACMAN: { c: 14, r: 23 },
-    BLINKY: { c: 14, r: 11 },
-    PINKY:  { c: 14, r: 14 },
-    INKY:   { c: 12, r: 14 },
-    CLYDE:  { c: 16, r: 14 },
-    GHOST_DOOR: { c: 14, r: 12 }
-};
-const DOOR_X = SPAWN.GHOST_DOOR.c * TILE_SIZE + TILE_SIZE / 2;
-const DOOR_Y = SPAWN.GHOST_DOOR.r * TILE_SIZE + TILE_SIZE / 2;
+  function parseMaze(def) {
+    if (!def.rows || def.rows.length !== ROWS) throw new Error('maze ' + def.id + ': rows');
+    const grid = [], dots = [];
+    let dotCount = 0, energizers = 0;
+    for (let r = 0; r < ROWS; r++) {
+      const s = def.rows[r];
+      if (s.length !== COLS) throw new Error('maze ' + def.id + ': row ' + r + ' length ' + s.length);
+      const g = [], d = [];
+      for (let c = 0; c < COLS; c++) {
+        const ch = s[c];
+        let t = T_EMPTY, dot = 0;
+        if (ch === '#') t = T_WALL;
+        else if (ch === 'x') t = T_VOID;
+        else if (ch === '-') t = T_DOOR;
+        else if (ch === 'h') t = T_HOUSE;
+        else if (ch === 'T') t = T_TUNNEL;
+        else if (ch === '.') dot = 1;
+        else if (ch === 'o') { dot = 2; energizers++; }
+        else if (ch !== ' ') throw new Error('maze ' + def.id + ': char ' + ch);
+        g.push(t); d.push(dot);
+        if (dot) dotCount++;
+      }
+      grid.push(g); dots.push(d);
+    }
+    const noUp = new Set((def.noUp || []).map(([c, r]) => r * COLS + c));
+    return Object.assign({}, def, { grid, dots, dotCount, energizers, noUpSet: noUp });
+  }
+  const MAZES = {};
+  const MAZE_LIST = [];
+  function addMaze(def) { const m = parseMaze(def); MAZES[m.id] = m; MAZE_LIST.push(m); return m; }
+  MAZE_DEFS.forEach(addMaze);
+  // режим «Лабиринты»: свои лабиринты по очереди, каждый — на 2 уровня
+  const ALT_ORDER = [];
+  function mazeFor(mode, level) {
+    if (mode === 'mazes' && ALT_ORDER.length) return MAZES[ALT_ORDER[Math.floor((level - 1) / 2) % ALT_ORDER.length]];
+    return MAZES.classic;
+  }
 
-// Цвета: классические цвета призраков и жёлтый Пакман (узнаваемость), «хром» — из палитры набора
-const PAC_COLOR = '#ffd60a';
-const GHOST_COLORS = { BLINKY: '#FF0000', PINKY: '#FFB8FF', INKY: '#00FFFF', CLYDE: '#FFB852' };
-const FRIGHT_COLOR = '#2b4bff';
-const WALL_COLOR = '#5b8cff';      // --blue
-const WALL_GLOW = '#00e5ff';       // --cyan
-const PELLET_COLOR = '#ffc9a3';    // тёплые точки
-const POWER_COLOR = '#ffb36b';
-const DOOR_COLOR = '#ff4dd2';      // --accent2
-
-// --- ГЛОБАЛЬНЫЕ ПЕРЕМЕННЫЕ ---
-let canvas, ctx;
-let gameMap = [];
-let score = 0;
-let lives = 3;
-let pelletsTotal = 0;
-let pelletsEaten = 0;
-let ghostsEatenMultiplier = 1;
-let ghostsEatenTotal = 0;
-let level = 1;
-let gameMode = GHOST_STATE.SCATTER;
-let modeTimer = 0;
-let frightenedTimer = 0;
-let stateTimer = 0;            // тики в состояниях DEATH / WIN
-let gameState = 'START';       // START, PLAYING, DEATH, GAMEOVER, WIN
-let paused = false;
-let floaters = [];             // всплывающие очки за привидений
-
-// Объекты
-let pacman;
-let ghosts = [];
-
-// Тайминги режимов (в тиках при 60 FPS)
-// Уровень 1: Разбегание(7с), Преследование(20с), Разбегание(7с), Преследование(20с), Разбегание(5с), Преследование(20с), Разбегание(5с), Преследование(постоянно)
-const MODE_TIMES = [
-    7 * 60, 20 * 60, 7 * 60, 20 * 60, 5 * 60, 20 * 60, 5 * 60, Infinity
-];
-let currentModeIndex = 0;
-
-// --- ВСПОМОГАТЕЛЬНЫЕ ФУНКЦИИ ---
-const $ = id => document.getElementById(id);
-const fmt = n => n.toLocaleString('ru-RU');
-
-function getDistance(x1, y1, x2, y2) {
-    // В оригинале используется дистанция по прямой (Евклидова)
-    return Math.sqrt(Math.pow(x2 - x1, 2) + Math.pow(y2 - y1, 2));
-}
-
-function getGridPos(x, y) {
+  /* ── Таблица уровней (Pac-Man Dossier, табл. A.1), скорости в % от 100 % ──
+   *  PM, PM в испуге, привидение, в туннеле, испуганное, Элрой-1 (точек осталось, %), Элрой-2 (точек, %),
+   *  испуг (с), миганий. На 17 и 19+ уровнях привидения не синеют — только разворачиваются. */
+  const LEVEL_TABLE = [
+    [80, 90, 75, 40, 50, 20, 80, 10, 85, 6, 5],        // 1
+    [90, 95, 85, 45, 55, 30, 90, 15, 95, 5, 5],        // 2
+    [90, 95, 85, 45, 55, 40, 90, 20, 95, 4, 5],        // 3
+    [90, 95, 85, 45, 55, 40, 90, 20, 95, 3, 5],        // 4
+    [100, 100, 95, 50, 60, 40, 100, 20, 105, 2, 5],    // 5
+    [100, 100, 95, 50, 60, 50, 100, 25, 105, 5, 5],    // 6
+    [100, 100, 95, 50, 60, 50, 100, 25, 105, 2, 5],    // 7
+    [100, 100, 95, 50, 60, 50, 100, 25, 105, 2, 5],    // 8
+    [100, 100, 95, 50, 60, 60, 100, 30, 105, 1, 3],    // 9
+    [100, 100, 95, 50, 60, 60, 100, 30, 105, 5, 5],    // 10
+    [100, 100, 95, 50, 60, 60, 100, 30, 105, 2, 5],    // 11
+    [100, 100, 95, 50, 60, 80, 100, 40, 105, 1, 3],    // 12
+    [100, 100, 95, 50, 60, 80, 100, 40, 105, 1, 3],    // 13
+    [100, 100, 95, 50, 60, 80, 100, 40, 105, 3, 5],    // 14
+    [100, 100, 95, 50, 60, 100, 100, 50, 105, 1, 3],   // 15
+    [100, 100, 95, 50, 60, 100, 100, 50, 105, 1, 3],   // 16
+    [100, 100, 95, 50, 60, 100, 100, 50, 105, 0, 0],   // 17
+    [100, 100, 95, 50, 60, 100, 100, 50, 105, 1, 3],   // 18
+    [100, 100, 95, 50, 60, 120, 100, 60, 105, 0, 0],   // 19
+    [100, 100, 95, 50, 60, 120, 100, 60, 105, 0, 0],   // 20
+    [90, 90, 95, 50, 60, 120, 100, 60, 105, 0, 0]      // 21+
+  ];
+  function levelParams(level) {
+    const t = LEVEL_TABLE[Math.min(Math.max(level, 1), 21) - 1];
+    const sp = v => v / 100 * SPEED_100;
     return {
-        c: Math.floor(x / TILE_SIZE),
-        r: Math.floor(y / TILE_SIZE)
+      pm: sp(t[0]), pmFright: sp(t[1]), ghost: sp(t[2]), tunnel: sp(t[3]), ghostFright: sp(t[4]),
+      elroy1Dots: t[5], elroy1: sp(t[6]), elroy2Dots: t[7], elroy2: sp(t[8]),
+      frightTicks: t[9] * FPS, flashes: t[10], pct: t
     };
-}
+  }
 
-function cloneMap() {
-    gameMap = [];
-    pelletsTotal = 0;
-    pelletsEaten = 0;
-    for (let r = 0; r < rawMap.length; r++) {
-        let row = [];
-        for (let c = 0; c < rawMap[r].length; c++) {
-            row.push(rawMap[r][c]);
-            if (rawMap[r][c] === MAP_TYPES.PELLET || rawMap[r][c] === MAP_TYPES.POWER_PELLET) {
-                pelletsTotal++;
-            }
-        }
-        gameMap.push(row);
+  // Разбег / охота (с): 1 уровень, 2–4, 5+. Последняя охота — бесконечная. 1/60 с — один тик разбега.
+  function modeTimes(level) {
+    const s = level === 1 ? [7, 20, 7, 20, 5, 20, 5]
+      : level <= 4 ? [7, 20, 7, 20, 5, 1033, 1 / 60]
+      : [5, 20, 5, 20, 5, 1037, 1 / 60];
+    return s.map(v => Math.round(v * FPS)).concat([Infinity]);
+  }
+
+  // Выход из домика: личные лимиты точек [Пинки, Инки, Клайд], общий счётчик после гибели, таймер «без точек»
+  const dotLimits = level => level === 1 ? [0, 30, 60] : level === 2 ? [0, 0, 50] : [0, 0, 0];
+  const GLOBAL_PINKY = 7, GLOBAL_INKY = 17, GLOBAL_CLYDE = 32;
+  const dotTimerLimit = level => (level < 5 ? 4 : 3) * FPS;
+
+  // ── Бонусные фрукты ──
+  const FRUITS = [
+    { id: 'cherry', name: 'Вишня', pts: 100 },
+    { id: 'strawberry', name: 'Клубника', pts: 300 },
+    { id: 'orange', name: 'Апельсин', pts: 500 },
+    { id: 'apple', name: 'Яблоко', pts: 700 },
+    { id: 'melon', name: 'Дыня', pts: 1000 },
+    { id: 'galaxian', name: 'Галаксиан', pts: 2000 },
+    { id: 'bell', name: 'Колокол', pts: 3000 },
+    { id: 'key', name: 'Ключ', pts: 5000 }
+  ];
+  // 1 вишня, 2 клубника, 3–4 апельсин, 5–6 яблоко, 7–8 дыня, 9–10 галаксиан, 11–12 колокол, 13+ ключ
+  const fruitOf = level => level <= 1 ? 0 : level === 2 ? 1 : level <= 12 ? 1 + Math.ceil((level - 2) / 2) : 7;
+  const FRUIT_DOTS = [70, 170];
+
+  // ── Вспомогательное ──
+  function mulberry32(a) {
+    return function () {
+      a |= 0; a = a + 0x6D2B79F5 | 0;
+      let t = Math.imul(a ^ a >>> 15, 1 | a);
+      t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t;
+      return ((t ^ t >>> 14) >>> 0) / 4294967296;
+    };
+  }
+  const wrapC = c => ((c % COLS) + COLS) % COLS;
+  const wrapX = x => (x < 0 ? x + COLS : x >= COLS ? x - COLS : x);
+  function tileAt(m, c, r) { return r < 0 || r >= ROWS ? T_WALL : m.grid[r][wrapC(c)]; }
+  // проходимо для Pac-Man и для привидений вне домика
+  function passable(m, c, r) { const t = tileAt(m, c, r); return t === T_EMPTY || t === T_TUNNEL; }
+  const tc = a => wrapC(Math.floor(a.x));
+  const tr = a => Math.floor(a.y);
+  const approach = (v, t, s) => (v < t ? Math.min(t, v + s) : Math.max(t, v - s));
+  function ev(g, type, data) { g.events.push(Object.assign({ type }, data)); }
+
+  /* ════════════ Партия ════════════ */
+  function newGame(opt) {
+    opt = opt || {};
+    const seed = opt.seed != null ? opt.seed >>> 0 : ((Date.now() ^ 0x5bd1e995) >>> 0);
+    const g = {
+      mode: opt.mode === 'mazes' ? 'mazes' : 'classic',
+      seed, rng: mulberry32(seed),
+      level: Math.max(1, (opt.level | 0) || 1), startLevel: Math.max(1, (opt.level | 0) || 1),
+      score: 0, lives: opt.lives > 0 ? opt.lives | 0 : 3, extraGiven: false,
+      events: [], tick: 0,
+      stats: { dots: 0, energizers: 0, ghosts: 0, fruits: 0, fruitPts: 0, ghostPts: 0, combo4: 0, deaths: 0,
+               levelsCleared: 0, fruitKinds: [0, 0, 0, 0, 0, 0, 0, 0], playTicks: 0 },
+      want: null
+    };
+    startLevel(g, true);
+    return g;
+  }
+
+  function startLevel(g, first) {
+    const m = mazeFor(g.mode, g.level);
+    g.maze = m;
+    g.dots = m.dots.map(row => row.slice());
+    g.dotsLeft = m.dotCount; g.dotsEaten = 0;
+    g.L = levelParams(g.level);
+    g.sched = modeTimes(g.level);
+    g.limits = dotLimits(g.level);
+    g.counters = [0, 0, 0];                 // личные счётчики точек Пинки, Инки, Клайда
+    g.globalOn = false; g.globalCount = 0;  // общий счётчик — только после потери жизни
+    g.elroyOff = false;
+    g.fruit = null; g.fruitPts = null; g.fruitShown = 0;
+    g.lvl = { ghosts: 0, deaths: 0, ticks: 0, energizers: 0, fruits: 0 };
+    resetActors(g);
+    g.phase = 'ready'; g.phaseT = 0; g.readyTicks = READY_LEVEL; g.intro = true;
+    ev(g, 'level', { level: g.level, first: !!first, maze: m.id });
+  }
+
+  function makeGhost(i, state, dir) {
+    const h = POS.home[i];
+    return { id: GHOST_IDS[i], idx: i, x: h.x, y: h.y, dir, state, fright: false, revPending: false, target: null, decided: -1 };
+  }
+
+  function resetActors(g) {
+    g.pac = { x: POS.pac.x, y: POS.pac.y, dir: LEFT, stall: 0, moving: false, anim: 0 };
+    g.want = null;
+    g.ghosts = [makeGhost(0, 'out', LEFT), makeGhost(1, 'house', DOWN), makeGhost(2, 'house', UP), makeGhost(3, 'house', UP)];
+    g.doorQueue = [];                 // привидения выходят из домика по одному
+    g.modeIdx = 0; g.modeT = 0;       // фаза разбег/охота и тики в ней
+    g.frightT = 0; g.combo = 0;       // испуг: осталось тиков; сколько привидений съедено за энерджайзер
+    g.dotTimer = 0;                   // тиков без съеденных точек
+    g.freezeT = 0; g.eaten = null; g.eatenPts = 0;
+  }
+
+  const isScatter = g => g.modeIdx % 2 === 0;
+  function elroy(g) {
+    if (g.elroyOff) return 0;          // после гибели — пока Клайд не начнёт выходить из домика
+    if (g.dotsLeft <= g.L.elroy2Dots) return 2;
+    if (g.dotsLeft <= g.L.elroy1Dots) return 1;
+    return 0;
+  }
+
+  /* ════════════ Тик ════════════ */
+  function step(g) {
+    g.tick++;
+    if (g.phase !== 'over') g.stats.playTicks++;
+    if (g.fruitPts && --g.fruitPts.t <= 0) g.fruitPts = null;
+    switch (g.phase) {
+      case 'ready':
+        g.phaseT++;
+        if (g.phaseT === INTRO_HIDE) g.intro = false;
+        if (g.phaseT >= g.readyTicks) { g.phase = 'play'; g.phaseT = 0; g.intro = false; ev(g, 'go'); }
+        break;
+      case 'play':
+        play(g);
+        break;
+      case 'freeze':
+        // все стоят, кроме уже летящих домой глаз
+        for (const gh of g.ghosts) if (gh !== g.eaten && (gh.state === 'eyes' || gh.state === 'enter')) moveGhost(g, gh);
+        if (--g.freezeT <= 0) { g.phase = 'play'; g.eaten = null; }
+        break;
+      case 'dying':
+        g.phaseT++;
+        if (g.phaseT === DIE_FREEZE) ev(g, 'dieAnim');
+        if (g.phaseT >= DIE_TOTAL) afterDeath(g);
+        break;
+      case 'clear':
+        if (++g.phaseT >= CLEAR_TOTAL) { g.level++; startLevel(g, false); }
+        break;
+      case 'over':
+        g.phaseT++;
+        break;
     }
-}
+  }
 
-// Клетка карты. Столбцы за краем поля — продолжение туннеля: это клетки с другой стороны,
-// поэтому из туннеля нельзя свернуть вверх/вниз «в пустоту». За верх/низ карты — стена.
-function tileAt(c, r) {
-    if (r < 0 || r >= ROWS) return MAP_TYPES.WALL;
-    c = ((c % COLS) + COLS) % COLS;
-    return gameMap[r][c];
-}
-
-// Проверка на столкновение с картой
-function isWall(c, r) {
-    const t = tileAt(c, r);
-    return t === MAP_TYPES.WALL || t === MAP_TYPES.GHOST_DOOR;
-}
-
-// --- ОТРИСОВКА ФИГУР (общая для игры и заставки меню) ---
-function drawPacShape(g, x, y, radius, angle, mouth, glow) {
-    g.save();
-    g.translate(x, y);
-    g.rotate(angle);
-    g.fillStyle = PAC_COLOR;
-    if (glow) { g.shadowColor = PAC_COLOR; g.shadowBlur = glow; }
-    g.beginPath();
-    g.arc(0, 0, radius, mouth, Math.PI * 2 - mouth);
-    g.lineTo(0, 0);
-    g.closePath();
-    g.fill();
-    g.restore();
-}
-
-function drawGhostShape(g, x, y, size, opts) {
-    const { body, dir = DIR.LEFT, frightened = false, eyesOnly = false, glow = 0, t = Date.now(), face = '#ffd2a6' } = opts;
-    g.save();
-    g.translate(x, y);
-    if (!eyesOnly) {
-        g.fillStyle = body;
-        if (glow) { g.shadowColor = body; g.shadowBlur = glow; }
-        g.beginPath();
-        g.arc(0, -size / 4, size / 2, Math.PI, 0); // Верхняя полусфера
-        // Волнистый низ
-        g.lineTo(size / 2, size / 2);
-        const waveOffset = (Math.floor(t / 150) % 2 === 0) ? 0 : size / 6;
-        g.lineTo(size / 3, size / 2 - waveOffset);
-        g.lineTo(size / 6, size / 2 + waveOffset);
-        g.lineTo(-size / 6, size / 2 - waveOffset);
-        g.lineTo(-size / 3, size / 2 + waveOffset);
-        g.lineTo(-size / 2, size / 2);
-        g.closePath();
-        g.fill();
-        g.shadowBlur = 0;
+  function play(g) {
+    g.lvl.ticks++;
+    // испуг (таймер разбег/охота в это время стоит)
+    if (g.frightT > 0) {
+      if (--g.frightT === 0) endFright(g);
+    } else if (++g.modeT >= g.sched[g.modeIdx]) {
+      g.modeIdx++; g.modeT = 0;
+      reverseGhosts(g);
+      ev(g, 'mode', { scatter: isScatter(g), idx: g.modeIdx, dirs: g.ghosts.map(gh => gh.dir.k) });
     }
-    if (!frightened) {
-        const eyeOffsetX = (dir.x * size) / 5;
-        const eyeOffsetY = (dir.y * size) / 5;
-        // Белки глаз
-        g.fillStyle = '#ffffff';
-        g.beginPath(); g.arc(-size / 4 + eyeOffsetX, -size / 6 + eyeOffsetY, size / 5, 0, Math.PI * 2); g.fill();
-        g.beginPath(); g.arc(size / 4 + eyeOffsetX, -size / 6 + eyeOffsetY, size / 5, 0, Math.PI * 2); g.fill();
-        // Зрачки
-        g.fillStyle = '#1f3cff';
-        g.beginPath(); g.arc(-size / 4 + eyeOffsetX * 1.5, -size / 6 + eyeOffsetY * 1.5, size / 10, 0, Math.PI * 2); g.fill();
-        g.beginPath(); g.arc(size / 4 + eyeOffsetX * 1.5, -size / 6 + eyeOffsetY * 1.5, size / 10, 0, Math.PI * 2); g.fill();
+    houseLogic(g);
+    if (g.fruit && --g.fruit.t <= 0) { g.fruit = null; ev(g, 'fruitGone'); }
+
+    movePac(g);
+    eatDot(g);
+    if (g.phase !== 'play') return;          // съедена последняя точка
+    eatFruit(g);
+    if (collide(g)) return;                  // проверка и после хода Pac-Man, и после хода привидений —
+    for (const gh of g.ghosts) moveGhost(g, gh);   // так они не «проходят сквозь» друг друга
+    collide(g);
+  }
+
+  /* ── Pac-Man ── */
+  function movePac(g) {
+    const p = g.pac;
+    if (p.stall > 0) { p.stall--; return; }   // после точки стоит 1 тик, после энерджайзера — 3
+    const m = g.maze, c = tc(p), r = tr(p);
+    const w = g.want;
+    // Поворот «заранее»: желаемое направление ждёт, пока в него можно свернуть.
+    // Разворот — сразу; поворот — в любой точке клетки, если туда открыт проход («срезание угла»).
+    if (w && w !== p.dir && (w === p.dir.rev || passable(m, c + w.x, r + w.y))) p.dir = w;
+    const d = p.dir, s = g.frightT > 0 ? g.L.pmFright : g.L.pm;
+    const before = d.x ? p.x : p.y;
+    if (d.x) {
+      const cx = c + 0.5;
+      let nx = p.x + d.x * s;
+      if (!passable(m, c + d.x, r) && (nx - cx) * d.x > 0) nx = cx;   // впереди стена — до центра клетки
+      p.x = nx;
+      p.y = approach(p.y, r + 0.5, s);          // после срезанного угла выравниваемся на полосу
     } else {
-        // Глаза при испуге (простые квадратики) и волнистый рот
-        g.fillStyle = face;
-        g.fillRect(-size / 3, -size / 4, size / 5, size / 5);
-        g.fillRect(size / 6, -size / 4, size / 5, size / 5);
-        g.beginPath();
-        g.moveTo(-size / 3, size / 6);
-        g.lineTo(-size / 6, 0);
-        g.lineTo(0, size / 6);
-        g.lineTo(size / 6, 0);
-        g.lineTo(size / 3, size / 6);
-        g.strokeStyle = face;
-        g.lineWidth = 1.5;
-        g.stroke();
+      const cy = r + 0.5;
+      let ny = p.y + d.y * s;
+      if (!passable(m, c, r + d.y) && (ny - cy) * d.y > 0) ny = cy;
+      p.y = ny;
+      p.x = approach(p.x, c + 0.5, s);
     }
-    g.restore();
-}
+    p.moving = (d.x ? p.x : p.y) !== before;
+    p.x = wrapX(p.x);
+    if (p.moving) p.anim++;
+  }
 
-// --- КЛАСС ПАКМАНА ---
-class Pacman {
-    constructor() {
-        this.reset();
+  function eatDot(g) {
+    const p = g.pac, c = tc(p), r = tr(p);
+    const v = g.dots[r] ? g.dots[r][c] : 0;
+    if (!v) return;
+    g.dots[r][c] = 0;
+    g.dotsLeft--; g.dotsEaten++;
+    g.dotTimer = 0;
+    // счётчик выхода из домика: общий (после гибели) или личный «предпочтительного» привидения
+    if (g.globalOn) g.globalCount++;
+    else { const pg = preferred(g); if (pg) g.counters[pg.idx - 1]++; }
+    if (v === 1) {
+      g.stats.dots++; p.stall = 1; addScore(g, 10); ev(g, 'dot', { c, r });
+    } else {
+      g.stats.energizers++; g.lvl.energizers++; p.stall = 3; addScore(g, 50); ev(g, 'energizer', { c, r });
+      energize(g);
     }
-
-    reset() {
-        this.x = SPAWN.PACMAN.c * TILE_SIZE + TILE_SIZE / 2;
-        this.y = SPAWN.PACMAN.r * TILE_SIZE + TILE_SIZE / 2;
-        this.dir = DIR.LEFT;
-        this.nextDir = DIR.LEFT;
-        this.speed = PACMAN_SPEED;
-        this.mouthOpen = 0;
-        this.mouthDir = 1; // 1 = открывается, -1 = закрывается
-        this.dead = false;
-        this.deathFrame = 0;
+    if (FRUIT_DOTS.includes(g.dotsEaten)) spawnFruit(g);
+    if (g.dotsLeft === 0) {
+      g.phase = 'clear'; g.phaseT = 0; g.fruit = null; g.frightT = 0;
+      for (const gh of g.ghosts) gh.fright = false;
+      g.stats.levelsCleared++;
+      ev(g, 'clear', { level: g.level, deaths: g.lvl.deaths, ticks: g.lvl.ticks, ghosts: g.lvl.ghosts, fruits: g.lvl.fruits, maze: g.maze.id });
     }
+  }
 
-    update() {
-        if (this.dead) {
-            this.deathFrame++;
-            return;
-        }
-
-        // Анимация рта
-        this.mouthOpen += 0.15 * this.mouthDir;
-        if (this.mouthOpen >= 1 || this.mouthOpen <= 0) {
-            this.mouthDir *= -1;
-        }
-
-        const gridPos = getGridPos(this.x, this.y);
-        const centerX = gridPos.c * TILE_SIZE + TILE_SIZE / 2;
-        const centerY = gridPos.r * TILE_SIZE + TILE_SIZE / 2;
-
-        // Попытка применить желаемое направление (nextDir — буфер поворота)
-        if (this.nextDir !== this.dir) {
-            if (this.nextDir.x === -this.dir.x && this.nextDir.y === -this.dir.y) {
-                // Разворот на 180° — в любой момент
-                this.dir = this.nextDir;
-            } else if (Math.abs(this.x - centerX) < this.speed && Math.abs(this.y - centerY) < this.speed &&
-                       !isWall(gridPos.c + this.nextDir.x, gridPos.r + this.nextDir.y)) {
-                // Поворот — в центре клетки, если туда можно пройти (снаппинг к сетке)
-                this.x = centerX;
-                this.y = centerY;
-                this.dir = this.nextDir;
-            }
-        }
-
-        // Движение вперёд. Если дальше стена — доезжаем ровно до центра клетки и стоим
-        // (раньше Пакман проскакивал центр, «отскакивал» назад и дрожал у стены).
-        if (isWall(gridPos.c + this.dir.x, gridPos.r + this.dir.y)) {
-            const ahead = (centerX - this.x) * this.dir.x + (centerY - this.y) * this.dir.y;
-            if (ahead <= 0) {
-                this.x = centerX;
-                this.y = centerY;
-            } else {
-                const step = Math.min(this.speed, ahead);
-                this.x += this.dir.x * step;
-                this.y += this.dir.y * step;
-            }
-        } else {
-            this.x += this.dir.x * this.speed;
-            this.y += this.dir.y * this.speed;
-        }
-
-        // Туннель
-        if (this.x < -TILE_SIZE / 2) this.x = MAP_W + TILE_SIZE / 2;
-        else if (this.x > MAP_W + TILE_SIZE / 2) this.x = -TILE_SIZE / 2;
-
-        this.eat();
+  function addScore(g, n) {
+    const before = g.score;
+    g.score += n;
+    if (!g.extraGiven && before < EXTRA_LIFE_AT && g.score >= EXTRA_LIFE_AT) {
+      g.extraGiven = true; g.lives++;
+      ev(g, 'extraLife', { lives: g.lives });
     }
+  }
 
-    eat() {
-        let gridPos = getGridPos(this.x, this.y);
-        if (gridPos.c >= 0 && gridPos.c < COLS) {
-            let tile = gameMap[gridPos.r][gridPos.c];
-            if (tile === MAP_TYPES.PELLET) {
-                gameMap[gridPos.r][gridPos.c] = MAP_TYPES.EMPTY;
-                score += 10;
-                pelletsEaten++;
-                checkWin();
-            } else if (tile === MAP_TYPES.POWER_PELLET) {
-                gameMap[gridPos.r][gridPos.c] = MAP_TYPES.EMPTY;
-                score += 50;
-                pelletsEaten++;
-                activateFrightenedMode();
-                checkWin();
-                popScore();
-            }
-        }
+  function spawnFruit(g) {
+    const k = fruitOf(g.level);
+    g.fruit = { k, t: Math.round((9 + g.rng()) * FPS) };   // висит 9–10 с
+    g.fruitShown++;
+    ev(g, 'fruitShow', { k });
+  }
+
+  function eatFruit(g) {
+    const f = g.fruit;
+    if (!f) return false;
+    const p = g.pac;
+    if (Math.abs(p.y - POS.fruit.y) >= 0.5 || Math.abs(p.x - POS.fruit.x) >= 0.65) return false;
+    const pts = FRUITS[f.k].pts;
+    g.fruit = null;
+    g.fruitPts = { pts, k: f.k, t: 2 * FPS };
+    g.stats.fruits++; g.stats.fruitPts += pts; g.stats.fruitKinds[f.k]++; g.lvl.fruits++;
+    addScore(g, pts);
+    ev(g, 'fruit', { k: f.k, pts, both: g.lvl.fruits >= 2 });
+    return true;
+  }
+
+  /* ── Испуг ── */
+  function energize(g) {
+    g.combo = 0;
+    reverseGhosts(g);                         // разворот — всегда, даже когда испуга уже нет (17, 19+ уровни)
+    if (g.L.frightTicks > 0) {
+      g.frightT = g.L.frightTicks;
+      for (const gh of g.ghosts) if (gh.state !== 'eyes' && gh.state !== 'enter') gh.fright = true;
+      ev(g, 'fright', { ticks: g.frightT });
     }
+  }
+  function endFright(g) {
+    for (const gh of g.ghosts) gh.fright = false;   // выход из испуга — без разворота
+    ev(g, 'frightEnd');
+  }
+  // мигание в конце испуга: true — белая фаза
+  function flashWhite(g) {
+    const n = g.L.flashes * FLASH_TICKS;
+    return g.frightT > 0 && g.frightT <= n && Math.floor((n - g.frightT) / (FLASH_TICKS / 2)) % 2 === 0;
+  }
 
-    draw(g) {
-        let angle = 0;
-        if (this.dir === DIR.DOWN) angle = Math.PI / 2;
-        else if (this.dir === DIR.LEFT) angle = Math.PI;
-        else if (this.dir === DIR.UP) angle = -Math.PI / 2;
-
-        if (this.dead) {
-            // Анимация смерти Пакмана
-            const a = (this.deathFrame / 60) * Math.PI;
-            if (a < Math.PI) drawPacShape(g, this.x, this.y, TILE_SIZE / 2.2, angle, a, blur(10));
-        } else {
-            drawPacShape(g, this.x, this.y, TILE_SIZE / 2.2, angle, 0.2 * Math.PI * this.mouthOpen, blur(12));
-        }
+  function reverseGhosts(g) {
+    for (const gh of g.ghosts) {
+      if (gh.state === 'out') gh.dir = gh.dir.rev;
+      else if (gh.state === 'house' || gh.state === 'leave') gh.revPending = true;   // выйдет вправо, а не влево
     }
-}
+  }
 
-// --- КЛАСС ПРИЗРАКА ---
-class Ghost {
-    constructor(type, color, startPos) {
-        this.type = type; // 'BLINKY', 'PINKY', 'INKY', 'CLYDE'
-        this.color = color;
-        this.startPos = startPos;
-        this.reset();
+  /* ── Домик ── */
+  function preferred(g) {
+    for (let i = 1; i <= 3; i++) if (g.ghosts[i].state === 'house') return g.ghosts[i];
+    return null;
+  }
+  function release(g, gh) {
+    gh.state = 'leave';
+    if (!g.doorQueue.includes(gh)) g.doorQueue.push(gh);
+    if (gh.idx === 3) g.elroyOff = false;     // Клайд пошёл к двери — «Круиз Элрой» снова в силе
+    ev(g, 'release', { id: gh.id });
+  }
+  function houseLogic(g) {
+    const gs = g.ghosts;
+    if (g.globalOn) {
+      if (g.globalCount === GLOBAL_PINKY && gs[1].state === 'house') release(g, gs[1]);
+      else if (g.globalCount === GLOBAL_INKY && gs[2].state === 'house') release(g, gs[2]);
+      else if (g.globalCount === GLOBAL_CLYDE && gs[3].state === 'house') { g.globalOn = false; g.globalCount = 0; }
     }
-
-    reset() {
-        this.x = this.startPos.c * TILE_SIZE + TILE_SIZE / 2;
-        this.y = this.startPos.r * TILE_SIZE + TILE_SIZE / 2;
-        this.dir = DIR.LEFT;
-
-        // Разные начальные состояния
-        if (this.type === 'BLINKY') {
-            this.state = gameMode;
-            this.x = SPAWN.BLINKY.c * TILE_SIZE + TILE_SIZE / 2;
-            this.y = SPAWN.BLINKY.r * TILE_SIZE + TILE_SIZE / 2;
-        } else {
-            this.state = GHOST_STATE.IN_PEN;
-        }
-
-        this.speed = GHOST_SPEED_NORMAL;
-        this.target = { c: 0, r: 0 };
+    if (!g.globalOn) {
+      const pg = preferred(g);
+      if (pg && g.counters[pg.idx - 1] >= g.limits[pg.idx - 1]) release(g, pg);
     }
-
-    update() {
-        if (gameState !== 'PLAYING') return;
-
-        // Логика выхода из домика
-        if (this.state === GHOST_STATE.IN_PEN) {
-            // Упрощенная логика выхода (по количеству съеденных точек).
-            // Блинки выходит сразу — в том числе после того, как его съели (раньше он оставался в домике навсегда).
-            let release = false;
-            if (this.type === 'BLINKY' || this.type === 'PINKY') release = true;
-            if (this.type === 'INKY' && pelletsEaten > 30) release = true;
-            if (this.type === 'CLYDE' && pelletsEaten > 80) release = true;
-
-            if (release) {
-                // Двигаемся к двери, затем вверх — на клетку над дверью
-                const targetX = DOOR_X;
-                const targetY = DOOR_Y - TILE_SIZE;
-                if (Math.abs(this.x - targetX) > 1) {
-                    this.x += Math.sign(targetX - this.x) * Math.min(this.speed, Math.abs(targetX - this.x));
-                } else if (Math.abs(this.y - targetY) > 1) {
-                    this.y -= this.speed;
-                } else {
-                    this.x = targetX;
-                    this.y = targetY;
-                    this.dir = DIR.UP;
-                    this.state = gameMode; // Вышли из домика
-                }
-            } else {
-                // Подпрыгивание в домике (±4.5 px). Фаза считается в тиках: раньше y накапливал
-                // sin(Date.now()), и при нескольких тиках за кадр привидение «уплывало» из домика.
-                this.bob = (this.bob || 0) + 0.11;
-                this.y = this.startPos.r * TILE_SIZE + TILE_SIZE / 2 + Math.sin(this.bob) * 4.5;
-            }
-            return;
-        }
-
-        // Определение целевой клетки в зависимости от состояния и типа
-        this.updateTarget();
-
-        // Если съеден, летим на базу очень быстро
-        if (this.state === GHOST_STATE.EATEN) {
-            this.speed = PACMAN_SPEED * 2;
-            if (Math.abs(this.x - DOOR_X) <= this.speed && Math.abs(this.y - DOOR_Y) <= this.speed) {
-                // Глаза добрались до двери — привидение снова в домике и сразу выходит
-                this.x = DOOR_X;
-                this.y = DOOR_Y;
-                this.speed = GHOST_SPEED_NORMAL;
-                this.state = GHOST_STATE.IN_PEN;
-                return;
-            }
-        } else if (this.state === GHOST_STATE.FRIGHTENED) {
-            this.speed = GHOST_SPEED_FRIGHTENED;
-        } else {
-            this.speed = GHOST_SPEED_NORMAL;
-            // Туннель замедляет
-            let gPos = getGridPos(this.x, this.y);
-            if (tileAt(gPos.c, gPos.r) === MAP_TYPES.TUNNEL) {
-                this.speed = GHOST_SPEED_FRIGHTENED;
-            }
-        }
-
-        this.move();
+    // давно не ели точки — выпускаем «предпочтительное» привидение
+    if (++g.dotTimer >= dotTimerLimit(g.level)) {
+      g.dotTimer = 0;
+      const pg = preferred(g);
+      if (pg) release(g, pg);
     }
+  }
 
-    updateTarget() {
-        if (this.state === GHOST_STATE.EATEN) {
-            this.target = SPAWN.GHOST_DOOR;
-            return;
-        }
-
-        let pGrid = getGridPos(pacman.x, pacman.y);
-
-        if (this.state === GHOST_STATE.SCATTER) {
-            // Углы для разбегания
-            switch(this.type) {
-                case 'BLINKY': this.target = { c: 26, r: 1 }; break; // Верх-Право
-                case 'PINKY':  this.target = { c: 1, r: 1 }; break;  // Верх-Лево
-                case 'INKY':   this.target = { c: 26, r: 29 }; break; // Низ-Право
-                case 'CLYDE':  this.target = { c: 1, r: 29 }; break;  // Низ-Лево
-            }
-        } else if (this.state === GHOST_STATE.CHASE) {
-            switch(this.type) {
-                case 'BLINKY':
-                    // Прямо на Пакмана
-                    this.target = { c: pGrid.c, r: pGrid.r };
-                    break;
-                case 'PINKY':
-                    // 4 клетки впереди Пакмана
-                    this.target = {
-                        c: pGrid.c + pacman.dir.x * 4,
-                        r: pGrid.r + pacman.dir.y * 4
-                    };
-                    break;
-                case 'INKY': {
-                    // Вектор от Блинки через точку в 2 клетках перед Пакманом
-                    let blinky = ghosts.find(g => g.type === 'BLINKY');
-                    let bGrid = getGridPos(blinky.x, blinky.y);
-                    let pivotC = pGrid.c + pacman.dir.x * 2;
-                    let pivotR = pGrid.r + pacman.dir.y * 2;
-                    this.target = {
-                        c: pivotC + (pivotC - bGrid.c),
-                        r: pivotR + (pivotR - bGrid.r)
-                    };
-                    break;
-                }
-                case 'CLYDE': {
-                    // К Пакману, если далеко, разбегание если близко
-                    const my = getGridPos(this.x, this.y);
-                    let dist = getDistance(pGrid.c, pGrid.r, my.c, my.r);
-                    if (dist > 8) {
-                        this.target = { c: pGrid.c, r: pGrid.r };
-                    } else {
-                        this.target = { c: 1, r: 29 }; // Scatter target
-                    }
-                    break;
-                }
-            }
-        }
+  /* ── Привидения ── */
+  function ghostSpeed(g, gh) {
+    switch (gh.state) {
+      case 'eyes': case 'enter': return EYES_SPEED;
+      case 'house': return BOB_SPEED;
+      case 'leave': return LEAVE_SPEED;
     }
+    const L = g.L;
+    if (tileAt(g.maze, tc(gh), tr(gh)) === T_TUNNEL) return L.tunnel;
+    if (gh.fright) return L.ghostFright;
+    if (gh.idx === 0) { const e = elroy(g); if (e === 2) return L.elroy2; if (e === 1) return L.elroy1; }
+    return L.ghost;
+  }
 
-    // Выбор направления на перекрёстке (призрак стоит точно в центре клетки)
-    chooseDir(gridPos) {
-        let validMoves = [];
-        const directions = [DIR.UP, DIR.LEFT, DIR.DOWN, DIR.RIGHT];
-
-        for (let d of directions) {
-            // Призраки не могут разворачиваться на 180 градусов (кроме смены состояний)
-            if (d.x === -this.dir.x && d.y === -this.dir.y) continue;
-
-            // Дверь домика — стена для всех, кроме съеденных (глаза летят домой)
-            const tileType = tileAt(gridPos.c + d.x, gridPos.r + d.y);
-            if (tileType === MAP_TYPES.WALL) continue;
-            if (tileType === MAP_TYPES.GHOST_DOOR && this.state !== GHOST_STATE.EATEN) continue;
-            validMoves.push(d);
-        }
-
-        if (validMoves.length === 0) {
-            // Тупик (быть не должно на классической карте, но для безопасности разворот)
-            this.dir = { x: -this.dir.x, y: -this.dir.y };
-        } else if (this.state === GHOST_STATE.FRIGHTENED) {
-            // Случайный выбор при испуге
-            this.dir = validMoves[Math.floor(Math.random() * validMoves.length)];
-        } else {
-            // Выбор пути с минимальной дистанцией до цели
-            let minDistance = Infinity;
-            let bestMove = validMoves[0];
-            for (let move of validMoves) {
-                let dist = getDistance(gridPos.c + move.x, gridPos.r + move.y, this.target.c, this.target.r);
-                if (dist < minDistance) {
-                    minDistance = dist;
-                    bestMove = move;
-                }
-            }
-            this.dir = bestMove;
-        }
+  // Целевая клетка привидения (характеры аркады, включая «ошибку переполнения» при взгляде Pac-Man вверх)
+  function targetOf(g, gh) {
+    if (gh.state === 'eyes') return EYES_TARGET;
+    const p = g.pac, pc = tc(p), pr = tr(p), pd = p.dir;
+    const up = pd === UP;
+    const scatter = isScatter(g);
+    switch (gh.idx) {
+      case 0:   // Блинки — прямо на Pac-Man; «Круиз Элрой» охотится и в разбеге
+        return scatter && !elroy(g) ? SCATTER[0] : { c: pc, r: pr };
+      case 1:   // Пинки — 4 клетки перед Pac-Man (при взгляде вверх — ещё 4 влево)
+        return scatter ? SCATTER[1] : { c: pc + pd.x * 4 - (up ? 4 : 0), r: pr + pd.y * 4 };
+      case 2: { // Инки — точка в 2 клетках перед Pac-Man, отражённая от Блинки
+        if (scatter) return SCATTER[2];
+        const b = g.ghosts[0];
+        const ax = pc + pd.x * 2 - (up ? 2 : 0), ay = pr + pd.y * 2;
+        return { c: 2 * ax - tc(b), r: 2 * ay - tr(b) };
+      }
+      default: { // Клайд — к Pac-Man, если дальше 8 клеток; ближе — в свой угол
+        if (scatter) return SCATTER[3];
+        const dx = tc(gh) - pc, dy = tr(gh) - pr;
+        return dx * dx + dy * dy >= 64 ? { c: pc, r: pr } : SCATTER[3];
+      }
     }
+  }
 
-    move() {
-        // Туннель - телепортация
-        if (this.x < -TILE_SIZE / 2) this.x = MAP_W + TILE_SIZE / 2;
-        else if (this.x > MAP_W + TILE_SIZE / 2) this.x = -TILE_SIZE / 2;
-
-        const gridPos = getGridPos(this.x, this.y);
-        const centerX = gridPos.c * TILE_SIZE + TILE_SIZE / 2;
-        const centerY = gridPos.r * TILE_SIZE + TILE_SIZE / 2;
-
-        // Сколько осталось до центра клетки по ходу движения. Решение на перекрёстке принимается,
-        // только когда центр впереди и достигается на этом шаге (раньше проверка «|x−центр| ≤ скорость»
-        // срабатывала и при выходе из центра — призрак каждый тик возвращался в центр и стоял на месте).
-        const ahead = (centerX - this.x) * this.dir.x + (centerY - this.y) * this.dir.y;
-        let step = this.speed;
-        if (ahead >= 0 && ahead <= this.speed) {
-            this.x = centerX;
-            this.y = centerY;
-            step = this.speed - ahead;
-            this.chooseDir(gridPos);
-        }
-
-        // Движение
-        this.x += this.dir.x * step;
-        this.y += this.dir.y * step;
+  // Решение в центре клетки: без разворота; испуганные — случайно, остальные — ближе к цели по прямой
+  function decide(g, gh) {
+    const m = g.maze, c = tc(gh), r = tr(gh);
+    const opts = [];
+    for (const d of DIRS) {
+      if (d === gh.dir.rev) continue;
+      if (!passable(m, c + d.x, r + d.y)) continue;
+      if (d === UP && gh.state === 'out' && !gh.fright && m.noUpSet.has(r * COLS + c)) continue;  // «красная зона»
+      opts.push(d);
     }
-
-    draw(g) {
-        if (this.state === GHOST_STATE.EATEN) {
-            drawGhostShape(g, this.x, this.y, TILE_SIZE * 0.8, { dir: this.dir, eyesOnly: true });
-            return;
-        }
-        let body = this.color, frightened = false, face;
-        if (this.state === GHOST_STATE.FRIGHTENED) {
-            frightened = true;
-            // Мигание перед окончанием испуга
-            const flash = frightenedTimer < 120 && Math.floor(Date.now() / 200) % 2 === 0;
-            body = flash ? '#eef2ff' : FRIGHT_COLOR;
-            face = flash ? '#ff3b5c' : '#ffd2a6';
-        }
-        drawGhostShape(g, this.x, this.y, TILE_SIZE * 0.8, { body, dir: this.dir, frightened, face, glow: blur(10) });
+    if (!opts.length) { gh.dir = gh.dir.rev; return; }   // тупик (в лабиринтах игры их нет)
+    if (gh.state === 'out' && gh.fright) {
+      // аркада: случайное направление; если нельзя — следующее по кругу вверх → влево → вниз → вправо
+      const k = Math.floor(g.rng() * 4);
+      for (let i = 0; i < 4; i++) { const d = DIRS[(k + i) % 4]; if (opts.includes(d)) { gh.dir = d; gh.target = null; return; } }
     }
-}
-
-// --- ЛОГИКА ИГРЫ ---
-
-function resetLevel(fullReset = false) {
-    if (fullReset) {
-        score = 0;
-        lives = 3;
-        level = 1;
-        ghostsEatenTotal = 0;
-        cloneMap();
+    const t = targetOf(g, gh);
+    gh.target = t;
+    let best = opts[0], bd = Infinity;
+    for (const d of opts) {
+      const dx = c + d.x - t.c, dy = r + d.y - t.r, dist = dx * dx + dy * dy;
+      if (dist < bd) { bd = dist; best = d; }     // строго меньше — при равенстве остаётся первое по приоритету
     }
+    gh.dir = best;
+  }
 
-    // Глобальный режим сбрасываем ДО создания призраков: Блинки берёт его в reset()
-    currentModeIndex = 0;
-    modeTimer = 0;
-    frightenedTimer = 0;
-    ghostsEatenMultiplier = 1;
-    gameMode = GHOST_STATE.SCATTER;
-
-    pacman = new Pacman();
-    ghosts = [
-        new Ghost('BLINKY', GHOST_COLORS.BLINKY, SPAWN.BLINKY),
-        new Ghost('PINKY', GHOST_COLORS.PINKY, SPAWN.PINKY),
-        new Ghost('INKY', GHOST_COLORS.INKY, SPAWN.INKY),
-        new Ghost('CLYDE', GHOST_COLORS.CLYDE, SPAWN.CLYDE)
-    ];
-
-    floaters = [];
-    stateTimer = 0;
-    gameState = 'PLAYING';
-    updateUI();
-}
-
-function activateFrightenedMode() {
-    frightenedTimer = FRIGHT_TICKS;
-    ghostsEatenMultiplier = 1;
-
-    ghosts.forEach(g => {
-        if (g.state !== GHOST_STATE.EATEN && g.state !== GHOST_STATE.IN_PEN) {
-            g.state = GHOST_STATE.FRIGHTENED;
-            // Призраки меняют направление при испуге
-            g.dir = {x: -g.dir.x, y: -g.dir.y};
+  function moveGhost(g, gh) {
+    let s = ghostSpeed(g, gh);
+    if (gh.state === 'house') { bob(gh, s); return; }
+    if (gh.state === 'leave') { leaveHouse(g, gh, s); return; }
+    if (gh.state === 'enter') { enterHouse(g, gh, s); return; }
+    // по клеткам: решения принимаются точно в центрах клеток
+    for (let guard = 0; s > EPS && guard < 8; guard++) {
+      const d = gh.dir, c = Math.floor(gh.x), r = Math.floor(gh.y);
+      let dist = (c + 0.5 - gh.x) * d.x + (r + 0.5 - gh.y) * d.y;
+      if (dist <= EPS) {
+        // стоим в центре (с точностью до округления): если решение здесь ещё не принято — принимаем
+        if (dist > -EPS && gh.decided !== r * COLS + c) {
+          gh.x = c + 0.5; gh.y = r + 0.5;
+          decide(g, gh); gh.decided = r * COLS + c;
+          continue;
         }
-    });
-}
-
-function checkCollisions() {
-    for (let ghost of ghosts) {
-        let dist = getDistance(pacman.x, pacman.y, ghost.x, ghost.y);
-
-        if (dist < TILE_SIZE * 0.8) {
-            if (ghost.state === GHOST_STATE.FRIGHTENED) {
-                // Съели призрака: 200 → 400 → 800 → 1600
-                const pts = 200 * ghostsEatenMultiplier;
-                ghost.state = GHOST_STATE.EATEN;
-                score += pts;
-                ghostsEatenMultiplier *= 2;
-                ghostsEatenTotal++;
-                floaters.push({ x: ghost.x, y: ghost.y, text: String(pts), t: 0 });
-                updateUI();
-                popScore();
-            } else if (ghost.state === GHOST_STATE.CHASE || ghost.state === GHOST_STATE.SCATTER) {
-                // Пакман умер. Выходим: второе привидение в том же кадре не должно отнять ещё одну жизнь
-                killPacman();
-                return;
-            }
+        dist += 1;                              // центр позади — следующий центр в соседней клетке
+      }
+      if (gh.state === 'eyes' && d.y === 0 && Math.abs(gh.y - POS.door.y) < EPS) {
+        // глаза пересекают точку над дверью (граница клеток 13 и 14) — входят в домик
+        const dd = (POS.door.x - gh.x) * d.x;
+        if (dd > -EPS && dd <= dist && dd <= s) {
+          gh.x = POS.door.x; gh.state = 'enter';
+          enterHouse(g, gh, s - Math.max(0, dd));
+          return;
         }
+      }
+      if (s < dist) { gh.x += d.x * s; gh.y += d.y * s; s = 0; }
+      else {
+        gh.x += d.x * dist; gh.y += d.y * dist; s -= dist;
+        if (d.x) gh.x = Math.round(gh.x - 0.5) + 0.5; else gh.y = Math.round(gh.y - 0.5) + 0.5;
+        gh.x = wrapX(gh.x);
+        decide(g, gh);
+        gh.decided = Math.floor(gh.y) * COLS + Math.floor(gh.x);
+      }
+      gh.x = wrapX(gh.x);
     }
-}
+  }
 
-function killPacman() {
-    gameState = 'DEATH';
-    pacman.dead = true;
-    pacman.deathFrame = 0;
-    stateTimer = 0;
-    lives--;
-    updateUI();
-}
+  function bob(gh, s) {
+    if (gh.dir !== UP && gh.dir !== DOWN) gh.dir = UP;
+    const hy = POS.house.y;
+    gh.y += gh.dir.y * s;
+    if (gh.y <= hy - BOB_AMP) { gh.y = hy - BOB_AMP; gh.dir = DOWN; }
+    else if (gh.y >= hy + BOB_AMP) { gh.y = hy + BOB_AMP; gh.dir = UP; }
+  }
 
-function checkWin() {
-    updateUI();
-    if (pelletsEaten >= pelletsTotal) {
-        gameState = 'WIN';
-        stateTimer = 0;
-    }
-}
-
-function nextLevel() {
-    level++;
-    if (level > stats.maxLevel) { stats.maxLevel = level; saveStats(); }
-    cloneMap();
-    resetLevel(false);
-    KuArcade.toast('Уровень ' + level + '!', 'gold', 1600);
-}
-
-function gameOver() {
-    gameState = 'GAMEOVER';
-    const isBest = score > stats.best;
-    if (isBest) stats.best = score;
-    saveStats();
-    $('over-best').hidden = !isBest || score === 0;
-    $('over-score').textContent = fmt(score);
-    $('over-level').textContent = level;
-    $('over-ghosts').textContent = ghostsEatenTotal;
-    $('over-record').textContent = fmt(stats.best);
-    show('over');
-}
-
-// Один тик логики (1/60 с)
-function tick() {
-    if (gameState === 'PLAYING') {
-        // Управление глобальными таймерами
-        if (frightenedTimer > 0) {
-            frightenedTimer--;
-            if (frightenedTimer === 0) {
-                // Возврат к нормальному состоянию
-                ghosts.forEach(g => {
-                    if (g.state === GHOST_STATE.FRIGHTENED) {
-                        g.state = gameMode;
-                    }
-                });
-            }
-        } else {
-            modeTimer++;
-            if (modeTimer >= MODE_TIMES[currentModeIndex]) {
-                modeTimer = 0;
-                currentModeIndex++;
-                gameMode = (gameMode === GHOST_STATE.SCATTER) ? GHOST_STATE.CHASE : GHOST_STATE.SCATTER;
-
-                // Разворот призраков при смене глобального режима (классическое правило)
-                ghosts.forEach(g => {
-                    if (g.state !== GHOST_STATE.IN_PEN && g.state !== GHOST_STATE.EATEN) {
-                        g.state = gameMode;
-                        g.dir = {x: -g.dir.x, y: -g.dir.y};
-                    }
-                });
-            }
+  function leaveHouse(g, gh, s) {
+    if (g.doorQueue[0] !== gh) { bob(gh, BOB_SPEED); return; }   // ждём очереди у двери
+    const hx = POS.house.x, hy = POS.house.y, ey = POS.door.y;
+    for (let guard = 0; s > EPS && guard < 4; guard++) {
+      if (Math.abs(gh.x - hx) > EPS) {
+        if (Math.abs(gh.y - hy) > EPS) {           // сначала на среднюю линию домика
+          gh.dir = gh.y > hy ? UP : DOWN;
+          const t = Math.min(s, Math.abs(hy - gh.y)); gh.y += gh.dir.y * t; s -= t;
+          if (Math.abs(gh.y - hy) <= EPS) gh.y = hy;
+        } else {                                    // потом к середине (под дверь)
+          gh.dir = gh.x > hx ? LEFT : RIGHT;
+          const t = Math.min(s, Math.abs(hx - gh.x)); gh.x += gh.dir.x * t; s -= t;
+          if (Math.abs(gh.x - hx) <= EPS) gh.x = hx;
         }
-
-        pacman.update();
-        ghosts.forEach(g => g.update());
-        // Последнюю точку съели в этом же тике — столкновения уже не считаем
-        if (gameState === 'PLAYING') checkCollisions();
-    } else if (gameState === 'DEATH') {
-        pacman.update(); // Для анимации смерти
-        if (++stateTimer >= DEATH_TICKS) {
-            if (lives > 0) resetLevel(false);
-            else gameOver();
-        }
-    } else if (gameState === 'WIN') {
-        if (++stateTimer >= WIN_TICKS) nextLevel();
+      } else if (gh.y - ey > EPS) {                 // вверх через дверь
+        gh.x = hx; gh.dir = UP;
+        const t = Math.min(s, gh.y - ey); gh.y -= t; s -= t;
+        if (gh.y - ey <= EPS) gh.y = ey;
+      } else {                                      // вышли: обычно налево, после разворота в домике — направо
+        gh.x = hx; gh.y = ey; gh.state = 'out'; gh.decided = -1;
+        gh.dir = gh.revPending ? RIGHT : LEFT; gh.revPending = false;
+        g.doorQueue.shift();
+        ev(g, 'ghostOut', { id: gh.id });
+        return;
+      }
     }
+  }
 
-    for (const f of floaters) f.t++;
-    if (floaters.length) floaters = floaters.filter(f => f.t < 60);
-}
+  function enterHouse(g, gh, s) {
+    gh.dir = DOWN; gh.x = POS.house.x;
+    gh.y = Math.min(POS.house.y, gh.y + Math.max(0, s));
+    if (gh.y >= POS.house.y - EPS) {
+      gh.y = POS.house.y; gh.fright = false; gh.revPending = false;
+      gh.state = 'leave';                           // ожившее привидение сразу выходит
+      if (!g.doorQueue.includes(gh)) g.doorQueue.push(gh);
+      ev(g, 'revive', { id: gh.id });
+    }
+  }
 
-// --- ОТРИСОВКА ---
-const G = { s: 1, px: 1, dpr: 1 };      // s — масштаб поля, px — пикселей экрана на единицу карты
-const blur = n => n * G.px;             // shadowBlur не масштабируется трансформацией — в пикселях экрана
-const mazeCv = document.createElement('canvas');
-const mazeCtx = mazeCv.getContext('2d');
-const tintCv = document.createElement('canvas');
-const tintCtx = tintCv.getContext('2d');
+  /* ── Столкновения ── */
+  function collide(g) {
+    const pc = tc(g.pac), pr = tr(g.pac);
+    for (const gh of g.ghosts) {
+      if (gh.state !== 'out' || tc(gh) !== pc || tr(gh) !== pr) continue;
+      if (gh.fright) { eatGhost(g, gh); return true; }
+      if (g.god) continue;                          // только для тестов движка
+      die(g);
+      return true;
+    }
+    return false;
+  }
 
-// Статичный слой лабиринта: неоновые контуры стен со свечением (рисуется один раз на размер)
-function buildMaze() {
-    mazeCv.width = canvas.width;
-    mazeCv.height = canvas.height;
-    const m = mazeCtx;
-    const T = TILE_SIZE, half = T / 2;
-    const isW = (c, r) => r >= 0 && r < ROWS && c >= 0 && c < COLS && rawMap[r][c] === MAP_TYPES.WALL;
-    const OUTER = T * 0.64, LINE = 2.2;
-    m.setTransform(G.px, 0, 0, G.px, 0, 0);
-    m.clearRect(0, 0, MAP_W, MAP_H);
+  function eatGhost(g, gh) {
+    const pts = 200 << Math.min(g.combo, 3);       // 200 → 400 → 800 → 1600
+    g.combo++;
+    gh.state = 'eyes'; gh.fright = false;
+    g.phase = 'freeze'; g.freezeT = EAT_FREEZE; g.eaten = gh; g.eatenPts = pts;
+    g.stats.ghosts++; g.stats.ghostPts += pts; g.lvl.ghosts++;
+    if (pts === 1600) g.stats.combo4++;
+    addScore(g, pts);
+    ev(g, 'ghost', { id: gh.id, pts, n: g.combo, level: g.lvl.ghosts, all: g.lvl.ghosts === 4 * g.maze.energizers });
+  }
 
-    // Форма стен = «трубки» между центрами соседних стеновых клеток + квадраты внутри блоков 2×2
-    function shape(g, width) {
+  function die(g) {
+    g.phase = 'dying'; g.phaseT = 0;
+    g.fruit = null; g.frightT = 0;
+    g.stats.deaths++; g.lvl.deaths++;
+    ev(g, 'death');
+  }
+  function afterDeath(g) {
+    g.lives--;
+    if (g.lives <= 0) { g.lives = 0; g.phase = 'over'; g.phaseT = 0; ev(g, 'over', { score: g.score, level: g.level }); return; }
+    resetActors(g);
+    g.globalOn = true; g.globalCount = 0;   // дальше привидения выходят по общему счётчику точек
+    g.elroyOff = true;
+    g.phase = 'ready'; g.phaseT = 0; g.readyTicks = READY_LIFE; g.intro = false;
+    ev(g, 'respawn', { lives: g.lives });
+  }
+
+  // Накопитель времени для фиксированного шага: сколько тиков выполнить за кадр длиной dt мс
+  function makeClock() {
+    const STEP = 1000 / FPS;
+    let acc = 0;
+    return {
+      reset() { acc = 0; },
+      advance(dt) {
+        if (!(dt > 0)) return 0;
+        if (dt > 250) dt = 250;                   // после сна вкладки не «догоняем» секунды
+        acc += dt;
+        let n = 0;
+        // допуск 1 мс: кадры 60 Гц приходят то чуть раньше, то чуть позже 16,67 мс
+        while (acc >= STEP - 1 && n < 10) { acc -= STEP; n++; }
+        if (n === 10) acc = 0;
+        return n;
+      }
+    };
+  }
+
+  /* ── Для отрисовки ── */
+  function ghostLook(g, gh) {
+    // что рисовать: 'eyes' | 'fright' | 'flash' | 'normal'
+    if (gh.state === 'eyes' || gh.state === 'enter') return 'eyes';
+    if (gh.fright) return flashWhite(g) ? 'flash' : 'fright';
+    return 'normal';
+  }
+
+  return {
+    FPS, COLS, ROWS, SPEED_100, EYES_SPEED, DIRS, DIR, UP, DOWN, LEFT, RIGHT,
+    T_EMPTY, T_WALL, T_VOID, T_DOOR, T_HOUSE, T_TUNNEL,
+    POS, SCATTER, EYES_TARGET, GHOST_IDS, FRUITS, FRUIT_DOTS, LEVEL_TABLE, EXTRA_LIFE_AT,
+    READY_LEVEL, READY_LIFE, INTRO_HIDE, EAT_FREEZE, DIE_FREEZE, DIE_ANIM, DIE_TOTAL, CLEAR_FREEZE, CLEAR_FLASH, CLEAR_TOTAL, FLASH_TICKS,
+    MAZES, MAZE_LIST, ALT_ORDER, addMaze, parseMaze, mazeFor,
+    levelParams, modeTimes, dotLimits, dotTimerLimit, fruitOf,
+    newGame, startLevel, resetActors, step, targetOf, decide, moveGhost, movePac, elroy, isScatter,
+    passable, tileAt, flashWhite, ghostLook, release, preferred, houseLogic, reverseGhosts, energize, mulberry32, makeClock
+  };
+})();
+
+/* ═══ mazes.js ═══ */
+/* ═══ Свои лабиринты для режима «Лабиринты» (не копии Ms. Pac-Man) ═══
+ * Хранится левая половина (14 столбцов), правая — зеркальная. Домик, старт Pac-Man и место фрукта —
+ * как в классике; проверены тестом: связность, нет тупиков и площадок 2×2, туннели сквозные. */
+(function () {
+  const mirror = half => half.map(h => h + h.split('').reverse().join(''));
+  const DEFS = [
+    {
+      id: 'grid', name: 'Сетка', wall: '#c77dff', glow: '#ff4dd2',
+      half: [
+        '##############',
+        '#......##.....',
+        '#.####.##.####',
+        '#o####.##.####',
+        '#.............',
+        '#.##.#.#####.#',
+        '#.##.#.#####.#',
+        '#....#....##..',
+        '#########.##.#',
+        '######### ## #',
+        '######### ## #',
+        '######.       ',
+        '######.## ###-',
+        '######.## #hhh',
+        'TTTTTT.## #hhh',
+        '######.## #hhh',
+        '######.## ####',
+        '######.       ',
+        '######.## ####',
+        '######.## ####',
+        '#.............',
+        '#.####.#####.#',
+        '#.####.#####.#',
+        '#o..##....... ',
+        '###.##.##.##.#',
+        '###.##.##.##.#',
+        '#...##....##..',
+        '#.####.#######',
+        '#.####.#######',
+        '#.............',
+        '##############'
+      ]
+    },
+    {
+      id: 'stairs', name: 'Лесенка', wall: '#51f58b', glow: '#00e5ff',
+      half: [
+        '##############',
+        '#......##.....',
+        '#.####.##.####',
+        '#o####....####',
+        '#.####.#####..',
+        '#.#....#####.#',
+        '#.#.#####....#',
+        '#.#.#####.####',
+        '#............#',
+        '######.##### #',
+        '######.##### #',
+        '######.       ',
+        '######.## ###-',
+        '######.## #hhh',
+        'TTTTTT.   #hhh',
+        '######.## #hhh',
+        '######.## ####',
+        '######.       ',
+        '######.## ####',
+        '######.## ####',
+        '#............#',
+        '#.#######.##.#',
+        '#.#######.##.#',
+        '#...#####.... ',
+        '#.#.########.#',
+        '#.#....#####.#',
+        '#.####.#####..',
+        '#o####....####',
+        '#.####.##.####',
+        '#......##.....',
+        '##############'
+      ]
+    },
+    {
+      id: 'draft', name: 'Сквозняк', wall: '#ff9f43', glow: '#ffd60a',
+      half: [
+        '##############',
+        '#......#.....#',
+        '#o####.#.###.#',
+        '#....#.#......',
+        '####.#.#####.#',
+        'TTT....#####.#',
+        '######.#####.#',
+        '######.#####.#',
+        '#............#',
+        '#.####.##### #',
+        '#.####.##### #',
+        '#.####.       ',
+        '#.####.## ###-',
+        '#.####.## #hhh',
+        '#......   #hhh',
+        '#.####.## #hhh',
+        '#.####.## ####',
+        '#.####.##     ',
+        '#.####.## ####',
+        '#.####.## ####',
+        '#.............',
+        '#.####.#####.#',
+        '#o####.#####.#',
+        '#....#....... ',
+        '####.#.##.####',
+        '####.#.##.####',
+        'TTT....##....#',
+        '###.##.#####.#',
+        '###.##.#####.#',
+        '###...........',
+        '##############'
+      ]
+    }
+  ];
+  for (const d of DEFS) {
+    PM.addMaze({ id: d.id, name: d.name, wall: d.wall, glow: d.glow, rows: mirror(d.half) });
+    PM.ALT_ORDER.push(d.id);
+  }
+})();
+
+/* ═══ render.js ═══ */
+/* ═══ Отрисовка: лабиринт (неоновые стены), точки, герои, фрукты, нижняя полоса (жизни и фрукты) ═══
+ * Рисуем в единицах «клетка» (setTransform с масштабом px на клетку); текст — в пикселях экрана. */
+const R = (() => {
+  const COLS = PM.COLS, ROWS = PM.ROWS, STRIP = 2, VIEW_H = ROWS + STRIP;   // снизу 2 ряда: жизни и фрукты
+  const PAC_COLOR = '#ffd60a';
+  // классические цвета привидений (узнаваемость важнее палитры): Блинки, Пинки, Инки, Клайд
+  const GHOST_COLORS = ['#ff2d2d', '#ffb8ff', '#00ffff', '#ffb852'];
+  const FRIGHT_BODY = '#2b4bff', FRIGHT_FACE = '#ffd2a6', FLASH_BODY = '#eef2ff', FLASH_FACE = '#ff3b5c';
+  const DOT_COLOR = '#ffc9a3', POWER_COLOR = '#ffb36b', DOOR_COLOR = '#ff4dd2';
+  const FONT = '"Russo One", Rubik, sans-serif';
+  const PAC_R = 0.6, GHOST_W = 1.18;
+
+  let cv = null, ctx = null;
+  const S = { px: 20, dpr: 1, cssW: 0, cssH: 0 };       // px — пикселей холста на клетку
+  const bl = n => n * S.px / 20;                       // размытие свечения: задаётся «в пикселях при клетке 20»
+  const layerA = document.createElement('canvas'), layerB = document.createElement('canvas');   // стены: обычные и белые (мигание)
+  let layerKey = '';
+
+  function init(canvas) { cv = canvas; ctx = cv.getContext('2d'); }
+
+  // размер холста под доступную область (в CSS-пикселях); возвращает фактический размер
+  function resize(availW, availH) {
+    const s = Math.max(6, Math.min(availW / COLS, availH / VIEW_H, 26));
+    const w = Math.floor(COLS * s), h = Math.floor(VIEW_H * s);
+    S.dpr = Math.min(window.devicePixelRatio || 1, 3);
+    cv.style.width = w + 'px'; cv.style.height = h + 'px';
+    cv.width = Math.round(w * S.dpr); cv.height = Math.round(h * S.dpr);
+    S.px = cv.width / COLS; S.cssW = w; S.cssH = h;
+    layerKey = '';
+    return { w, h };
+  }
+
+  /* ── Стены: «трубки» между центрами соседних стеновых клеток + квадраты внутри блоков 2×2;
+   *    залитая форма со свечением, из которой вырезана середина — остаётся неоновый контур ── */
+  function buildMaze(maze) {
+    const key = maze.id + ':' + cv.width + 'x' + cv.height;
+    if (key === layerKey) return;
+    layerKey = key;
+    // слой с запасом в 1 клетку со всех сторон: свечение стен не упирается в край холста
+    // (иначе Chrome оставляет полоску-артефакт на краю)
+    for (const [layer, white] of [[layerA, false], [layerB, true]]) {
+      layer.width = Math.round((COLS + 2) * S.px); layer.height = Math.round((ROWS + 2) * S.px);
+      const m = layer.getContext('2d');
+      const isW = (c, r) => r >= 0 && r < ROWS && c >= 0 && c < COLS && maze.grid[r][c] === PM.T_WALL;
+      const OUTER = 0.64, LINE = 0.11;
+      const color = white ? '#f4f6ff' : maze.wall, glow = white ? '#ffffff' : maze.glow;
+      m.setTransform(S.px, 0, 0, S.px, S.px, S.px);
+      m.clearRect(-1, -1, COLS + 2, ROWS + 2);
+      const shape = (g, width) => {
         g.lineWidth = width; g.lineCap = 'round'; g.lineJoin = 'round';
         g.beginPath();
         for (let r = 0; r < ROWS; r++) for (let c = 0; c < COLS; c++) {
-            if (!isW(c, r)) continue;
-            const x = c * T + half, y = r * T + half;
-            g.moveTo(x, y); g.lineTo(x + 0.01, y);
-            if (isW(c + 1, r)) { g.moveTo(x, y); g.lineTo(x + T, y); }
-            if (isW(c, r + 1)) { g.moveTo(x, y); g.lineTo(x, y + T); }
+          if (!isW(c, r)) continue;
+          const x = c + 0.5, y = r + 0.5;
+          g.moveTo(x, y); g.lineTo(x + 0.0005, y);
+          if (isW(c + 1, r)) { g.moveTo(x, y); g.lineTo(x + 1, y); }
+          if (isW(c, r + 1)) { g.moveTo(x, y); g.lineTo(x, y + 1); }
         }
         g.stroke();
         g.beginPath();
         for (let r = 0; r < ROWS - 1; r++) for (let c = 0; c < COLS - 1; c++)
-            if (isW(c, r) && isW(c + 1, r) && isW(c, r + 1) && isW(c + 1, r + 1)) g.rect(c * T + half, r * T + half, T, T);
+          if (isW(c, r) && isW(c + 1, r) && isW(c, r + 1) && isW(c + 1, r + 1)) g.rect(c + 0.5, r + 0.5, 1, 1);
         g.fill();
+      };
+      m.save();
+      m.strokeStyle = m.fillStyle = color;
+      m.shadowColor = glow; m.shadowBlur = bl(9);
+      shape(m, OUTER);
+      m.restore();
+      m.save();
+      m.globalCompositeOperation = 'destination-out';
+      m.strokeStyle = m.fillStyle = '#000';
+      shape(m, OUTER - LINE * 2);
+      m.restore();
+      // лёгкая заливка внутри стен (отдельным слоем, иначе перекрытия дают «кирпичи»)
+      const tint = document.createElement('canvas');
+      tint.width = layer.width; tint.height = layer.height;
+      const tg = tint.getContext('2d');
+      tg.setTransform(S.px, 0, 0, S.px, S.px, S.px);
+      tg.strokeStyle = tg.fillStyle = color;
+      shape(tg, OUTER - LINE * 2);
+      m.save(); m.setTransform(1, 0, 0, 1, 0, 0); m.globalAlpha = white ? 0.25 : 0.11; m.drawImage(tint, 0, 0); m.restore();
+      // дверь домика
+      m.save();
+      m.fillStyle = DOOR_COLOR; m.shadowColor = DOOR_COLOR; m.shadowBlur = bl(8);
+      for (let r = 0; r < ROWS; r++) for (let c = 0; c < COLS; c++)
+        if (maze.grid[r][c] === PM.T_DOOR) m.fillRect(c, r + 0.4, 1, 0.2);
+      m.restore();
     }
-    // 1) залитая форма неоновым цветом со свечением
-    m.save();
-    m.strokeStyle = m.fillStyle = WALL_COLOR;
-    m.shadowColor = WALL_GLOW; m.shadowBlur = 9 * G.px;
-    shape(m, OUTER);
-    m.restore();
-    // 2) вырезаем середину — остаётся контур толщиной LINE
-    m.save();
-    m.globalCompositeOperation = 'destination-out';
-    m.strokeStyle = m.fillStyle = '#000';
-    shape(m, OUTER - LINE * 2);
-    m.restore();
-    // 3) лёгкая стеклянная заливка внутри стен: рисуем непрозрачно на отдельном слое и кладём с прозрачностью,
-    //    иначе перекрытия трубок и квадратов дают «кирпичный» узор
-    tintCv.width = mazeCv.width; tintCv.height = mazeCv.height;
-    tintCtx.setTransform(G.px, 0, 0, G.px, 0, 0);
-    tintCtx.strokeStyle = tintCtx.fillStyle = WALL_COLOR;
-    shape(tintCtx, OUTER - LINE * 2);
-    m.save();
-    m.setTransform(1, 0, 0, 1, 0, 0);
-    m.globalAlpha = 0.11;
-    m.drawImage(tintCv, 0, 0);
-    m.restore();
-    // Дверь домика
-    m.save();
-    m.fillStyle = DOOR_COLOR; m.shadowColor = DOOR_COLOR; m.shadowBlur = 8 * G.px;
-    for (let c = 0; c < COLS; c++) for (let r = 0; r < ROWS; r++)
-        if (rawMap[r][c] === MAP_TYPES.GHOST_DOOR) m.fillRect(c * T, r * T + T / 2.5, T, T / 5);
-    m.restore();
-}
+  }
 
-function drawPellets(t) {
-    const T = TILE_SIZE;
-    ctx.fillStyle = PELLET_COLOR;
+  /* ── Фигуры ── */
+  function pacShape(g, x, y, r, ang, mouth) {
+    g.beginPath();
+    g.moveTo(x, y);
+    g.arc(x, y, r, ang + mouth, ang + Math.PI * 2 - mouth);
+    g.closePath();
+  }
+  function drawPac(g, x, y, r, ang, mouth, glow) {
+    g.save();
+    g.fillStyle = PAC_COLOR;
+    if (glow) { g.shadowColor = PAC_COLOR; g.shadowBlur = glow; }
+    pacShape(g, x, y, r, ang, mouth);
+    g.fill();
+    g.restore();
+  }
+
+  // привидение шириной w с центром (x, y); look: normal | fright | flash | eyes
+  function drawGhost(g, x, y, w, color, dir, look, t, glow) {
+    const r = w / 2;
+    g.save();
+    if (look !== 'eyes') {
+      const body = look === 'fright' ? FRIGHT_BODY : look === 'flash' ? FLASH_BODY : color;
+      g.fillStyle = body;
+      if (glow) { g.shadowColor = body; g.shadowBlur = glow; }
+      const top = y - w * 0.1, bottom = y + w * 0.5;
+      g.beginPath();
+      g.arc(x, top, r, Math.PI, 0);
+      g.lineTo(x + r, bottom);
+      const wave = (Math.floor(t / 8) % 2) ? w / 9 : 0;      // «юбка» шевелится
+      g.lineTo(x + r * 0.66, bottom - w / 6 + wave);
+      g.lineTo(x + r * 0.33, bottom - wave);
+      g.lineTo(x, bottom - w / 6 + wave);
+      g.lineTo(x - r * 0.33, bottom - wave);
+      g.lineTo(x - r * 0.66, bottom - w / 6 + wave);
+      g.lineTo(x - r, bottom);
+      g.closePath();
+      g.fill();
+      g.shadowBlur = 0;
+    }
+    if (look === 'fright' || look === 'flash') {
+      // испуг: глаза-квадратики и волнистый рот
+      const face = look === 'flash' ? FLASH_FACE : FRIGHT_FACE;
+      g.fillStyle = face;
+      g.fillRect(x - w * 0.27, y - w * 0.22, w * 0.16, w * 0.16);
+      g.fillRect(x + w * 0.11, y - w * 0.22, w * 0.16, w * 0.16);
+      g.beginPath();
+      const my = y + w * 0.16;
+      g.moveTo(x - w * 0.34, my + w * 0.06);
+      for (let i = 1; i <= 6; i++) g.lineTo(x - w * 0.34 + i * w * 0.113, my + (i % 2 ? -w * 0.06 : w * 0.06));
+      g.strokeStyle = face; g.lineWidth = w * 0.07; g.lineJoin = 'round';
+      g.stroke();
+    } else {
+      const ex = dir.x * w * 0.09, ey = dir.y * w * 0.09;
+      g.fillStyle = '#ffffff';
+      for (const s of [-1, 1]) { g.beginPath(); g.ellipse(x + s * w * 0.2 + ex, y - w * 0.12 + ey, w * 0.15, w * 0.19, 0, 0, Math.PI * 2); g.fill(); }
+      g.fillStyle = '#1f3cff';
+      for (const s of [-1, 1]) { g.beginPath(); g.arc(x + s * w * 0.2 + ex * 1.9, y - w * 0.12 + ey * 1.9, w * 0.085, 0, Math.PI * 2); g.fill(); }
+    }
+    g.restore();
+  }
+
+  /* ── Бонусные фрукты: рисунки в квадрате размером s с центром (x, y) ── */
+  function drawFruit(g, k, x, y, s, glow) {
+    g.save();
+    g.translate(x, y); g.scale(s, s);
+    const gl = (c, n) => { if (glow) { g.shadowColor = c; g.shadowBlur = glow * (n || 1); } };
+    const circle = (cx, cy, r) => { g.beginPath(); g.arc(cx, cy, r, 0, Math.PI * 2); };
+    switch (k) {
+      case 0: { // вишня
+        g.strokeStyle = '#7bd24a'; g.lineWidth = 0.07; g.lineCap = 'round';
+        g.beginPath(); g.moveTo(-0.2, 0.05); g.quadraticCurveTo(-0.05, -0.3, 0.28, -0.4); g.moveTo(0.16, 0.12); g.quadraticCurveTo(0.14, -0.2, 0.28, -0.4); g.stroke();
+        gl('#ff2d55'); g.fillStyle = '#ff2d55';
+        circle(-0.2, 0.2, 0.21); g.fill(); circle(0.17, 0.27, 0.21); g.fill();
+        g.shadowBlur = 0; g.fillStyle = 'rgba(255,255,255,.75)';
+        circle(-0.26, 0.13, 0.05); g.fill(); circle(0.11, 0.2, 0.05); g.fill();
+        break;
+      }
+      case 1: { // клубника
+        gl('#ff3b5c'); g.fillStyle = '#ff3b5c';
+        g.beginPath(); g.moveTo(0, 0.46);
+        g.bezierCurveTo(-0.42, 0.22, -0.46, -0.2, -0.22, -0.26); g.quadraticCurveTo(0, -0.32, 0.22, -0.26);
+        g.bezierCurveTo(0.46, -0.2, 0.42, 0.22, 0, 0.46); g.fill();
+        g.shadowBlur = 0; g.fillStyle = '#fff3b0';
+        for (const [a, b] of [[-0.18, -0.08], [0.02, -0.12], [0.2, -0.06], [-0.1, 0.1], [0.1, 0.08], [-0.02, 0.27], [-0.24, 0.07], [0.24, 0.1]]) { circle(a, b, 0.032); g.fill(); }
+        g.fillStyle = '#4fd65a';
+        g.beginPath(); g.moveTo(0, -0.24);
+        for (let i = 0; i <= 5; i++) { const an = Math.PI + i * Math.PI / 5; g.lineTo(Math.cos(an) * 0.26, -0.3 + Math.sin(an) * 0.12 * (i % 2 ? 1.6 : 0.5)); }
+        g.closePath(); g.fill();
+        break;
+      }
+      case 2: { // апельсин
+        gl('#ff9f43'); g.fillStyle = '#ff9f43';
+        circle(0, 0.06, 0.38); g.fill();
+        g.shadowBlur = 0; g.fillStyle = 'rgba(255,255,255,.35)'; circle(-0.13, -0.06, 0.08); g.fill();
+        g.fillStyle = '#4fd65a'; g.beginPath(); g.ellipse(0.13, -0.36, 0.15, 0.07, -0.5, 0, Math.PI * 2); g.fill();
+        g.strokeStyle = '#8a5a2b'; g.lineWidth = 0.06; g.beginPath(); g.moveTo(0, -0.3); g.lineTo(0.02, -0.4); g.stroke();
+        break;
+      }
+      case 3: { // яблоко
+        gl('#ff2d55'); g.fillStyle = '#ff2d55';
+        g.beginPath(); g.moveTo(0, -0.22);
+        g.bezierCurveTo(0.2, -0.38, 0.48, -0.25, 0.4, 0.08); g.bezierCurveTo(0.34, 0.36, 0.14, 0.46, 0, 0.38);
+        g.bezierCurveTo(-0.14, 0.46, -0.34, 0.36, -0.4, 0.08); g.bezierCurveTo(-0.48, -0.25, -0.2, -0.38, 0, -0.22); g.fill();
+        g.shadowBlur = 0; g.fillStyle = 'rgba(255,255,255,.4)'; g.beginPath(); g.ellipse(-0.2, -0.05, 0.06, 0.12, 0.3, 0, Math.PI * 2); g.fill();
+        g.strokeStyle = '#8a5a2b'; g.lineWidth = 0.06; g.beginPath(); g.moveTo(0, -0.22); g.lineTo(0.04, -0.42); g.stroke();
+        g.fillStyle = '#4fd65a'; g.beginPath(); g.ellipse(0.16, -0.38, 0.13, 0.06, -0.4, 0, Math.PI * 2); g.fill();
+        break;
+      }
+      case 4: { // дыня
+        gl('#51f58b'); g.fillStyle = '#7ce38b';
+        g.beginPath(); g.ellipse(0, 0.05, 0.38, 0.4, 0, 0, Math.PI * 2); g.fill();
+        g.shadowBlur = 0; g.strokeStyle = '#1f8a45'; g.lineWidth = 0.05;
+        for (const dx of [-0.2, 0, 0.2]) { g.beginPath(); g.moveTo(dx * 0.6, -0.33); g.quadraticCurveTo(dx * 1.6, 0.05, dx * 0.6, 0.43); g.stroke(); }
+        g.strokeStyle = '#8a5a2b'; g.lineWidth = 0.06; g.beginPath(); g.moveTo(0, -0.34); g.lineTo(0.05, -0.45); g.stroke();
+        break;
+      }
+      case 5: { // «Галаксиан» — флагман из одноимённой игры
+        gl('#ffd60a'); g.fillStyle = '#ffd60a';
+        g.beginPath(); g.moveTo(0, -0.42); g.lineTo(0.13, -0.05); g.lineTo(0.1, 0.32); g.lineTo(0, 0.42); g.lineTo(-0.1, 0.32); g.lineTo(-0.13, -0.05); g.closePath(); g.fill();
+        g.shadowBlur = 0; g.fillStyle = '#ff3b5c';
+        g.beginPath(); g.moveTo(0.1, -0.02); g.lineTo(0.44, 0.12); g.lineTo(0.42, 0.34); g.lineTo(0.1, 0.22); g.closePath(); g.fill();
+        g.beginPath(); g.moveTo(-0.1, -0.02); g.lineTo(-0.44, 0.12); g.lineTo(-0.42, 0.34); g.lineTo(-0.1, 0.22); g.closePath(); g.fill();
+        g.fillStyle = '#5b8cff';
+        g.fillRect(-0.3, -0.25, 0.08, 0.2); g.fillRect(0.22, -0.25, 0.08, 0.2);
+        break;
+      }
+      case 6: { // колокол
+        gl('#ffd60a'); g.fillStyle = '#ffd60a';
+        g.beginPath(); g.moveTo(-0.38, 0.3);
+        g.quadraticCurveTo(-0.3, 0.2, -0.28, -0.05); g.bezierCurveTo(-0.26, -0.45, 0.26, -0.45, 0.28, -0.05);
+        g.quadraticCurveTo(0.3, 0.2, 0.38, 0.3); g.closePath(); g.fill();
+        g.shadowBlur = 0; g.fillStyle = 'rgba(255,255,255,.5)'; g.beginPath(); g.ellipse(-0.11, -0.12, 0.05, 0.15, 0.2, 0, Math.PI * 2); g.fill();
+        g.fillStyle = '#5bdcff'; circle(0, 0.38, 0.08); g.fill();
+        break;
+      }
+      default: { // ключ
+        gl('#5bdcff'); g.strokeStyle = '#5bdcff'; g.lineWidth = 0.1;
+        g.beginPath(); g.ellipse(0, -0.25, 0.17, 0.13, 0, 0, Math.PI * 2); g.stroke();
+        g.shadowBlur = 0; g.strokeStyle = '#dfe7ff'; g.lineWidth = 0.09;
+        g.beginPath(); g.moveTo(0, -0.12); g.lineTo(0, 0.44); g.moveTo(0, 0.3); g.lineTo(0.15, 0.3); g.moveTo(0, 0.16); g.lineTo(0.11, 0.16); g.stroke();
+      }
+    }
+    g.restore();
+  }
+
+  // текст в пикселях экрана по координатам в клетках
+  function text(str, x, y, size, color, glow, plate) {
+    ctx.save();
+    ctx.setTransform(1, 0, 0, 1, 0, 0);
+    ctx.font = `400 ${Math.round(size * S.px)}px ${FONT}`;
+    ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+    const px = x * S.px, py = y * S.px;
+    if (plate) {
+      const w = ctx.measureText(str).width + S.px * 1.2, h = S.px * (size + 0.7);
+      ctx.fillStyle = 'rgba(4,6,22,.88)';
+      ctx.strokeStyle = plate; ctx.lineWidth = Math.max(1, S.px * 0.08);
+      ctx.beginPath();
+      if (ctx.roundRect) ctx.roundRect(px - w / 2, py - h / 2, w, h, S.px * 0.5); else ctx.rect(px - w / 2, py - h / 2, w, h);
+      ctx.fill(); ctx.stroke();
+    }
+    ctx.fillStyle = color;
+    if (glow) { ctx.shadowColor = color; ctx.shadowBlur = bl(glow); }
+    ctx.fillText(str, px, py + S.px * 0.05);
+    ctx.restore();
+  }
+
+  const DIR_ANGLE = { right: 0, down: Math.PI / 2, left: Math.PI, up: -Math.PI / 2 };
+
+  // герой у края туннеля рисуется дважды — уходит с одной стороны и появляется с другой
+  function wrapDraw(x, fn) {
+    fn(x);
+    if (x < 1) fn(x + COLS); else if (x > COLS - 1) fn(x - COLS);
+  }
+  // у краёв поля (в туннеле) — без свечения: размытие у края холста оставляет артефакты
+  const edgeGlow = (x, glow) => (x < 1.6 || x > COLS - 1.6 ? 0 : glow);
+
+  /* ── Кадр ── */
+  function draw(g, now) {
+    if (!ctx || !g) return;
+    buildMaze(g.maze);
+    const t = g.tick;
+    ctx.setTransform(S.px, 0, 0, S.px, 0, 0);
+    ctx.clearRect(0, 0, COLS, VIEW_H);
+    ctx.fillStyle = 'rgba(4,6,22,.6)';
+    ctx.fillRect(0, 0, COLS, ROWS);
+    // стены (мигают при прохождении уровня)
+    const clearFlash = g.phase === 'clear' && g.phaseT >= PM.CLEAR_FREEZE;
+    const white = clearFlash && Math.floor((g.phaseT - PM.CLEAR_FREEZE) / PM.CLEAR_FLASH) % 2 === 0;
+    ctx.drawImage(white ? layerB : layerA, -1, -1, layerA.width / S.px, layerA.height / S.px);
+    drawDots(g, t);
+
+    // фрукт и его очки
+    const F = PM.POS.fruit;
+    if (g.fruit) drawFruit(ctx, g.fruit.k, F.x, F.y, 1.35, bl(10));
+    if (g.fruitPts) text(String(g.fruitPts.pts), F.x, F.y, 0.8, '#ff8fe0', 10);
+
+    // герои (в лабиринте, с обрезкой по краям — для туннеля)
+    ctx.save();
+    ctx.beginPath(); ctx.rect(0, 0, COLS, ROWS); ctx.clip();
+    const hideAll = (g.phase === 'ready' && g.intro) || g.phase === 'over';
+    const dyingAnim = g.phase === 'dying' && g.phaseT >= PM.DIE_FREEZE;
+    const ghostsVisible = !hideAll && !dyingAnim && !(g.phase === 'clear' && g.phaseT >= PM.CLEAR_FREEZE);
+    if (ghostsVisible) {
+      // глаза — под телами; съеденное только что — вместо него очки
+      const order = g.ghosts.slice().sort((a, b) => (PM.ghostLook(g, b) === 'eyes') - (PM.ghostLook(g, a) === 'eyes'));
+      for (const gh of order) {
+        if (g.phase === 'freeze' && gh === g.eaten) continue;
+        const look = PM.ghostLook(g, gh);
+        const gl = look === 'eyes' ? 0 : edgeGlow(gh.x, bl(10));
+        wrapDraw(gh.x, x => drawGhost(ctx, x, gh.y, GHOST_W, GHOST_COLORS[gh.idx], gh.dir, look, t, gl));
+      }
+    }
+    const p = g.pac;
+    if (!hideAll && g.phase !== 'freeze') {
+      if (g.phase === 'dying' && dyingAnim) {
+        // гибель: Pac-Man «раскрывается» и исчезает
+        const k = (g.phaseT - PM.DIE_FREEZE) / PM.DIE_ANIM;
+        if (k < 1) drawPac(ctx, p.x, p.y, PAC_R, -Math.PI / 2, Math.min(Math.PI, 0.15 + k * Math.PI), bl(10));
+        else if (k < 1.25) {   // искорки
+          ctx.save(); ctx.strokeStyle = PAC_COLOR; ctx.lineWidth = 0.08; ctx.lineCap = 'round';
+          const rr = 0.25 + (k - 1) * 2;
+          ctx.beginPath();
+          for (let i = 0; i < 8; i++) { const a = i * Math.PI / 4; ctx.moveTo(p.x + Math.cos(a) * rr, p.y + Math.sin(a) * rr); ctx.lineTo(p.x + Math.cos(a) * (rr + 0.25), p.y + Math.sin(a) * (rr + 0.25)); }
+          ctx.stroke(); ctx.restore();
+        }
+      } else {
+        const mouth = g.phase === 'ready' || (g.phase === 'clear') ? 0.06 : 0.06 + 0.6 * Math.abs(Math.sin(p.anim * 0.42));
+        const gl = edgeGlow(p.x, bl(12));
+        wrapDraw(p.x, x => drawPac(ctx, x, p.y, PAC_R, DIR_ANGLE[p.dir.k], mouth, gl));
+      }
+    }
+    // очки за привидение — на его месте, пока игра стоит
+    if (g.phase === 'freeze' && g.eaten) text(String(g.eatenPts), g.eaten.x, g.eaten.y, 0.78, '#00e5ff', 10);
+    ctx.restore();
+
+    // надписи
+    if (g.phase === 'ready') {
+      if (g.intro) text('УРОВЕНЬ ' + g.level, 14, 11.5, 0.95, '#00e5ff', 12);
+      text('ГОТОВЬСЯ!', 14, 17.5, 0.95, '#ffd60a', 12);
+    } else if (g.phase === 'clear' && g.phaseT >= PM.CLEAR_FREEZE) {
+      text('УРОВЕНЬ ПРОЙДЕН!', 14, 17.5, 1.05, '#ffd60a', 14, 'rgba(255,214,10,.55)');
+    } else if (g.phase === 'over') {
+      text('ИГРА ОКОНЧЕНА', 14, 17.5, 1.05, '#ff5d7d', 14, 'rgba(255,93,125,.55)');
+    }
+
+    drawStrip(g);
+  }
+
+  function drawDots(g, t) {
+    const d = g.dots;
+    ctx.fillStyle = DOT_COLOR;
     ctx.beginPath();
     for (let r = 0; r < ROWS; r++) for (let c = 0; c < COLS; c++) {
-        if (gameMap[r][c] !== MAP_TYPES.PELLET) continue;
-        const x = c * T + T / 2, y = r * T + T / 2;
-        ctx.moveTo(x + T / 8, y);
-        ctx.arc(x, y, T / 8, 0, Math.PI * 2);
+      if (d[r][c] !== 1) continue;
+      ctx.moveTo(c + 0.62, r + 0.5);
+      ctx.arc(c + 0.5, r + 0.5, 0.12, 0, Math.PI * 2);
     }
     ctx.fill();
-    // Энерджайзеры — пульсируют и светятся
-    const k = 0.82 + 0.18 * Math.sin(t / 130);
+    // энерджайзеры: в игре мигают, в паузах между фазами горят ровно
+    const blink = g.phase === 'play' && Math.floor(t / 10) % 2 === 1;
     ctx.save();
-    ctx.fillStyle = POWER_COLOR; ctx.shadowColor = POWER_COLOR; ctx.shadowBlur = blur(12);
+    ctx.globalAlpha = blink ? 0.3 : 1;
+    ctx.fillStyle = POWER_COLOR; ctx.shadowColor = POWER_COLOR; ctx.shadowBlur = bl(12);
+    ctx.beginPath();
     for (let r = 0; r < ROWS; r++) for (let c = 0; c < COLS; c++) {
-        if (gameMap[r][c] !== MAP_TYPES.POWER_PELLET) continue;
-        ctx.beginPath();
-        ctx.arc(c * T + T / 2, r * T + T / 2, (T / 3.5) * k, 0, Math.PI * 2);
-        ctx.fill();
+      if (d[r][c] !== 2) continue;
+      ctx.moveTo(c + 0.88, r + 0.5);
+      ctx.arc(c + 0.5, r + 0.5, 0.38, 0, Math.PI * 2);
     }
+    ctx.fill();
     ctx.restore();
-}
+  }
 
-function render(t) {
-    if (!ctx || !pacman) return;
-    ctx.setTransform(G.px, 0, 0, G.px, 0, 0);
-    ctx.clearRect(0, 0, MAP_W, MAP_H);
-    ctx.fillStyle = 'rgba(4,6,22,.6)';
-    ctx.fillRect(0, 0, MAP_W, MAP_H);
-    ctx.drawImage(mazeCv, 0, 0, MAP_W, MAP_H);
-    // Зачистка уровня — стены мигают
-    if (gameState === 'WIN' && Math.floor(stateTimer / 15) % 2 === 1) {
-        ctx.save(); ctx.globalCompositeOperation = 'lighter'; ctx.drawImage(mazeCv, 0, 0, MAP_W, MAP_H); ctx.restore();
-    }
-    drawPellets(t);
+  // нижняя полоса, как в аркаде: запасные жизни слева, фрукты пройденных уровней справа
+  function drawStrip(g) {
+    const y = ROWS + 0.95;    // свечение значков не должно касаться нижнего края холста
+    const spare = g.phase === 'over' ? 0 : Math.min(5, Math.max(0, g.lives - 1));
+    for (let i = 0; i < spare; i++) drawPac(ctx, 1.6 + i * 1.7, y, 0.56, Math.PI, 0.55, bl(5));
+    const first = Math.max(1, g.level - 6);
+    for (let lv = first, i = 0; lv <= g.level; lv++, i++) drawFruit(ctx, PM.fruitOf(lv), 26.3 - i * 1.7, y, 1.2, bl(4));
+  }
 
-    if (!pacman.dead || gameState === 'DEATH') pacman.draw(ctx);
-    if (gameState !== 'DEATH') ghosts.forEach(g => g.draw(ctx));
+  return { init, resize, draw, drawPac, drawGhost, drawFruit, GHOST_COLORS, PAC_COLOR, DOT_COLOR, POWER_COLOR, VIEW_H, S };
+})();
 
-    // Очки за привидений
-    if (floaters.length) {
-        ctx.save();
-        ctx.font = '400 13px "Russo One", Rubik, sans-serif';
-        ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
-        ctx.fillStyle = '#00e5ff'; ctx.shadowColor = '#00e5ff'; ctx.shadowBlur = blur(10);
-        for (const f of floaters) {
-            ctx.globalAlpha = Math.max(0, 1 - f.t / 60);
-            ctx.fillText(f.text, f.x, f.y - f.t * 0.35);
-        }
-        ctx.restore();
-    }
+/* ═══ ui.js ═══ */
+/* ═══ Интерфейс: экраны, ввод, звук, статистика, достижения, история ═══ */
+const $ = id => document.getElementById(id);
+const fmt = n => Math.round(n).toLocaleString('ru-RU');
+const fmtT = sec => { sec = Math.max(0, Math.round(sec)); const m = Math.floor(sec / 60), s = sec % 60; return m + ':' + String(s).padStart(2, '0'); };
+const plural = (n, a, b, c) => { const m10 = n % 10, m100 = n % 100; return m10 === 1 && m100 !== 11 ? a : m10 >= 2 && m10 <= 4 && (m100 < 12 || m100 > 14) ? b : c; };
 
-    if (gameState === 'WIN') {
-        // надпись — в коридоре под домиком, на тёмной плашке, чтобы не сливалась со стенами
-        const text = 'УРОВЕНЬ ПРОЙДЕН!', y = 17 * TILE_SIZE + TILE_SIZE / 2;
-        ctx.save();
-        ctx.font = '400 24px "Russo One", Rubik, sans-serif';
-        ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
-        const w = ctx.measureText(text).width + 28;
-        ctx.fillStyle = 'rgba(4,6,22,.88)';
-        ctx.strokeStyle = 'rgba(255,214,10,.55)'; ctx.lineWidth = 1.5;
-        ctx.beginPath();
-        if (ctx.roundRect) ctx.roundRect(MAP_W / 2 - w / 2, y - 19, w, 38, 12); else ctx.rect(MAP_W / 2 - w / 2, y - 19, w, 38);
-        ctx.fill(); ctx.stroke();
-        ctx.fillStyle = '#ffd60a'; ctx.shadowColor = '#ffd60a'; ctx.shadowBlur = blur(14);
-        ctx.fillText(text, MAP_W / 2, y + 1);
-        ctx.restore();
-    }
-}
+/* ── Хранилище (ошибки и испорченные данные не ломают игру) ── */
+const KEYS = { stats: 'pacman_stats', settings: 'pacman_settings', ach: 'pacman_ach', history: 'pacman_history' };
+const store = {
+  get(k, def) { try { const v = localStorage.getItem(k); return v == null ? def : JSON.parse(v); } catch (e) { return def; } },
+  set(k, v) { try { localStorage.setItem(k, JSON.stringify(v)); } catch (e) {} },
+  del(k) { try { localStorage.removeItem(k); } catch (e) {} }
+};
+const isObj = v => !!v && typeof v === 'object' && !Array.isArray(v);
+// состояние: экран, пауза, текущая партия (движок) и её учёт
+let screen = 'menu', paused = false;
+let game = null, session = null;
+let lastT = 0, dirty = true;            // время прошлого кадра; нужно ли перерисовать поле
+const num = (v, min) => { min = min || 0; v = +v; return Number.isFinite(v) && v >= min ? Math.floor(v) : min; };
+const MODES = ['classic', 'mazes'];
+const MODE_NAME = { classic: 'Классика', mazes: 'Лабиринты' };
+const TOTAL_KEYS = ['dots', 'energizers', 'ghosts', 'ghostPts', 'fruits', 'fruitPts', 'combo4', 'deaths', 'levels', 'extraLives', 'timeSec', 'all16'];
 
-// --- РАЗМЕРЫ ---
-function layout() {
-    const stage = $('stage');
-    if (!stage.clientHeight) return;                     // экран игры скрыт
-    const FRAME = 16, GAP = parseFloat(getComputedStyle(stage).gap) || 12;
-    const pad = $('pad');
-    const padOn = getComputedStyle(pad).display !== 'none';
-    const row = getComputedStyle(stage).flexDirection === 'row';
-    let availW = stage.clientWidth - FRAME, availH = stage.clientHeight - FRAME;
-    if (padOn) {
-        if (row) availW -= pad.offsetWidth + GAP;
-        else availH -= pad.offsetHeight + GAP;
-    }
-    const s = Math.max(0.3, Math.min(availW / MAP_W, availH / MAP_H, 1.25));
-    const w = Math.floor(MAP_W * s), h = Math.floor(MAP_H * s);
-    G.s = w / MAP_W;
-    G.dpr = Math.min(window.devicePixelRatio || 1, 3);
-    G.px = G.s * G.dpr;
-    canvas.style.width = w + 'px';
-    canvas.style.height = h + 'px';
-    canvas.width = Math.round(w * G.dpr);
-    canvas.height = Math.round(h * G.dpr);
-    buildMaze();
-    render(performance.now());
-}
-window.addEventListener('resize', layout);
-
-// --- ЗАСТАВКА В МЕНЮ ---
-const hero = $('hero'), heroCtx = hero.getContext('2d');
-function sizeHero() {
-    const dpr = Math.min(window.devicePixelRatio || 1, 3);
-    const w = hero.clientWidth || 300, h = hero.clientHeight || 46;
-    hero.width = Math.round(w * dpr); hero.height = Math.round(h * dpr);
-    heroCtx.setTransform(dpr, 0, 0, dpr, 0, 0);
-    hero._w = w; hero._h = h; hero._dpr = dpr;
-}
-function drawHero(t) {
-    if (!hero._w) sizeHero();
-    const g = heroCtx, w = hero._w, h = hero._h, y = h / 2, u = Math.min(26, h * 0.56);
-    g.clearRect(0, 0, w, h);
-    const cols = ['BLINKY', 'PINKY', 'INKY', 'CLYDE'];
-    const mouth = 0.2 * Math.PI * (0.5 + 0.5 * Math.sin(t / 90));
-    let x = u * 0.7;
-    cols.forEach(k => { drawGhostShape(g, x, y + 2, u, { body: GHOST_COLORS[k], dir: DIR.RIGHT, glow: 10 * hero._dpr, t }); x += u * 1.25; });
-    x += u * 0.4;
-    drawPacShape(g, x, y, u * 0.55, 0, mouth, 12 * hero._dpr);
-    g.fillStyle = PELLET_COLOR;
-    for (let px = x + u * 1.2; px < w - u * 0.9; px += u * 0.8) { g.beginPath(); g.arc(px, y, 2.6, 0, Math.PI * 2); g.fill(); }
-    g.save(); g.fillStyle = POWER_COLOR; g.shadowColor = POWER_COLOR; g.shadowBlur = 10 * hero._dpr;
-    g.beginPath(); g.arc(w - u * 0.5, y, 6 * (0.85 + 0.15 * Math.sin(t / 130)), 0, Math.PI * 2); g.fill(); g.restore();
-}
-window.addEventListener('resize', () => { hero._w = 0; });
-
-// --- ГЛАВНЫЙ ЦИКЛ: фиксированный шаг логики + отрисовка каждый кадр ---
-let lastT = 0, acc = 0, screen = 'menu';
-function running() {
-    return screen === 'game' && !paused && (gameState === 'PLAYING' || gameState === 'DEATH' || gameState === 'WIN');
-}
-function frame(t) {
-    requestAnimationFrame(frame);
-    let dt = lastT ? t - lastT : 0;
-    lastT = t;
-    if (dt > 250) dt = 250;                 // после сна вкладки не «догоняем» секунды
-    if (running()) {
-        acc += dt;
-        let n = 0;
-        // допуск 1 мс: на 60 Гц кадры приходят чуть раньше/позже 16.67 мс — без него бывает «0 тиков, затем 2»
-        while (acc >= STEP_MS - 1 && n < 10) { tick(); acc -= STEP_MS; n++; }
-        if (n === 10) acc = 0;
-    } else acc = 0;
-    if (screen === 'game' && !paused) render(t);
-    else if (screen === 'menu') drawHero(t);
-}
-
-// --- ИНТЕРФЕЙС ---
-let stats = loadStats();
 function loadStats() {
+  const raw = store.get(KEYS.stats, {});
+  const src = isObj(raw) ? raw : {};
+  const mode = m => {
+    const x = isObj(src.modes) && isObj(src.modes[m]) ? src.modes[m] : {};
+    return { games: num(x.games), best: num(x.best), maxLevel: Math.max(1, num(x.maxLevel, 1)), totalScore: num(x.totalScore), levels: num(x.levels), timeSec: num(x.timeSec) };
+  };
+  const st = { v: 2, modes: { classic: mode('classic'), mazes: mode('mazes') }, totals: {}, mazesCleared: {} };
+  const t = isObj(src.totals) ? src.totals : {};
+  for (const k of TOTAL_KEYS) st.totals[k] = num(t[k]);
+  if (isObj(src.mazesCleared)) for (const k in src.mazesCleared) if (/^[a-z]+$/.test(k)) st.mazesCleared[k] = num(src.mazesCleared[k]);
+  // прежняя версия хранила { best, games, maxLevel } — это рекорды классики
+  if (!src.v) {
+    const c = st.modes.classic;
+    c.best = Math.max(c.best, num(src.best));
+    c.games = Math.max(c.games, num(src.games));
+    c.maxLevel = Math.max(c.maxLevel, num(src.maxLevel, 1));
+  }
+  return st;
+}
+let stats = loadStats();
+function saveStats() {
+  const m = stats.modes;
+  // совместимость со старой версией: best / games / maxLevel — по всем режимам
+  stats.best = Math.max(m.classic.best, m.mazes.best);
+  stats.games = m.classic.games + m.mazes.games;
+  stats.maxLevel = Math.max(m.classic.maxLevel, m.mazes.maxLevel);
+  store.set(KEYS.stats, stats);
+}
+
+function loadSettings() {
+  const o = store.get(KEYS.settings, {});
+  const s = { sound: true, vibration: true, swipe: true, pad: 'auto' };
+  if (isObj(o)) {
+    for (const k of ['sound', 'vibration', 'swipe']) if (typeof o[k] === 'boolean') s[k] = o[k];
+    if (['auto', 'on', 'off'].includes(o.pad)) s.pad = o.pad;
+  }
+  return s;
+}
+let settings = loadSettings();
+const saveSettings = () => store.set(KEYS.settings, settings);
+
+function loadHistory() {
+  const a = store.get(KEYS.history, []);
+  if (!Array.isArray(a)) return [];
+  return a.filter(isObj).map(h => ({ t: num(h.t), m: MODES.includes(h.m) ? h.m : 'classic', s: num(h.s), l: Math.max(1, num(h.l, 1)),
+    g: num(h.g), f: num(h.f), d: num(h.d), q: !!h.q })).slice(0, 30);
+}
+let history = loadHistory();
+
+/* ── Звук и вибрация ── */
+const Snd = {
+  ctx: null, out: null,
+  init() {
     try {
-        const o = JSON.parse(localStorage.getItem('pacman_stats') || '{}') || {};
-        return { best: o.best | 0, games: o.games | 0, maxLevel: Math.max(1, o.maxLevel | 0) };
-    } catch (e) { return { best: 0, games: 0, maxLevel: 1 }; }
-}
-function saveStats() { try { localStorage.setItem('pacman_stats', JSON.stringify(stats)); } catch (e) {} }
+      if (!this.ctx) {
+        this.ctx = new (window.AudioContext || window.webkitAudioContext)();
+        this.out = this.ctx.createGain(); this.out.gain.value = 0.55; this.out.connect(this.ctx.destination);
+      }
+      if (this.ctx.state === 'suspended') this.ctx.resume().catch(() => {});
+    } catch (e) { this.ctx = null; }
+  },
+  tone(f, type, dur, vol, f2, delay) {
+    if (!settings.sound || !this.ctx || this.ctx.state !== 'running') return;
+    try {
+      const c = this.ctx, t = c.currentTime + (delay || 0), o = c.createOscillator(), g = c.createGain();
+      o.type = type; o.frequency.setValueAtTime(f, t);
+      if (f2) o.frequency.exponentialRampToValueAtTime(f2, t + dur);
+      g.gain.setValueAtTime(vol, t); g.gain.exponentialRampToValueAtTime(0.0008, t + dur);
+      o.connect(g); g.connect(this.out); o.start(t); o.stop(t + dur + 0.02);
+    } catch (e) {}
+  }
+};
+let waka = false;
+const sfx = {
+  dot() { waka = !waka; Snd.tone(waka ? 520 : 330, 'triangle', 0.07, 0.11, waka ? 330 : 520); },
+  power() { Snd.tone(180, 'square', 0.28, 0.05, 760); },
+  ghost() { Snd.tone(260, 'square', 0.32, 0.05, 1500); Snd.tone(520, 'triangle', 0.3, 0.05, 2400, 0.04); },
+  fruit() { [784, 1047, 1319].forEach((f, i) => Snd.tone(f, 'triangle', 0.09, 0.1, 0, i * 0.06)); },
+  life() { [659, 784, 988, 1319, 988, 1319].forEach((f, i) => Snd.tone(f, 'square', 0.09, 0.045, 0, i * 0.08)); },
+  death() { Snd.tone(760, 'square', 1.25, 0.05, 80); Snd.tone(380, 'triangle', 1.25, 0.05, 40, 0.05); },
+  start() { [392, 523, 659, 784, 659, 784, 1047].forEach((f, i) => Snd.tone(f, 'square', 0.13, 0.04, 0, i * 0.11)); },
+  clear() { [523, 659, 784, 1047, 1319].forEach((f, i) => Snd.tone(f, 'triangle', 0.14, 0.08, 0, i * 0.08)); },
+  ach() { [784, 988, 1319].forEach((f, i) => Snd.tone(f, 'sine', 0.13, 0.08, 0, i * 0.09)); },
+  click() { Snd.tone(600, 'sine', 0.05, 0.05); }
+};
+const vib = p => { if (settings.vibration && navigator.vibrate) try { navigator.vibrate(p); } catch (e) {} };
 
-const LIFE_SVG = '<svg viewBox="0 0 20 20"><path d="M10 10 L18.66 5 A10 10 0 1 0 18.66 15 Z" fill="#ffd60a"/></svg>';
-let shownLives = -1;
-function updateUI() {
-    $('score').textContent = fmt(score);
-    $('best').textContent = fmt(Math.max(stats.best, score));
-    $('top-level').textContent = level;
-    if (shownLives !== lives) {
-        shownLives = lives;
-        $('lives').innerHTML = lives > 0 ? LIFE_SVG.repeat(lives) : '0';
-    }
-}
-function popScore() {
-    const b = $('score');
-    b.classList.remove('pop'); void b.offsetWidth; b.classList.add('pop');
-}
-function refreshMenu() {
-    $('menu-best').textContent = 'Рекорд: ' + fmt(stats.best);
-    $('menu-stats').textContent = 'Сыграно игр: ' + stats.games + ' • Лучший уровень: ' + stats.maxLevel;
+/* ── Достижения ── */
+const ACH = [
+  { id: 'ghost', icon: '👻', name: 'Первое привидение', desc: 'Съешьте испуганное привидение' },
+  { id: 'combo', icon: '💥', name: '1600!', desc: 'Съешьте всех четырёх привидений за один энерджайзер' },
+  { id: 'all16', icon: '🏆', name: 'Гроза привидений', desc: 'Съешьте все 16 привидений за один уровень' },
+  { id: 'fruit', icon: '🍒', name: 'Витамины', desc: 'Съешьте бонусный фрукт' },
+  { id: 'twofruits', icon: '🍓', name: 'Фруктовый сад', desc: 'Съешьте оба фрукта одного уровня' },
+  { id: 'key', icon: '🔑', name: 'Ключник', desc: 'Съешьте ключ — 5000 очков (с 13 уровня)' },
+  { id: 'clear1', icon: '🧹', name: 'Чистый лабиринт', desc: 'Пройдите уровень' },
+  { id: 'nodeath', icon: '😇', name: 'Без единой царапины', desc: 'Пройдите уровень, не потеряв ни одной жизни' },
+  { id: 'fast', icon: '⏱', name: 'Спринтер', desc: 'Пройдите уровень быстрее 90 секунд' },
+  { id: 'level5', icon: '🍎', name: 'Яблочко', desc: 'Дойдите до 5 уровня' },
+  { id: 'level10', icon: '🚀', name: 'Галаксиан', desc: 'Дойдите до 10 уровня' },
+  { id: 'level17', icon: '😈', name: 'Без страха', desc: 'Дойдите до 17 уровня — там привидения уже не синеют' },
+  { id: 'extra', icon: '❤️', name: 'Ещё жизнь', desc: 'Наберите 10 000 очков — дополнительная жизнь' },
+  { id: 'score30', icon: '💯', name: '30 000', desc: 'Наберите 30 000 очков за одну партию' },
+  { id: 'mazes', icon: '🌀', name: 'Путешественник', desc: 'Пройдите по уровню в каждом из трёх новых лабиринтов' }
+];
+let achDone = (() => {
+  const o = store.get(KEYS.ach, {}), out = {};
+  if (isObj(o)) for (const a of ACH) if (num(o[a.id]) > 0) out[a.id] = num(o[a.id]);
+  return out;
+})();
+function unlock(id) {
+  if (achDone[id]) return;
+  const a = ACH.find(x => x.id === id);
+  if (!a) return;
+  achDone[id] = Date.now();
+  store.set(KEYS.ach, achDone);
+  if (session) session.newAch.push(a);
+  sfx.ach();
+  KuArcade.toast('🏅 ' + a.name, 'gold', 2400);
 }
 
-const show = id => $(id).classList.add('open');
-const hide = id => $(id).classList.remove('open');
+/* ── Экраны и окна ── */
+// заставка в меню (рисует drawHero ниже): привидения гонятся за Pac-Man
+const hero = { cv: $('hero'), ctx: $('hero').getContext('2d'), w: 0, h: 0, dpr: 1 };
+const OVERLAYS = ['pause', 'over', 'rules', 'stats', 'ach', 'history', 'settings'];
+const isOpen = id => $(id).classList.contains('open');
 const anyOverlay = () => document.querySelector('.ku-overlay.open') !== null;
+let modalReturn = null;
+let keyboardUser = false;    // фокус на главной кнопке окна — только при игре с клавиатуры (Enter/пробел)
+function show(id) {
+  $(id).classList.add('open');
+  const btn = $(id).querySelector('.ku-btn.primary');
+  if (btn && keyboardUser) setTimeout(() => { try { btn.focus({ preventScroll: true }); } catch (e) {} }, 30);
+}
+const hide = id => $(id).classList.remove('open');
+function openModal(id, from) {
+  modalReturn = from || null;
+  if (from) hide(from);
+  if (id === 'rules') fillRules();
+  if (id === 'stats') fillStats();
+  if (id === 'ach') fillAch();
+  if (id === 'history') fillHistory();
+  if (id === 'settings') fillSettings();
+  show(id);
+}
+function closeModal(id) {
+  hide(id);
+  if (modalReturn) { const r = modalReturn; modalReturn = null; show(r); }
+}
+document.querySelectorAll('[data-close]').forEach(b => b.addEventListener('click', () => closeModal(b.closest('.ku-overlay').id)));
+// тап по подложке окна закрывает его (кроме паузы и конца игры)
+['rules', 'stats', 'ach', 'history', 'settings'].forEach(id => $(id).addEventListener('pointerdown', e => { if (e.target === $(id)) closeModal(id); }));
 
 function showScreen(name) {
-    screen = name;
-    $('screen-menu').classList.toggle('active', name === 'menu');
-    $('screen-game').classList.toggle('active', name === 'game');
-    if (name === 'menu') { refreshMenu(); hero._w = 0; }
+  screen = name;
+  $('screen-menu').classList.toggle('active', name === 'menu');
+  $('screen-game').classList.toggle('active', name === 'game');
+  document.body.classList.toggle('ku-calm', name === 'game');
+  if (name === 'menu') { refreshMenu(); hero.w = 0; }
 }
 
-function startGame() {
-    ['pause', 'over', 'rules'].forEach(hide);
-    paused = false;
-    stats.games++;
+function refreshMenu() {
+  const c = stats.modes.classic, m = stats.modes.mazes;
+  $('best-classic').textContent = 'Рекорд: ' + fmt(c.best) + (c.maxLevel > 1 ? ' · ур. ' + c.maxLevel : '');
+  $('best-mazes').textContent = m.games ? 'Рекорд: ' + fmt(m.best) + (m.maxLevel > 1 ? ' · ур. ' + m.maxLevel : '') : '«Сетка», «Лесенка», «Сквозняк»';
+  const games = c.games + m.games;
+  $('menu-stats').textContent = 'Сыграно игр: ' + games + ' • Лучший уровень: ' + Math.max(c.maxLevel, m.maxLevel) +
+    ' • Достижения: ' + Object.keys(achDone).length + '/' + ACH.length;
+}
+
+/* ── Партия ── */
+const clock = PM.makeClock();
+const hud = { score: -1, best: -1, level: -1, sub: '' };
+
+function startGame(mode) {
+  if (session && !session.done) finishGame(true);
+  OVERLAYS.forEach(hide);
+  modalReturn = null;
+  paused = false;
+  Snd.init();
+  game = PM.newGame({ mode });
+  session = { mode, done: false, newAch: [], prevBest: stats.modes[mode].best, bestToast: false };
+  hud.score = hud.best = hud.level = -1; hud.sub = '';
+  showScreen('game');
+  clock.reset(); lastT = 0;
+  layout();
+  updateHUD();
+}
+
+function finishGame(quit) {
+  if (!session || session.done) return;
+  session.done = true;
+  const g = game, mode = g.mode, m = stats.modes[mode], T = stats.totals, s = g.stats;
+  // случайный старт без игры не засчитываем
+  if (quit && g.score === 0 && s.playTicks < 5 * PM.FPS) return;
+  m.games++;
+  m.totalScore += g.score;
+  if (g.score > m.best) m.best = g.score;
+  m.maxLevel = Math.max(m.maxLevel, g.level);
+  m.levels += s.levelsCleared;
+  m.timeSec += Math.round(s.playTicks / PM.FPS);
+  T.dots += s.dots; T.energizers += s.energizers; T.ghosts += s.ghosts; T.ghostPts += s.ghostPts;
+  T.fruits += s.fruits; T.fruitPts += s.fruitPts; T.combo4 += s.combo4; T.deaths += s.deaths;
+  T.levels += s.levelsCleared; T.extraLives += g.extraGiven ? 1 : 0; T.timeSec += Math.round(s.playTicks / PM.FPS);
+  saveStats();
+  history.unshift({ t: Date.now(), m: mode, s: g.score, l: g.level, g: s.ghosts, f: s.fruits, d: Math.round(s.playTicks / PM.FPS), q: !!quit });
+  history = history.slice(0, 30);
+  store.set(KEYS.history, history);
+}
+
+function showGameOver() {
+  const g = game;
+  finishGame(false);
+  const isBest = g.score > session.prevBest && g.score > 0;
+  $('over-best').hidden = !isBest;
+  $('over-score').textContent = fmt(g.score);
+  $('over-level').textContent = g.level;
+  $('over-ghosts').textContent = g.stats.ghosts;
+  $('over-fruits').textContent = g.stats.fruits;
+  $('over-time').textContent = fmtT(g.stats.playTicks / PM.FPS);
+  $('over-record').textContent = fmt(stats.modes[g.mode].best);
+  const na = session.newAch;
+  $('over-ach').hidden = !na.length;
+  $('over-ach').textContent = na.length ? '🏅 ' + na.map(a => a.name).join(' · ') : '';
+  show('over');
+}
+
+function levelCleared(e) {
+  unlock('clear1');
+  if (e.deaths === 0) unlock('nodeath');
+  if (e.ticks < 90 * PM.FPS) unlock('fast');
+  if (game.mode === 'mazes') {
+    stats.mazesCleared[e.maze] = (stats.mazesCleared[e.maze] || 0) + 1;
     saveStats();
-    showScreen('game');
-    resetLevel(true);
-    shownLives = -1;
-    updateUI();
-    layout();
+    if (PM.ALT_ORDER.every(id => stats.mazesCleared[id] > 0)) unlock('mazes');
+  }
+}
+
+function handleEvents() {
+  const g = game;
+  for (const e of g.events) {
+    switch (e.type) {
+      case 'dot': sfx.dot(); break;
+      case 'energizer': sfx.power(); break;
+      case 'ghost':
+        sfx.ghost(); vib(25);
+        unlock('ghost');
+        if (e.pts === 1600) unlock('combo');
+        if (e.all) unlock('all16');
+        if (e.all) stats.totals.all16++;
+        break;
+      case 'fruit':
+        sfx.fruit();
+        unlock('fruit');
+        if (e.both) unlock('twofruits');
+        if (e.k === 7) unlock('key');
+        break;
+      case 'extraLife':
+        sfx.life(); vib([30, 40, 30]);
+        KuArcade.toast('❤️ Дополнительная жизнь!', 'good', 2000);
+        unlock('extra');
+        break;
+      case 'death': vib(160); break;
+      case 'dieAnim': sfx.death(); break;
+      case 'clear': sfx.clear(); levelCleared(e); break;
+      case 'level':
+        if (e.first) sfx.start();             // мелодия — только в начале партии, как в аркаде
+        else if (g.mode === 'mazes' && PM.mazeFor('mazes', e.level - 1).id !== e.maze) KuArcade.toast('🌀 Лабиринт «' + g.maze.name + '»', '', 1800);
+        if (e.level >= 5) unlock('level5');
+        if (e.level >= 10) unlock('level10');
+        if (e.level >= 17) unlock('level17');
+        break;
+    }
+  }
+  g.events.length = 0;
+  if (g.score >= 30000) unlock('score30');
+  if (!session.bestToast && session.prevBest > 0 && g.score > session.prevBest) {
+    session.bestToast = true;
+    KuArcade.toast('🏆 Новый рекорд!', 'gold', 1800);
+  }
+}
+
+function updateHUD() {
+  const g = game;
+  if (!g) return;
+  if (hud.score !== g.score) {
+    const grew = hud.score >= 0 && g.score - hud.score >= 50;
+    hud.score = g.score;
+    $('score').textContent = fmt(g.score);
+    if (grew) { const b = $('score'); b.classList.remove('pop'); void b.offsetWidth; b.classList.add('pop'); }
+  }
+  const best = Math.max(stats.modes[g.mode].best, g.score);
+  if (hud.best !== best) { hud.best = best; $('best').textContent = fmt(best); }
+  if (hud.level !== g.level) { hud.level = g.level; $('level').textContent = g.level; }
+  const sub = g.mode === 'classic' ? 'КЛАССИКА' : 'ЛАБИРИНТ «' + g.maze.name.toUpperCase() + '»';
+  if (hud.sub !== sub) { hud.sub = sub; $('g-sub').textContent = sub; }
 }
 
 function pauseGame() {
-    if (screen !== 'game' || paused || gameState === 'GAMEOVER' || anyOverlay()) return;
-    paused = true;
-    show('pause');
+  if (screen !== 'game' || paused || !session || session.done || game.phase === 'over' || anyOverlay()) return;
+  paused = true;
+  const g = game;
+  $('pause-info').textContent = `${MODE_NAME[g.mode]} · уровень ${g.level} · ${g.lives} ${plural(g.lives, 'жизнь', 'жизни', 'жизней')} · ${fmt(g.score)} очк.`;
+  show('pause');
 }
 function resumeGame() {
-    hide('pause');
-    paused = false;
-    lastT = 0;
+  hide('pause');
+  paused = false;
+  clock.reset(); lastT = 0;
 }
 function toMenu() {
-    // рекорд засчитываем и при выходе из партии
-    if (score > stats.best) { stats.best = score; saveStats(); }
-    ['pause', 'over', 'rules'].forEach(hide);
-    paused = false;
-    gameState = 'START';
-    showScreen('menu');
+  if (session && !session.done) finishGame(true);
+  OVERLAYS.forEach(hide);
+  modalReturn = null;
+  paused = false;
+  showScreen('menu');
 }
 
-let rulesReturn = null;
-$('btn-play').onclick = startGame;
-$('btn-again').onclick = startGame;
-$('btn-restart').onclick = () => { if (score > stats.best) { stats.best = score; saveStats(); } startGame(); };
+/* ── Главный цикл: фиксированный шаг логики (60 тиков/с), отрисовка — каждый кадр ── */
+function frame(t) {
+  requestAnimationFrame(frame);
+  const dt = lastT ? t - lastT : 0;
+  lastT = t;
+  if (screen === 'game' && game) {
+    let n = 0;
+    if (!paused && !anyOverlay()) {
+      n = clock.advance(dt);
+      for (let i = 0; i < n; i++) {
+        PM.step(game);
+        handleEvents();
+        if (game.phase === 'over' && game.phaseT >= 100 && !session.done) { showGameOver(); break; }
+      }
+    } else clock.reset();
+    // перерисовываем, только когда логика сделала шаг (на 120 Гц — через кадр) или изменился размер
+    if (n > 0 || dirty) { R.draw(game, t); dirty = false; }
+    updateHUD();
+  } else if (screen === 'menu') drawHero(t);
+}
+
+/* ── Размер поля ── */
+function layout() {
+  const stage = $('stage');
+  if (!stage.clientHeight) return;
+  const cs = window.getComputedStyle(stage);
+  const gap = parseFloat(cs.gap) || 12, FRAME = 14;
+  const pad = $('pad'), padOn = window.getComputedStyle(pad).display !== 'none';
+  const row = cs.flexDirection === 'row';
+  let w = stage.clientWidth - FRAME, h = stage.clientHeight - FRAME;
+  if (padOn) { if (row) w -= pad.offsetWidth + gap; else h -= pad.offsetHeight + gap; }
+  R.resize(w, h);
+  dirty = true;
+  if (game) R.draw(game, performance.now());
+}
+let layoutT = 0;
+window.addEventListener('resize', () => { clearTimeout(layoutT); layoutT = setTimeout(() => { layout(); hero.w = 0; }, 60); layout(); });
+
+/* ── Заставка в меню ── */
+function drawHero(t) {
+  if (!hero.w) {
+    hero.dpr = Math.min(window.devicePixelRatio || 1, 3);
+    hero.w = hero.cv.clientWidth || 300; hero.h = hero.cv.clientHeight || 46;
+    hero.cv.width = Math.round(hero.w * hero.dpr); hero.cv.height = Math.round(hero.h * hero.dpr);
+  }
+  const g = hero.ctx, w = hero.w, h = hero.h, y = h / 2, u = Math.min(26, h * 0.56);
+  g.setTransform(hero.dpr, 0, 0, hero.dpr, 0, 0);
+  g.clearRect(0, 0, w, h);
+  let x = u * 0.7;
+  for (let i = 0; i < 4; i++) { R.drawGhost(g, x, y + 1, u, R.GHOST_COLORS[i], PM.RIGHT, 'normal', t / 16, 10 * hero.dpr); x += u * 1.25; }
+  x += u * 0.4;
+  R.drawPac(g, x, y, u * 0.55, 0, 0.06 + 0.6 * Math.abs(Math.sin(t / 110)), 12 * hero.dpr);
+  g.fillStyle = R.DOT_COLOR;
+  for (let px = x + u * 1.2; px < w - u * 0.9; px += u * 0.8) { g.beginPath(); g.arc(px, y, 2.6, 0, Math.PI * 2); g.fill(); }
+  g.save(); g.fillStyle = R.POWER_COLOR; g.shadowColor = R.POWER_COLOR; g.shadowBlur = 10 * hero.dpr;
+  g.beginPath(); g.arc(w - u * 0.5, y, 6 * (0.85 + 0.15 * Math.sin(t / 130)), 0, Math.PI * 2); g.fill(); g.restore();
+}
+
+/* ── Окна: правила, статистика, достижения, история, настройки ── */
+function iconCanvas(draw) {
+  const c = document.createElement('canvas'), dpr = Math.min(window.devicePixelRatio || 1, 3), s = 26;
+  c.width = c.height = Math.round(s * dpr);
+  const g = c.getContext('2d');
+  g.setTransform(dpr * s, 0, 0, dpr * s, 0, 0);   // единица — весь значок
+  draw(g);
+  return c;
+}
+let rulesFilled = false;
+function fillRules() {
+  if (rulesFilled) return;
+  rulesFilled = true;
+  const ft = $('rules-fruits');
+  const lv = ['1', '2', '3–4', '5–6', '7–8', '9–10', '11–12', '13+'];
+  PM.FRUITS.forEach((f, k) => {
+    const d = document.createElement('div');
+    d.appendChild(iconCanvas(g => R.drawFruit(g, k, 0.5, 0.5, 0.95, 0)));
+    const s = document.createElement('span');
+    s.innerHTML = `${f.name} <b>${fmt(f.pts)}</b><br><small class="ku-muted">ур. ${lv[k]}</small>`;
+    d.appendChild(s);
+    ft.appendChild(d);
+  });
+  const gl = $('rules-ghosts');
+  const info = [
+    ['Блинки', 'гонится прямо за вами — к вашей клетке.'],
+    ['Пинки', 'заходит спереди: целится на 4 клетки перед Pac-Man.'],
+    ['Инки', 'непредсказуем: его цель зависит и от вас, и от Блинки.'],
+    ['Клайд', 'гонится, пока далеко, а ближе 8 клеток уходит в свой угол.']
+  ];
+  info.forEach(([n, t], i) => {
+    const d = document.createElement('div');
+    d.appendChild(iconCanvas(g => R.drawGhost(g, 0.5, 0.48, 0.86, R.GHOST_COLORS[i], PM.RIGHT, 'normal', 0, 0)));
+    const s = document.createElement('span');
+    s.innerHTML = `<b style="color:${R.GHOST_COLORS[i]}">${n}</b> ${t}`;
+    d.appendChild(s);
+    gl.appendChild(d);
+  });
+}
+
+let statsTab = 'classic';
+function fillStats() {
+  document.querySelectorAll('#st-tabs button').forEach(b => b.classList.toggle('active', b.dataset.k === statsTab));
+  const T = stats.totals, cards = [];
+  const card = (v, l, gold) => cards.push(`<div class="st-card${gold ? ' gold' : ''}"><div class="sv">${v}</div><div class="sl">${l}</div></div>`);
+  if (statsTab === 'all') {
+    const games = stats.modes.classic.games + stats.modes.mazes.games;
+    card(games, 'Партий');
+    card(fmt(Math.max(stats.modes.classic.best, stats.modes.mazes.best)), 'Рекорд', true);
+    card(fmt(T.levels), 'Уровней пройдено');
+    card(fmt(T.dots), 'Точек съедено');
+    card(fmt(T.energizers), 'Энерджайзеров');
+    card(fmt(T.ghosts), 'Привидений');
+    card(fmt(T.combo4), 'Серий 1600');
+    card(fmt(T.all16), 'Все 16 за уровень');
+    card(fmt(T.fruits), 'Фруктов');
+    card(fmt(T.fruitPts), 'Очков за фрукты');
+    card(fmt(T.extraLives), 'Доп. жизней');
+    card(fmt(T.deaths), 'Жизней потеряно');
+    card(fmtT(T.timeSec), 'Время в игре');
+  } else {
+    const m = stats.modes[statsTab];
+    card(m.games, 'Партий');
+    card(fmt(m.best), 'Рекорд', true);
+    card(m.maxLevel, 'Лучший уровень');
+    card(m.games ? fmt(m.totalScore / m.games) : '—', 'Средний счёт');
+    card(fmt(m.levels), 'Уровней пройдено');
+    card(fmtT(m.timeSec), 'Время в игре');
+    if (statsTab === 'mazes') for (const id of PM.ALT_ORDER) card(stats.mazesCleared[id] || 0, '«' + PM.MAZES[id].name + '» пройден');
+  }
+  $('st-grid').innerHTML = cards.join('');
+}
+document.querySelectorAll('#st-tabs button').forEach(b => b.addEventListener('click', () => { statsTab = b.dataset.k; fillStats(); }));
+
+function fillAch() {
+  const done = Object.keys(achDone).length;
+  $('ach-count').textContent = done + '/' + ACH.length;
+  $('ach-list').innerHTML = ACH.map(a => {
+    const t = achDone[a.id];
+    const when = t ? ' · ' + new Date(t).toLocaleDateString('ru-RU') : '';
+    return `<div class="ach-item${t ? ' unlocked' : ''}"><div class="ach-icon">${a.icon}</div><div class="ach-info"><h4>${a.name}</h4><p>${a.desc}${when}</p></div></div>`;
+  }).join('');
+}
+
+function fillHistory() {
+  if (!history.length) { $('history-list').innerHTML = '<div class="empty">Пока нет сыгранных партий</div>'; return; }
+  const best = { classic: stats.modes.classic.best, mazes: stats.modes.mazes.best };
+  $('history-list').innerHTML = history.map(h => {
+    const d = new Date(h.t);
+    const date = h.t ? d.toLocaleDateString('ru-RU', { day: '2-digit', month: '2-digit' }) + ' ' + d.toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' }) : '';
+    return `<div class="hist-item"><div class="hs${h.s > 0 && h.s >= best[h.m] ? ' best' : ''}">${fmt(h.s)}</div>` +
+      `<div class="hi"><b>${MODE_NAME[h.m]}</b> · уровень ${h.l} · 👻 ${h.g} · 🍒 ${h.f} · ${fmtT(h.d)}${h.q ? ' · прервана' : ''}<br>${date}</div></div>`;
+  }).join('');
+}
+
+function applySettings() {
+  document.body.classList.toggle('pad-on', settings.pad === 'on');
+  document.body.classList.toggle('pad-off', settings.pad === 'off');
+  if (screen === 'game') layout();
+}
+function fillSettings() {
+  document.querySelectorAll('#settings [data-opt]').forEach(el => { el.checked = !!settings[el.dataset.opt]; });
+  document.querySelectorAll('#set-pad button').forEach(b => b.classList.toggle('active', b.dataset.v === settings.pad));
+}
+document.querySelectorAll('#settings [data-opt]').forEach(el => el.addEventListener('change', () => {
+  settings[el.dataset.opt] = el.checked;
+  saveSettings();
+  if (el.dataset.opt === 'sound' && el.checked) { Snd.init(); sfx.click(); }
+  if (el.dataset.opt === 'vibration' && el.checked) vib(20);
+}));
+document.querySelectorAll('#set-pad button').forEach(b => b.addEventListener('click', () => {
+  settings.pad = b.dataset.v; saveSettings(); fillSettings(); applySettings();
+}));
+$('btn-reset').addEventListener('click', async () => {
+  const ok = await KuArcade.confirm('Сбросить рекорды, статистику, историю и достижения Pac-Man?', { title: 'СБРОС', ok: 'Сбросить', danger: true });
+  if (!ok) return;
+  store.del(KEYS.stats); store.del(KEYS.history); store.del(KEYS.ach);
+  stats = loadStats(); history = []; achDone = {};
+  saveStats();
+  KuArcade.toast('Статистика сброшена', '', 1600);
+  refreshMenu();
+});
+
+/* ── Кнопки ── */
+$('btn-classic').onclick = () => startGame('classic');
+$('btn-mazes').onclick = () => startGame('mazes');
+$('btn-again').onclick = () => startGame(game ? game.mode : 'classic');
+$('btn-restart').onclick = () => startGame(game ? game.mode : 'classic');
 $('btn-pause').onclick = pauseGame;
 $('pad-pause').addEventListener('pointerdown', e => { e.preventDefault(); pauseGame(); });
 $('btn-resume').onclick = resumeGame;
 $('btn-quit').onclick = toMenu;
 $('btn-over-menu').onclick = toMenu;
-$('btn-rules').onclick = () => { rulesReturn = null; show('rules'); };
-$('btn-rules2').onclick = () => { rulesReturn = 'pause'; hide('pause'); show('rules'); };
-$('btn-rules-ok').onclick = $('btn-rules-x').onclick = () => { hide('rules'); if (rulesReturn) show(rulesReturn); };
+$('btn-rules').onclick = () => openModal('rules');
+$('btn-rules2').onclick = () => openModal('rules', 'pause');
+$('btn-settings2').onclick = () => openModal('settings', 'pause');
+$('btn-stats').onclick = () => openModal('stats');
+$('btn-ach').onclick = () => openModal('ach');
+$('btn-history').onclick = () => openModal('history');
+$('btn-settings').onclick = () => openModal('settings');
 
-// Вкладка/приложение свернули — ставим на паузу
-document.addEventListener('visibilitychange', () => { if (document.hidden && running()) pauseGame(); });
+// вкладку свернули — пауза; страницу закрывают — партия засчитывается
+document.addEventListener('visibilitychange', () => { if (document.hidden) pauseGame(); });
+window.addEventListener('pagehide', () => { if (session && !session.done && game) finishGame(game.phase !== 'over'); });
 
-// --- УПРАВЛЕНИЕ ---
+/* ── Управление ── */
 function steer(d) {
-    if (screen !== 'game' || paused || !pacman || gameState !== 'PLAYING') return;
-    pacman.nextDir = d;
+  if (screen !== 'game' || paused || !game || anyOverlay()) return;
+  const ph = game.phase;
+  if (ph === 'play' || ph === 'ready' || ph === 'freeze') game.want = d;
 }
-
 const KEY_DIR = {
-    ArrowUp: DIR.UP, w: DIR.UP, W: DIR.UP, 'ц': DIR.UP, 'Ц': DIR.UP,
-    ArrowDown: DIR.DOWN, s: DIR.DOWN, S: DIR.DOWN, 'ы': DIR.DOWN, 'Ы': DIR.DOWN,
-    ArrowLeft: DIR.LEFT, a: DIR.LEFT, A: DIR.LEFT, 'ф': DIR.LEFT, 'Ф': DIR.LEFT,
-    ArrowRight: DIR.RIGHT, d: DIR.RIGHT, D: DIR.RIGHT, 'в': DIR.RIGHT, 'В': DIR.RIGHT
+  ArrowUp: 'up', w: 'up', W: 'up', 'ц': 'up', 'Ц': 'up',
+  ArrowDown: 'down', s: 'down', S: 'down', 'ы': 'down', 'Ы': 'down',
+  ArrowLeft: 'left', a: 'left', A: 'left', 'ф': 'left', 'Ф': 'left',
+  ArrowRight: 'right', d: 'right', D: 'right', 'в': 'right', 'В': 'right'
 };
 document.addEventListener('keydown', e => {
-    const k = e.key;
-    if (screen !== 'game') {
-        if (k === 'Escape' && $('rules').classList.contains('open')) $('btn-rules-ok').click();
-        return;
-    }
-    if (k === 'p' || k === 'P' || k === 'з' || k === 'З' || k === 'Escape') {
-        e.preventDefault();
-        if ($('rules').classList.contains('open')) { $('btn-rules-ok').click(); return; }
-        if (paused) resumeGame(); else pauseGame();
-        return;
-    }
-    const d = KEY_DIR[k];
-    if (d) { e.preventDefault(); steer(d); }
+  Snd.init();
+  keyboardUser = true;
+  const k = e.key;
+  if (k === 'm' || k === 'M' || k === 'ь' || k === 'Ь') {
+    settings.sound = !settings.sound; saveSettings();
+    KuArcade.toast(settings.sound ? '🔊 Звук включён' : '🔇 Звук выключен', '', 1200);
+    return;
+  }
+  // открыто окно: Esc закрывает его
+  const modal = ['rules', 'stats', 'ach', 'history', 'settings'].find(isOpen);
+  if (modal) { if (k === 'Escape') { e.preventDefault(); closeModal(modal); } return; }
+  if (screen !== 'game') return;
+  if (k === 'p' || k === 'P' || k === 'з' || k === 'З' || k === 'Escape') {
+    e.preventDefault();
+    if (isOpen('over')) return;
+    if (paused) resumeGame(); else pauseGame();
+    return;
+  }
+  const d = KEY_DIR[k];
+  if (d) { e.preventDefault(); steer(PM.DIR[d]); }
 });
 
-// Экранная крестовина: реагирует сразу на касание
+// экранная крестовина: реагирует сразу на касание
 document.querySelectorAll('#pad button[data-d]').forEach(b => {
-    const d = DIR[b.dataset.d];
-    b.addEventListener('pointerdown', e => { e.preventDefault(); b.classList.add('pressed'); steer(d); });
-    const up = () => b.classList.remove('pressed');
-    b.addEventListener('pointerup', up);
-    b.addEventListener('pointercancel', up);
-    b.addEventListener('pointerleave', up);
+  const d = PM.DIR[b.dataset.d];
+  b.addEventListener('pointerdown', e => { e.preventDefault(); Snd.init(); b.classList.add('pressed'); steer(d); });
+  const up = () => b.classList.remove('pressed');
+  b.addEventListener('pointerup', up);
+  b.addEventListener('pointercancel', up);
+  b.addEventListener('pointerleave', up);
 });
 
-// Свайпы по игровому экрану (кроме кнопок): каждые ~18px движения — новое направление
+// свайпы по игровому экрану (кроме кнопок): каждые ~18 px движения — новое направление
 let swipe = null;
 $('screen-game').addEventListener('pointerdown', e => {
-    if (e.target.closest('button')) return;
-    swipe = { id: e.pointerId, x: e.clientX, y: e.clientY };
+  Snd.init();
+  if (!settings.swipe || e.target.closest('button')) return;
+  swipe = { id: e.pointerId, x: e.clientX, y: e.clientY };
 });
 $('screen-game').addEventListener('pointermove', e => {
-    if (!swipe || e.pointerId !== swipe.id) return;
-    const dx = e.clientX - swipe.x, dy = e.clientY - swipe.y;
-    if (Math.max(Math.abs(dx), Math.abs(dy)) < 18) return;
-    steer(Math.abs(dx) > Math.abs(dy) ? (dx > 0 ? DIR.RIGHT : DIR.LEFT) : (dy > 0 ? DIR.DOWN : DIR.UP));
-    swipe.x = e.clientX; swipe.y = e.clientY;
+  if (!swipe || e.pointerId !== swipe.id) return;
+  const dx = e.clientX - swipe.x, dy = e.clientY - swipe.y;
+  if (Math.max(Math.abs(dx), Math.abs(dy)) < 18) return;
+  steer(Math.abs(dx) > Math.abs(dy) ? (dx > 0 ? PM.RIGHT : PM.LEFT) : (dy > 0 ? PM.DOWN : PM.UP));
+  swipe.x = e.clientX; swipe.y = e.clientY;
 });
 const endSwipe = e => { if (swipe && e.pointerId === swipe.id) swipe = null; };
 $('screen-game').addEventListener('pointerup', endSwipe);
 $('screen-game').addEventListener('pointercancel', endSwipe);
+document.addEventListener('pointerdown', () => { Snd.init(); keyboardUser = false; }, { passive: true });
 
-// --- ЗАПУСК ---
-canvas = $('gameCanvas');
-ctx = canvas.getContext('2d');
-cloneMap();
+/* ── Запуск ── */
+R.init($('gameCanvas'));
+applySettings();
+saveStats();          // перенос прежнего формата рекордов сразу при первом запуске
 refreshMenu();
 requestAnimationFrame(frame);
-if (document.fonts && document.fonts.ready) document.fonts.ready.then(() => { hero._w = 0; });
+if (document.fonts && document.fonts.ready) document.fonts.ready.then(() => { hero.w = 0; });
+
 </script>
 </body>
 </html>

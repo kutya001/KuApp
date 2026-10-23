@@ -2,420 +2,2316 @@
 <html lang="ru">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
 <title>Атлет — кликер</title>
 <link rel="stylesheet" href="ku-arcade.css">
 <script src="ku-arcade.js"></script>
 <style>
   html,body{height:100%;overflow:hidden}
 
-  /* ── Шапка: неоновый логотип + ранг ── */
-  .clk-top .ku-top-title{overflow:visible}
-  /* ширина центра шапки = экран − поля 28 − две боковые колонки по 92 (две иконки справа) − зазоры 16;
-     .ku-top.clk-top — сильнее, чем html.ku-embedded .ku-logo из набора (отступ логотипа меню здесь не нужен) */
-  .ku-top.clk-top .ku-logo{font-size:28px;margin:0;width:min(190px,calc(100vw - 228px));letter-spacing:.14em;line-height:1.15}
-  .rank{font-family:var(--font-display);font-size:11px;letter-spacing:1.5px;color:var(--accent);margin-top:3px;white-space:nowrap;text-transform:uppercase}
+  /* ═══ МЕНЮ ═══ */
+  #screen-menu .ku-menu-btns{margin-top:22px}
+  #btn-play .best{max-width:100%;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .menu-athlete{font-size:54px;line-height:1;margin-top:14px;filter:drop-shadow(0 6px 18px rgba(0,0,0,.5));animation:kuFloat 3.4s ease-in-out infinite}
 
-  /* ── Раскладка: герой сверху, магазин прокручивается ── */
-  #main{flex:1;min-height:0;width:100%;max-width:980px;display:flex;flex-direction:column;align-items:center}
-  .hero{display:flex;flex-direction:column;align-items:center;flex:none;width:100%}
-  .score{display:flex;flex-direction:column;align-items:center;margin-top:2px}
+  /* ═══ ТРЕНИРОВКА ═══ */
+  #screen-game,#screen-comp{padding-left:10px;padding-right:10px}
+  .ku-top .ku-top-title .t{max-width:min(52vw,300px)}
+  #screen-comp .ku-top .ku-top-title .t{max-width:min(62vw,380px);letter-spacing:1px}
+  #main{flex:1;min-height:0;width:100%;max-width:1000px;display:flex;flex-direction:column;align-items:center}
+  .hero{position:relative;display:flex;flex-direction:column;align-items:center;flex:none;width:100%;max-width:440px}
+  .score{display:flex;flex-direction:column;align-items:center;line-height:1}
   .score b{font-family:var(--font-display);font-weight:400;font-size:38px;line-height:1.1;color:var(--gold);
     text-shadow:0 0 18px rgba(255,214,10,.45);font-variant-numeric:tabular-nums;white-space:nowrap}
+  .score .ps{font-family:var(--font-display);font-size:13px;color:var(--good);margin-top:2px;letter-spacing:.5px;white-space:nowrap}
+  .score .ps.boost{color:var(--accent2);text-shadow:0 0 10px rgba(255,77,210,.5)}
+  .boosts{display:flex;gap:6px;justify-content:center;flex-wrap:wrap;min-height:24px;margin-top:6px}
+  .boosts .ku-chip{font-size:10.5px;padding:4px 8px;animation:kuPopIn .25s ease}
+  .boosts .ku-chip.b-shake{color:var(--good);border-color:#51f58b66;background:rgba(81,245,139,.1)}
+  .boosts .ku-chip.b-drink{color:var(--gold);border-color:#ffd60a55;background:rgba(255,214,10,.1)}
+  .boosts .ku-chip.b-tip{color:var(--muted);border-color:var(--panel-border);background:var(--panel)}
 
-  /* ── Большая кнопка тапа ── */
-  #tap{position:relative;width:156px;height:156px;border-radius:50%;margin:12px 0 10px;padding:0;cursor:pointer;flex:none;
-    touch-action:manipulation;-webkit-touch-callout:none;color:inherit;font:inherit;
-    border:1px solid var(--panel-border);
+  /* большая кнопка тапа */
+  .tapbtn{position:relative;width:150px;height:150px;border-radius:50%;margin:10px 0 8px;padding:0;cursor:pointer;flex:none;
+    touch-action:manipulation;-webkit-touch-callout:none;color:inherit;font:inherit;border:1px solid var(--panel-border);
     background:radial-gradient(circle at 50% 36%,rgba(255,255,255,.16),rgba(255,255,255,.03) 64%),
                linear-gradient(160deg,rgba(0,229,255,.12),rgba(255,77,210,.12));
     box-shadow:0 0 34px rgba(0,229,255,.28),0 0 64px rgba(255,77,210,.16),inset 0 1px 0 rgba(255,255,255,.2);
-    display:flex;align-items:center;justify-content:center;transition:box-shadow .2s}
-  #tap::before{content:'';position:absolute;inset:-7px;border-radius:50%;padding:3px;
+    display:flex;align-items:center;justify-content:center;transition:box-shadow .2s;-webkit-user-select:none;user-select:none}
+  .tapbtn::before{content:'';position:absolute;inset:-7px;border-radius:50%;padding:3px;
     background:conic-gradient(from 0deg,var(--accent),var(--accent2),var(--purple),var(--yellow),var(--accent));
     -webkit-mask:linear-gradient(#000 0 0) content-box,linear-gradient(#000 0 0);-webkit-mask-composite:xor;
     mask:linear-gradient(#000 0 0) content-box exclude,linear-gradient(#000 0 0);
     animation:ringSpin 7s linear infinite;opacity:.9;pointer-events:none}
-  #tap:focus-visible{outline:2px solid var(--accent);outline-offset:10px}
-  #tap.hit{animation:tapHit .16s ease-out}
-  #athlete{font-size:80px;line-height:1;filter:drop-shadow(0 6px 18px rgba(0,0,0,.5));pointer-events:none}
+  .tapbtn:focus-visible{outline:2px solid var(--accent);outline-offset:10px}
+  .tapbtn.hit .ath{animation:tapHit .14s ease-out}
+  .tapbtn.boosted{box-shadow:0 0 40px rgba(81,245,139,.45),0 0 80px rgba(255,214,10,.2),inset 0 1px 0 rgba(255,255,255,.2)}
+  .tapbtn .ath{font-size:76px;line-height:1;filter:drop-shadow(0 6px 18px rgba(0,0,0,.5));pointer-events:none;display:block}
   @keyframes ringSpin{to{transform:rotate(360deg)}}
-  @keyframes tapHit{40%{transform:scale(.92)}}
-  @media (hover:hover){#tap:hover{box-shadow:0 0 44px rgba(0,229,255,.4),0 0 74px rgba(255,77,210,.22),inset 0 1px 0 rgba(255,255,255,.2)}}
+  @keyframes tapHit{40%{transform:scale(.88)}}
+  @media (hover:hover){.tapbtn:hover{box-shadow:0 0 44px rgba(0,229,255,.4),0 0 74px rgba(255,77,210,.22),inset 0 1px 0 rgba(255,255,255,.2)}}
 
-  .energy{width:min(300px,80vw);margin:2px 0 0}
+  .energy{width:min(300px,80vw);margin:4px 0 0}
   .energy .ku-pbar{height:8px}
-  .energy .ku-pbar i{background:linear-gradient(90deg,var(--yellow),var(--accent))}
-  .elbl{font-size:11.5px;color:var(--muted);text-align:center;margin-top:6px;letter-spacing:.3px;white-space:nowrap}
+  .energy .ku-pbar i{background:linear-gradient(90deg,var(--yellow),var(--accent));transition:width .15s linear}
+  .elbl{font-size:11.5px;color:var(--muted);text-align:center;margin-top:5px;letter-spacing:.3px;white-space:nowrap}
   .elbl b{color:var(--gold);font-weight:600}
-  .hero .ku-hud{margin:12px 0 8px}
+  .rankbar{width:min(300px,80vw);margin-top:8px;display:flex;align-items:center;gap:8px}
+  .rankbar .ku-pbar{height:5px;flex:1}
+  .rankbar .ku-pbar i{background:linear-gradient(90deg,var(--purple),var(--accent2))}
+  .rankbar span{font-size:10.5px;color:var(--muted);white-space:nowrap;max-width:62%;overflow:hidden;text-overflow:ellipsis}
+  .hero .ku-hud{margin:10px 0 6px;flex-wrap:nowrap}
+  .hero .ku-stat{min-width:0;padding:5px 10px}
+  .hero .ku-stat b{font-size:15px}
 
-  /* ── Магазин ── */
-  .shop-wrap{flex:1;min-height:0;width:100%;max-width:560px;display:flex;flex-direction:column}
-  .shop-head{display:flex;justify-content:space-between;align-items:center;padding:4px 4px 8px;flex:none}
-  #shop{flex:1;min-height:0;overflow-y:auto;-webkit-overflow-scrolling:touch;display:flex;flex-direction:column;gap:8px;padding:2px 2px 14px}
-  .ku-btn.upg{width:100%;flex:none;justify-content:flex-start;text-align:left;gap:12px;padding:10px 12px;border-radius:16px;font-weight:400}
-  .upg .ic{width:46px;height:46px;flex:none;border-radius:14px;display:flex;align-items:center;justify-content:center;font-size:26px;
+  /* бонус-событие: всплывающий «пузырь» */
+  .bubble{position:absolute;z-index:5;width:58px;height:58px;margin:-29px 0 0 -29px;border-radius:50%;padding:0;border:none;cursor:pointer;
+    display:flex;align-items:center;justify-content:center;font-size:30px;line-height:1;touch-action:manipulation;
+    background:radial-gradient(circle at 40% 35%,rgba(255,255,255,.35),rgba(255,214,10,.18) 60%,rgba(255,77,210,.12));
+    box-shadow:0 0 22px rgba(255,214,10,.6),0 0 40px rgba(255,77,210,.35);animation:bubIn .35s ease,bubPulse 1.1s ease-in-out .35s infinite}
+  .bubble::after{content:'';position:absolute;inset:-5px;border-radius:50%;
+    background:conic-gradient(var(--gold) calc(var(--p,1)*360deg),rgba(255,255,255,.08) 0);
+    -webkit-mask:radial-gradient(circle,transparent 30px,#000 31px);mask:radial-gradient(circle,transparent 30px,#000 31px)}
+  .bubble.out{animation:bubOut .3s ease forwards;pointer-events:none}
+  @keyframes bubIn{from{transform:scale(0);opacity:0}}
+  @keyframes bubPulse{50%{transform:scale(1.1)}}
+  @keyframes bubOut{to{transform:scale(1.6);opacity:0}}
+
+  /* магазин */
+  .shop-wrap{flex:1;min-height:0;width:100%;max-width:560px;display:flex;flex-direction:column;margin-top:4px}
+  .shop-head{display:flex;gap:8px;align-items:center;flex:none;padding:0 2px 8px}
+  #branch{flex:1;width:auto;padding:3px}
+  #branch button{padding:7px 2px;font-size:12px}
+  #branch button .bi{font-size:14px}
+  #buymode{width:52px;height:40px;font-family:var(--font-display);font-weight:400;font-size:13px;letter-spacing:.3px;color:var(--gold);border-color:#ffd60a55}
+  @media (max-width:400px){#branch .bi{display:none}}
+  #shop{flex:1;min-height:0;overflow-y:auto;-webkit-overflow-scrolling:touch;display:flex;flex-direction:column;gap:8px;padding:2px 2px 16px;overscroll-behavior:contain}
+  .ku-btn.upg{width:100%;flex:none;justify-content:flex-start;text-align:left;gap:11px;padding:9px 11px;border-radius:16px;font-weight:400;align-items:center}
+  .upg .ic{width:44px;height:44px;flex:none;border-radius:14px;display:flex;align-items:center;justify-content:center;font-size:25px;
     background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.08);transition:background .2s,border-color .2s}
-  .upg .info{flex:1;min-width:0;display:flex;flex-direction:column;gap:2px}
-  .upg .nm{font-weight:700;font-size:14.5px}
-  .upg .ds{font-size:12px;color:var(--muted)}
-  .upg .row{display:flex;align-items:center;gap:10px;margin-top:4px}
-  .upg .cost{font-family:var(--font-display);font-size:13px;color:var(--muted);white-space:nowrap}
+  .upg .info{flex:1;min-width:0;display:flex;flex-direction:column;gap:1px}
+  .upg .nm{font-weight:700;font-size:14px;display:flex;align-items:center;gap:6px;min-width:0}
+  .upg .nm .n{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .upg .lv{flex:none;font-family:var(--font-display);font-weight:400;font-size:10px;color:var(--accent2);letter-spacing:.5px;margin-left:auto}
+  .upg .ds{font-size:11.5px;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .upg .gn{font-size:11.5px;color:var(--good);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-weight:600}
+  .upg .row{display:flex;align-items:center;gap:8px;margin-top:3px}
+  .upg .cost{font-family:var(--font-display);font-size:12.5px;color:var(--muted);white-space:nowrap}
+  .upg .cost .k{color:var(--accent);margin-right:4px}
   .upg .ku-pbar{height:4px;flex:1}
-  .upg .lv{flex:none;font-size:10px;padding:5px 8px;white-space:nowrap}
-  .ku-btn.upg.can{border-color:color-mix(in srgb,var(--accent) 60%,transparent);
-    box-shadow:var(--shadow-btn),0 0 16px color-mix(in srgb,var(--accent) 22%,transparent)}
+  .upg .mile{flex:none;font-size:9.5px;color:var(--muted);white-space:nowrap}
+  .ku-btn.upg.can{border-color:rgba(0,229,255,.6);border-color:color-mix(in srgb,var(--accent) 60%,transparent);
+    box-shadow:var(--shadow-btn),0 0 16px rgba(0,229,255,.22)}
   .upg.can .cost{color:var(--gold)}
-  .upg.can .ic{background:color-mix(in srgb,var(--accent) 14%,transparent);border-color:color-mix(in srgb,var(--accent) 40%,transparent)}
-  .ku-btn.upg:disabled{opacity:.55}
-  .upg.max .lv{color:var(--gold);border-color:#ffd60a44;background:rgba(255,214,10,.08)}
+  .upg.can .ic{background:rgba(0,229,255,.14);border-color:rgba(0,229,255,.4)}
+  .ku-btn.upg.max{opacity:.75}
+  .upg.max .lv{color:var(--gold)}
   .upg.max .ku-pbar i{background:linear-gradient(90deg,var(--gold),var(--orange));box-shadow:none}
+  .ku-btn.upg.locked{opacity:.45;pointer-events:none}
+  .upg.locked .ic{filter:grayscale(1) brightness(.6)}
+  .shop-note{font-size:11.5px;color:var(--muted);text-align:center;padding:4px 8px 0;line-height:1.4}
 
-  /* ── Всплывающие «+N» ── */
-  #floats{position:fixed;inset:0;pointer-events:none;overflow:hidden;z-index:50}
-  .float{position:absolute;font-family:var(--font-display);font-size:20px;line-height:1;color:var(--gold);white-space:nowrap;
-    transform:translate(-50%,-50%);text-shadow:0 0 12px rgba(255,214,10,.7),0 2px 6px rgba(0,0,0,.6);animation:floatUp .9s ease-out forwards}
-  @keyframes floatUp{0%{opacity:0;transform:translate(-50%,-30%) scale(.7)}15%{opacity:1;transform:translate(-50%,-60%) scale(1.1)}
-    100%{opacity:0;transform:translate(-50%,-260%) scale(1)}}
-
-  /* ── Широкий экран: герой слева, магазин справа ── */
-  @media (min-width:900px) and (min-height:560px){
+  /* широкий экран: тренировка слева, магазин справа */
+  @media (min-width:860px) and (min-height:520px){
     #main{flex-direction:row;align-items:stretch;justify-content:center;gap:32px}
-    .hero{width:380px;justify-content:center}
-    .shop-wrap{width:460px;flex:none;padding-top:8px}
+    .hero{width:400px;justify-content:center}
+    .shop-wrap{width:480px;flex:none;margin-top:0}
+    .tapbtn{width:180px;height:180px;margin:16px 0 12px}
+    .tapbtn .ath{font-size:92px}
+    .score b{font-size:46px}
   }
-  /* ── Невысокий экран: компактнее герой, чтобы магазину осталось место ── */
-  @media (max-height:700px){
-    #tap{width:124px;height:124px;margin:8px 0 8px}
-    #athlete{font-size:62px}
-    .score b{font-size:32px}
-    .hero .ku-hud{margin:8px 0 6px}
-    .hero .ku-stat{padding:4px 10px}
+  /* альбомная ориентация телефона: две колонки, всё компактнее */
+  @media (orientation:landscape) and (max-height:560px){
+    #main{flex-direction:row;align-items:stretch;justify-content:center;gap:16px}
+    .hero{width:44%;max-width:380px;justify-content:center}
+    .shop-wrap{width:56%;max-width:520px;flex:none;margin-top:0}
+    .tapbtn{width:104px;height:104px;margin:6px 0 4px}
+    .tapbtn .ath{font-size:52px}
+    .score b{font-size:28px}
+    .boosts{min-height:0;margin-top:3px}
+    .hero .ku-hud{margin:6px 0 0}
+    .hero .ku-stat{padding:3px 8px}
+    .hero .ku-stat span{font-size:9px}
+    .hero .ku-stat b{font-size:13px}
+    .rankbar{margin-top:5px}
+    .ku-top{margin-bottom:4px}
   }
-  @media (prefers-reduced-motion:reduce){#tap::before{animation:none}}
+  /* невысокий портрет (360×640): компактнее тренировка, чтобы магазину осталось место */
+  @media (orientation:portrait) and (max-height:700px){
+    .tapbtn{width:112px;height:112px;margin:6px 0 4px}
+    .tapbtn .ath{font-size:56px}
+    .score b{font-size:30px}
+    .boosts{min-height:0;margin-top:3px}
+    .hero .ku-hud{margin:6px 0 2px}
+    .hero .ku-stat{padding:3px 8px}
+    .hero .ku-stat b{font-size:13px}
+    .rankbar{margin-top:5px}
+    .upg .ic{width:38px;height:38px;font-size:21px}
+  }
+
+  /* ═══ СОРЕВНОВАНИЕ ═══ */
+  .lanes{width:100%;max-width:520px;display:flex;flex-direction:column;gap:7px;flex:none;margin-top:4px}
+  .lane{display:grid;grid-template-columns:30px 1fr auto;align-items:center;gap:8px;padding:7px 10px;border-radius:14px;
+    background:var(--panel);border:1px solid var(--panel-border)}
+  .lane.me{border-color:rgba(0,229,255,.6);box-shadow:0 0 14px rgba(0,229,255,.22);background:rgba(0,229,255,.07)}
+  .lane .pl{font-family:var(--font-display);font-size:15px;text-align:center;color:var(--muted)}
+  .lane .who{min-width:0;display:flex;flex-direction:column;gap:4px}
+  .lane .who span{font-size:12.5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .lane .who span em{font-style:normal;color:var(--muted);font-size:11px}
+  .lane .ku-pbar{height:6px}
+  .lane .ku-pbar i{transition:none}
+  .lane.me .ku-pbar i{background:linear-gradient(90deg,var(--accent),var(--good))}
+  .lane .sc{font-family:var(--font-display);font-size:13px;color:var(--text);min-width:52px;text-align:right}
+  .comp-goal{font-size:12px;color:var(--muted);text-align:center;margin:8px 0 0;line-height:1.4}
+  .comp-goal b{color:var(--gold);font-weight:600}
+  .comp-mid{flex:1;min-height:0;display:flex;flex-direction:column;align-items:center;justify-content:center;width:100%;position:relative}
+  .comp-mid .tapbtn{width:170px;height:170px}
+  .comp-mid .tapbtn .ath{font-size:84px}
+  @media (orientation:portrait) and (min-height:760px){.comp-mid .tapbtn{width:200px;height:200px}.comp-mid .tapbtn .ath{font-size:100px}}
+  .tps{font-family:var(--font-display);font-size:12px;color:var(--muted);margin-top:6px;letter-spacing:.5px}
+  .tps.cap{color:var(--gold)}
+  .countdown{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;pointer-events:none;z-index:4}
+  .countdown b{font-family:var(--font-display);font-weight:400;font-size:88px;color:var(--text);text-shadow:0 0 30px var(--accent);animation:kuPopIn .3s ease}
+  .countdown b.go{color:var(--good);text-shadow:0 0 30px var(--good)}
+  @media (orientation:portrait) and (max-height:700px){
+    .lane{padding:5px 9px}
+    .comp-mid .tapbtn{width:128px;height:128px}
+    .comp-mid .tapbtn .ath{font-size:62px}
+  }
+  @media (orientation:landscape) and (max-height:560px){
+    #screen-comp .comp-body{flex-direction:row;gap:16px}
+    .comp-body .lanes{width:55%}
+    .comp-mid .tapbtn{width:116px;height:116px}
+    .comp-mid .tapbtn .ath{font-size:58px}
+    .lane{padding:4px 9px}
+    .comp-goal{margin-top:4px}
+  }
+  .comp-body{flex:1;min-height:0;width:100%;max-width:900px;display:flex;flex-direction:column;align-items:center}
+
+  /* ═══ ОКНА ═══ */
+  .ku-over-stats{max-width:320px;width:100%;margin-left:auto;margin-right:auto}
+  .ov-emoji{font-size:54px;line-height:1;filter:drop-shadow(0 6px 18px rgba(0,0,0,.5))}
+  .reward{display:flex;flex-direction:column;gap:6px;text-align:left;margin:2px 0}
+  .reward div{font-size:13.5px;padding:8px 11px;border-radius:12px;background:var(--panel);border:1px solid var(--panel-border);line-height:1.35}
+  .reward div b{color:var(--gold);font-weight:600}
+  .res-table{display:flex;flex-direction:column;gap:5px;margin:2px 0}
+  .res-table div{display:grid;grid-template-columns:26px 1fr auto;gap:8px;align-items:center;font-size:13px;text-align:left;padding:6px 10px;border-radius:10px;background:var(--panel);border:1px solid var(--panel-border)}
+  .res-table div.me{border-color:rgba(0,229,255,.6);background:rgba(0,229,255,.08)}
+  .res-table b{font-family:var(--font-display);font-weight:400;color:var(--text)}
+  .res-table span{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+
+  .stats-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(100px,1fr));gap:8px}
+  .st-card{background:var(--glass-panel);border:1px solid var(--panel-border);border-radius:14px;padding:10px 6px;text-align:center;min-width:0}
+  .st-card .sv{font-family:var(--font-display);font-size:16px;color:var(--accent);margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .st-card .sl{font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:.8px;margin-top:3px;line-height:1.3}
+  .list{display:flex;flex-direction:column;gap:8px}
+  .item{display:flex;align-items:center;gap:12px;padding:10px 12px;border-radius:14px;background:var(--panel);border:1px solid var(--panel-border)}
+  .item.done{border-color:rgba(255,214,10,.45);background:rgba(255,214,10,.07)}
+  .item.done h4{color:var(--gold)}
+  .item.lock{opacity:.55}
+  .item .ii{font-size:22px;width:40px;height:40px;flex:none;display:flex;align-items:center;justify-content:center;background:rgba(255,255,255,.05);border-radius:12px}
+  .item .it{min-width:0;flex:1}
+  .item h4{margin:0 0 2px;font-family:var(--font-display);font-weight:400;font-size:13px;letter-spacing:.5px}
+  .item p{margin:0;font-size:11.5px;color:var(--muted);line-height:1.4}
+  .item p b{color:var(--text);font-weight:600}
+  .item .ku-pbar{height:4px;margin-top:5px}
+  .item .ku-btn{flex:none}
+  .item .side{flex:none;text-align:right;font-size:11.5px;color:var(--muted);line-height:1.35}
+  .item .side b{font-family:var(--font-display);font-weight:400;color:var(--gold);font-size:13px}
+  .ach-bonus{font-size:12.5px;color:var(--muted);margin:0 0 10px}
+  .ach-bonus b{color:var(--gold)}
+  .season-box{display:flex;flex-direction:column;gap:8px}
+  .season-box .gain{font-family:var(--font-display);font-size:30px;color:var(--gold);text-align:center;text-shadow:0 0 16px rgba(255,214,10,.4);line-height:1.1}
+  .season-box .mult{text-align:center;font-size:13.5px;color:var(--muted)}
+  .season-box .mult b{color:var(--good);font-family:var(--font-display);font-weight:400}
+  .cols{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+  .cols>div{background:var(--panel);border:1px solid var(--panel-border);border-radius:12px;padding:8px 10px;font-size:12px;line-height:1.45;color:#d6dcf5}
+  .cols>div h5{margin:0 0 4px;font-family:var(--font-display);font-weight:400;font-size:11px;letter-spacing:1px;text-transform:uppercase}
+  .cols .lose5{color:var(--bad)} .cols .keep5{color:var(--good)}
+  .medal-line{display:flex;justify-content:space-between;gap:10px;font-size:13px;color:var(--muted);padding:4px 2px}
+  .medal-line b{font-family:var(--font-display);font-weight:400;color:var(--gold)}
+  #season-tabs,#comp-info{margin-bottom:12px}
+  .set-btns{display:flex;gap:8px;flex-wrap:wrap}
+  .ku-modal .ku-seg{width:100%}
+  @media (max-height:560px){
+    .ku-overlay .ku-card{padding:14px 18px;gap:7px}
+    .ku-overlay .ku-card h2{font-size:20px}
+    .ku-overlay .ku-big-score{font-size:28px}
+    .ov-emoji{font-size:38px}
+  }
+
+  /* тосты не перехватывают нажатия; место тоста задаёт placeToast() (над показателями / под целями / сверху) */
+  .ku-toast{pointer-events:none!important;width:max-content;max-width:min(90vw,520px)}   /* ширина по тексту, а не «до края экрана» */
+  /* частицы и всплывающие числа — один холст поверх всего (кроме окон) */
+  #fx{position:fixed;inset:0;width:100%;height:100%;pointer-events:none;z-index:50}
+
+  /* «Меньше анимаций»: системная настройка или переключатель в настройках */
+  .calm .tapbtn::before,.calm .menu-athlete,.calm .bubble,.calm .ku-logo .ch,body.ku.calm::before,body.ku.calm::after{animation:none}
+  .calm .tapbtn.hit .ath{animation:none}
+  @media (prefers-reduced-motion:reduce){
+    .tapbtn::before,.menu-athlete,.bubble{animation:none}
+    .tapbtn.hit .ath{animation:none}
+  }
 </style>
 </head>
 <body class="ku">
 <main class="ku-app">
-  <section id="screen-main" class="ku-screen fit active">
-    <header class="ku-top clk-top">
+  <!-- ═══ МЕНЮ ═══ -->
+  <section id="screen-menu" class="ku-screen menu active">
+    <h1 class="ku-logo">АТЛЕТ</h1>
+    <p class="ku-tagline">Кликер • Сезоны • Турниры</p>
+    <div class="menu-athlete" id="menu-athlete" aria-hidden="true">🏋️</div>
+    <div class="ku-pills"><span>💪 23 улучшения</span><span>🏆 8 турниров</span><span>🏅 Сезоны и медали</span><span>🌙 Офлайн-доход</span></div>
+    <div class="ku-menu-btns">
+      <button class="ku-btn big primary" id="btn-play">▶ Тренировка<span class="best" id="play-sub">Тапай и прокачивай атлета</span></button>
+      <div class="ku-menu-duo">
+        <button class="ku-btn duo gold" id="btn-comps">🏆 Турниры<span class="best" id="comps-sub">с звания «Любитель»</span></button>
+        <button class="ku-btn duo accent2" id="btn-season">🏅 Сезон<span class="best" id="season-sub">медали: 0</span></button>
+      </div>
+    </div>
+    <div class="ku-menu-row">
+      <button class="ku-btn ghost" id="btn-rules">📖 Правила</button>
+      <button class="ku-btn ghost" id="btn-stats">📊 Статистика</button>
+      <button class="ku-btn ghost" id="btn-ach">🏅 Достижения</button>
+      <button class="ku-btn ghost" id="btn-settings">⚙️ Настройки</button>
+    </div>
+    <div class="ku-menu-stats" id="menu-stats">—</div>
+    <div class="ku-menu-hint">Пробел / Enter — тап · 1–4 — ветки · B — ×1/×10/макс · T — турниры · P — пауза<br>На телефоне: тапайте по атлету, можно несколькими пальцами</div>
+  </section>
+
+  <!-- ═══ ТРЕНИРОВКА ═══ -->
+  <section id="screen-game" class="ku-screen fit">
+    <header class="ku-top">
       <div class="ku-top-left"></div>
-      <div class="ku-top-title"><h1 class="ku-logo">АТЛЕТ</h1><div class="rank" id="rank">Новичок</div></div>
+      <div class="ku-top-title"><div class="t" id="g-rank">НОВИЧОК</div><div class="s" id="g-season">СЕЗОН 1</div></div>
       <div class="ku-top-actions">
-        <button class="ku-btn icon" id="btn-help" aria-label="Как играть"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M9.6 9.2a2.5 2.5 0 0 1 4.8.9c0 1.7-2.4 2.2-2.4 3.6"/><line x1="12" y1="17" x2="12" y2="17.01"/></svg></button>
-        <button class="ku-btn icon" id="btn-reset" aria-label="Начать заново"><svg viewBox="0 0 24 24"><path d="M3 12a9 9 0 1 0 3-6.7"/><polyline points="3 4 3 9 8 9"/></svg></button>
+        <button class="ku-btn icon" id="btn-g-comps" aria-label="Турниры (T)" title="Турниры (T)">🏆</button>
+        <button class="ku-btn icon" id="btn-pause" aria-label="Пауза (P)" title="Пауза (P)"><svg viewBox="0 0 24 24"><line x1="9" y1="5" x2="9" y2="19"/><line x1="15" y1="5" x2="15" y2="19"/></svg></button>
       </div>
     </header>
-
     <div id="main">
-      <div class="hero">
-        <div class="score"><b id="score">0</b><span class="ku-label">Очки силы</span></div>
-        <button id="tap" type="button" aria-label="Тренироваться"><span id="athlete">🏋️</span></button>
+      <div class="hero" id="hero">
+        <div class="score"><b id="score">0</b><span class="ps" id="ps">+0/с</span></div>
+        <div class="boosts" id="boosts" aria-live="polite"><span class="ku-chip b-shake" id="b-shake" hidden></span><span class="ku-chip b-drink" id="b-drink" hidden></span><span class="ku-chip b-tip" id="b-tip" hidden>МАКС. ТЕМП</span></div>
+        <button class="tapbtn" id="tap" type="button" aria-label="Тренироваться — тап"><span class="ath" id="athlete">🏋️</span></button>
         <div class="energy">
           <div class="ku-pbar"><i id="energy-fill"></i></div>
           <div class="elbl" id="energy-lbl">⚡ Энергия 0/100</div>
         </div>
+        <div class="rankbar"><div class="ku-pbar"><i id="rank-fill"></i></div><span id="rank-lbl">до «Любитель»</span></div>
         <div class="ku-hud">
-          <div class="ku-stat"><span>За тап</span><b id="cpc">1</b></div>
-          <div class="ku-stat good"><span>В секунду</span><b id="cps">0</b></div>
-          <div class="ku-stat c2"><span>Бонус</span><b id="bonus">+0%</b></div>
+          <div class="ku-stat"><span>За тап</span><b id="h-tap">1</b></div>
+          <div class="ku-stat good"><span>В секунду</span><b id="h-ps">0</b></div>
+          <div class="ku-stat c2"><span>Бонус</span><b id="h-bonus">+0%</b></div>
         </div>
       </div>
       <div class="shop-wrap">
-        <div class="shop-head"><span class="ku-label">🛒 Прокачка</span><span class="ku-label" id="shop-sum">0 улучшений</span></div>
-        <div id="shop"></div>
+        <div class="shop-head">
+          <div class="ku-seg" id="branch" role="tablist" aria-label="Ветки улучшений"></div>
+          <button class="ku-btn icon" id="buymode" type="button" title="Сколько покупать: ×1 / ×10 / MAX (B)" aria-label="Сколько покупать за раз">×1</button>
+        </div>
+        <div id="shop" role="tabpanel"></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ═══ СОРЕВНОВАНИЕ ═══ -->
+  <section id="screen-comp" class="ku-screen fit">
+    <header class="ku-top">
+      <div class="ku-top-left"></div>
+      <div class="ku-top-title"><div class="t" id="c-title">ТУРНИР</div><div class="s" id="c-time">0:30</div></div>
+      <div class="ku-top-actions">
+        <button class="ku-btn icon" id="btn-c-pause" aria-label="Пауза (P)" title="Пауза (P)"><svg viewBox="0 0 24 24"><line x1="9" y1="5" x2="9" y2="19"/><line x1="15" y1="5" x2="15" y2="19"/></svg></button>
+      </div>
+    </header>
+    <div class="comp-body">
+      <div class="lanes-wrap" style="width:100%;display:flex;flex-direction:column;align-items:center">
+        <div class="lanes" id="lanes"></div>
+        <div class="comp-goal" id="c-goal">—</div>
+      </div>
+      <div class="comp-mid">
+        <button class="tapbtn" id="ctap" type="button" aria-label="Тап в соревновании"><span class="ath" id="c-athlete">🏃</span></button>
+        <div class="energy"><div class="ku-pbar"><i id="c-energy"></i></div></div>
+        <div class="tps" id="c-tps">ТЕМП: 0 ТАП/С</div>
+        <div class="countdown" id="countdown" hidden><b id="cd-num">3</b></div>
       </div>
     </div>
   </section>
 </main>
 
-<!-- ═══ КАК ИГРАТЬ ═══ -->
-<div class="ku-overlay" id="md-help"><div class="ku-modal">
-  <header><h2>📖 Как играть</h2><button class="ku-btn icon" data-close aria-label="Закрыть">✕</button></header>
+<!-- пузырь бонуса создаётся в .hero -->
+<canvas id="fx" aria-hidden="true"></canvas>
+
+<!-- ═══ ПАУЗА ═══ -->
+<div class="ku-overlay" id="ov-pause"><div class="ku-card" role="dialog" aria-modal="true" aria-labelledby="pause-h">
+  <h2 id="pause-h">⏸ ПАУЗА</h2>
+  <p>Пассивный доход идёт и сейчас, а бонусы и события ждут вас.</p>
+  <button class="ku-btn primary" id="p-resume">Продолжить</button>
+  <button class="ku-btn" id="p-season">🏅 Сезон и Зал славы</button>
+  <button class="ku-btn" id="p-stats">📊 Статистика</button>
+  <button class="ku-btn" id="p-ach">🏅 Достижения</button>
+  <button class="ku-btn" id="p-rules">📖 Правила</button>
+  <button class="ku-btn" id="p-settings">⚙️ Настройки</button>
+  <button class="ku-btn ghost" id="p-menu">В меню</button>
+</div></div>
+
+<!-- ═══ ПОКА ВАС НЕ БЫЛО ═══ -->
+<div class="ku-overlay" id="ov-offline"><div class="ku-card" role="dialog" aria-modal="true" aria-labelledby="off-h">
+  <div class="ov-emoji" aria-hidden="true">🌙</div>
+  <h2 id="off-h">ПОКА ВАС НЕ БЫЛО…</h2>
+  <p>Команда тренировалась без вас.</p>
+  <div class="ku-big-score" id="off-gain">+0</div>
+  <div class="ku-over-stats" id="off-stats"></div>
+  <p id="off-note" style="font-size:12px"></p>
+  <button class="ku-btn primary" id="off-ok">💪 Забрать</button>
+</div></div>
+
+<!-- ═══ НОВОЕ ЗВАНИЕ ═══ -->
+<div class="ku-overlay" id="ov-rank"><div class="ku-card" role="dialog" aria-modal="true" aria-labelledby="rank-h">
+  <div class="ov-emoji" id="rank-emoji" aria-hidden="true">💪</div>
+  <h2 class="win" id="rank-h">НОВОЕ ЗВАНИЕ!</h2>
+  <div class="ku-big-score" id="rank-name" style="font-size:26px">Любитель</div>
+  <div class="reward" id="rank-rewards"></div>
+  <button class="ku-btn primary" id="rank-ok">Отлично!</button>
+  <button class="ku-btn" id="rank-comp" hidden>🏆 К турниру</button>
+</div></div>
+
+<!-- ═══ ИТОГ СОРЕВНОВАНИЯ ═══ -->
+<div class="ku-overlay" id="ov-result"><div class="ku-card" role="dialog" aria-modal="true" aria-labelledby="res-h">
+  <div class="ov-emoji" id="res-emoji" aria-hidden="true">🥇</div>
+  <h2 id="res-h" class="win">ПОБЕДА!</h2>
+  <div class="ku-new-best" id="res-best" hidden>🏆 НОВЫЙ РЕКОРД ТУРНИРА!</div>
+  <div class="ku-big-score" id="res-score">0</div>
+  <div class="res-table" id="res-table"></div>
+  <div class="reward" id="res-rewards"></div>
+  <button class="ku-btn primary" id="res-again">↻ Ещё раз</button>
+  <button class="ku-btn" id="res-list">🏆 Все турниры</button>
+  <button class="ku-btn ghost" id="res-back">К тренировке</button>
+</div></div>
+
+<!-- ═══ ПАУЗА СОРЕВНОВАНИЯ ═══ -->
+<div class="ku-overlay" id="ov-cpause"><div class="ku-card" role="dialog" aria-modal="true" aria-labelledby="cp-h">
+  <h2 id="cp-h">⏸ ПАУЗА</h2>
+  <p>Время турнира остановлено — соперники тоже ждут.</p>
+  <button class="ku-btn primary" id="cp-resume">Продолжить</button>
+  <button class="ku-btn danger" id="cp-quit">🏳 Сдаться</button>
+</div></div>
+
+<!-- ═══ ТУРНИРЫ ═══ -->
+<div class="ku-overlay" id="ov-comps"><div class="ku-modal" role="dialog" aria-modal="true" aria-labelledby="comps-h">
+  <header><h2 id="comps-h">🏆 Турниры</h2><button class="ku-btn icon" data-close aria-label="Закрыть">✕</button></header>
+  <div class="ku-body">
+    <p class="ach-bonus" id="comps-info">Наберите тапами за отведённое время больше очков, чем соперники.</p>
+    <div class="list" id="comps-list"></div>
+  </div>
+</div></div>
+
+<!-- ═══ СЕЗОН И ЗАЛ СЛАВЫ ═══ -->
+<div class="ku-overlay" id="ov-season"><div class="ku-modal" role="dialog" aria-modal="true" aria-labelledby="season-h">
+  <header><h2 id="season-h">🏅 Сезон</h2><button class="ku-btn icon" data-close aria-label="Закрыть">✕</button></header>
+  <div class="ku-body">
+    <div class="ku-seg" id="season-tabs"><button data-t="season" class="active">🏅 Новый сезон</button><button data-t="hall">⭐ Зал славы</button></div>
+    <div id="season-pane"></div>
+    <div id="hall-pane" hidden></div>
+  </div>
+  <footer id="season-foot"><button class="ku-btn gold" id="btn-prestige">🏅 Начать новый сезон</button></footer>
+</div></div>
+
+<!-- ═══ СТАТИСТИКА ═══ -->
+<div class="ku-overlay" id="ov-stats"><div class="ku-modal" role="dialog" aria-modal="true" aria-labelledby="stats-h">
+  <header><h2 id="stats-h">📊 Статистика</h2><button class="ku-btn icon" data-close aria-label="Закрыть">✕</button></header>
+  <div class="ku-body"><h3>Этот сезон</h3><div class="stats-grid" id="st-season"></div><h3>За всё время</h3><div class="stats-grid" id="st-all"></div><h3>Турниры</h3><div class="stats-grid" id="st-comp"></div></div>
+  <footer><button class="ku-btn primary" data-close>Готово</button></footer>
+</div></div>
+
+<!-- ═══ ДОСТИЖЕНИЯ ═══ -->
+<div class="ku-overlay" id="ov-ach"><div class="ku-modal" role="dialog" aria-modal="true" aria-labelledby="ach-h">
+  <header><h2 id="ach-h">🏅 Достижения <span class="ku-muted" id="ach-count"></span></h2><button class="ku-btn icon" data-close aria-label="Закрыть">✕</button></header>
+  <div class="ku-body"><p class="ach-bonus" id="ach-bonus"></p><div class="list" id="ach-list"></div></div>
+</div></div>
+
+<!-- ═══ ПРАВИЛА ═══ -->
+<div class="ku-overlay" id="ov-rules"><div class="ku-modal" role="dialog" aria-modal="true" aria-labelledby="rules-h">
+  <header><h2 id="rules-h">📖 Правила</h2><button class="ku-btn icon" data-close aria-label="Закрыть">✕</button></header>
   <div class="ku-body">
     <h3>Тренировка</h3>
     <ul class="ku-rules">
-      <li><b>Тапай по атлету</b> — каждый тап приносит очки силы (сила тапа × бонус энергии).</li>
-      <li><b>Энергия ⚡:</b> каждый тап +2. Каждая единица энергии — <b>+1%</b> к силе тапа. Без тапов энергия тает (−10 в секунду).</li>
+      <li><b>Тапайте по атлету</b> — каждый тап приносит очки силы: <b>сила тапа × (1 + бонус энергии)</b>. Можно тапать несколькими пальцами.</li>
+      <li><b>Честный темп:</b> засчитывается не больше <b>18 тапов за любую секунду</b>; лишние касания просто не считаются (надпись «МАКС. ТЕМП»). Автоповтор клавиш не считается.</li>
+      <li><b>Энергия ⚡:</b> каждый тап +2 (больше с «Выносливостью»), каждая единица энергии — <b>+1 %</b> к тапу (больше с «Адреналином»). Без тапов энергия тает — около 8 % в секунду. «Медитация» копит энергию сама, и она перестаёт таять.</li>
+      <li><b>Доход в секунду</b> приносит команда — он идёт сам, по реальному времени, даже в меню и в окнах.</li>
     </ul>
-    <h3>Прокачка</h3>
+    <h3>Прокачка — 4 ветки, 23 улучшения</h3>
     <ul class="ku-rules">
-      <li><b>💪 Тренировка</b> — +1 к силе тапа, <b>🎽 Экипировка</b> — сила тапа ×1,5.</li>
-      <li><b>🥤 Протеин</b> и <b>🏃 Кардио</b> — очки идут сами, каждую секунду.</li>
-      <li><b>😴 Сон</b> — больше запас энергии, а значит и выше потолок бонуса.</li>
-      <li><b>🧘 Медитация</b> — энергия копится сама и перестаёт таять.</li>
-      <li><b>🏆 Чемпион</b> — всё ×2: и тап, и доход в секунду (в том числе от будущих улучшений).</li>
+      <li><b>💪 Сила</b> — прибавка к силе тапа (Тренировка, Спарринг, Штанга), <b>Экипировка</b> ×1,5 к тапу, <b>Техника</b> — тап приносит ещё 1 % дохода в секунду за уровень.</li>
+      <li><b>👥 Команда</b> — 10 источников дохода в секунду: от протеина до НИИ спорта. Следующий открывается, когда куплен предыдущий. На уровнях <b>10, 25, 50, 100, 200, 300</b> отдача источника удваивается.</li>
+      <li><b>⚡ Энергия</b> — Сон (+20 к запасу), Выносливость (+1 за тап), Адреналин (+0,05 % бонуса за единицу), Медитация (энергия копится сама, +5 % к доходу в секунду).</li>
+      <li><b>✨ Бусты</b> — Чемпион (весь доход ×2), Спонсор (+25 % к доходу в секунду), Телетрансляция (бонусы сильнее и дольше), Призовой фонд (призы турниров больше).</li>
+      <li><b>Цены</b> растут в геометрической прогрессии (у команды — ×1,15 за уровень). Кнопки <b>×1 / ×10 / MAX</b> — купить один уровень, десять или сколько хватит очков. На карточке видно, сколько добавит покупка.</li>
     </ul>
-    <h3>Прогресс</h3>
-    <ul class="ku-rules"><li>Сохраняется автоматически. Кнопка ↻ — начать заново.</li></ul>
+    <h3>Звания</h3>
+    <ul class="ku-rules">
+      <li>Звание растёт с очками, заработанными за сезон: Новичок → Любитель (1K) → Разрядник (30K) → КМС (600K) → Мастер спорта (15M) → МСМК (400M) → Заслуженный мастер (10B) → Чемпион мира (300B) → Олимпийский чемпион (10T) → Легенда спорта (500T).</li>
+      <li>Награда за каждое звание: <b>+10 % ко всему доходу</b> до конца сезона, сундук очков (10 % порога) и новый турнир.</li>
+    </ul>
+    <h3>Бонусы-события</h3>
+    <ul class="ku-rules">
+      <li>Во время тренировки раз в 1–3 минуты появляется бонус — поймайте его тапом за 12 секунд, иначе он исчезнет: <b>🥤 Протеиновый коктейль</b> — весь доход ×2 на 30 с; <b>💰 Спонсорский чек</b> — сразу около минуты дохода; <b>⚡ Энергетик</b> — энергия на максимум и тап ×3 на 15 с.</li>
+      <li>В меню, в окнах и при скрытой вкладке таймеры бонусов стоят.</li>
+    </ul>
+    <h3>Турниры</h3>
+    <ul class="ku-rules">
+      <li>8 турниров — от дворового до Олимпийских игр, каждый открывается своим званием. За 20–30 секунд наберите тапами больше очков, чем три соперника (их итог известен заранее — он показан в «Нужно для 🥇»).</li>
+      <li>Пьедестал приносит приз: 1-е место — 30 секунд вашего дохода (с учётом 5 тапов в секунду), 2-е — половину, 3-е — четверть. <b>Первое золото</b> в турнире — медали 🏅 (один раз). После турнира — перерыв 2 минуты.</li>
+    </ul>
+    <h3>Новый сезон и медали</h3>
+    <ul class="ku-rules">
+      <li>«Новый сезон» обнуляет очки, улучшения, энергию и звание, но даёт медали 🏅. Всего медалей за сезоны — ⌊(очки за всё время ÷ 10M)<sup>¼</sup>⌋, сезон даёт разницу с уже полученными (не важно, как часто начинать сезоны).</li>
+      <li>Каждая медаль — <b>+10 % ко всему доходу навсегда</b>. Медали можно тратить в <b>Зале славы</b> на особые улучшения — множитель от этого не уменьшается.</li>
+      <li>Остаются: медали, Зал славы, достижения, рекорды турниров, статистика.</li>
+    </ul>
+    <h3>Офлайн-доход</h3>
+    <ul class="ku-rules">
+      <li>Пока игра закрыта или вкладка скрыта, команда приносит <b>50 %</b> дохода в секунду, но не больше чем за <b>8 часов</b> (Зал славы улучшает оба числа). Бонусы-события офлайн не действуют.</li>
+      <li>Если часы устройства переведены назад, доход за этот период не начисляется; перевод вперёд даёт не больше лимита.</li>
+    </ul>
+    <h3>Достижения</h3>
+    <ul class="ku-rules"><li>20 достижений, каждое — <b>+2 % ко всему доходу</b> навсегда.</li></ul>
+    <h3>Управление</h3>
+    <ul class="ku-rules">
+      <li>Тап — касание, щелчок мыши, пробел или Enter (без автоповтора). 1–4 — ветки прокачки, B — ×1/×10/MAX, T — турниры, P или Esc — пауза.</li>
+      <li>Прогресс сохраняется сам (каждые несколько секунд и при сворачивании). Очки на платформу игра не отправляет.</li>
+    </ul>
   </div>
   <footer><button class="ku-btn primary" data-close>Понятно</button></footer>
 </div></div>
 
-<div id="floats"></div>
-<div class="ku-toast" id="toast"></div>
+<!-- ═══ НАСТРОЙКИ ═══ -->
+<div class="ku-overlay" id="ov-settings"><div class="ku-modal" role="dialog" aria-modal="true" aria-labelledby="set-h">
+  <header><h2 id="set-h">⚙️ Настройки</h2><button class="ku-btn icon" data-close aria-label="Закрыть">✕</button></header>
+  <div class="ku-body">
+    <h3>Звук и вибрация</h3>
+    <label class="ku-switch-row">Звуки<input type="checkbox" data-opt="sound"><span class="ku-switch"></span></label>
+    <label class="ku-switch-row">Вибрация<input type="checkbox" data-opt="vib"><span class="ku-switch"></span></label>
+    <h3>Числа</h3>
+    <div class="ku-seg" id="set-fmt"><button data-v="short">1,25M</button><button data-v="full">1 250 000</button><button data-v="sci">1,25e6</button></div>
+    <h3>Эффекты</h3>
+    <div class="ku-seg" id="set-fx"><button data-v="full">✨ Полные</button><button data-v="min">Меньше анимаций</button></div>
+    <p class="ku-muted" style="font-size:12px;margin:8px 0 0">Если в системе включено «Уменьшить движение», эффекты и так минимальные.</p>
+    <h3>Данные</h3>
+    <div class="set-btns"><button class="ku-btn sm danger" id="btn-reset">↻ Сбросить весь прогресс</button></div>
+  </div>
+  <footer><button class="ku-btn primary" data-close>Готово</button></footer>
+</div></div>
 
+<div class="ku-toast" id="toast"></div>
 <script>
 'use strict';
-const $ = id => document.getElementById(id);
 
+/* ═══ engine.js ═══ */
 /* ═══════════════════════════════════════════════════════════════
- * ДАННЫЕ
+ * АТЛЕТ — движок без DOM (его используют игра и тесты в Node).
+ * Экономика и покупки ×1/×10/максимум, энергия, ограничение темпа тапов,
+ * события-бонусы, соревнования, офлайн-доход, сезоны (престиж) и медали,
+ * «Зал славы», звания, достижения, сохранение v2 и перенос v1.
+ * Время экономики — реальное, шагами фиксированной длины TICK (0,1 с):
+ * доход не зависит от частоты кадров.
  * ═════════════════════════════════════════════════════════════ */
-const UPG = [
-  {id:0,icon:'💪',name:'Тренировка',desc:'Сила тапа +1',base:15,mult:1.6,effect:'click',val:1,max:20},
-  {id:1,icon:'🥤',name:'Протеин',desc:'+0,5 очков/сек',base:50,mult:1.7,effect:'auto',val:0.5,max:20},
-  {id:2,icon:'😴',name:'Сон',desc:'Макс. энергия +20',base:80,mult:1.5,effect:'energy',val:20,max:10},
-  {id:3,icon:'🎽',name:'Экипировка',desc:'Сила тапа ×1,5',base:200,mult:2.0,effect:'click_mult',val:1.5,max:5},
-  {id:4,icon:'🏃',name:'Кардио',desc:'+2 очка/сек',base:300,mult:1.8,effect:'auto',val:2,max:15},
-  {id:5,icon:'🧘',name:'Медитация',desc:'Энергия: +5/сек авто',base:500,mult:2.0,effect:'energy_auto',val:5,max:10},
-  {id:6,icon:'🏆',name:'Чемпион',desc:'Все ×2',base:2000,mult:3.0,effect:'all_mult',val:2,max:3},
+const CE = (() => {
+
+const TICK = 0.1;                       // шаг экономики, с
+const MAXV = 1e300;                     // предел чисел (дальше — бесконечность, её не допускаем)
+const TAP_MAX = 18, TAP_WIN = 1000;     // засчитывается не больше 18 тапов за любые 1000 мс
+const E_BASE = 100, E_TAP = 2, E_DECAY = 0.08;   // энергия: запас, +за тап, таяние (доля в секунду)
+const OFF_RATE = 0.5, OFF_CAP_H = 8, OFF_SHOW = 60, CLOCK_FIX = 2 * 86400;
+const EV_MIN = 60, EV_MAX = 180, EV_LIFE = 12;   // бонус появляется раз в 1–3 мин, живёт 12 с
+const COMP_CD = 120, COMP_COUNT = 3;     // перерыв между соревнованиями, отсчёт перед стартом (с)
+const MEDAL_K = 1e7, MEDAL_P = 0.25, MEDAL_VAL = 0.1, RANK_VAL = 0.1, ACH_VAL = 0.02;
+
+const fin = (x, d) => (typeof x === 'number' && isFinite(x)) ? x : d;
+const clamp = (v, a, b) => v < a ? a : v > b ? b : v;
+const isObj = o => !!o && typeof o === 'object' && !Array.isArray(o);
+
+/* ═══ Улучшения ═══
+ * kind: add — +val к силе тапа за уровень; gen — +val очков в секунду за уровень (у add и gen рубежи
+ * 10/25/50/100/… удваивают отдачу); tapx — сила тапа ×val; tech — тап получает val от дохода в секунду;
+ * emax — запас энергии +val; egain — +val энергии за тап; ebonus — +val бонуса за единицу энергии;
+ * eregen — энергия копится сама (+val/с) и не тает, а доход в секунду +5 %; allx — весь доход ×val; passp — доход в секунду +val;
+ * evp — бонусы-события сильнее; prize — призы соревнований больше.
+ * old — номер улучшения в сохранении первой версии (clicker_save v1). */
+const MILES = [10, 25, 50, 100, 200, 300];
+const BRANCHES = [
+  { id: 'tap', icon: '💪', name: 'Сила' },
+  { id: 'team', icon: '👥', name: 'Команда' },
+  { id: 'energy', icon: '⚡', name: 'Энергия' },
+  { id: 'boost', icon: '✨', name: 'Бусты' }
 ];
-const FRAMES = ['🏋️','💪','🤸','🏅','🥇'];
-const RANKS = ['Новичок','Любитель','Спортсмен','Мастер спорта','Чемпион'];
-const SAVE_KEY = 'clicker_save', SAVE_V = 1;
-const TAP_ENERGY = 2, ENERGY_DECAY = 10;     // как раньше: +2 за тап, −0,5 за тик 50 мс = −10 в секунду
+const UPG = [
+  { id: 'train',   br: 'tap',    icon: '💪', name: 'Тренировка',     kind: 'add',  val: 1,      base: 15,     g: 1.15, max: 300, old: 0 },
+  { id: 'spar',    br: 'tap',    icon: '🥊', name: 'Спарринг',       kind: 'add',  val: 4 ,      base: 1000 ,    g: 1.15, max: 300 },
+  { id: 'barbell', br: 'tap',    icon: '🏋️', name: 'Штанга',         kind: 'add',  val: 20 ,     base: 4e4 ,   g: 1.15, max: 300 },
+  { id: 'gear',    br: 'tap',    icon: '🎽', name: 'Экипировка',     kind: 'tapx', val: 1.5,    base: 5000 ,   g: 100 ,   max: 10, old: 3 },
+  { id: 'tech',    br: 'tap',    icon: '🧠', name: 'Техника',        kind: 'tech', val: 0.01,   base: 1e4 ,   g: 1.5 , max: 25 },
+  { id: 'protein', br: 'team',   icon: '🥤', name: 'Протеин',        kind: 'gen',  val: 0.5,    base: 50,     g: 1.15, max: 300, old: 1 },
+  { id: 'cardio',  br: 'team',   icon: '🏃', name: 'Кардио',         kind: 'gen',  val: 2,      base: 300,    g: 1.15, max: 300, old: 4 },
+  { id: 'coach',   br: 'team',   icon: '🧑‍🏫', name: 'Тренер',     kind: 'gen',  val: 10,     base: 4800,   g: 1.15, max: 300 },
+  { id: 'squad',   br: 'team',   icon: '👥', name: 'Команда',        kind: 'gen',  val: 50,     base: 7.7e4,  g: 1.15, max: 300 },
+  { id: 'gym',     br: 'team',   icon: '🏢', name: 'Спортзал',       kind: 'gen',  val: 250,    base: 1.23e6,  g: 1.15, max: 300 },
+  { id: 'academy', br: 'team',   icon: '🎓', name: 'Академия',       kind: 'gen',  val: 1250,   base: 1.97e7,  g: 1.15, max: 300 },
+  { id: 'stadium', br: 'team',   icon: '🏟️', name: 'Стадион',        kind: 'gen',  val: 6250,  base: 3.15e8,  g: 1.15, max: 300 },
+  { id: 'olymp',   br: 'team',   icon: '🏅', name: 'Олимпийский центр', kind: 'gen', val: 3.1e4,  base: 5e9,  g: 1.15, max: 300 },
+  { id: 'league',  br: 'team',   icon: '🌐', name: 'Спортивная лига', kind: 'gen', val: 1.56e5,    base: 8e10,  g: 1.15, max: 300 },
+  { id: 'lab',     br: 'team',   icon: '🧬', name: 'НИИ спорта',     kind: 'gen',  val: 7.8e5,    base: 1.3e12, g: 1.15, max: 300 },
+  { id: 'sleep',   br: 'energy', icon: '😴', name: 'Сон',            kind: 'emax', val: 20,     base: 300,     g: 3.4,  max: 10, old: 2 },
+  { id: 'stamina', br: 'energy', icon: '🍌', name: 'Выносливость',   kind: 'egain', val: 1,     base: 2000 ,    g: 6 ,    max: 4 },
+  { id: 'pulse',   br: 'energy', icon: '❤️', name: 'Адреналин',      kind: 'ebonus', val: 0.0005, base: 1e4 ,  g: 5 ,    max: 5 },
+  { id: 'medit',   br: 'energy', icon: '🧘', name: 'Медитация',      kind: 'eregen', val: 5,    base: 1e5 ,  g: 4 ,    max: 10, old: 5 },
+  { id: 'champ',   br: 'boost',  icon: '🏆', name: 'Чемпион',        kind: 'allx', val: 2,      base: 1e5 ,    g: 1000 ,   max: 6, old: 6 },
+  { id: 'sponsor', br: 'boost',  icon: '📣', name: 'Спонсор',        kind: 'passp', val: 0.25,  base: 2e4 ,   g: 2.5 ,  max: 20 },
+  { id: 'media',   br: 'boost',  icon: '📺', name: 'Телетрансляция', kind: 'evp',  val: 0.15,   base: 5e4 ,    g: 3.5 ,    max: 8 },
+  { id: 'prize',   br: 'boost',  icon: '💰', name: 'Призовой фонд',  kind: 'prize', val: 0.1,   base: 3e4 ,    g: 3 ,  max: 10 }
+];
+const BYID = {};
+UPG.forEach(u => { BYID[u.id] = u; });
+const OLD_IDS = ['train', 'protein', 'sleep', 'gear', 'cardio', 'medit', 'champ'];   // порядок улучшений v1
 
-let pts = 0, energy = 0;
-const lv = UPG.map(() => 0);
-let perClick = 1, perSec = 0, maxEnergy = 100, energyAuto = 0;
-let dirty = false;
+/* ═══ Звания (по очкам, заработанным за сезон) ═══
+ * Награда за звание: +10 % ко всему доходу до конца сезона, «сундук» (10 % порога) и новое соревнование. */
+const RANKS = [
+  { at: 0,      name: 'Новичок',             short: 'Новичок',        icon: '🏋️' },
+  { at: 1e3,    name: 'Любитель',            short: 'Любитель',       icon: '💪' },
+  { at: 3e4,    name: 'Разрядник',           short: 'Разрядник',      icon: '🤸' },
+  { at: 6e5,    name: 'КМС',                 short: 'КМС',            icon: '🏃' },
+  { at: 1.5e7,  name: 'Мастер спорта',       short: 'Мастер спорта',  icon: '🤾' },
+  { at: 4e8,    name: 'МСМК',                short: 'МСМК',           icon: '⛹️' },
+  { at: 1e10,   name: 'Заслуженный мастер',  short: 'Засл. мастер',   icon: '🏆' },
+  { at: 3e11,   name: 'Чемпион мира',        short: 'Чемпион мира',   icon: '🥇' },
+  { at: 1e13,   name: 'Олимпийский чемпион', short: 'Олимп. чемпион', icon: '🏅' },
+  { at: 5e14,   name: 'Легенда спорта',      short: 'Легенда',        icon: '👑' }
+];
+const rankOf = earned => { let r = 0; for (let i = 1; i < RANKS.length; i++) if (earned >= RANKS[i].at) r = i; return r; };
 
-function cost(u) { return Math.floor(u.base * Math.pow(u.mult, lv[u.id])); }
+/* ═══ «Зал славы» — особые улучшения за медали (навсегда, сезон их не сбрасывает) ═══ */
+const PERKS = [
+  { id: 'talent',  icon: '⭐', name: 'Талант',            costs: [2, 5, 12, 30, 75] },
+  { id: 'legacy',  icon: '👑', name: 'Наследие',          costs: [5, 15, 40, 100, 250] },
+  { id: 'capital', icon: '🎒', name: 'Стартовый капитал', costs: [3, 8, 20, 50, 120], vals: [0, 2e3, 1e5, 5e6, 2.5e8, 1e10] },
+  { id: 'robot',   icon: '🤖', name: 'Робот-партнёр',     costs: [3, 8, 20, 45, 100] },
+  { id: 'night',   icon: '🌙', name: 'Ночной тренер',     costs: [2, 4, 8, 15, 30] },
+  { id: 'dream',   icon: '🛌', name: 'Долгий отдых',      costs: [3, 6, 12, 24] },
+  { id: 'luck',    icon: '🍀', name: 'Фан-клуб',          costs: [2, 5, 10, 20, 40] },
+  { id: 'science', icon: '🧪', name: 'Спортивная наука',  costs: [4, 10, 25, 60, 150] }
+];
+const PERK = {};
+PERKS.forEach(p => { PERK[p.id] = p; });
 
-// [fix] Показатели считаются из уровней, а не накапливаются при покупке: раньше «×1,5»/«Все ×2» умножали
-// только то, что уже куплено (покупки после множителя давали меньше), и порядок покупок менял итог.
-function recalc() {
-  let click = 1, auto = 0, emax = 100, eauto = 0, cm = 1, am = 1;
+/* ═══ События-бонусы ═══ */
+const EVENTS = [
+  { id: 'shake',  icon: '🥤', name: 'Протеиновый коктейль', w: 5 },   // весь доход ×2 на 30 с
+  { id: 'cheque', icon: '💰', name: 'Спонсорский чек',      w: 3 },   // мгновенно: ~60 с дохода
+  { id: 'drink',  icon: '⚡', name: 'Энергетик',            w: 2 }    // энергия на максимум, тап ×3 на 15 с
+];
+
+/* ═══ Соревнования ═══
+ * Набрать тапами за отведённое время больше очков, чем соперники. Очки соперников заданы заранее (K — итог
+ * лидера; второй ≈ 78 %, третий ≈ 58 %), разброс ±5 % в каждой попытке. Открываются званиями.
+ * Первое «золото» в турнире — медали (один раз за всё время), каждое место на пьедестале — приз очками. */
+const TIERS = [
+  { icon: '🏘️', name: 'Дворовый турнир',       rank: 1, dur: 20, K: 1.25e04,    medals: 1 },
+  { icon: '🏫', name: 'Школьная спартакиада',  rank: 2, dur: 30, K: 1.38e05,  medals: 1 },
+  { icon: '🏙️', name: 'Первенство района',     rank: 3, dur: 30, K: 1.25e06,    medals: 1 },
+  { icon: '🌆', name: 'Чемпионат Бишкека',     rank: 4, dur: 30, K: 9.25e06,  medals: 2 },
+  { icon: '🏔️', name: 'Чемпионат Кыргызстана', rank: 5, dur: 30, K: 1.5e08,    medals: 2 },
+  { icon: '🌏', name: 'Чемпионат Азии',        rank: 6, dur: 30, K: 1.75e09,    medals: 2 },
+  { icon: '🌍', name: 'Чемпионат мира',        rank: 7, dur: 30, K: 3.75e10, medals: 3 },
+  { icon: '🔥', name: 'Олимпийские игры',      rank: 8, dur: 30, K: 4.25e11, medals: 3 }
+];
+const RIVAL_SHARE = [1, 0.78, 0.58];
+const RIVALS_LOCAL = ['Айбек К.', 'Нурлан Т.', 'Бекзат А.', 'Азамат Р.', 'Эрлан М.', 'Тимур С.', 'Данияр Ж.', 'Улан Б.',
+  'Мирлан О.', 'Чынгыз Э.', 'Айгерим Н.', 'Айпери С.', 'Жылдыз К.', 'Нурай А.', 'Бермет Т.', 'Асель Д.', 'Алина В.',
+  'Дарья П.', 'Максим Л.', 'Канат И.', 'Самат У.', 'Элиза Ш.', 'Медина Ж.', 'Илья Г.'];
+const RIVALS_WORLD = ['Ли Вэй (Китай)', 'Кэндзи Сато (Япония)', 'Пак Мин Джун (Корея)', 'Арман С. (Казахстан)',
+  'Шерзод Р. (Узбекистан)', 'Джеймс Картер (США)', 'Лукас Силва (Бразилия)', 'Ханс Вебер (Германия)',
+  'Пьер Дюбуа (Франция)', 'Марко Риччи (Италия)', 'Амир Хасан (Египет)', 'Рави Шарма (Индия)'];
+const STYLES = ['even', 'fast', 'late'];
+
+/* ═══ Достижения (каждое — +2 % ко всему доходу навсегда) ═══ */
+const ACH = [
+  { id: 'tap1',    icon: '👆', name: 'Первый шаг',       desc: 'Сделайте первый тап' },
+  { id: 'tap1k',   icon: '🔥', name: 'Разминка',         desc: '1 000 тапов' },
+  { id: 'tap10k',  icon: '💥', name: 'Трудяга',          desc: '10 000 тапов' },
+  { id: 'tap100k', icon: '🦾', name: 'Железная рука',    desc: '100 000 тапов' },
+  { id: 'speed',   icon: '🌪️', name: 'Скорострел',       desc: '12 засчитанных тапов за одну секунду' },
+  { id: 'earn1m',  icon: '💰', name: 'Миллион',          desc: 'Заработайте 1M очков за всё время' },
+  { id: 'earn1b',  icon: '💎', name: 'Миллиард',         desc: 'Заработайте 1B очков за всё время' },
+  { id: 'earn1t',  icon: '🚀', name: 'Триллион',         desc: 'Заработайте 1T очков за всё время' },
+  { id: 'ps1k',    icon: '📈', name: 'Своя команда',     desc: 'Доход 1K очков в секунду' },
+  { id: 'ps1m',    icon: '🏭', name: 'Спортивная империя', desc: 'Доход 1M очков в секунду' },
+  { id: 'buy100',  icon: '🛒', name: 'Шопоголик',        desc: 'Купите 100 уровней улучшений' },
+  { id: 'fullteam', icon: '👥', name: 'Полный состав',   desc: 'Наймите всех из ветки «Команда»' },
+  { id: 'energy',  icon: '⚡', name: 'Полный заряд',     desc: 'Наберите 200 энергии' },
+  { id: 'ev10',    icon: '🥤', name: 'Ловкач',           desc: 'Поймайте 10 бонусов' },
+  { id: 'win1',    icon: '🏆', name: 'Первая победа',    desc: 'Займите 1-е место в соревновании' },
+  { id: 'olymp',   icon: '🔥', name: 'Олимпиец',         desc: 'Победите на Олимпийских играх' },
+  { id: 'season2', icon: '🎖️', name: 'Новый сезон',      desc: 'Начните второй сезон' },
+  { id: 'season5', icon: '🗓️', name: 'Ветеран',          desc: 'Начните пятый сезон' },
+  { id: 'legend',  icon: '👑', name: 'Легенда',          desc: 'Получите звание «Легенда спорта»' },
+  { id: 'night4',  icon: '🌙', name: 'Тренер не спит',   desc: 'Получите офлайн-доход за 4 часа и больше' }
+];
+const ACHID = {};
+ACH.forEach(a => { ACHID[a.id] = a; });
+
+/* ═══ Случайные числа (детерминированные — для тестов и соперников) ═══ */
+function rng(seed) {
+  let s = (seed >>> 0) || 1;
+  return () => { s ^= s << 13; s >>>= 0; s ^= s >>> 17; s ^= s << 5; s >>>= 0; return s / 4294967296; };
+}
+
+/* ═══ Состояние ═══ */
+function newState() {
+  return {
+    pts: 0, energy: 0, lv: {},
+    season: { n: 1, earned: 0, taps: 0, rank: 0, sec: 0 },
+    medals: 0,                    // медали, полученные за сезоны (по очкам за всё время)
+    perks: {},                    // уровни «Зала славы»
+    ach: {},                      // достижения: id → время получения
+    comp: { cd: 0, rec: {} },     // перерыв (с) и рекорды: номер турнира → { best, place, g, s, b, n }
+    ev: { next: 60, live: null, shake: 0, drink: 0 },   // первый бонус — через минуту игры
+    stats: { taps: 0, earned: 0, tapEarned: 0, offEarned: 0, evCaught: 0, evMissed: 0, buys: 0, playSec: 0,
+      bestPs: 0, bestTap: 0, bestTps: 0, comps: 0, gold: 0, silver: 0, bronze: 0, bestRank: 0, offMax: 0, cut: 0 },
+    t: 0                          // время последнего сохранения (часы устройства, мс) — для офлайн-дохода
+  };
+}
+const lvl = (S, id) => S.lv[id] || 0;
+const TEAM = UPG.filter(u => u.kind === 'gen');
+/* Источник дохода открывается, когда куплен предыдущий (или уже есть уровни — например, из старого сохранения). */
+function unlocked(S, id) {
+  const u = BYID[id];
+  if (!u || u.kind !== 'gen') return !!u;
+  const i = TEAM.indexOf(u);
+  return i <= 0 || lvl(S, id) > 0 || lvl(S, TEAM[i - 1].id) > 0;
+}
+const perk = (S, id) => S.perks[id] || 0;
+const mile = n => { let m = 1; for (const x of MILES) if (n >= x) m *= 2; return m; };
+const nextMile = n => { for (const x of MILES) if (n < x) return x; return 0; };
+
+/* ── медали ── */
+const medalsAt = earned => Math.floor(Math.pow(Math.max(0, earned) / MEDAL_K, MEDAL_P) + 1e-9);
+const compMedals = S => { let m = 0; TIERS.forEach((t, i) => { const r = S.comp.rec[i + 1]; if (r && r.g > 0) m += t.medals; }); return m; };
+const medalTotal = S => S.medals + compMedals(S);
+const perkSpent = S => { let m = 0; for (const p of PERKS) { const n = perk(S, p.id); for (let i = 0; i < n; i++) m += p.costs[i]; } return m; };
+const medalFree = S => medalTotal(S) - perkSpent(S);
+const achCount = S => ACH.reduce((a, x) => a + (S.ach[x.id] ? 1 : 0), 0);
+
+/* ═══ Производные показатели (всё считается из уровней — порядок покупок не важен) ═══ */
+function derive(S) {
+  const allM = Math.pow(2, lvl(S, 'champ')) * (1 + MEDAL_VAL * medalTotal(S)) * (1 + ACH_VAL * achCount(S)) *
+    (1 + RANK_VAL * S.season.rank) * Math.pow(1.5, perk(S, 'legacy'));
+  let tapAdd = 1, gen = 0;
   for (const u of UPG) {
-    const n = lv[u.id];
+    const n = lvl(S, u.id);
     if (!n) continue;
-    if (u.effect === 'click') click += u.val * n;
-    else if (u.effect === 'auto') auto += u.val * n;
-    else if (u.effect === 'energy') emax += u.val * n;
-    else if (u.effect === 'click_mult') cm *= Math.pow(u.val, n);
-    else if (u.effect === 'energy_auto') eauto += u.val * n;
-    else if (u.effect === 'all_mult') { cm *= Math.pow(u.val, n); am *= Math.pow(u.val, n); }
+    if (u.kind === 'add') tapAdd += u.val * n;
+    else if (u.kind === 'gen') gen += u.val * n * mile(n);
   }
-  perClick = Math.max(1, Math.round(click * cm));
-  perSec = Math.round(auto * am * 10) / 10;
-  maxEnergy = emax;
-  energyAuto = eauto;
-  energy = Math.min(energy, maxEnergy);
+  const passM = (1 + 0.25 * lvl(S, 'sponsor')) * (1 + 0.05 * lvl(S, 'medit'));
+  const perSecGen = Math.min(MAXV, gen * passM * allM);
+  const tapM = Math.pow(1.5, lvl(S, 'gear')) * Math.pow(2, perk(S, 'talent'));
+  const tech = 0.01 * lvl(S, 'tech');
+  const perTap = Math.min(MAXV, tapAdd * tapM * allM + tech * perSecGen);
+  const auto = perk(S, 'robot');                 // автотапы в секунду (без бонуса энергии)
+  return {
+    perTap, perSecGen, auto, perSec: Math.min(MAXV, perSecGen + auto * perTap),
+    allM, tapM, passM, tapAdd, gen, tech,
+    emax: E_BASE + 20 * lvl(S, 'sleep'), egain: E_TAP + lvl(S, 'stamina'),
+    ebonus: 0.01 + 0.0005 * lvl(S, 'pulse'), eregen: 5 * lvl(S, 'medit'),
+    offRate: Math.min(1, OFF_RATE + 0.1 * perk(S, 'night')), offCap: (OFF_CAP_H + 2 * perk(S, 'dream')) * 3600,
+    evPow: 1 + 0.15 * lvl(S, 'media') + 0.2 * perk(S, 'luck'), evLife: EV_LIFE + 3 * perk(S, 'luck'),
+    prizeM: 1 + 0.1 * lvl(S, 'prize'), disc: 1 - 0.04 * perk(S, 'science')
+  };
 }
-// [fix] бонус = +1% за единицу энергии. Раньше бонус = энергия/максимум, и «Сон» (больше максимум)
-// только понижал бонус. Теперь при 100 энергии бонус тот же (+100%), а «Сон» поднимает потолок.
-const bonusPct = () => Math.floor(energy);
+const energyBonus = (S, D) => S.energy * D.ebonus;                 // доля: 1 = +100 %
+const incomeMult = S => S.ev.shake > 0 ? 2 : 1;                    // активный «коктейль»
+const tapMult = S => incomeMult(S) * (S.ev.drink > 0 ? 3 : 1);    // + «энергетик»
+const tapValue = (S, D) => D.perTap * (1 + energyBonus(S, D)) * tapMult(S);
 
-/* ═══════════════════════════════════════════════════════════════
- * СОХРАНЕНИЕ (раньше прогресса не было: перезагрузка = всё заново)
- * ═════════════════════════════════════════════════════════════ */
-function save() {
-  dirty = false;
-  try {
-    localStorage.setItem(SAVE_KEY, JSON.stringify({ v: SAVE_V, pts, lv, energy: Math.round(energy * 10) / 10, t: Date.now() }));
-  } catch (e) {}
+/* ═══ Цены: геометрическая прогрессия, цена уровня округляется вверх ═══ */
+function price(u, n, disc) { return Math.ceil(u.base * (disc || 1) * Math.pow(u.g, n) * (1 - 1e-12)); }
+function costN(u, n, k, disc) {                 // цена k уровней подряд, начиная с уровня n
+  let s = 0;
+  for (let i = 0; i < k; i++) s += price(u, n + i, disc);
+  return s;
 }
-function load() {
-  let d = null;
-  try { d = JSON.parse(localStorage.getItem(SAVE_KEY) || 'null'); } catch (e) { d = null; }
-  if (!d || typeof d !== 'object' || d.v !== SAVE_V) return;
-  if (Number.isFinite(d.pts) && d.pts >= 0) pts = d.pts;
-  if (Array.isArray(d.lv)) UPG.forEach(u => {
-    const n = Math.floor(Number(d.lv[u.id]) || 0);
-    lv[u.id] = Math.max(0, Math.min(u.max, n));
+function maxAffordable(u, n, pts, disc) {       // сколько уровней можно купить на pts
+  let s = 0, k = 0;
+  while (n + k < u.max) {
+    const p = price(u, n + k, disc);
+    if (s + p > pts) break;
+    s += p; k++;
+  }
+  return k;
+}
+/* План покупки: mode = 1, 10 или 'max'. k — сколько уровней, cost — цена, can — хватает ли очков. */
+function plan(S, D, id, mode) {
+  const u = BYID[id], n = lvl(S, id), room = u.max - n;
+  if (room <= 0) return { k: 0, cost: 0, can: false, max: true };
+  if (!unlocked(S, id)) return { k: 0, cost: price(u, n, D.disc), can: false, max: false, locked: true };
+  let k = mode === 'max' ? maxAffordable(u, n, S.pts, D.disc) : Math.min(mode === 10 ? 10 : 1, room);
+  if (k < 1) k = 1;
+  const cost = costN(u, n, k, D.disc);
+  return { k, cost, can: S.pts >= cost, max: false };
+}
+function buy(S, D, id, mode) {
+  const p = plan(S, D, id, mode);
+  if (!p.k || !p.can) return Object.assign({ ok: false }, p);
+  S.pts = Math.max(0, S.pts - p.cost);
+  S.lv[id] = lvl(S, id) + p.k;
+  S.stats.buys += p.k;
+  return Object.assign({ ok: true }, p);
+}
+/* Что даст покупка k уровней: прирост силы тапа и дохода в секунду (с учётом всех множителей). */
+function preview(S, id, k) {
+  const D0 = derive(S), n = lvl(S, id);
+  S.lv[id] = n + k;
+  const D1 = derive(S);
+  if (n) S.lv[id] = n; else delete S.lv[id];
+  return { tap: D1.perTap - D0.perTap, ps: D1.perSec - D0.perSec, D0, D1 };
+}
+
+/* ═══ Начисление очков (+ звания) ═══ */
+function add(S, x, src) {
+  if (!(x > 0)) return 0;
+  x = Math.min(x, MAXV);
+  S.pts = Math.min(MAXV, S.pts + x);
+  S.season.earned = Math.min(MAXV, S.season.earned + x);
+  S.stats.earned = Math.min(MAXV, S.stats.earned + x);
+  if (src === 'tap') S.stats.tapEarned = Math.min(MAXV, S.stats.tapEarned + x);
+  else if (src === 'off') S.stats.offEarned = Math.min(MAXV, S.stats.offEarned + x);
+  return x;
+}
+/* Повысить звание, если очков сезона хватает. Возвращает список новых званий (для окна «Новое звание»). */
+function promote(S) {
+  const out = [];
+  const r = rankOf(S.season.earned);
+  while (S.season.rank < r) {
+    S.season.rank++;
+    const chest = RANKS[S.season.rank].at * 0.1;
+    add(S, chest, 'rank');
+    out.push({ rank: S.season.rank, chest });
+  }
+  if (S.season.rank > S.stats.bestRank) S.stats.bestRank = S.season.rank;
+  return out;
+}
+
+/* ═══ Ограничение темпа тапов: «скользящее окно» — не больше TAP_MAX засчитанных тапов за любые TAP_WIN мс.
+ * Мультитач считается (каждое касание — тап), лишние касания сверх темпа просто не засчитываются. */
+function limiter(max, win) {
+  max = max || TAP_MAX; win = win || TAP_WIN;
+  const ring = new Array(max).fill(-Infinity);
+  let i = 0;
+  return {
+    allow(t) {
+      if (t - ring[i] < win) return false;
+      ring[i] = t; i = (i + 1) % max;
+      return true;
+    },
+    // сколько тапов засчитано за последнюю секунду (для рекорда темпа)
+    rate(t) { let c = 0; for (const x of ring) if (t - x < win) c++; return c; },
+    reset() { ring.fill(-Infinity); i = 0; }
+  };
+}
+
+/* Засчитанный тап: очки (сила × бонус энергии × бонусы событий) и энергия. */
+function tap(S, D) {
+  const gain = tapValue(S, D);
+  S.energy = Math.min(D.emax, S.energy + D.egain);
+  add(S, gain, 'tap');
+  S.stats.taps++; S.season.taps++;
+  if (gain > S.stats.bestTap) S.stats.bestTap = gain;
+  return gain;
+}
+
+/* ═══ Шаг экономики (dt — реальное время, с). active — игрок на экране тренировки, окна закрыты:
+ * только тогда идут таймеры бонусов и появляются события (в меню и окнах они стоят). ═══ */
+function step(S, D, dt, active, rand) {
+  const boost = active ? incomeMult(S) : 1;
+  add(S, D.perSec * boost * dt, 'pass');
+  if (D.eregen > 0) S.energy = Math.min(D.emax, S.energy + D.eregen * dt);
+  else { S.energy *= Math.exp(-E_DECAY * dt); if (S.energy < 0.05) S.energy = 0; }
+  if (S.energy > D.emax) S.energy = D.emax;
+  const out = { spawned: null, missed: false };
+  if (active) {
+    const ev = S.ev;
+    ev.shake = Math.max(0, ev.shake - dt);
+    ev.drink = Math.max(0, ev.drink - dt);
+    if (ev.live) {
+      ev.live.left -= dt;
+      if (ev.live.left <= 0) { ev.live = null; S.stats.evMissed++; ev.next = nextEventIn(rand); out.missed = true; }
+    } else {
+      ev.next -= dt;
+      if (ev.next <= 0) out.spawned = spawnEvent(S, D, rand);
+    }
+  }
+  if (S.comp.cd > 0) S.comp.cd = Math.max(0, S.comp.cd - dt);
+  S.stats.playSec += dt; S.season.sec += dt;
+  if (D.perSec > S.stats.bestPs) S.stats.bestPs = D.perSec;
+  return out;
+}
+
+/* ═══ События-бонусы ═══ */
+const nextEventIn = rand => EV_MIN + (EV_MAX - EV_MIN) * (rand || Math.random)();
+function spawnEvent(S, D, rand) {
+  rand = rand || Math.random;
+  const tot = EVENTS.reduce((a, e) => a + e.w, 0);
+  let r = rand() * tot, type = EVENTS[0].id;
+  for (const e of EVENTS) { if (r < e.w) { type = e.id; break; } r -= e.w; }
+  S.ev.live = { type, left: D.evLife, life: D.evLife, x: 0.12 + 0.76 * rand(), y: 0.15 + 0.6 * rand() };
+  return S.ev.live;
+}
+/* Поймать бонус: возвращает { type, amount?, sec? } */
+function catchEvent(S, D, rand) {
+  const live = S.ev.live;
+  if (!live) return null;
+  S.ev.live = null;
+  S.ev.next = nextEventIn(rand);
+  S.stats.evCaught++;
+  const res = { type: live.type };
+  if (live.type === 'shake') { res.sec = Math.round(30 * D.evPow); S.ev.shake = Math.max(S.ev.shake, res.sec); }
+  else if (live.type === 'drink') { res.sec = Math.round(15 * D.evPow); S.ev.drink = Math.max(S.ev.drink, res.sec); S.energy = D.emax; }
+  else { res.amount = Math.max(60 * D.perSec, 40 * D.perTap, 50) * D.evPow; add(S, res.amount, 'ev'); }
+  return res;
+}
+
+/* ═══ Офлайн-доход ═══
+ * За время отсутствия — базовый доход в секунду × коэффициент (50 %), не больше лимита (8 ч).
+ * Часы переведены вперёд — награда всё равно не больше лимита. Часы переведены назад — ничего не начисляем
+ * и ждём, пока время догонит прошлую отметку (так нельзя «крутить» часы туда-обратно ради награды);
+ * если часы ушли назад больше чем на 2 суток — считаем, что их исправили, и начинаем отсчёт заново. */
+function offline(S, D, now, perfSec) {
+  const res = { sec: 0, used: 0, gain: 0, capped: false, back: 0, rate: D.offRate, cap: D.offCap };
+  if (!(S.t > 0)) { S.t = now; return res; }
+  let el = (now - S.t) / 1000;
+  // если вкладка была жива (perfSec — по монотонным часам), берём меньшее: перевод часов вперёд не помогает
+  if (typeof perfSec === 'number' && perfSec >= 0 && el > perfSec) el = perfSec;
+  if (el < 0) {
+    res.back = -el;
+    if (-el > CLOCK_FIX) S.t = now;
+    return res;
+  }
+  res.sec = el;
+  res.used = Math.min(el, D.offCap);
+  res.capped = el > D.offCap;
+  res.gain = D.perSec * D.offRate * res.used;
+  S.t = now;
+  if (S.comp.cd > 0) S.comp.cd = Math.max(0, S.comp.cd - res.used);   // перерыв между турнирами тоже проходит
+  if (res.gain > 0) {
+    add(S, res.gain, 'off');
+    if (res.used > S.stats.offMax) S.stats.offMax = res.used;
+  }
+  // энергия за это время: копится (Медитация) или тает
+  if (D.eregen > 0) S.energy = Math.min(D.emax, S.energy + D.eregen * res.used);
+  else { S.energy *= Math.exp(-E_DECAY * res.used); if (S.energy < 0.05) S.energy = 0; }
+  return res;
+}
+const touch = (S, now) => { if (now > S.t) S.t = now; };     // отметка времени (только вперёд)
+
+/* ═══ Сезон (престиж) ═══
+ * Медали за все сезоны = ⌊(очки за всё время / 10M)^0,25⌋ — не зависит от того, как делить игру на сезоны
+ * (пологая степень: иначе каждый сезон множитель рос бы в степени и числа «взрывались»).
+ * Новый сезон даёт разницу с уже полученными. Каждая медаль — +10 % ко всему доходу навсегда. */
+function seasonInfo(S) {
+  const total = medalsAt(S.stats.earned);
+  const gain = Math.max(0, total - S.medals);
+  const m0 = medalTotal(S);
+  const nextAt = Math.pow(S.medals + gain + 1, 1 / MEDAL_P) * MEDAL_K;    // очки за всё время для следующей медали
+  return { gain, now: m0, after: m0 + gain, multNow: 1 + MEDAL_VAL * m0, multAfter: 1 + MEDAL_VAL * (m0 + gain),
+    need: Math.max(0, nextAt - S.stats.earned), nextAt };
+}
+function newSeason(S) {
+  const info = seasonInfo(S);
+  if (info.gain < 1) return null;
+  S.medals += info.gain;
+  S.pts = PERK.capital.vals[perk(S, 'capital')] || 0;
+  S.lv = {};
+  S.energy = 0;
+  S.season = { n: S.season.n + 1, earned: 0, taps: 0, rank: 0, sec: 0 };
+  S.ev.shake = 0; S.ev.drink = 0; S.ev.live = null; S.ev.next = 60;
+  return info;
+}
+function buyPerk(S, id) {
+  const p = PERK[id], n = perk(S, id);
+  if (!p || n >= p.costs.length) return false;
+  if (medalFree(S) < p.costs[n]) return false;
+  S.perks[id] = n + 1;
+  return true;
+}
+
+/* ═══ Соревнования ═══ */
+function tierOpen(S, i) { return S.season.rank >= TIERS[i].rank; }
+function compSetup(S, i, rand) {
+  rand = rand || Math.random;
+  const T = TIERS[i], pool = i >= 5 ? RIVALS_WORLD : RIVALS_LOCAL, r0 = rng(1000 + i * 7919);
+  const names = [], used = new Set();
+  while (names.length < 3) { const k = Math.floor(r0() * pool.length); if (!used.has(k)) { used.add(k); names.push(pool[k]); } }
+  const rivals = names.map((name, j) => {
+    const final = T.K * RIVAL_SHARE[j] * (0.95 + 0.1 * rand());
+    // «уровень» соперника — для вида: растёт от турнира к турниру (двор — 4–9, Олимпиада — 74–79)
+    return { name, lvl: 9 + 10 * i - 2 * j - Math.floor(r0() * 2), final, style: STYLES[Math.floor(rand() * 3)], ph: rand() * 6.28 };
   });
-  if (Number.isFinite(d.energy) && d.energy >= 0) energy = d.energy;
+  return { tier: i, dur: T.dur, t: 0, cd: COMP_COUNT, score: 0, taps: 0, rivals, done: false };
+}
+const curve = (style, x) => style === 'fast' ? 1 - Math.pow(1 - x, 1.7) : style === 'late' ? Math.pow(x, 1.45) : x;
+/* очки соперника к моменту t (плавная кривая + лёгкое «дыхание», к финишу — ровно final) */
+function rivalAt(r, t, dur) {
+  const x = clamp(t / dur, 0, 1);
+  const wob = 1 + 0.03 * Math.sin(r.ph + x * 19) * x * (1 - x) * 4;
+  return r.final * clamp(curve(r.style, x) * wob, 0, 1);
+}
+function compPlace(C) { return 1 + C.rivals.filter(r => r.final >= C.score).length; }   // чтобы обойти — нужно больше
+/* Итог: место, приз (очки), медали за первое золото, рекорд. */
+function compFinish(S, D, C) {
+  C.done = true;
+  const place = compPlace(C), i = C.tier, T = TIERS[i];
+  const rec = S.comp.rec[i + 1] || (S.comp.rec[i + 1] = { best: 0, place: 0, g: 0, s: 0, b: 0, n: 0 });
+  const firstGold = place === 1 && !rec.g;
+  const record = C.score > rec.best;
+  rec.n++;
+  if (record) rec.best = C.score;
+  if (!rec.place || place < rec.place) rec.place = place;
+  if (place === 1) rec.g++; else if (place === 2) rec.s++; else if (place === 3) rec.b++;
+  S.stats.comps++;
+  if (place === 1) S.stats.gold++; else if (place === 2) S.stats.silver++; else if (place === 3) S.stats.bronze++;
+  const share = [0, 1, 0.5, 0.25, 0][place] || 0;
+  const prize = share * 30 * (D.perSec + 5 * D.perTap) * D.prizeM;
+  if (prize > 0) add(S, prize, 'comp');
+  S.comp.cd = COMP_CD;
+  return { place, prize, medals: firstGold ? T.medals : 0, record, score: C.score };
 }
 
-/* ═══════════════════════════════════════════════════════════════
- * ФОРМАТ ЧИСЕЛ: 1 250 · 0,5 · 12,3K · 4,5M · 1,2B …
- * (раньше 0,5/сек показывалось как «0», после миллиардов — «1500.0M»)
- * ═════════════════════════════════════════════════════════════ */
-const SUF = ['', 'K', 'M', 'B', 'T', 'Qa', 'Qi', 'Sx', 'Sp'];
-function fmt(n, dec) {
+/* Сдаться: без места и приза, но перерыв идёт (нельзя «перебросить» соперников выходом). */
+function compAbandon(S, C) {
+  C.done = true;
+  const i = C.tier, rec = S.comp.rec[i + 1] || (S.comp.rec[i + 1] = { best: 0, place: 0, g: 0, s: 0, b: 0, n: 0 });
+  rec.n++;
+  S.stats.comps++;
+  S.comp.cd = COMP_CD;
+}
+
+/* ═══ Достижения ═══ */
+function checkAch(S, D, extra) {
+  const st = S.stats, got = [];
+  const team = UPG.filter(u => u.br === 'team');
+  const conds = {
+    tap1: st.taps >= 1, tap1k: st.taps >= 1e3, tap10k: st.taps >= 1e4, tap100k: st.taps >= 1e5,
+    speed: st.bestTps >= 12,
+    earn1m: st.earned >= 1e6, earn1b: st.earned >= 1e9, earn1t: st.earned >= 1e12,
+    ps1k: D.perSec >= 1e3, ps1m: D.perSec >= 1e6, buy100: st.buys >= 100,
+    fullteam: team.every(u => lvl(S, u.id) > 0), energy: S.energy >= 200 - 1e-9, ev10: st.evCaught >= 10,
+    win1: st.gold >= 1, olymp: !!(S.comp.rec[8] && S.comp.rec[8].g), season2: S.season.n >= 2, season5: S.season.n >= 5,
+    legend: st.bestRank >= RANKS.length - 1, night4: st.offMax >= 4 * 3600
+  };
+  if (extra) Object.assign(conds, extra);
+  for (const a of ACH) if (conds[a.id] && !S.ach[a.id]) { S.ach[a.id] = Date.now(); got.push(a); }
+  return got;
+}
+
+/* ═══ Сохранение ═══
+ * Формат v2: {"v":2,"sum":"<FNV-1a>","d":{…}} — контрольная сумма по данным. Испорченное сохранение
+ * восстанавливается из резервной копии (clicker_save_bak), иначе — поле за полем (неверное → по умолчанию). */
+function hash(str) {
+  let h = 0x811c9dc5;
+  for (let i = 0; i < str.length; i++) { h ^= str.charCodeAt(i); h = Math.imul(h, 0x01000193) >>> 0; }
+  return ('0000000' + h.toString(16)).slice(-8);
+}
+const r6 = x => Math.round(x * 1e6) / 1e6;
+function toData(S) {
+  const lv = {};
+  for (const u of UPG) if (lvl(S, u.id)) lv[u.id] = lvl(S, u.id);
+  const pk = {};
+  for (const p of PERKS) if (perk(S, p.id)) pk[p.id] = perk(S, p.id);
+  const live = S.ev.live ? { type: S.ev.live.type, left: r6(S.ev.live.left), life: S.ev.live.life, x: r6(S.ev.live.x), y: r6(S.ev.live.y) } : null;
+  return {
+    pts: S.pts, energy: r6(S.energy), lv, t: S.t,
+    season: Object.assign({}, S.season), medals: S.medals, perks: pk, ach: Object.assign({}, S.ach),
+    comp: { cd: r6(S.comp.cd), rec: JSON.parse(JSON.stringify(S.comp.rec)) },
+    ev: { next: r6(S.ev.next), live, shake: r6(S.ev.shake), drink: r6(S.ev.drink) },
+    stats: Object.assign({}, S.stats)
+  };
+}
+function serialize(S) {
+  const d = toData(S);
+  return JSON.stringify({ v: 2, sum: hash(JSON.stringify(d)), d });
+}
+/* число ≥ 0 (иначе — по умолчанию), не больше MAXV */
+const num = (x, d, max) => { x = fin(x, NaN); return x >= 0 ? Math.min(x, max || MAXV) : d; };
+const int = (x, d, a, b) => { x = fin(x, NaN); return Number.isFinite(x) ? clamp(Math.floor(x), a, b) : d; };
+/* Собрать состояние из данных, проверяя каждое поле. issues — что пришлось исправить. */
+function fromData(d, issues) {
+  const S = newState(), bad = m => issues.push(m);
+  if (!isObj(d)) { bad('нет данных'); return S; }
+  S.pts = num(d.pts, -1);
+  if (S.pts < 0) { bad('очки'); S.pts = 0; }
+  if (isObj(d.lv)) {
+    for (const k in d.lv) {
+      const u = BYID[k];
+      if (!u) { bad('неизвестное улучшение ' + k); continue; }
+      const n = int(d.lv[k], -1, 0, u.max);
+      if (n < 0) bad('уровень ' + k); else if (n) S.lv[k] = n;
+    }
+  } else if (d.lv !== undefined) bad('уровни');
+  const s = isObj(d.season) ? d.season : (d.season !== undefined && bad('сезон'), {});
+  S.season.n = int(s.n, 1, 1, 1e9);
+  S.season.earned = num(s.earned, 0);
+  S.season.taps = num(s.taps, 0);
+  S.season.sec = num(s.sec, 0);
+  const st = isObj(d.stats) ? d.stats : (d.stats !== undefined && bad('статистика'), {});
+  for (const k in S.stats) S.stats[k] = num(st[k], 0);
+  // высшее звание: только целое из допустимого диапазона (иначе 0 — и пересчёт по сезону ниже)
+  if (!(Number.isInteger(st.bestRank) && st.bestRank >= 0 && st.bestRank < RANKS.length)) S.stats.bestRank = 0;
+  // очков за всё время не меньше, чем за сезон
+  if (S.stats.earned < S.season.earned) S.stats.earned = S.season.earned;
+  S.season.rank = rankOf(S.season.earned);        // звание не храним «на веру» — считаем по очкам
+  if (S.stats.bestRank < S.season.rank) S.stats.bestRank = S.season.rank;
+  // медали за сезоны не могут превышать заработанные по очкам за всё время
+  S.medals = int(d.medals, 0, 0, medalsAt(S.stats.earned));
+  if (isObj(d.perks)) for (const p of PERKS) { const n = int(d.perks[p.id], 0, 0, p.costs.length); if (n) S.perks[p.id] = n; }
+  if (isObj(d.ach)) for (const a of ACH) { const v = fin(d.ach[a.id], 0); if (v > 0) S.ach[a.id] = v; }
+  if (isObj(d.comp)) {
+    S.comp.cd = Math.min(COMP_CD, num(d.comp.cd, 0));
+    if (isObj(d.comp.rec)) for (let i = 1; i <= TIERS.length; i++) {
+      const r = d.comp.rec[i];
+      if (!isObj(r)) continue;
+      S.comp.rec[i] = { best: num(r.best, 0), place: int(r.place, 0, 0, 4), g: int(r.g, 0, 0, 1e9), s: int(r.s, 0, 0, 1e9), b: int(r.b, 0, 0, 1e9), n: int(r.n, 0, 0, 1e9) };
+    }
+  }
+  // особые улучшения: если потрачено больше, чем есть медалей (испорченные данные) — снимаем с конца
+  for (let guard = 0; medalFree(S) < 0 && guard < 100; guard++) {
+    const p = PERKS.slice().reverse().find(x => perk(S, x.id) > 0);
+    if (!p) break;
+    S.perks[p.id]--; if (!S.perks[p.id]) delete S.perks[p.id];
+    bad('особые улучшения');
+  }
+  if (isObj(d.ev)) {
+    S.ev.next = clamp(num(d.ev.next, 45), 1, EV_MAX);
+    S.ev.shake = clamp(num(d.ev.shake, 0), 0, 300);
+    S.ev.drink = clamp(num(d.ev.drink, 0), 0, 300);
+    const l = d.ev.live;
+    if (isObj(l) && EVENTS.some(e => e.id === l.type)) {
+      const left = clamp(num(l.left, 0), 0, 60);
+      if (left > 0) S.ev.live = { type: l.type, left, life: clamp(num(l.life, EV_LIFE), 1, 60), x: clamp(num(l.x, 0.5), 0, 1), y: clamp(num(l.y, 0.5), 0, 1) };
+    }
+  }
+  const D = derive(S);
+  S.energy = clamp(num(d.energy, 0), 0, D.emax);
+  S.t = num(d.t, 0);
+  return S;
+}
+/* Перенос сохранения первой версии: {v:1, pts, lv:[7 уровней], energy, t} — очки, уровни и энергия те же. */
+function fromV1(o, issues) {
+  const S = newState();
+  S.pts = num(o.pts, -1);
+  if (S.pts < 0) { issues.push('очки'); S.pts = 0; }
+  if (Array.isArray(o.lv)) OLD_IDS.forEach((id, i) => {
+    const n = int(Number(o.lv[i]), 0, 0, BYID[id].max);
+    if (n) S.lv[id] = n;
+  });
+  const D = derive(S);
+  S.energy = clamp(num(o.energy, 0), 0, D.emax);
+  S.t = num(o.t, 0);
+  // заработано не меньше, чем есть сейчас + потрачено на улучшения (по ценам первой версии)
+  const OLD = [[15, 1.6], [50, 1.7], [80, 1.5], [200, 2], [300, 1.8], [500, 2], [2000, 3]];
+  let spent = 0;
+  OLD_IDS.forEach((id, i) => { for (let k = 0; k < lvl(S, id); k++) spent += Math.floor(OLD[i][0] * Math.pow(OLD[i][1], k)); });
+  S.season.earned = S.stats.earned = S.pts + spent;
+  S.season.rank = rankOf(S.season.earned);
+  S.stats.bestRank = S.season.rank;
+  S.stats.buys = OLD_IDS.reduce((a, id) => a + lvl(S, id), 0);
+  return S;
+}
+/* Разобрать строку сохранения. ok — данные целы (сумма сошлась), S — состояние (всегда валидное). */
+function parse(str) {
+  const issues = [];
+  if (typeof str !== 'string' || !str) return { ok: false, empty: true, S: null, issues };
+  let o;
+  try { o = JSON.parse(str); } catch (e) { return { ok: false, S: null, issues: ['не JSON'] }; }
+  if (!isObj(o)) return { ok: false, S: null, issues: ['не объект'] };
+  if (o.v === 1) { const S = fromV1(o, issues); return { ok: true, v: 1, S, issues }; }
+  if (o.v === 2 && isObj(o.d)) {
+    const sumOk = o.sum === hash(JSON.stringify(o.d));
+    const S = fromData(o.d, issues);
+    if (!sumOk) issues.unshift('контрольная сумма');
+    return { ok: sumOk && !issues.length, v: 2, S, issues };
+  }
+  return { ok: false, S: null, issues: ['неизвестная версия'] };
+}
+/* Загрузка с восстановлением: основное → резервная копия → по полям → новая игра. */
+function load(main, bak) {
+  const a = parse(main);
+  if (a.ok) return { S: a.S, from: a.v === 1 ? 'v1' : 'main', issues: [] };
+  if (a.empty && !bak) return { S: newState(), from: 'new', issues: [] };
+  const b = parse(bak);
+  if (b.ok && (!a.S || !a.ok)) return { S: b.S, from: 'bak', issues: a.issues.length ? a.issues : ['основное сохранение испорчено'] };
+  if (a.S) return { S: a.S, from: 'repaired', issues: a.issues };
+  if (b.S) return { S: b.S, from: 'bak-repaired', issues: b.issues };
+  return { S: newState(), from: a.empty ? 'new' : 'reset', issues: a.issues };
+}
+
+/* ═══ Формат чисел ═══
+ * short: 1 250 · 12,5K · 4,5M · 1,2B · … (дальше — 1,2e45); full: 1 234 567 (до 10^15); sci: 1,23e6. */
+const SUF = ['', 'K', 'M', 'B', 'T', 'Qa', 'Qi', 'Sx', 'Sp', 'Oc', 'No', 'Dc'];
+const comma = s => s.replace('.', ',');
+function sci(n) {
+  const e = Math.floor(Math.log10(n));
+  let m = Math.floor(n / Math.pow(10, e) * 100 * (1 + 1e-12)) / 100;   // запас на погрешность деления
+  if (m >= 10) return sci(Math.pow(10, e + 1));
+  return comma(String(m)) + 'e' + e;
+}
+const group = n => String(Math.floor(n)).replace(/\B(?=(\d{3})+(?!\d))/g, ' ');
+function fmt(n, mode, dec) {
   n = Number(n);
   if (!Number.isFinite(n) || n < 0) n = 0;
-  if (n < 10000) {
-    if (dec && n % 1 !== 0) return (Math.round(n * 10) / 10).toFixed(1).replace('.', ',').replace(',0', '');
-    return Math.floor(n).toLocaleString('ru-RU');
+  if (n < 1000 && dec && n % 1 !== 0) {
+    const v = Math.floor(n * 10) / 10;
+    return v % 1 ? comma(v.toFixed(1)) : group(v);
   }
+  if (n < 1e4) return group(n);
+  if (mode === 'sci') return sci(n);
+  if (mode === 'full') return n < 1e15 ? group(n) : sci(n);
   let i = 0;
   while (n >= 1000 && i < SUF.length - 1) { n /= 1000; i++; }
-  const s = n >= 100 ? String(Math.floor(n)) : (Math.floor(n * 10) / 10).toFixed(1).replace('.', ',').replace(/,0$/, '');
+  if (n >= 1000) return sci(n * Math.pow(1000, i));
+  const s = n >= 100 ? String(Math.floor(n * (1 + 1e-12))) : comma(String(Math.floor(n * 10 * (1 + 1e-12)) / 10));
   return s + SUF[i];
 }
-const ptsWord = n => { n = Math.floor(n); const a = n % 100, b = n % 10; return (b === 1 && a !== 11) ? 'очка' : 'очков'; };
+/* длительность: 45 с · 3 мин 05 с · 2 ч 14 мин · 3 д 4 ч */
+function dur(sec) {
+  sec = Math.max(0, Math.floor(sec));
+  if (sec < 60) return sec + ' с';
+  const m = Math.floor(sec / 60), s = sec % 60;
+  if (m < 60) return m + ' мин' + (s ? ' ' + String(s).padStart(2, '0') + ' с' : '');
+  const h = Math.floor(m / 60), mm = m % 60;
+  if (h < 24) return h + ' ч' + (mm ? ' ' + mm + ' мин' : '');
+  const d = Math.floor(h / 24);
+  return d + ' д' + (h % 24 ? ' ' + (h % 24) + ' ч' : '');
+}
+const plural = (n, a, b, c) => { n = Math.abs(Math.floor(n)); const m = n % 10, h = n % 100; return m === 1 && h !== 11 ? a : m >= 2 && m <= 4 && (h < 12 || h > 14) ? b : c; };
 
+return {
+  TICK, MAXV, TAP_MAX, TAP_WIN, E_BASE, E_TAP, E_DECAY, OFF_RATE, OFF_CAP_H, OFF_SHOW, CLOCK_FIX, EV_MIN, EV_MAX, EV_LIFE,
+  COMP_CD, COMP_COUNT, MEDAL_K, MEDAL_P, MEDAL_VAL, RANK_VAL, ACH_VAL, MILES,
+  BRANCHES, UPG, BYID, OLD_IDS, RANKS, PERKS, PERK, EVENTS, TIERS, ACH, ACHID,
+  rng, newState, lvl, perk, mile, nextMile, rankOf, medalsAt, compMedals, medalTotal, perkSpent, medalFree, achCount,
+  TEAM, unlocked, derive, energyBonus, incomeMult, tapMult, tapValue, price, costN, maxAffordable, plan, buy, preview,
+  add, promote, limiter, tap, step, nextEventIn, spawnEvent, catchEvent, offline, touch,
+  seasonInfo, newSeason, buyPerk, tierOpen, compSetup, rivalAt, compPlace, compFinish, compAbandon, checkAch,
+  hash, toData, serialize, fromData, fromV1, parse, load, fmt, sci, dur, plural
+};
+})();
+
+/* ═══ ui.js ═══ */
 /* ═══════════════════════════════════════════════════════════════
- * ОТРИСОВКА — только изменившиеся значения (раньше магазин пересоздавался
- * 20 раз в секунду, и клик по улучшению «терялся» между pointerdown и click)
+ * АТЛЕТ — интерфейс: экраны и окна, ввод (тач, мышь, клавиатура), магазин,
+ * бонусы-события, турниры, сезоны, эффекты тапа, звук и вибрация, сохранение.
+ * Вся экономика — в движке CE; здесь только показ и ввод.
  * ═════════════════════════════════════════════════════════════ */
-const shown = {};
-function setText(id, txt) { if (shown[id] !== txt) { shown[id] = txt; $(id).textContent = txt; } }
-function setWidth(el, key, w) { if (shown[key] !== w) { shown[key] = w; el.style.width = w; } }
+const $ = id => document.getElementById(id);
+const $$ = s => document.querySelectorAll(s);
+const KEY = { save: 'clicker_save', bak: 'clicker_save_bak', v1: 'clicker_save_v1', set: 'clicker_settings' };
+const store = {
+  get(k) { try { return localStorage.getItem(k); } catch (e) { return null; } },
+  set(k, v) { try { localStorage.setItem(k, v); return true; } catch (e) { return false; } },
+  del(k) { try { localStorage.removeItem(k); } catch (e) {} }
+};
+const nowMs = () => performance.now();
 
-const cards = [];
-function buildShop() {
-  const shop = $('shop');
-  UPG.forEach(u => {
-    const b = document.createElement('button');
-    b.type = 'button';
-    b.className = 'ku-btn upg';
-    b.innerHTML = `<span class="ic">${u.icon}</span><span class="info"><span class="nm">${u.name}</span>` +
-      `<span class="ds">${u.desc}</span><span class="row"><span class="cost"></span><span class="ku-pbar"><i></i></span></span></span>` +
-      `<span class="ku-chip lv"></span>`;
-    b.addEventListener('click', () => buy(u));
-    shop.appendChild(b);
-    cards[u.id] = { el: b, cost: b.querySelector('.cost'), bar: b.querySelector('.ku-pbar i'), lv: b.querySelector('.lv'), st: '', ct: '', lt: '', w: '' };
-  });
-}
-function renderCard(u) {
-  const c = cards[u.id], n = lv[u.id], isMax = n >= u.max, price = isMax ? 0 : cost(u);
-  const st = isMax ? 'max' : pts >= price ? 'can' : 'lack';
-  if (c.st !== st) {
-    c.st = st;
-    c.el.classList.toggle('can', st === 'can');
-    c.el.classList.toggle('max', st === 'max');
-    c.el.disabled = st === 'max';
+/* ═══ Настройки ═══ */
+const settings = (() => {
+  const d = { sound: true, vib: true, fmt: 'short', fx: 'full', buy: 1, branch: 'tap' };
+  let o = null;
+  try { o = JSON.parse(store.get(KEY.set) || 'null'); } catch (e) { o = null; }
+  if (o && typeof o === 'object' && !Array.isArray(o)) {
+    if (typeof o.sound === 'boolean') d.sound = o.sound;
+    if (typeof o.vib === 'boolean') d.vib = o.vib;
+    if (['short', 'full', 'sci'].includes(o.fmt)) d.fmt = o.fmt;
+    if (['full', 'min'].includes(o.fx)) d.fx = o.fx;
+    if ([1, 10, 'max'].includes(o.buy)) d.buy = o.buy;
+    if (CE.BRANCHES.some(b => b.id === o.branch)) d.branch = o.branch;
   }
-  const ct = isMax ? 'МАКСИМУМ' : '🪙 ' + fmt(price);
-  if (c.ct !== ct) { c.ct = ct; c.cost.textContent = ct; }
-  const lt = isMax ? 'МАКС' : `УР. ${n}/${u.max}`;
-  if (c.lt !== lt) { c.lt = lt; c.lv.textContent = lt; }
-  const w = isMax ? '100%' : Math.min(100, Math.floor(pts / price * 100)) + '%';
-  if (c.w !== w) { c.w = w; c.bar.style.width = w; }
+  return d;
+})();
+const saveSettings = () => store.set(KEY.set, JSON.stringify(settings));
+const F = (n, dec) => CE.fmt(n, settings.fmt, dec);
+const mqCalm = window.matchMedia ? window.matchMedia('(prefers-reduced-motion: reduce)') : { matches: false };
+const calm = () => settings.fx === 'min' || mqCalm.matches;
+const applyCalm = () => document.body.classList.toggle('calm', calm());
+
+/* ═══ Состояние игры: загрузка с восстановлением и переносом v1 ═══ */
+let S, D, loadInfo;
+{
+  const main = store.get(KEY.save), bak = store.get(KEY.bak);
+  loadInfo = CE.load(main, bak);
+  S = loadInfo.S;
+  if (loadInfo.from === 'v1' && main) store.set(KEY.v1, main);    // копия старого сохранения — на всякий случай
 }
-function render() {
-  setText('score', fmt(pts));
-  const b = bonusPct();
-  setWidth($('energy-fill'), 'ew', (Math.round(energy / maxEnergy * 200) / 2) + '%');
-  const lbl = `⚡ Энергия ${Math.floor(energy)}/${maxEnergy}` + (energyAuto ? ` · +${energyAuto}/с` : '');
-  if (shown.el !== lbl + b) {
-    shown.el = lbl + b;
-    $('energy-lbl').innerHTML = lbl + (b > 0 ? ` · бонус <b>+${b}%</b>` : '');
-  }
-  setText('cpc', fmt(perClick));
-  setText('cps', fmt(perSec, true));
-  setText('bonus', '+' + b + '%');
-  UPG.forEach(renderCard);
-}
-function renderRank() {
-  const total = lv.reduce((a, n) => a + n, 0);
-  const i = Math.min(FRAMES.length - 1, Math.floor(total / 5));
-  setText('athlete', FRAMES[i]);
-  setText('rank', RANKS[i]);
-  const maxed = UPG.filter(u => lv[u.id] >= u.max).length;
-  setText('shop-sum', maxed === UPG.length ? 'Всё на максимуме 🏆' : `Куплено: ${total}`);
+D = CE.derive(S);
+const refresh = () => { D = CE.derive(S); };
+
+/* ═══ Сохранение: каждые 5 с, при скрытии вкладки и закрытии; резервная копия — раз в минуту ═══ */
+let lastBak = 0;
+function saveNow(forceBak) {
+  CE.touch(S, Date.now());
+  const str = CE.serialize(S);
+  store.set(KEY.save, str);
+  if (forceBak || Date.now() - lastBak > 60000) { store.set(KEY.bak, str); lastBak = Date.now(); }
 }
 
-/* ═══════════════════════════════════════════════════════════════
- * ДЕЙСТВИЯ
- * ═════════════════════════════════════════════════════════════ */
-function buy(u) {
-  if (lv[u.id] >= u.max) return;
-  const c = cost(u);
-  if (pts < c) {
-    const el = cards[u.id].el;
-    el.classList.remove('ku-shake-x'); void el.offsetWidth; el.classList.add('ku-shake-x');
-    const need = Math.ceil(c - pts);
-    KuArcade.toast(`Не хватает ${fmt(need)} ${ptsWord(need)}`, 'bad', 1400);
+/* ═══ Звук и вибрация ═══ */
+let audioCtx = null, lastTapSnd = 0, lastVib = 0;
+// звук и вибрация — только после первого касания/клавиши (иначе браузер ругается в консоли)
+const activated = () => !navigator.userActivation || navigator.userActivation.hasBeenActive;
+function tone(f, d, type, v, delay) {
+  if (!settings.sound || !activated()) return;
+  try {
+    if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+    if (audioCtx.state === 'suspended') audioCtx.resume();
+    const c = audioCtx, o = c.createOscillator(), g = c.createGain(), t0 = c.currentTime + (delay || 0);
+    o.type = type || 'sine'; o.frequency.value = f;
+    g.gain.setValueAtTime(v || 0.04, t0); g.gain.exponentialRampToValueAtTime(0.0001, t0 + d);
+    o.connect(g); g.connect(c.destination); o.start(t0); o.stop(t0 + d + 0.02);
+  } catch (e) {}
+}
+const sfx = {
+  tap: () => { const t = nowMs(); if (t - lastTapSnd < 55) return; lastTapSnd = t; tone(420 + Math.random() * 90, 0.045, 'triangle', 0.035); },
+  buy: () => { tone(660, 0.07, 'sine', 0.05); tone(990, 0.09, 'sine', 0.045, 0.06); },
+  nope: () => tone(150, 0.12, 'square', 0.035),
+  click: () => tone(520, 0.035, 'sine', 0.025),
+  bubble: () => [880, 1175].forEach((f, i) => tone(f, 0.09, 'sine', 0.035, i * 0.07)),
+  catch: () => [784, 988, 1319].forEach((f, i) => tone(f, 0.1, 'triangle', 0.05, i * 0.06)),
+  rank: () => [523, 659, 784, 1047, 1319].forEach((f, i) => tone(f, 0.14, 'square', 0.04, i * 0.09)),
+  ach: () => [659, 784, 1046].forEach((f, i) => tone(f, 0.12, 'sine', 0.05, i * 0.09)),
+  beep: hi => tone(hi ? 1046 : 660, hi ? 0.25 : 0.12, 'square', 0.045),
+  win: () => [523, 659, 784, 1046, 784, 1046].forEach((f, i) => tone(f, 0.12, 'square', 0.045, i * 0.08)),
+  lose: () => [392, 330, 262].forEach((f, i) => tone(f, 0.16, 'triangle', 0.05, i * 0.12)),
+  season: () => [392, 523, 659, 784, 1047].forEach((f, i) => tone(f, 0.18, 'triangle', 0.05, i * 0.1))
+};
+function vib(p, throttle) {
+  if (!settings.vib || !navigator.vibrate || !activated()) return;
+  const t = nowMs();
+  if (throttle && t - lastVib < throttle) return;
+  lastVib = t;
+  try { navigator.vibrate(p); } catch (e) {}
+}
+
+/* ═══ Тосты: не перехватывают нажатия (pointer-events: none) и не закрывают главное:
+ * на тренировке — над строкой показателей под кругом атлета (в колонке тренировки, не на магазине и не на счёте),
+ * в турнире — под строкой целей (не на дорожках и не на кнопке), при открытом окне — сверху экрана
+ * (главная кнопка окна — внизу карточки), в меню — внизу, как обычно. ═══ */
+const toast = (m, k, ms) => { if (window.KuArcade) { KuArcade.toast(m, k, ms); placeToast(); } };
+function placeToast() {
+  const el = document.querySelector('.ku-toast');
+  if (!el) return;
+  const s = el.style;
+  s.top = s.bottom = s.left = s.maxWidth = '';
+  el.classList.remove('top');
+  if (anyOverlay()) { el.classList.add('top'); return; }
+  let box, anchor;
+  if (screen === 'game') { box = $('hero'); anchor = document.querySelector('#hero .ku-hud'); }
+  else if (screen === 'comp') { box = $('lanes'); anchor = $('c-goal'); }
+  else return;
+  const b = box.getBoundingClientRect(), a = anchor.getBoundingClientRect();
+  if (!b.width || !a.height) return;
+  s.left = Math.round(b.left + b.width / 2) + 'px';
+  s.maxWidth = Math.round(Math.max(220, b.width - 12)) + 'px';
+  const h = el.offsetHeight;
+  let top, lo, hi;
+  if (screen === 'game') {
+    const sh = $('branch').getBoundingClientRect(), tb = $('tap').getBoundingClientRect();
+    hi = (sh.top > a.bottom - 1 ? sh.top : window.innerHeight) - 6 - h;   // в портрете магазин — под тренировкой
+    lo = tb.bottom + 2;                                                    // не на кругу атлета
+    top = a.top + a.height / 2 - h / 2;
+  } else {
+    // турнир: под строкой целей; кнопка тапа ниже (портрет) или сбоку (альбом) — не заходим ни на неё, ни на дорожки
+    const tb = $('ctap').getBoundingClientRect(), hdr = document.querySelector('#screen-comp .ku-top').getBoundingClientRect();
+    lo = a.bottom + 4;
+    hi = (tb.top > a.bottom ? tb.top : window.innerHeight) - 6 - h;
+    if (lo > hi) {                                        // под целями не помещается — над дорожками
+      const above = b.top - 6 - h;
+      if (above >= hdr.bottom + 2) { s.top = Math.round(above) + 'px'; s.bottom = 'auto'; return; }
+    }
+    top = lo;
+  }
+  top = Math.min(Math.max(top, lo), hi);                 // места мало — важнее не закрыть магазин/кнопку
+  s.top = Math.max(4, Math.round(top)) + 'px';
+  s.bottom = 'auto';
+}
+const toastQ = [];
+let toastBusy = 0;
+function queueToast(m, k, ms) { toastQ.push([m, k, ms || 2600]); if (!toastBusy) nextToast(); }
+function nextToast() {
+  const t = toastQ.shift();
+  if (!t) { toastBusy = 0; return; }
+  toast(t[0], t[1], t[2]);
+  toastBusy = setTimeout(nextToast, t[2] + 200);
+}
+
+/* ═══ Экраны и окна ═══ */
+let screen = 'menu';
+const OVERLAYS = ['ov-pause', 'ov-offline', 'ov-rank', 'ov-result', 'ov-cpause', 'ov-comps', 'ov-season', 'ov-stats', 'ov-ach', 'ov-rules', 'ov-settings'];
+const isOpen = id => $(id).classList.contains('open');
+const anyOverlay = () => OVERLAYS.some(isOpen) || !!document.querySelector('.ku-dialog');
+const openedAt = {};
+let returnTo = null;              // окно, открытое из паузы, по закрытии возвращает в паузу
+function openOv(id) {
+  $(id).classList.add('open');
+  openedAt[id] = nowMs();
+  placeToast();
+  const f = $(id).querySelector('.ku-btn.primary, .ku-btn');
+  if (f) setTimeout(() => { try { f.focus({ preventScroll: true }); } catch (e) {} }, 30);
+}
+function closeOv(id) {
+  if (!isOpen(id)) return;
+  // фокус не должен остаться на скрытой кнопке окна — иначе пробел/Enter не дойдут до тапа
+  const ae = document.activeElement;
+  if (ae && ae !== document.body && $(id).contains(ae)) ae.blur();
+  $(id).classList.remove('open');
+  placeToast();
+  if (returnTo && id !== returnTo && !OVERLAYS.some(isOpen)) {
+    const r = returnTo; returnTo = null;
+    if (r === 'ov-pause' && screen === 'game') openOv(r);
+  } else if (id === returnTo) returnTo = null;
+  if (!anyOverlay()) setTimeout(flushPending, 60);
+}
+// защита от случайного нажатия: окно, открывшееся посреди быстрых тапов, первые 450 мс не реагирует
+const fresh = id => nowMs() - (openedAt[id] || 0) < 450;
+function showScreen(name) {
+  screen = name;
+  const ae = document.activeElement;
+  if (ae && ae !== document.body && !$('screen-' + name).contains(ae)) ae.blur();
+  ['menu', 'game', 'comp'].forEach(n => $('screen-' + n).classList.toggle('active', n === name));
+  if (name === 'menu') { OVERLAYS.forEach(id => $(id).classList.remove('open')); returnTo = null; renderMenu(); }
+  if (name === 'game') { renderAll(true); setTimeout(flushPending, 80); }
+  removeBubble(false);
+  placeToast();
+}
+$$('[data-close]').forEach(b => b.addEventListener('click', () => { sfx.click(); closeOv(b.closest('.ku-overlay').id); }));
+$$('.ku-overlay').forEach(o => o.addEventListener('click', e => { if (e.target === o && o.querySelector('.ku-modal')) closeOv(o.id); }));
+
+// отложенные окна (звание, итоги) — показываются на экране тренировки, когда других окон нет
+const pending = [];
+function flushPending() {
+  if (screen !== 'game' || anyOverlay() || document.hidden) return;
+  const f = pending.shift();
+  if (f) f();
+}
+
+/* ═══ Эффекты: всплывающие числа и частицы на одном холсте; рисуем, только пока есть что рисовать.
+ * Каждый эффект живёт в своей «зоне» (прямоугольник кнопки тапа, карточки и т. п.), холст обрезается по ней:
+ * числа и искры не залезают на счёт, доход в секунду, бонусы и строки энергии/званий. Числа появляются у точки
+ * тапа, поднимаются недалеко и гаснут внутри круга; у одной кнопки — не больше FLOAT_MAX чисел сразу, следующие
+ * тапы прибавляются к самому свежему («+сумма»). ═══ */
+const FLOAT_MAX = 6;
+const FX_FONT = "18px 'Russo One', 'Rubik', sans-serif";
+const fx = { cv: $('fx'), ctx: null, dpr: 1, w: 0, h: 0, floats: [], parts: [], dirty: false, zones: new Map() };
+fx.ctx = fx.cv.getContext('2d');
+function fxResize() {
+  fx.dpr = Math.min(2, window.devicePixelRatio || 1);
+  fx.w = window.innerWidth; fx.h = window.innerHeight;
+  fx.cv.width = Math.round(fx.w * fx.dpr); fx.cv.height = Math.round(fx.h * fx.dpr);
+  fx.dirty = true;
+  fx.zones.clear();
+}
+fxResize();
+window.addEventListener('resize', () => { fxResize(); placeBubble(); placeToast(); });
+// зона элемента; кэш на полсекунды — кнопка не двигается, а тапов бывает до 18 в секунду
+function zoneOf(el) {
+  const t = nowMs();
+  let z = fx.zones.get(el);
+  if (!z || t - z.at > 500) {
+    const r = el.getBoundingClientRect();
+    z = { x: r.left, y: r.top, w: r.width, h: r.height, at: t };
+    fx.zones.set(el, z);
+  }
+  return z;
+}
+const ease = k => 1 - (1 - k) * (1 - k);
+function fxFloat(x, y, gain, color, z) {
+  let mine = 0, last = null;
+  for (const f of fx.floats) if (f.z === z) { mine++; last = f; }
+  if (mine >= FLOAT_MAX && last) {                       // слияние: «+сумма» вместо нового числа
+    last.sum += gain; last.n++; last.text = '+' + F(last.sum);
+    last.t = Math.min(last.t, last.life * 0.25);
+    return last;
+  }
+  const top = z.y + 14, bottom = z.y + z.h - 14;          // полувысота текста ≈ 11 px + запас
+  const y0 = Math.max(top, Math.min(bottom, y - 6));
+  const rise = calm() ? 0 : Math.min(32, y0 - top);      // недалеко и не выше зоны
+  const f = { x, y0, rise, t: 0, life: calm() ? 0.55 : 0.7, sum: gain, n: 1, text: '+' + F(gain), color: color || '#ffd60a', z };
+  fx.floats.push(f);
+  return f;
+}
+function fxBurst(x, y, n, color, z) {
+  if (calm()) return;
+  for (let i = 0; i < n && fx.parts.length < 160; i++) {
+    const a = Math.random() * Math.PI * 2, v = 50 + Math.random() * 100;
+    fx.parts.push({ x, y, vx: Math.cos(a) * v, vy: Math.sin(a) * v - 40, t: 0, life: 0.35 + Math.random() * 0.25, r: 1.5 + Math.random() * 2, c: color || (Math.random() < 0.5 ? '#ffd60a' : '#00e5ff'), z });
+  }
+}
+// положение числа: по горизонтали — внутри зоны с учётом ширины текста
+function floatBox(f, w) {
+  const k = Math.min(1, f.t / f.life), z = f.z;
+  const x = Math.max(z.x + w / 2 + 2, Math.min(z.x + z.w - w / 2 - 2, f.x));
+  return { x, y: f.y0 - f.rise * ease(k), k };
+}
+// прямоугольники видимых чисел (для тестов: не пересекают счёт и строки над/под кругом)
+function fxFloatRects() {
+  const c = fx.ctx;
+  c.font = FX_FONT;
+  return fx.floats.map(f => { const w = c.measureText(f.text).width, b = floatBox(f, w); return { x: b.x - w / 2 - 2, y: b.y - 12, w: w + 4, h: 24, n: f.n, z: f.z }; });
+}
+function fxDraw(dt) {
+  const c = fx.ctx;
+  if (!fx.floats.length && !fx.parts.length) {
+    if (fx.dirty) { c.setTransform(1, 0, 0, 1, 0, 0); c.clearRect(0, 0, fx.cv.width, fx.cv.height); fx.dirty = false; }
     return;
   }
-  pts -= c;
-  lv[u.id]++;
-  recalc();
-  renderRank();
-  render();
-  save();
-  if (lv[u.id] >= u.max) KuArcade.toast(`${u.icon} ${u.name}: максимум!`, 'gold', 1600);
+  fx.dirty = true;
+  c.setTransform(fx.dpr, 0, 0, fx.dpr, 0, 0);
+  c.clearRect(0, 0, fx.w, fx.h);
+  for (let i = fx.parts.length - 1; i >= 0; i--) {
+    const p = fx.parts[i];
+    p.t += dt;
+    if (p.t >= p.life) { fx.parts.splice(i, 1); continue; }
+    p.vy += 300 * dt; p.x += p.vx * dt; p.y += p.vy * dt;
+  }
+  for (let i = fx.floats.length - 1; i >= 0; i--) { const f = fx.floats[i]; f.t += dt; if (f.t >= f.life) fx.floats.splice(i, 1); }
+  const zones = new Set();
+  fx.parts.forEach(p => zones.add(p.z)); fx.floats.forEach(f => zones.add(f.z));
+  c.font = FX_FONT; c.textAlign = 'center'; c.textBaseline = 'middle'; c.lineWidth = 3; c.strokeStyle = 'rgba(4,6,22,.65)';
+  for (const z of zones) {
+    c.save();
+    c.beginPath(); c.rect(z.x, z.y, z.w, z.h); c.clip();
+    for (const p of fx.parts) {
+      if (p.z !== z) continue;
+      c.globalAlpha = 1 - p.t / p.life;
+      c.fillStyle = p.c;
+      c.beginPath(); c.arc(p.x, p.y, p.r, 0, 6.283); c.fill();
+    }
+    for (const f of fx.floats) {
+      if (f.z !== z) continue;
+      const w = c.measureText(f.text).width, b = floatBox(f, w);
+      c.globalAlpha = b.k < 0.1 ? b.k / 0.1 : 1 - Math.max(0, (b.k - 0.4) / 0.6);
+      c.strokeText(f.text, b.x, b.y);
+      c.fillStyle = f.color;
+      c.fillText(f.text, b.x, b.y);
+    }
+    c.restore();
+  }
+  c.globalAlpha = 1;
 }
 
-function spawnFloat(x, y, txt) {
-  const box = $('floats');
-  if (box.childElementCount > 30) box.firstElementChild.remove();
-  const f = document.createElement('div');
-  f.className = 'float';
-  f.textContent = txt;
-  f.style.left = x + 'px'; f.style.top = y + 'px';
-  box.appendChild(f);
-  setTimeout(() => f.remove(), 950);
-}
-
-function tap(x, y) {
-  const gain = Math.ceil(perClick * (1 + bonusPct() / 100));
-  pts += gain;
-  energy = Math.min(maxEnergy, energy + TAP_ENERGY);
-  dirty = true;
-  spawnFloat(x + (Math.random() - 0.5) * 30, y - 10, '+' + fmt(gain));
-  const t = $('tap');
-  t.classList.remove('hit'); void t.offsetWidth; t.classList.add('hit');
-  render();
-}
-
-const tapBtn = $('tap');
-// Тап — на pointerdown (мгновенно, несколько пальцев = несколько тапов), Enter/Пробел — на keydown (без автоповтора).
-// «Хвостовой» click после указателя/клавиши не считаем (по времени, а не по e.detail: после тача Chromium
-// иногда присылает click с detail = 0) — без двойных начислений. Одиночный click (экранный диктор) — тап.
-let lastInput = -1e9;
-const tapCenter = () => { const r = tapBtn.getBoundingClientRect(); tap(r.left + r.width / 2, r.top + r.height * 0.3); };
-tapBtn.addEventListener('pointerdown', e => {
-  if (e.pointerType === 'mouse' && e.button !== 0) return;
-  e.preventDefault();
-  lastInput = performance.now();
-  tap(e.clientX, e.clientY);
-});
-['pointerup', 'pointercancel'].forEach(t => tapBtn.addEventListener(t, () => { lastInput = performance.now(); }));
-tapBtn.addEventListener('keydown', e => {
-  if (e.code !== 'Enter' && e.code !== 'NumpadEnter' && e.code !== 'Space') return;
-  e.preventDefault();
-  lastInput = performance.now();
-  if (!e.repeat) tapCenter();
-});
-tapBtn.addEventListener('keyup', e => { if (e.code === 'Space') { e.preventDefault(); lastInput = performance.now(); } });
-tapBtn.addEventListener('click', () => { if (performance.now() - lastInput > 700) tapCenter(); });
-tapBtn.addEventListener('contextmenu', e => e.preventDefault());
-
-/* ── Доход и энергия: по реальному времени, а не «+1/20 за тик» ── */
-let lastTick = performance.now();
-setInterval(() => {
-  const now = performance.now();
-  const dt = Math.min(1, Math.max(0, (now - lastTick) / 1000));
-  lastTick = now;
-  if (perSec > 0) { pts += perSec * dt; dirty = true; }
-  if (energyAuto > 0) energy = Math.min(maxEnergy, energy + energyAuto * dt);
-  else if (energy > 0) energy = Math.max(0, energy - ENERGY_DECAY * dt);
-  render();
-}, 100);
-setInterval(() => { if (dirty) save(); }, 4000);
-document.addEventListener('visibilitychange', () => { if (document.hidden) save(); });
-window.addEventListener('pagehide', save);
-
-/* ── Окна ── */
-const open = id => $(id).classList.add('open');
-const close = id => $(id).classList.remove('open');
-$('btn-help').onclick = () => open('md-help');
-document.querySelectorAll('[data-close]').forEach(b => b.addEventListener('click', () => close(b.closest('.ku-overlay').id)));
-$('btn-reset').onclick = () => {
-  KuArcade.confirm('Очки силы и вся прокачка обнулятся. Отменить это нельзя.',
-    { title: 'НАЧАТЬ ЗАНОВО?', ok: '↻ Сбросить прогресс', cancel: 'Отмена', danger: true }).then(yes => {
-    if (!yes) return;
-    pts = 0; energy = 0; lv.fill(0);
-    recalc(); renderRank(); render(); save();
-    KuArcade.toast('Прогресс сброшен — новый сезон!', 'gold');
+/* ═══ Ввод тапа: pointerdown (мгновенно, каждый палец — отдельный тап), Enter/пробел без автоповтора.
+ * «Хвостовой» click после указателя/клавиши не считаем; одиночный click (экранный диктор) — тап. ═══ */
+const limiter = CE.limiter(CE.TAP_MAX, CE.TAP_WIN);
+function bindTap(btn, onTap) {
+  let lastInput = -1e9;
+  const center = () => { const r = btn.getBoundingClientRect(); onTap(r.left + r.width / 2, r.top + r.height * 0.3); };
+  btn.addEventListener('pointerdown', e => {
+    if (e.pointerType === 'mouse' && e.button !== 0) return;
+    e.preventDefault();
+    lastInput = nowMs();
+    onTap(e.clientX, e.clientY);
   });
+  ['pointerup', 'pointercancel'].forEach(t => btn.addEventListener(t, () => { lastInput = nowMs(); }));
+  btn.addEventListener('keydown', e => {
+    if (e.code !== 'Enter' && e.code !== 'NumpadEnter' && e.code !== 'Space') return;
+    e.preventDefault(); e.stopPropagation();
+    lastInput = nowMs();
+    if (!e.repeat) center();
+  });
+  btn.addEventListener('keyup', e => { if (e.code === 'Space') { e.preventDefault(); lastInput = nowMs(); } });
+  btn.addEventListener('click', () => { if (nowMs() - lastInput > 700) center(); });
+  btn.addEventListener('contextmenu', e => e.preventDefault());
+  return center;
+}
+let capShownAt = 0;
+/* засчитать тап (если позволяет темп): очки, энергия, эффекты; возвращает прибавку или 0 */
+function doTap(x, y, btn) {
+  const t = nowMs();
+  if (!limiter.allow(t)) {
+    S.stats.cut++;
+    capShownAt = t;
+    return 0;
+  }
+  const gain = CE.tap(S, D);
+  const tps = limiter.rate(t);
+  if (tps > S.stats.bestTps) S.stats.bestTps = tps;
+  const z = zoneOf(btn || $('tap'));
+  fxFloat(x + (Math.random() - 0.5) * Math.min(60, z.w * 0.4), y, gain, S.ev.drink > 0 ? '#51f58b' : '#ffd60a', z);
+  fxBurst(x, y, 5, null, z);
+  sfx.tap(); vib(6, 70);
+  if (btn) { btn.classList.remove('hit'); void btn.offsetWidth; btn.classList.add('hit'); }
+  renderTop();
+  return gain;
+}
+const tapCenter = bindTap($('tap'), (x, y) => { if (screen === 'game' && !anyOverlay()) doTap(x, y, $('tap')); });
+const ctapCenter = bindTap($('ctap'), (x, y) => compTap(x, y));
+
+/* ═══ Цикл: экономика — фиксированными шагами 0,1 с по реальному времени (не зависит от частоты кадров);
+ * отрисовка — по кадрам. Пауза между кадрами дольше 5 с (устройство «уснуло») — как офлайн. ═══ */
+let lastFrame = nowMs(), acc = 0, lastShop = 0, lastSec = 0, hiddenAt = null;
+const isActive = () => !document.hidden && screen === 'game' && !anyOverlay();
+function pump(t) {
+  const dt = t - lastFrame;
+  if (!(dt > 0)) return;          // метка кадра может быть чуть раньше вызова из таймера — не считаем дважды
+  lastFrame = t;
+  if (dt > 5000) { catchUp(dt / 1000); return; }
+  acc += dt;
+  let n = 0;
+  while (acc >= CE.TICK * 1000 && n < 60) { tick(); acc -= CE.TICK * 1000; n++; }
+  if (acc > 1000) acc = 0;
+}
+function tick() {
+  refresh();
+  const out = CE.step(S, D, CE.TICK, isActive(), Math.random);
+  if (out.spawned) { sfx.bubble(); vib(15); }
+  if (out.missed) removeBubble(true);
+  if (C) compTick(CE.TICK);
+  afterGain();
+  const t = nowMs();
+  if (t - lastSec > 1000) { lastSec = t; checkAch(); }
+}
+function frame(t) {
+  pump(t);
+  const dt = Math.min(0.05, (t - (frame.prev || t)) / 1000);
+  frame.prev = t;
+  if (!document.hidden) {
+    if (screen === 'game') { renderTop(); renderBubble(); if (t - lastShop > 250) { lastShop = t; renderShop(); } }
+    else if (screen === 'comp') renderComp();
+    else if (t - lastShop > 1000) { lastShop = t; renderMenu(); }      // меню: очки и доход обновляются раз в секунду
+    fxDraw(dt);
+  }
+  requestAnimationFrame(frame);
+}
+// запасной «мотор» экономики, если браузер придерживает кадры, а вкладка видна
+setInterval(() => { if (!document.hidden) pump(nowMs()); }, 1000);
+
+/* доход за паузу без кадров / скрытую вкладку — по правилам офлайн-дохода */
+function catchUp(sec) {
+  refresh();
+  const r = CE.offline(S, D, Date.now(), sec);
+  afterGain();
+  if (r.back > 60) queueToast('⏰ Часы устройства переведены назад — офлайн-доход за это время не начислен', 'bad', 3600);
+  else if (r.gain > 0 && r.sec >= CE.OFF_SHOW && screen !== 'comp') showOffline(r);   // в турнире — без окна, только тост
+  else if (r.gain > 0 && r.sec >= 5) queueToast(`🌙 +${F(r.gain)} за ${CE.dur(r.sec)} без вас (${Math.round(r.rate * 100)} %)`, 'good');
+}
+document.addEventListener('visibilitychange', () => {
+  if (document.hidden) {
+    hiddenAt = { perf: nowMs() };
+    if (C && C.phase !== 'done' && !C.paused) pauseComp(true);
+    saveNow();
+  } else {
+    const t = nowMs();
+    const away = hiddenAt ? (t - hiddenAt.perf) / 1000 : 0;
+    hiddenAt = null;
+    lastFrame = t; acc = 0;
+    if (away > 0.5) catchUp(away);
+  }
+});
+window.addEventListener('pagehide', () => saveNow());
+setInterval(() => { if (!document.hidden) saveNow(); }, 5000);
+
+/* после любого начисления: звания (окно с наградами) */
+const rankQueue = [];
+function afterGain() {
+  const pr = CE.promote(S);
+  if (!pr.length) return;
+  refresh();
+  pr.forEach(p => rankQueue.push(p));
+  if (!pending.includes(showRank)) pending.push(showRank);
+  if (screen === 'game') setTimeout(flushPending, 50);
+  saveNow();
+}
+
+/* ═══ Достижения ═══ */
+function checkAch(extra) {
+  refresh();
+  const got = CE.checkAch(S, D, extra);
+  if (!got.length) return;
+  refresh();
+  got.forEach(a => { sfx.ach(); vib([40, 40, 80]); queueToast(`🏅 Достижение: ${a.name} (+2 % к доходу)`, 'gold', 2800); });
+  saveNow();
+}
+
+/* ═══ Верхняя часть тренировки ═══ */
+const shown = {};
+function setText(id, txt) { if (shown[id] !== txt) { shown[id] = txt; $(id).textContent = txt; } }
+function setHTML(id, html) { if (shown[id] !== html) { shown[id] = html; $(id).innerHTML = html; } }
+function setW(id, w) { if (shown['w' + id] !== w) { shown['w' + id] = w; $(id).style.width = w; } }
+const pct = (a, b) => Math.max(0, Math.min(100, b > 0 ? a / b * 100 : 0));
+function renderTop() {
+  const R = CE.RANKS[S.season.rank];
+  setText('score', F(S.pts));
+  const mult = isActive() ? CE.incomeMult(S) : 1;
+  setText('ps', '+' + F(D.perSec * mult, true) + '/с' + (mult > 1 ? ' ×' + mult : ''));
+  $('ps').classList.toggle('boost', mult > 1);
+  setText('athlete', R.icon);
+  setText('g-rank', R.short.toUpperCase());
+  setText('g-season', `СЕЗОН ${S.season.n}` + (CE.medalTotal(S) ? ` · 🏅 ×${CE.fmt(1 + CE.MEDAL_VAL * CE.medalTotal(S), 'short', true)}` : ''));
+  const bonus = Math.round(CE.energyBonus(S, D) * 100);
+  setW('energy-fill', pct(S.energy, D.emax).toFixed(1) + '%');
+  const lbl = `⚡ ${Math.floor(S.energy)}/${D.emax}` + (D.eregen ? ` · +${D.eregen}/с` : '') + (bonus > 0 ? ` · бонус <b>+${bonus}%</b>` : ' · тапайте чаще');
+  setHTML('energy-lbl', lbl);
+  const next = CE.RANKS[S.season.rank + 1];
+  if (next) {
+    setW('rank-fill', pct(S.season.earned - R.at, next.at - R.at).toFixed(1) + '%');
+    setText('rank-lbl', `до «${next.name}»: ${F(Math.max(0, next.at - S.season.earned))}`);
+  } else { setW('rank-fill', '100%'); setText('rank-lbl', 'Высшее звание!'); }
+  setText('h-tap', F(CE.tapValue(S, D)));
+  setText('h-ps', F(D.perSec, true));
+  setText('h-bonus', '+' + bonus + '%');
+  $('tap').classList.toggle('boosted', S.ev.shake > 0 || S.ev.drink > 0);
+  // активные бонусы: постоянные чипы — меняется только текст (иначе каждую секунду мигала бы анимация появления)
+  chip('b-shake', S.ev.shake > 0, `🥤 ДОХОД ×2 · ${Math.ceil(S.ev.shake)} С`);
+  chip('b-drink', S.ev.drink > 0, `⚡ ТАП ×3 · ${Math.ceil(S.ev.drink)} С`);
+  chip('b-tip', nowMs() - capShownAt < 700, 'МАКС. ТЕМП');
+}
+function chip(id, on, txt) {
+  const el = $(id);
+  if (el.hidden === on) el.hidden = !on;
+  if (on) setText(id, txt);
+}
+
+/* ═══ Бонус-событие ═══ */
+let bubbleEl = null;
+function removeBubble(missed) {
+  if (!bubbleEl) return;
+  const el = bubbleEl;
+  bubbleEl = null;
+  if (missed && !calm()) { el.classList.add('out'); setTimeout(() => el.remove(), 320); } else el.remove();
+}
+function placeBubble() {
+  if (!bubbleEl || !S.ev.live) return;
+  const hr = $('hero').getBoundingClientRect(), tr = $('tap').getBoundingClientRect(), live = S.ev.live;
+  const R = 29, gap = 8, need = 2 * R + gap;
+  const cl = v => Math.max(0, Math.min(1, v));
+  // по вертикали — в полосе круга атлета: не на счёте, доходе, бонусах и строках энергии/званий
+  const y = (tr.top - hr.top) + R + Math.max(0, tr.height - 2 * R) * cl((live.y - 0.15) / 0.6);
+  // по горизонтали — сбоку от круга (где хватает места), не накрывая кнопку тапа
+  const left = tr.left - hr.left, right = hr.right - tr.right;
+  let side = live.x < 0.5 ? 'L' : 'R';
+  if (side === 'L' && left < need && right >= need) side = 'R';
+  if (side === 'R' && right < need && left >= need) side = 'L';
+  const xN = cl(live.x < 0.5 ? (live.x - 0.12) / 0.38 : (live.x - 0.5) / 0.38);
+  let x;
+  if (side === 'L') { const lo = R + 2, hi = Math.max(lo, left - R - gap); x = lo + (hi - lo) * xN; }
+  else { const lo = tr.right - hr.left + R + gap, hi = Math.max(lo, hr.width - R - 2); x = lo + (hi - lo) * xN; }
+  bubbleEl.style.left = x + 'px'; bubbleEl.style.top = y + 'px';
+}
+function renderBubble() {
+  const live = S.ev.live;
+  if (!live || screen !== 'game') { if (bubbleEl && !live) removeBubble(true); return; }
+  if (!bubbleEl) {
+    const ev = CE.EVENTS.find(e => e.id === live.type);
+    const b = document.createElement('button');
+    b.className = 'bubble'; b.type = 'button';
+    b.textContent = ev.icon;
+    b.setAttribute('aria-label', 'Поймать бонус: ' + ev.name);
+    b.addEventListener('pointerdown', e => { e.preventDefault(); catchBubble(e.clientX, e.clientY); });
+    b.addEventListener('click', () => catchBubble());
+    $('hero').appendChild(b);
+    bubbleEl = b;
+    placeBubble();
+  }
+  bubbleEl.style.setProperty('--p', Math.max(0, live.left / live.life).toFixed(3));
+}
+function catchBubble(x, y) {
+  if (!S.ev.live || !bubbleEl) return;
+  const r = bubbleEl.getBoundingClientRect();
+  if (x === undefined) { x = r.left + r.width / 2; y = r.top + r.height / 2; }
+  refresh();
+  const res = CE.catchEvent(S, D, Math.random);
+  removeBubble(false);
+  if (!res) return;
+  sfx.catch(); vib([20, 30, 20]);
+  // искры — в полосе круга атлета рядом с пузырём (не на счёте)
+  const tr = $('tap').getBoundingClientRect();
+  fxBurst(x, y, 18, '#51f58b', { x: r.left - 24, y: tr.top, w: r.width + 48, h: tr.height });
+  if (res.type === 'shake') queueToast(`🥤 Протеиновый коктейль: весь доход ×2 на ${res.sec} с!`, 'good');
+  else if (res.type === 'drink') queueToast(`⚡ Энергетик: энергия на максимум, тап ×3 на ${res.sec} с!`, 'gold');
+  else queueToast(`💰 Спонсорский чек: +${F(res.amount)} очков`, 'good');
+  afterGain();
+  checkAch();
+  saveNow();
+}
+
+/* ═══ Магазин ═══ */
+const KIND_DESC = {
+  add: u => `+${u.val} к силе тапа за уровень`,
+  gen: u => `+${CE.fmt(u.val, 'short', true)}/с за уровень (без множителей)`,
+  tapx: () => 'Сила тапа ×1,5 за уровень',
+  tech: () => 'Тап приносит +1 % дохода в секунду',
+  emax: () => 'Запас энергии +20 за уровень',
+  egain: () => '+1 энергии за каждый тап',
+  ebonus: () => 'Бонус +0,05 % за единицу энергии',
+  eregen: () => 'Энергия копится сама и не тает; доход/с +5 %',
+  allx: () => 'Весь доход ×2 за уровень',
+  passp: () => 'Доход в секунду +25 % за уровень',
+  evp: () => 'Бонусы-события сильнее и дольше на 15 %',
+  prize: () => 'Призы турниров +10 % за уровень'
 };
-document.addEventListener('keydown', e => {
-  if (e.code === 'Escape') document.querySelectorAll('.ku-overlay.open').forEach(o => o.classList.remove('open'));
+const cards = {};
+function buildShop() {
+  const seg = $('branch');
+  CE.BRANCHES.forEach((b, i) => {
+    const bt = document.createElement('button');
+    bt.dataset.b = b.id; bt.setAttribute('role', 'tab');
+    bt.title = `${b.name} (${i + 1})`;
+    bt.innerHTML = `<span class="bi">${b.icon}</span> ${b.name}`;
+    bt.addEventListener('click', () => { sfx.click(); setBranch(b.id); });
+    seg.appendChild(bt);
+  });
+  const shop = $('shop');
+  CE.UPG.forEach(u => {
+    const b = document.createElement('button');
+    b.type = 'button'; b.className = 'ku-btn upg'; b.dataset.id = u.id;
+    b.innerHTML = `<span class="ic">${u.icon}</span><span class="info"><span class="nm"><span class="n">${u.name}</span><span class="lv"></span></span>` +
+      `<span class="ds">${KIND_DESC[u.kind](u)}</span><span class="gn"></span>` +
+      `<span class="row"><span class="cost"></span><span class="ku-pbar"><i></i></span><span class="mile"></span></span></span>`;
+    b.addEventListener('click', e => { buyCard(u.id, b); if (e.detail > 0) b.blur(); });
+    shop.appendChild(b);
+    cards[u.id] = { el: b, lv: b.querySelector('.lv'), gn: b.querySelector('.gn'), cost: b.querySelector('.cost'), bar: b.querySelector('.ku-pbar i'), mile: b.querySelector('.mile'), ds: b.querySelector('.ds'), c: {} };
+  });
+  const note = document.createElement('div');
+  note.className = 'shop-note'; note.id = 'shop-note';
+  shop.appendChild(note);
+  $('buymode').addEventListener('click', e => { sfx.click(); cycleBuyMode(); if (e.detail > 0) $('buymode').blur(); });
+  setBranch(settings.branch, true);
+  setBuyMode(settings.buy, true);
+}
+const NOTES = {
+  tap: 'Тап = сила тапа × (1 + бонус энергии). «Техника» делает тап частью дохода в секунду.',
+  team: 'Цена ×1,15 за уровень. На уровнях 10, 25, 50, 100, 200 и 300 отдача удваивается.',
+  energy: 'Энергия: +2 за тап, тает без тапов. Каждая единица — +1 % к тапу.',
+  boost: 'Множители дорогие, но действуют на всё. «Чемпион» удваивает и тап, и доход.'
+};
+function setBranch(id, quiet) {
+  settings.branch = id;
+  $$('#branch button').forEach(b => { const on = b.dataset.b === id; b.classList.toggle('active', on); b.setAttribute('aria-selected', on); });
+  if (!quiet) saveSettings();
+  $('shop').scrollTop = 0;
+  $('shop-note').textContent = NOTES[id];
+  renderShop(true);
+}
+const BUY_MODES = [1, 10, 'max'];
+function setBuyMode(m, quiet) {
+  settings.buy = m;
+  $('buymode').textContent = m === 'max' ? 'MAX' : '×' + m;
+  if (!quiet) { saveSettings(); toast(m === 'max' ? 'Покупать сколько хватит очков' : `Покупать по ${m}`, '', 1100); }
+  renderShop(true);
+}
+const cycleBuyMode = () => setBuyMode(BUY_MODES[(BUY_MODES.indexOf(settings.buy) + 1) % 3]);
+function gainText(u, k) {
+  const pv = CE.preview(S, u.id, k);
+  const parts = [];
+  if (pv.ps > 0) parts.push('+' + F(pv.ps, true) + '/с');
+  if (pv.tap > 0) parts.push('+' + F(pv.tap, true) + ' к тапу');
+  if (u.kind === 'emax') parts.unshift('+' + 20 * k + ' к запасу энергии');
+  else if (u.kind === 'egain') parts.unshift('+' + k + ' энергии за тап');
+  else if (u.kind === 'ebonus') parts.unshift('+' + CE.fmt(0.05 * k, 'short', true).replace('.', ',') + ' % за ед. энергии');
+  else if (u.kind === 'eregen') parts.unshift('+' + 5 * k + ' энергии/с');
+  else if (u.kind === 'evp') parts.unshift('бонусы +' + 15 * k + ' %');
+  else if (u.kind === 'prize') parts.unshift('призы +' + 10 * k + ' %');
+  return parts.length ? '→ ' + parts.join(' · ') : '';
+}
+function renderShop(force) {
+  if (screen !== 'game' && !force) return;
+  const br = settings.branch, mode = settings.buy;
+  let lockShown = false;
+  for (const u of CE.UPG) {
+    const c = cards[u.id], vis = u.br === br;
+    const unl = CE.unlocked(S, u.id);
+    // из закрытых источников дохода показываем только ближайший
+    const show = vis && (unl || !lockShown);
+    if (vis && !unl) lockShown = true;
+    if (c.c.show !== show) { c.c.show = show; c.el.hidden = !show; }
+    if (!show) continue;
+    const n = CE.lvl(S, u.id), p = CE.plan(S, D, u.id, mode);
+    const st = p.max ? 'max' : p.locked ? 'locked' : p.can ? 'can' : 'lack';
+    if (c.c.st !== st) {
+      c.c.st = st;
+      c.el.classList.toggle('can', st === 'can'); c.el.classList.toggle('max', st === 'max'); c.el.classList.toggle('locked', st === 'locked');
+      c.el.setAttribute('aria-disabled', st === 'max' || st === 'locked');
+    }
+    const lv = p.max ? 'МАКС' : `УР. ${n}/${u.max}`;
+    if (c.c.lv !== lv) { c.c.lv = lv; c.lv.textContent = lv; }
+    let gn = '';
+    if (p.locked) {
+      const i = CE.TEAM.indexOf(u);
+      gn = `🔒 Откроется после «${CE.TEAM[i - 1].name}»`;
+    } else if (!p.max) gn = gainText(u, p.k);
+    else gn = 'Улучшено до предела';
+    if (c.c.gn !== gn) { c.c.gn = gn; c.gn.textContent = gn; }
+    const cost = p.max ? '—' : `<span class="k">${p.k > 1 ? '×' + p.k : ''}</span>🪙 ${F(p.cost)}`;
+    if (c.c.cost !== cost) { c.c.cost = cost; c.cost.innerHTML = cost; }
+    const w = p.max ? '100%' : pct(S.pts, p.cost).toFixed(0) + '%';
+    if (c.c.w !== w) { c.c.w = w; c.bar.style.width = w; }
+    let mile = '';
+    if (u.kind === 'gen' && !p.max) { const m = CE.nextMile(n); if (m) mile = `×2 на ${m}`; }
+    if (c.c.mile !== mile) { c.c.mile = mile; c.mile.textContent = mile; }
+  }
+}
+function buyCard(id, el) {
+  if (screen !== 'game') return;
+  refresh();
+  const r = CE.buy(S, D, id, settings.buy);
+  if (!r.ok) {
+    if (r.max || r.locked) return;
+    sfx.nope(); vib(30);
+    el.classList.remove('ku-shake-x'); void el.offsetWidth; el.classList.add('ku-shake-x');
+    const need = Math.ceil(r.cost - S.pts);
+    toast(`Не хватает ${F(need)} ${CE.plural(need, 'очка', 'очков', 'очков')}`, 'bad', 1400);
+    return;
+  }
+  refresh();
+  sfx.buy(); vib(12);
+  const rc = el.getBoundingClientRect();
+  fxBurst(rc.left + 30, rc.top + rc.height / 2, 10, '#00e5ff', { x: rc.left, y: rc.top, w: rc.width, h: rc.height });
+  const u = CE.BYID[id];
+  if (CE.lvl(S, id) >= u.max) queueToast(`${u.icon} ${u.name}: максимум!`, 'gold', 1800);
+  renderShop(true); renderTop();
+  checkAch();
+  saveNow();
+}
+
+/* ═══ Окно «Пока вас не было» ═══ */
+function showOffline(r) {
+  $('off-gain').textContent = '+' + F(r.gain);
+  $('off-stats').innerHTML = `<div>Вас не было<b>${CE.dur(r.sec)}</b></div><div>Засчитано<b>${CE.dur(r.used)}</b></div>` +
+    `<div>Доход офлайн<b>${Math.round(r.rate * 100)} %</b></div><div>Лимит<b>${CE.dur(r.cap)}</b></div>`;
+  $('off-note').textContent = r.capped ? `Засчитано не больше ${CE.dur(r.cap)} — лимит растёт в Зале славы.` : 'Бонусы-события офлайн не действуют.';
+  OVERLAYS.filter(id => id !== 'ov-offline').forEach(id => { if (id === 'ov-pause' || id === 'ov-cpause') return; $(id).classList.remove('open'); });
+  openOv('ov-offline');
+  sfx.catch();
+}
+$('off-ok').addEventListener('click', () => { if (fresh('ov-offline')) return; closeOv('ov-offline'); checkAch(); });
+
+/* ═══ Новое звание ═══ */
+function showRank() {
+  if (!rankQueue.length) return;
+  const list = rankQueue.splice(0);
+  const last = list[list.length - 1], R = CE.RANKS[last.rank];
+  $('rank-emoji').textContent = R.icon;
+  $('rank-name').textContent = list.length > 1 ? list.map(p => CE.RANKS[p.rank].name).join(' → ') : R.name;
+  const chest = list.reduce((a, p) => a + p.chest, 0);
+  let html = `<div>📈 <b>+${10 * list.length} %</b> ко всему доходу до конца сезона (всего +${10 * S.season.rank} %)</div>` +
+    `<div>🎁 Сундук: <b>+${F(chest)}</b> очков</div>`;
+  const tiers = CE.TIERS.map((t, i) => [t, i]).filter(([t]) => list.some(p => p.rank === t.rank));
+  tiers.forEach(([t]) => { html += `<div>🏆 Открыт турнир: <b>${t.icon} ${t.name}</b></div>`; });
+  if (last.rank === CE.RANKS.length - 1) html += '<div>👑 Это высшее звание! Пора подумать о новом сезоне.</div>';
+  $('rank-rewards').innerHTML = html;
+  $('rank-comp').hidden = !tiers.length || S.comp.cd > 0;
+  $('rank-comp').dataset.tier = tiers.length ? tiers[tiers.length - 1][1] : '';
+  openOv('ov-rank');
+  sfx.rank(); vib([30, 40, 60]);
+  if (!calm()) { const r = $('tap').getBoundingClientRect(); fxBurst(r.left + r.width / 2, r.top + r.height / 2, 30, null, zoneOf($('tap'))); }
+  checkAch();
+}
+$('rank-ok').addEventListener('click', () => { if (fresh('ov-rank')) return; closeOv('ov-rank'); });
+$('rank-comp').addEventListener('click', () => { if (fresh('ov-rank')) return; closeOv('ov-rank'); openComps(); });
+
+/* ═══ Пауза ═══ */
+function pause() { if (screen !== 'game' || anyOverlay()) return; sfx.click(); openOv('ov-pause'); }
+$('btn-pause').addEventListener('click', pause);
+$('p-resume').addEventListener('click', () => { sfx.click(); closeOv('ov-pause'); });
+const fromPause = id => () => { sfx.click(); closeOv('ov-pause'); returnTo = 'ov-pause'; open(id); };
+$('p-season').addEventListener('click', fromPause('season'));
+$('p-stats').addEventListener('click', fromPause('stats'));
+$('p-ach').addEventListener('click', fromPause('ach'));
+$('p-rules').addEventListener('click', fromPause('rules'));
+$('p-settings').addEventListener('click', fromPause('settings'));
+$('p-menu').addEventListener('click', () => { sfx.click(); saveNow(); showScreen('menu'); });
+function open(what) {
+  if (what === 'season') openSeason();
+  else if (what === 'stats') { renderStats(); openOv('ov-stats'); }
+  else if (what === 'ach') { renderAch(); openOv('ov-ach'); }
+  else if (what === 'rules') openOv('ov-rules');
+  else if (what === 'settings') openSettings();
+}
+
+/* ═══ Меню ═══ */
+function renderMenu() {
+  refresh();
+  const R = CE.RANKS[S.season.rank];
+  $('menu-athlete').textContent = R.icon;
+  $('play-sub').textContent = S.stats.taps || S.season.n > 1
+    ? `Сезон ${S.season.n} · ${R.name} · ${F(S.pts)} · +${F(D.perSec, true)}/с`
+    : 'Тапайте и прокачивайте атлета';
+  const open = CE.TIERS.filter((t, i) => CE.tierOpen(S, i)).length;
+  $('comps-sub').textContent = open ? `открыто ${open} из ${CE.TIERS.length}` : 'со звания «Любитель»';
+  const info = CE.seasonInfo(S);
+  $('season-sub').textContent = info.gain >= 1 ? `+${info.gain} 🏅 за новый` : `медалей: ${CE.medalTotal(S)}`;
+  $('menu-stats').innerHTML = `Звание: ${R.name} • Медалей: ${CE.medalTotal(S)} (×${CE.fmt(info.multNow, 'short', true)})<br>` +
+    `Всего тапов: ${F(S.stats.taps)} • Достижений: ${CE.achCount(S)}/${CE.ACH.length} • В игре: ${CE.dur(S.stats.playSec)}`;
+}
+$('btn-play').addEventListener('click', () => { sfx.click(); showScreen('game'); });
+$('btn-comps').addEventListener('click', () => { sfx.click(); openComps(); });
+$('btn-season').addEventListener('click', () => { sfx.click(); openSeason(); });
+$('btn-rules').addEventListener('click', () => { sfx.click(); openOv('ov-rules'); });
+$('btn-stats').addEventListener('click', () => { sfx.click(); renderStats(); openOv('ov-stats'); });
+$('btn-ach').addEventListener('click', () => { sfx.click(); renderAch(); openOv('ov-ach'); });
+$('btn-settings').addEventListener('click', () => { sfx.click(); openSettings(); });
+$('btn-g-comps').addEventListener('click', () => { sfx.click(); if (!anyOverlay()) openComps(); });
+
+/* ═══ Сезон и Зал славы ═══ */
+const PERK_DESC = {
+  talent: n => `Сила тапа ×2 за уровень (сейчас ×${Math.pow(2, n)})`,
+  legacy: n => `Весь доход ×1,5 за уровень (сейчас ×${CE.fmt(Math.pow(1.5, n), 'short', true)})`,
+  capital: n => `Сезон начинается с ${F(CE.PERK.capital.vals[Math.min(5, n + 1)])} очков` + (n ? ` (сейчас ${F(CE.PERK.capital.vals[n])})` : ''),
+  robot: n => `+1 автотап в секунду (сила тапа, без бонуса энергии)` + (n ? `; сейчас ${n}/с` : ''),
+  night: () => `Офлайн-доход +10 % (сейчас ${Math.round(D.offRate * 100)} %)`,
+  dream: () => `Лимит офлайн-дохода +2 ч (сейчас ${CE.dur(D.offCap)})`,
+  luck: n => `Бонусы-события +20 % и живут на 3 с дольше` + (n ? ` (сейчас +${20 * n} %)` : ''),
+  science: n => `Все улучшения дешевле на 4 %` + (n ? ` (сейчас −${4 * n} %)` : '')
+};
+let seasonTab = 'season';
+function openSeason() { renderSeason(); openOv('ov-season'); }
+function renderSeason() {
+  refresh();
+  const info = CE.seasonInfo(S), R = CE.RANKS[S.season.rank];
+  $$('#season-tabs button').forEach(b => b.classList.toggle('active', b.dataset.t === seasonTab));
+  $('season-pane').hidden = seasonTab !== 'season';
+  $('hall-pane').hidden = seasonTab !== 'hall';
+  $('season-foot').hidden = seasonTab !== 'season';
+  const prog = info.gain >= 1 ? '' : `<div class="medal-line"><span>До первой медали сезона</span><b>${F(info.need)}</b></div>`;
+  const nextLine = info.gain >= 1 ? `<div class="medal-line"><span>Следующая медаль — ещё</span><b>${F(info.need)}</b></div>` : '';
+  $('season-pane').innerHTML = `<div class="season-box">
+    <div class="medal-line"><span>Сезон ${S.season.n} · ${R.name}</span><b>${F(S.season.earned)}</b></div>
+    <div class="medal-line"><span>Очков за всё время</span><b>${F(S.stats.earned)}</b></div>
+    <div class="gain">${info.gain >= 1 ? '+' + info.gain + ' 🏅' : '0 🏅'}</div>
+    <div class="mult">Медалей: <b>${info.now}</b> → <b>${info.after}</b> · весь доход <b>×${CE.fmt(info.multNow, 'short', true)}</b> → <b>×${CE.fmt(info.multAfter, 'short', true)}</b></div>
+    ${prog}${nextLine}
+    <div class="cols"><div><h5 class="lose5">Сбросится</h5>очки, улучшения, энергия, звание, активные бонусы</div>
+    <div><h5 class="keep5">Останется</h5>медали, Зал славы, достижения, рекорды турниров, статистика${CE.perk(S, 'capital') ? ', стартовый капитал ' + F(CE.PERK.capital.vals[CE.perk(S, 'capital')]) : ''}</div></div>
+    <p class="ku-muted" style="font-size:12px;margin:0;line-height:1.45">Совет: выгоднее всего начинать сезон, когда медалей прибавится хотя бы наполовину — следующий сезон пройдёт заметно быстрее. Медали за сезоны считаются по очкам за всё время, поэтому раньше или позже — честно.</p>
+  </div>`;
+  const pb = $('btn-prestige');
+  pb.disabled = info.gain < 1;
+  pb.textContent = info.gain >= 1 ? `🏅 Начать сезон ${S.season.n + 1} (+${info.gain} 🏅)` : '🏅 Пока нет медалей за сезон';
+  // Зал славы
+  const free = CE.medalFree(S);
+  let html = `<p class="ach-bonus">Свободно медалей: <b>${free}</b> из ${CE.medalTotal(S)}. Множитель дохода считается по всем медалям — тратить их не страшно.</p><div class="list">`;
+  for (const p of CE.PERKS) {
+    const n = CE.perk(S, p.id), maxed = n >= p.costs.length, cost = maxed ? 0 : p.costs[n];
+    html += `<div class="item${n ? ' done' : ''}"><div class="ii">${p.icon}</div><div class="it"><h4>${p.name} · ${n}/${p.costs.length}</h4><p>${PERK_DESC[p.id](n)}</p></div>` +
+      (maxed ? '<div class="side"><b>МАКС</b></div>' : `<button class="ku-btn sm ${free >= cost ? 'gold' : ''}" data-perk="${p.id}" ${free >= cost ? '' : 'disabled'}>${cost} 🏅</button>`) + '</div>';
+  }
+  $('hall-pane').innerHTML = html + '</div>';
+  $$('#hall-pane [data-perk]').forEach(b => b.addEventListener('click', () => {
+    if (CE.buyPerk(S, b.dataset.perk)) { refresh(); sfx.buy(); vib(15); const p = CE.PERK[b.dataset.perk]; queueToast(`${p.icon} ${p.name}: уровень ${CE.perk(S, p.id)}`, 'gold'); saveNow(); renderSeason(); }
+  }));
+}
+$$('#season-tabs button').forEach(b => b.addEventListener('click', () => { sfx.click(); seasonTab = b.dataset.t; renderSeason(); }));
+$('btn-prestige').addEventListener('click', async () => {
+  const info = CE.seasonInfo(S);
+  if (info.gain < 1) return;
+  const ok = await KuArcade.confirm(`Очки, улучшения, энергия и звание обнулятся. Вы получите +${info.gain} 🏅 — весь доход ×${CE.fmt(info.multNow, 'short', true)} → ×${CE.fmt(info.multAfter, 'short', true)} навсегда.`,
+    { title: `СЕЗОН ${S.season.n + 1}?`, ok: '🏅 Начать сезон', cancel: 'Пока нет' });
+  if (!ok) return;
+  const r = CE.newSeason(S);
+  if (!r) return;
+  refresh();
+  removeBubble(false);
+  rankQueue.length = 0;
+  sfx.season(); vib([40, 50, 80]);
+  checkAch();
+  saveNow(true);
+  OVERLAYS.forEach(id => $(id).classList.remove('open'));
+  returnTo = null;
+  showScreen('game');
+  queueToast(`🏅 Сезон ${S.season.n}! +${r.gain} медалей — весь доход ×${CE.fmt(r.multAfter, 'short', true)}`, 'gold', 3200);
 });
 
-/* ── Старт ── */
-load();
-recalc();
+/* ═══ Турниры ═══ */
+function openComps() { renderComps(); openOv('ov-comps'); }
+const placeIcon = p => ['', '🥇', '🥈', '🥉', '4️⃣'][p] || '—';
+function renderComps() {
+  refresh();
+  const full = D.perTap * (1 + D.emax * D.ebonus);
+  $('comps-info').innerHTML = `Наберите тапами за отведённое время больше очков, чем соперники. Ваш тап сейчас — <b>${F(CE.tapValue(S, D))}</b>, с полной энергией — <b>${F(full)}</b>.` +
+    (S.comp.cd > 0 ? `<br>Следующий турнир — через <b>${CE.dur(S.comp.cd)}</b>.` : '');
+  let html = '';
+  CE.TIERS.forEach((t, i) => {
+    const op = CE.tierOpen(S, i), rec = S.comp.rec[i + 1];
+    const best = rec && rec.best ? `Рекорд: ${F(rec.best)} · лучшее место ${placeIcon(rec.place)}` : 'Ещё не участвовали';
+    const medal = rec && rec.g ? '🥇 золото взято' : `первое золото: +${t.medals} 🏅`;
+    // сколько тапов в секунду нужно для золота при нынешней силе тапа (с полной энергией)
+    const need = t.K / Math.max(1e-9, full) / t.dur;
+    const hint = !op ? `Откроется на звании «${CE.RANKS[t.rank].name}»`
+      : need <= 6 ? `Для 🥇 хватит ≈ ${Math.max(1, Math.ceil(need))} тап/с — по силам!`
+      : need <= CE.TAP_MAX ? `Для 🥇 нужно ≈ ${Math.ceil(need)} тап/с с полной энергией`
+      : 'Пока не по силам — прокачайте силу тапа';
+    let btn;
+    if (!op) btn = `<div class="side">🔒</div>`;
+    else if (S.comp.cd > 0) btn = `<button class="ku-btn sm" disabled>${CE.dur(S.comp.cd)}</button>`;
+    else btn = `<button class="ku-btn sm primary" data-tier="${i}">▶ Старт</button>`;
+    html += `<div class="item${op ? (rec && rec.g ? ' done' : '') : ' lock'}"><div class="ii">${t.icon}</div><div class="it"><h4>${t.name}</h4>` +
+      `<p>${t.dur} с · 🥇 больше <b>${F(t.K)}</b> · 🥈 ${F(t.K * 0.78)} · 🥉 ${F(t.K * 0.58)}</p><p>${hint}</p><p>${best} · ${medal}</p></div>${btn}</div>`;
+  });
+  $('comps-list').innerHTML = html;
+  $$('#comps-list [data-tier]').forEach(b => b.addEventListener('click', () => { sfx.click(); startComp(+b.dataset.tier); }));
+}
+
+let C = null;     // текущий турнир
+function startComp(i) {
+  if (!CE.tierOpen(S, i) || S.comp.cd > 0) return;
+  OVERLAYS.forEach(id => $(id).classList.remove('open'));
+  returnTo = null;
+  C = CE.compSetup(S, i, Math.random);
+  C.phase = 'count'; C.cdLeft = CE.COMP_COUNT; C.paused = false; C.lastNum = 0;
+  const T = CE.TIERS[i];
+  $('c-title').textContent = T.name.toUpperCase();
+  $('c-athlete').textContent = CE.RANKS[S.season.rank].icon;
+  let lanes = `<div class="lane me" id="lane-me"><div class="pl" id="pl-me">1</div><div class="who"><span>Вы <em>· ${CE.RANKS[S.season.rank].name}</em></span><div class="ku-pbar"><i id="bar-me"></i></div></div><div class="sc" id="sc-me">0</div></div>`;
+  C.rivals.forEach((r, j) => {
+    lanes += `<div class="lane"><div class="pl" id="pl-${j}">${j + 2}</div><div class="who"><span>${r.name} <em>· ур. ${r.lvl}</em></span><div class="ku-pbar"><i id="bar-${j}"></i></div></div><div class="sc" id="sc-${j}">0</div></div>`;
+  });
+  $('lanes').innerHTML = lanes;
+  const top = Math.max(...C.rivals.map(r => r.final));
+  $('c-goal').innerHTML = `Для 🥇 нужно больше <b>${F(top)}</b> · 🥈 ${F(C.rivals[1].final)} · 🥉 ${F(C.rivals[2].final)}`;
+  $('countdown').hidden = false; $('cd-num').textContent = '3'; $('cd-num').className = '';
+  limiter.reset();
+  showScreen('comp');
+  sfx.beep(false);
+  renderComp();
+}
+function compTick(dt) {
+  // время турнира идёт, только пока открыт экран соревнования без окон (пауза, подтверждение «Сдаться» и т. п.)
+  if (!C || C.paused || C.phase === 'done' || screen !== 'comp' || anyOverlay()) return;
+  if (C.phase === 'count') {
+    C.cdLeft -= dt;
+    const num = Math.ceil(C.cdLeft);
+    if (C.cdLeft <= 0) {
+      C.phase = 'run';
+      $('cd-num').textContent = 'СТАРТ!'; $('cd-num').className = 'go';
+      sfx.beep(true); vib(40);
+      setTimeout(() => { if (C && C.phase === 'run') $('countdown').hidden = true; }, 600);
+    } else if (num !== C.lastNum) { C.lastNum = num; $('cd-num').textContent = num; if (num < 3) sfx.beep(false); }
+    return;
+  }
+  C.t += dt;
+  if (C.t >= C.dur - 1e-9) { C.t = C.dur; finishComp(); }
+}
+function compTap(x, y) {
+  if (!C || screen !== 'comp' || C.paused || C.phase !== 'run' || anyOverlay()) return;
+  const g = doTap(x, y, $('ctap'));
+  if (g > 0) { C.score += g; C.taps++; }
+}
+function renderComp() {
+  if (!C) return;
+  const left = Math.max(0, C.dur - C.t);
+  setText('c-time', `0:${String(Math.ceil(left)).padStart(2, '0')}`);
+  $('c-time').style.color = left <= 5 && C.phase === 'run' ? 'var(--bad)' : '';
+  const scores = C.rivals.map(r => CE.rivalAt(r, C.t, C.dur));
+  const top = Math.max(C.score, ...C.rivals.map(r => r.final)) * 1.04;
+  const all = [C.score, ...scores].map((v, j) => [v, j]).sort((a, b) => b[0] - a[0]);
+  const place = j => all.findIndex(a => a[1] === j) + 1;
+  setText('sc-me', F(C.score)); setW('bar-me', pct(C.score, top).toFixed(1) + '%'); setText('pl-me', String(place(0)));
+  C.rivals.forEach((r, j) => { setText('sc-' + j, F(scores[j])); setW('bar-' + j, pct(scores[j], top).toFixed(1) + '%'); setText('pl-' + j, String(place(j + 1))); });
+  setW('c-energy', pct(S.energy, D.emax).toFixed(1) + '%');
+  const t = nowMs(), rate = limiter.rate(t);
+  const capped = t - capShownAt < 700;
+  setText('c-tps', capped ? 'МАКС. ТЕМП — 18 ТАП/С' : `ТЕМП: ${rate} ТАП/С · ТАПОВ: ${C.taps}`);
+  $('c-tps').classList.toggle('cap', capped);
+}
+function pauseComp(auto) {
+  if (!C || C.phase === 'done') return;
+  C.paused = true;
+  if (!isOpen('ov-cpause')) openOv('ov-cpause');
+  if (!auto) sfx.click();
+}
+$('btn-c-pause').addEventListener('click', () => pauseComp(false));
+$('cp-resume').addEventListener('click', () => { sfx.click(); closeOv('ov-cpause'); if (C) { C.paused = false; lastFrame = nowMs(); acc = 0; } });
+$('cp-quit').addEventListener('click', async () => {
+  const ok = await KuArcade.confirm('Без места и приза; перерыв перед следующим турниром всё равно начнётся.', { title: 'СДАТЬСЯ?', ok: '🏳 Сдаться', cancel: 'Продолжить', danger: true });
+  if (!ok || !C) return;
+  CE.compAbandon(S, C);
+  C = null;
+  closeOv('ov-cpause');
+  saveNow();
+  showScreen('game');
+});
+function finishComp() {
+  refresh();
+  C.phase = 'done';
+  $('countdown').hidden = true;
+  const r = CE.compFinish(S, D, C), T = CE.TIERS[C.tier];
+  const h = $('res-h');
+  $('res-emoji').textContent = ['', '🥇', '🥈', '🥉', '🏃'][r.place];
+  h.textContent = ['', 'ПОБЕДА!', '2-Е МЕСТО', '3-Е МЕСТО', '4-Е МЕСТО'][r.place];
+  h.className = r.place <= 3 ? 'win' : 'lose';
+  $('res-score').textContent = F(r.score);
+  $('res-best').hidden = !r.record;
+  // при равенстве соперник выше (чтобы обойти, нужно больше) — как и в подсчёте места
+  const rows = [[r.score, 'Вы', true], ...C.rivals.map(x => [x.final, x.name, false])].sort((a, b) => (b[0] - a[0]) || (a[2] ? 1 : b[2] ? -1 : 0));
+  $('res-table').innerHTML = rows.map((x, i) => `<div class="${x[2] ? 'me' : ''}"><span>${placeIcon(i + 1)}</span><span>${x[1]}</span><b>${F(x[0])}</b></div>`).join('');
+  let rw = '';
+  if (r.prize > 0) rw += `<div>🎁 Приз: <b>+${F(r.prize)}</b> очков</div>`;
+  if (r.medals) rw += `<div>🏅 Первое золото «${T.name}»: <b>+${r.medals} 🏅</b> навсегда</div>`;
+  rw += `<div>🎯 Тапов: <b>${C.taps}</b> · средний темп ${(C.taps / C.dur).toFixed(1).replace('.', ',')} тап/с</div>`;
+  $('res-rewards').innerHTML = rw;
+  if (r.place === 1) { sfx.win(); vib([40, 50, 90]); } else if (r.place <= 3) { sfx.win(); vib(40); } else { sfx.lose(); vib(60); }
+  openOv('ov-result');
+  renderResultBtn();
+  afterGain();
+  checkAch();
+  saveNow();
+}
+function renderResultBtn() {
+  if (!isOpen('ov-result') || !C) return;
+  const b = $('res-again');
+  b.disabled = S.comp.cd > 0;
+  b.textContent = S.comp.cd > 0 ? `↻ Ещё раз через ${CE.dur(S.comp.cd)}` : '↻ Ещё раз';
+}
+setInterval(() => { renderResultBtn(); if (isOpen('ov-comps') && S.comp.cd > 0) renderComps(); }, 1000);
+$('res-again').addEventListener('click', () => { if (fresh('ov-result') || !C) return; const i = C.tier; closeOv('ov-result'); C = null; startComp(i); });
+$('res-list').addEventListener('click', () => { if (fresh('ov-result')) return; closeOv('ov-result'); C = null; showScreen('game'); returnTo = null; openComps(); });
+$('res-back').addEventListener('click', () => { if (fresh('ov-result')) return; closeOv('ov-result'); C = null; showScreen('game'); });
+
+/* ═══ Статистика ═══ */
+const card = (v, l) => `<div class="st-card"><div class="sv">${v}</div><div class="sl">${l}</div></div>`;
+function renderStats() {
+  refresh();
+  const st = S.stats, R = CE.RANKS[S.season.rank];
+  $('st-season').innerHTML = card(S.season.n, 'Сезон') + card(R.name, 'Звание') + card(F(S.season.earned), 'Очков за сезон') +
+    card(F(S.season.taps), 'Тапов за сезон') + card(CE.dur(S.season.sec), 'Время сезона') + card(F(D.perSec, true) + '/с', 'Доход') + card(F(CE.tapValue(S, D)), 'Тап сейчас');
+  $('st-all').innerHTML = card(F(st.taps), 'Всего тапов') + card(F(st.earned), 'Очков за всё время') + card(F(st.tapEarned), 'Очков тапами') +
+    card(F(st.offEarned), 'Офлайн-доход') + card(CE.dur(st.playSec), 'Время в игре') + card(Math.max(0, S.season.n - 1), 'Сезонов завершено') +
+    card(CE.medalTotal(S) + ' 🏅', 'Медалей') + card(F(st.buys), 'Куплено уровней') + card(st.evCaught + ' / ' + (st.evCaught + st.evMissed), 'Бонусов поймано') +
+    card(st.bestTps + ' тап/с', 'Рекорд темпа') + card(F(st.bestTap), 'Лучший тап') + card(F(st.bestPs, true) + '/с', 'Лучший доход') +
+    card(CE.RANKS[st.bestRank].name, 'Высшее звание') + card(CE.dur(st.offMax), 'Самый долгий офлайн') + card(F(st.cut), 'Сверх темпа (не засчитано)');
+  $('st-comp').innerHTML = card(F(st.comps), 'Сыграно') + card(st.gold, '🥇 Золото') + card(st.silver, '🥈 Серебро') + card(st.bronze, '🥉 Бронза') +
+    card(CE.compMedals(S) + ' 🏅', 'Медалей за турниры');
+}
+
+/* ═══ Достижения ═══ */
+function achProgress(id) {
+  const st = S.stats;
+  const P = { tap1: [st.taps, 1], tap1k: [st.taps, 1e3], tap10k: [st.taps, 1e4], tap100k: [st.taps, 1e5], speed: [st.bestTps, 12],
+    earn1m: [st.earned, 1e6], earn1b: [st.earned, 1e9], earn1t: [st.earned, 1e12], ps1k: [D.perSec, 1e3], ps1m: [D.perSec, 1e6],
+    buy100: [st.buys, 100], fullteam: [CE.TEAM.filter(u => CE.lvl(S, u.id) > 0).length, CE.TEAM.length], energy: [S.energy, 200],
+    ev10: [st.evCaught, 10], win1: [st.gold, 1], season2: [S.season.n - 1, 1], season5: [S.season.n - 1, 4], legend: [st.bestRank, CE.RANKS.length - 1], night4: [st.offMax / 3600, 4] };
+  return P[id];
+}
+function renderAch() {
+  refresh();
+  const n = CE.achCount(S);
+  $('ach-count').textContent = `${n}/${CE.ACH.length}`;
+  $('ach-bonus').innerHTML = `Каждое достижение — +2 % ко всему доходу навсегда. Сейчас: <b>+${n * 2} %</b>.`;
+  $('ach-list').innerHTML = CE.ACH.map(a => {
+    const done = !!S.ach[a.id], p = achProgress(a.id);
+    const bar = !done && p ? `<div class="ku-pbar"><i style="width:${pct(p[0], p[1]).toFixed(0)}%"></i></div>` : '';
+    return `<div class="item${done ? ' done' : ''}"><div class="ii">${a.icon}</div><div class="it"><h4>${a.name}</h4><p>${a.desc}</p>${bar}</div>` +
+      (done ? '<div class="side">✓</div>' : '') + '</div>';
+  }).join('');
+}
+
+/* ═══ Настройки ═══ */
+function openSettings() {
+  $$('[data-opt]').forEach(i => { i.checked = !!settings[i.dataset.opt]; });
+  $$('#set-fmt button').forEach(b => b.classList.toggle('active', b.dataset.v === settings.fmt));
+  $$('#set-fx button').forEach(b => b.classList.toggle('active', b.dataset.v === settings.fx));
+  openOv('ov-settings');
+}
+$$('[data-opt]').forEach(i => i.addEventListener('change', () => { settings[i.dataset.opt] = i.checked; saveSettings(); sfx.click(); if (i.dataset.opt === 'vib' && i.checked) vib(30); }));
+$$('#set-fmt button').forEach(b => b.addEventListener('click', () => {
+  settings.fmt = b.dataset.v; saveSettings(); sfx.click();
+  $$('#set-fmt button').forEach(x => x.classList.toggle('active', x === b));
+  for (const k in shown) delete shown[k];
+  for (const id in cards) cards[id].c = {};
+  renderAll(true);
+}));
+$$('#set-fx button').forEach(b => b.addEventListener('click', () => {
+  settings.fx = b.dataset.v; saveSettings(); sfx.click(); applyCalm();
+  $$('#set-fx button').forEach(x => x.classList.toggle('active', x === b));
+}));
+$('btn-reset').addEventListener('click', async () => {
+  const ok = await KuArcade.confirm('Очки, улучшения, медали, Зал славы, достижения и статистика будут удалены. Отменить нельзя.',
+    { title: 'СБРОСИТЬ ВСЁ?', ok: '↻ Сбросить прогресс', cancel: 'Отмена', danger: true });
+  if (!ok) return;
+  S = CE.newState(); refresh();
+  store.del(KEY.v1);
+  C = null; rankQueue.length = 0; pending.length = 0;
+  removeBubble(false);
+  for (const id in cards) cards[id].c = {};
+  saveNow(true);
+  OVERLAYS.forEach(id => $(id).classList.remove('open'));
+  showScreen('menu');
+  toast('Прогресс сброшен — начинаем с нуля!', 'gold');
+});
+
+/* ═══ Клавиатура ═══ */
+document.addEventListener('keydown', e => {
+  if (document.querySelector('.ku-dialog')) return;
+  const tag = (e.target && e.target.tagName) || '';
+  if (e.code === 'Escape') {
+    const top = OVERLAYS.filter(isOpen).pop();
+    if (top) {
+      if (top === 'ov-cpause') { $('cp-resume').click(); return; }
+      if (['ov-offline', 'ov-rank', 'ov-result'].includes(top)) return;   // в этих окнах — явная кнопка
+      closeOv(top); return;
+    }
+    if (screen === 'game') pause(); else if (screen === 'comp') pauseComp(false);
+    return;
+  }
+  if (anyOverlay()) return;
+  const isTapKey = e.code === 'Space' || e.code === 'Enter' || e.code === 'NumpadEnter';
+  if (screen === 'game') {
+    if (isTapKey) {
+      if (tag === 'BUTTON' || tag === 'INPUT') return;          // у кнопок — своё действие
+      e.preventDefault();
+      if (!e.repeat) tapCenter();
+      return;
+    }
+    if (e.repeat) return;
+    const d = { Digit1: 0, Digit2: 1, Digit3: 2, Digit4: 3, Numpad1: 0, Numpad2: 1, Numpad3: 2, Numpad4: 3 }[e.code];
+    if (d !== undefined) { setBranch(CE.BRANCHES[d].id); return; }
+    if (e.code === 'KeyB') { cycleBuyMode(); return; }
+    if (e.code === 'KeyT') { openComps(); return; }
+    if (e.code === 'KeyP') { pause(); return; }
+  } else if (screen === 'comp') {
+    if (isTapKey) { if (tag === 'BUTTON' && e.target !== $('ctap')) return; e.preventDefault(); if (!e.repeat) ctapCenter(); return; }
+    if (e.code === 'KeyP') pauseComp(false);
+  }
+});
+
+/* ═══ Старт ═══ */
+function renderAll(force) {
+  refresh();
+  renderTop();
+  renderShop(force);
+  if (screen === 'menu') renderMenu();
+}
+applyCalm();
+if (mqCalm.addEventListener) mqCalm.addEventListener('change', applyCalm);
 buildShop();
-renderRank();
-render();
+showScreen('menu');
+{
+  const issues = loadInfo.issues || [];
+  if (loadInfo.from === 'v1') queueToast('Прогресс перенесён в новую версию: очки, улучшения и энергия на месте 💪', 'good', 3600);
+  else if (loadInfo.from === 'bak') queueToast('Сохранение было повреждено — восстановлено из резервной копии', 'bad', 3600);
+  else if (loadInfo.from === 'repaired' || loadInfo.from === 'bak-repaired') queueToast('Сохранение было повреждено — исправлено (' + issues.slice(0, 2).join(', ') + ')', 'bad', 3600);
+  else if (loadInfo.from === 'reset') queueToast('Сохранение не читается — начинаем заново', 'bad', 3600);
+  // офлайн-доход за время, пока игра была закрыта
+  refresh();
+  const r = CE.offline(S, D, Date.now());
+  afterGain();
+  if (r.back > 60) queueToast('⏰ Часы устройства переведены назад — офлайн-доход не начислен', 'bad', 3600);
+  else if (r.gain > 0 && r.sec >= CE.OFF_SHOW) showOffline(r);
+  saveNow(true);
+  checkAch();
+}
+requestAnimationFrame(frame);
+
 </script>
 </body>
 </html>

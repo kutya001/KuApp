@@ -2,36 +2,183 @@
 <html lang="ru">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
-<title>Dino Pro</title>
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+<title>Дино • Неоновая аркада</title>
 <link rel="stylesheet" href="ku-arcade.css">
 <script src="ku-arcade.js"></script>
 <style>
   html,body{height:100%;overflow:hidden}
-  #screen-game,#screen-game *{touch-action:none}
 
-  /* ── Игровая колонка: прогресс · поле · подсказка ── */
-  #stage{flex:1;min-height:0;width:100%;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:10px}
-  #pbar{flex:none;width:240px}
-  #board-box{line-height:0;flex:none}
-  #board-box>canvas{cursor:pointer}
-  #game-hint{margin-top:0;flex:none}
+  /* ═══ МЕНЮ ═══ */
+  #menu-dino-wrap{margin-top:14px;display:flex;flex-direction:column;align-items:center;gap:2px;cursor:pointer;-webkit-tap-highlight-color:transparent}
+  #menu-dino{width:230px;height:66px;display:block}
+  #menu-dino-name{font-size:11px;letter-spacing:1px;color:var(--muted);text-transform:uppercase}
+  #menu-dino-name b{color:var(--text);font-weight:600}
+  #screen-menu .ku-menu-btns{margin-top:16px}
+  .ku-btn .best{max-width:100%;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  #btn-daily .best,#btn-hardcore .best{font-size:11px}
+  .ku-menu-row .ku-btn{padding:10px 14px}
 
-  /* смена темы — надпись по центру поля (левый верх поля не используем) */
-  #theme-indicator{position:absolute;top:16px;left:50%;transform:translateX(-50%);font-family:var(--font-display);font-size:13px;
-    letter-spacing:1.5px;line-height:1.2;white-space:nowrap;pointer-events:none;opacity:0;transition:opacity .5s;text-shadow:0 0 12px currentColor}
-  #theme-indicator.visible{opacity:1}
-  .float-text{position:absolute;font-family:var(--font-display);font-size:15px;line-height:1;pointer-events:none;z-index:5;
-    text-shadow:0 0 10px currentColor;animation:dnFloat .8s ease-out forwards}
-  @keyframes dnFloat{0%{opacity:1;transform:translateY(0) scale(1)}100%{opacity:0;transform:translateY(-40px) scale(1.3)}}
+  /* ═══ ИГРА ═══ */
+  #screen-game{position:relative;padding-left:10px;padding-right:10px;touch-action:none;-webkit-touch-callout:none;user-select:none;-webkit-user-select:none}
+  #screen-game>.ku-top,#screen-game>.ku-hud,#stage{position:relative;z-index:2}
+  #stage{flex:1 1 auto;min-height:0;width:100%;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:8px;pointer-events:none}
+  #stage>*{pointer-events:auto}
+  body.zones-pad #stage{justify-content:flex-start}
+  /* телефон стоя: мир 600 ед. вписывается по ширине — поля и рамка тоньше, чтобы поле было крупнее */
+  body.portrait #screen-game{padding-left:5px;padding-right:5px}
+  body.portrait #board{padding:4px;border-radius:14px}
+  body.portrait #board>canvas{border-radius:10px}
+  body.portrait #center{left:4px;right:4px;top:4px;bottom:4px}
+  #pbar{flex:none;width:240px;height:5px}
+  #board{flex:none;line-height:0}
+  #cv{display:block}
+  #g-hint{margin:0;flex:none;max-width:100%}
+  body.zones-pad #g-hint{display:none}
+  #banner{position:absolute;top:14px;left:50%;transform:translateX(-50%);font-family:var(--font-display);font-size:13px;letter-spacing:1.5px;line-height:1.2;
+    white-space:nowrap;pointer-events:none;opacity:0;transition:opacity .45s;color:var(--accent);text-shadow:0 0 12px currentColor;z-index:3}
+  #banner.show{opacity:1}
+  #center{position:absolute;left:7px;right:7px;top:7px;bottom:7px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px;
+    pointer-events:none;text-align:center;line-height:1.25;z-index:3}
+  #center .big{font-family:var(--font-display);font-size:44px;color:var(--gold);text-shadow:0 0 22px rgba(255,214,10,.6)}
+  #center .msg{font-family:var(--font-display);font-size:15px;letter-spacing:1.5px;color:var(--text);text-shadow:0 0 14px rgba(0,229,255,.6);animation:kuPulse 1.4s ease-in-out infinite}
+  #center .sub{font-size:12px;color:var(--muted);max-width:90%}
+  #center .chip{font-family:var(--font-display);font-size:11px;letter-spacing:1px;padding:4px 10px;border-radius:10px;border:1px solid rgba(255,214,10,.45);color:var(--gold);background:rgba(255,214,10,.08)}
+  #center .chip.pr{border-color:var(--panel-border);color:var(--muted);background:var(--panel)}
+  #center .rot{font-size:11px;color:var(--muted);opacity:.85}
+  .float{position:absolute;font-family:var(--font-display);font-size:14px;line-height:1;pointer-events:none;z-index:3;white-space:nowrap;
+    text-shadow:0 0 10px currentColor;animation:dnFloat .9s ease-out forwards}
+  @keyframes dnFloat{0%{opacity:1;transform:translate(-50%,0) scale(1)}100%{opacity:0;transform:translate(-50%,-34px) scale(1.25)}}
+  #hud .ku-stat{min-width:86px}
+  #hud-speed.max{color:var(--gold)}
 
-  /* медали в окне конца забега */
+  /* Зоны касания: выше середины экрана — прыжок, ниже — присед */
+  #zones{position:absolute;inset:0;pointer-events:none;z-index:1;opacity:0;transition:opacity .35s}
+  #zones .zu,#zones .zd{position:absolute;left:0;right:0;display:flex;flex-direction:column;align-items:center;gap:3px;text-align:center}
+  #zones .zu{top:0;height:50%;justify-content:flex-end;padding-bottom:10px}
+  #zones .zd{bottom:0;height:50%;justify-content:center;border-top:1px dashed rgba(255,255,255,.22)}
+  #zones b{font-family:var(--font-display);font-weight:400;font-size:14px;letter-spacing:1.5px;color:var(--text)}
+  #zones small{font-size:11px;color:var(--muted)}
+  body.zones-show #zones{opacity:1}
+  /* телефон стоя: под полем — большая зона приседа (видна всегда, во время забега — тусклее) */
+  body.zones-pad #zones{opacity:1}
+  body.zones-pad #zones .zd{left:10px;right:10px;bottom:max(10px,env(safe-area-inset-bottom,0px));height:calc(50% - 16px);border:1px dashed rgba(255,255,255,.16);
+    border-radius:22px;background:rgba(255,255,255,.025);transition:background .12s,border-color .12s,opacity .3s}
+  body.zones-pad.running #zones .zd{opacity:.55}
+  body.zones-pad.running #zones .zu{opacity:0}
+  #zones .zd.press{background:rgba(255,77,210,.12)!important;border-color:rgba(255,77,210,.55)!important;opacity:1!important}
+  #zones .zd .ico{font-size:30px;line-height:1;opacity:.8}
+  body.zu-hide #zones .zu{display:none}            /* поле доходит почти до середины — подпись прыжка не помещается */
+  /* лёжа: пунктир середины поверх поля, подписи справа над и под ним */
+  body.zones-show:not(.zones-pad) #zones{z-index:3}
+  body.zones-show:not(.zones-pad) #zones .zu{align-items:flex-end;padding:0 22px 6px}
+  body.zones-show:not(.zones-pad) #zones .zd{justify-content:flex-start;align-items:flex-end;padding:6px 22px 0;border-top-color:rgba(255,255,255,.35)}
+  body.zones-show:not(.zones-pad) #zones .ico,body.zones-show:not(.zones-pad) #zones small{display:none}
+  body.zones-show:not(.zones-pad) #zones b{font-size:12px;text-shadow:0 0 8px rgba(0,0,0,.9)}
+  body.zones-show:not(.zones-pad) #zones .zd b::before{content:'⬇ '}
+
+  /* Низкое окно (телефон лёжа): компактная шапка и показатели */
+  body.short #pbar{display:none}
+  body.short #g-hint{display:none}
+  body.short #screen-game .ku-top{margin-bottom:4px}
+  body.short #hud{margin:0 0 6px}
+  body.short #hud .ku-stat{flex-direction:row;gap:6px;padding:4px 10px;min-width:0}
+  body.short #hud .ku-stat b{font-size:15px}
+
+  /* ═══ ОКНА ═══ */
+  .ku-card{gap:10px}
+  .ov-btns{display:flex;flex-direction:column;gap:10px}
+  .ku-btn.locked{opacity:.45;pointer-events:none}
+  #pause-info,#over-note{font-size:13px}
+  #over-note:empty,#over-unlock:empty{display:none}
+  #over-unlock{font-size:13px;color:var(--gold);line-height:1.45}
   .dn-medals{display:flex;gap:10px;justify-content:center;margin:2px 0}
-  .dn-medal{--mc:205,127,50;width:46px;height:46px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:20px;
+  .dn-medal{--mc:205,127,50;width:44px;height:44px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:19px;
     border:2px solid rgba(var(--mc),.6);background:rgba(255,255,255,.04);opacity:.3;transform:scale(.82);
     transition:opacity .4s,transform .4s cubic-bezier(.34,1.56,.64,1),box-shadow .4s}
   .dn-medal.earned{opacity:1;transform:none;background:rgba(var(--mc),.18);box-shadow:0 0 14px rgba(var(--mc),.45),inset 0 1px 0 rgba(255,255,255,.25)}
   .dn-medal.silver{--mc:201,210,230} .dn-medal.gold{--mc:255,214,10} .dn-medal.platinum{--mc:0,229,255}
+  .stats-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(100px,1fr));gap:8px}
+  .st-card{background:var(--glass-panel);border:1px solid var(--panel-border);border-radius:14px;padding:10px 6px;text-align:center}
+  .st-card .sv{font-family:var(--font-display);font-size:17px;color:var(--accent);margin-top:2px;white-space:nowrap}
+  .st-card .sl{font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:.8px;margin-top:3px}
+  .st-card.gold .sv{color:var(--gold)}
+  .ku-modal .ku-seg{width:100%}
+  .st-tabs{margin-bottom:10px}
+  .st-tabs button{font-size:12px}
+  .st-note{font-size:12px;color:var(--muted);margin:10px 0 0;line-height:1.5}
+  .list{display:flex;flex-direction:column;gap:8px}
+  .ach-item{display:flex;align-items:center;gap:12px;padding:10px 12px;border-radius:14px;background:var(--panel);border:1px solid var(--panel-border)}
+  .ach-item.unlocked{border-color:rgba(255,214,10,.45);background:rgba(255,214,10,.07)}
+  .ach-item.unlocked h4{color:var(--gold)}
+  .ach-icon{font-size:22px;width:40px;height:40px;flex:none;display:flex;align-items:center;justify-content:center;background:rgba(255,255,255,.05);border-radius:12px}
+  .ach-item:not(.unlocked) .ach-icon{filter:grayscale(1);opacity:.55}
+  .ach-info{min-width:0;flex:1}
+  .ach-info h4{margin:0 0 2px;font-family:var(--font-display);font-weight:400;font-size:13px;letter-spacing:.5px}
+  .ach-info p{margin:0;font-size:11.5px;color:var(--muted);line-height:1.4}
+  .ach-prog{height:5px;border-radius:3px;background:rgba(255,255,255,.08);overflow:hidden;margin-top:5px}
+  .ach-prog i{display:block;height:100%;background:linear-gradient(90deg,var(--accent),var(--accent2))}
+  .h-item{display:flex;align-items:center;gap:10px;padding:9px 12px;border-radius:14px;background:var(--panel);border:1px solid var(--panel-border)}
+  .h-item .hm{font-size:20px;width:30px;text-align:center;flex:none}
+  .h-item .hs{font-family:var(--font-display);font-size:17px;color:var(--accent);min-width:64px;text-align:right;flex:none}
+  .h-item .hi{min-width:0;flex:1;font-size:12px;color:var(--muted);line-height:1.35}
+  .h-item .hi b{color:var(--text);font-weight:600}
+  .h-item .tag{display:inline-block;font-size:10px;padding:1px 6px;border-radius:6px;border:1px solid var(--panel-border);margin-left:4px;color:var(--muted)}
+  .h-item .tag.g{border-color:rgba(255,214,10,.5);color:var(--gold)}
+  .empty{text-align:center;color:var(--muted);padding:20px}
+  .skins{display:grid;grid-template-columns:repeat(auto-fill,minmax(118px,1fr));gap:10px}
+  .skin{position:relative;display:flex;flex-direction:column;align-items:center;gap:4px;padding:10px 6px 9px;border-radius:14px;background:var(--panel);
+    border:1px solid var(--panel-border);cursor:pointer;font:inherit;color:var(--text);text-align:center}
+  .skin canvas{width:100px;height:56px;display:block}
+  .skin .sn{font-family:var(--font-display);font-size:13px;letter-spacing:.5px}
+  .skin .sd{font-size:10.5px;color:var(--muted);line-height:1.3;min-height:2.6em}
+  .skin.sel{border-color:var(--accent);box-shadow:0 0 0 2px rgba(0,229,255,.35),0 0 16px rgba(0,229,255,.25)}
+  .skin.lock .sn{color:var(--muted)}
+  .skin.lock::after{content:'🔒';position:absolute;top:6px;right:8px;font-size:13px;opacity:.8}
+  #ov-settings .ku-field,#ov-practice .ku-field{width:100%;align-items:stretch;margin-top:8px}
+  .set-btns{display:flex;gap:8px;flex-wrap:wrap;margin-top:6px}
+  .set-note{font-size:12px;color:var(--muted);margin:4px 0 0;line-height:1.45}
+  .ku-rules .k{font-family:var(--font-display);font-weight:400;color:var(--accent);white-space:nowrap}
+  @media (max-height:700px) and (min-height:561px){
+    #ov-over .ku-card{gap:7px;padding:18px 22px}
+    #ov-over .ku-big-score{font-size:30px}
+    #ov-over .ku-over-stats{gap:4px;margin:2px 0}
+    #ov-over .dn-medal{width:38px;height:38px;font-size:17px}
+  }
+  @media (max-height:560px){
+    .ku-overlay .ku-card{padding:12px 18px;gap:6px}
+    .ku-overlay .ku-card h2{font-size:19px}
+    .ku-overlay .ku-big-score{font-size:26px}
+    .ku-overlay .ku-over-stats{display:grid;grid-template-columns:1fr 1fr;column-gap:16px;row-gap:3px;margin:2px 0}
+    .ku-overlay .ku-over-stats div{font-size:13px}
+    .ku-overlay .ku-card .ku-btn{min-height:34px;padding-top:6px;padding-bottom:6px;font-size:14px}
+    .ku-overlay .ku-card{width:min(560px,92vw)}
+    .ov-btns{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+    .ov-btns .ku-btn.primary{grid-column:1 / -1}
+    .dn-medal{width:34px;height:34px;font-size:15px}
+    /* окно итогов лёжа: показатели в 3 колонки, кнопки в ряд — всё помещается без прокрутки */
+    #ov-over .ku-over-stats{grid-template-columns:1fr 1fr 1fr}
+    #ov-over .ku-over-stats div{gap:8px}
+    #ov-over .ov-btns .ku-btn.primary{grid-column:auto}
+    #over-unlock,#over-note{font-size:12px;line-height:1.35}
+    .ku-overlay .ku-new-best{font-size:15px}
+  }
+  /* совсем низкий экран (телефон 640×360 лёжа) */
+  @media (max-height:420px){
+    #ov-over .ku-card,#ov-pause .ku-card{padding:8px 16px;gap:4px}
+    .ku-overlay .ku-card h2{font-size:17px}
+    #ov-over .ku-new-best{font-size:13px}
+    #ov-over .ku-big-score{font-size:24px}
+    #ov-over .dn-medal{width:28px;height:28px;font-size:13px;border-width:1.5px}
+    #ov-over .ku-over-stats div{font-size:12px}
+    #ov-over .ku-over-stats b{font-size:13px}
+    #over-unlock,#over-note{font-size:11.5px}
+    .ku-overlay .ku-card .ku-btn{min-height:32px;padding-top:5px;padding-bottom:5px}
+  }
+  /* «Меньше движения»: без парящих букв, пульсаций и вылетающих надписей */
+  body.rm .ku-logo .ch,body.rm .ku-new-best,body.rm #center .msg{animation:none}
+  body.rm .float{display:none}
+  body.rm::before,body.rm::after{animation-play-state:paused}
 </style>
 </head>
 <body class="ku">
@@ -39,890 +186,2105 @@
 
   <!-- ═══ МЕНЮ ═══ -->
   <section id="screen-menu" class="ku-screen menu active">
-    <h1 class="ku-logo">DINO PRO</h1>
-    <p class="ku-tagline">Неоновый раннер • 4 темы × 4 эпохи • Рекорды</p>
-    <div class="ku-pills"><span>🦕 Прыжки</span><span>⬇ Пригнуться</span><span>🦖 Птеродактили с 500</span><span>🏅 Медали</span></div>
-    <div class="ku-menu-btns">
-      <button class="ku-btn big primary" id="btn-start">🦕 Бежать<span class="best" id="menu-best">Рекорд: 0</span></button>
+    <h1 class="ku-logo">ДИНО</h1>
+    <p class="ku-tagline">Неоновый раннер • 4&nbsp;режима • 9&nbsp;скинов</p>
+    <div class="ku-pills"><span>🌵 Кактусы</span><span>🦅 Птеродактили</span><span>🌙 Ночь каждые 700</span><span>🏅 Достижения</span></div>
+    <div id="menu-dino-wrap" role="button" tabindex="0" aria-label="Выбрать скин">
+      <canvas id="menu-dino" width="230" height="66"></canvas>
+      <div id="menu-dino-name">Скин: <b id="menu-skin-name">Неон</b> · сменить</div>
     </div>
-    <div class="ku-menu-row"><button class="ku-btn ghost" id="btn-rules">📖 Правила</button></div>
-    <div class="ku-menu-stats" id="menu-stats"></div>
-    <div class="ku-menu-hint">Клавиши: Пробел / ↑ — прыжок · ↓ — пригнуться · P / Esc — пауза<br>
-      На телефоне: тап — прыжок · свайп вниз или тап у земли — пригнуться</div>
+    <div class="ku-menu-btns">
+      <button class="ku-btn big primary" id="btn-classic">🦖 Классика<span class="best" id="best-classic">Рекорд: 0</span></button>
+      <div class="ku-menu-duo">
+        <button class="ku-btn duo gold" id="btn-daily">📅 Испытание дня<span class="best" id="best-daily">Одна попытка в зачёт</span></button>
+        <button class="ku-btn duo red" id="btn-hardcore">🔥 Хардкор<span class="best" id="best-hardcore">Рекорд: 0</span></button>
+      </div>
+      <button class="ku-btn big accent2" id="btn-practice">🎯 Тренировка<span class="best">Без проигрыша • своя скорость</span></button>
+    </div>
+    <div class="ku-menu-row">
+      <button class="ku-btn ghost" id="btn-skins">🎨 Скины</button>
+      <button class="ku-btn ghost" id="btn-rules">📖 Правила</button>
+      <button class="ku-btn ghost" id="btn-stats">📊 Статистика</button>
+      <button class="ku-btn ghost" id="btn-ach">🏅 Достижения</button>
+      <button class="ku-btn ghost" id="btn-history">📜 История</button>
+      <button class="ku-btn ghost" id="btn-settings">⚙️ Настройки</button>
+    </div>
+    <div class="ku-menu-stats" id="menu-stats">Забегов: 0</div>
+    <div class="ku-menu-hint" id="menu-hint">Клавиши: пробел / ↑ — прыжок (держи — выше) · ↓ — присед, в прыжке — быстрое падение · P / Esc — пауза<br>
+      На телефоне: тап выше середины экрана — прыжок · ниже середины или свайп вниз — присед</div>
   </section>
 
   <!-- ═══ ИГРА ═══ -->
   <section id="screen-game" class="ku-screen fit">
+    <div id="zones" aria-hidden="true">
+      <div class="zu"><b>⬆ ПРЫЖОК</b><small>тап выше линии · держи — выше</small></div>
+      <div class="zd"><span class="ico">⬇</span><b>ПРИСЕД</b><small>держи ниже линии · в прыжке — быстрое падение</small></div>
+    </div>
     <header class="ku-top">
       <div class="ku-top-left"></div>
-      <div class="ku-top-title"><div class="t">DINO PRO</div><div class="s" id="theme-name">НОЧЬ · ЭПОХА I</div></div>
+      <div class="ku-top-title"><div class="t" id="g-title">КЛАССИКА</div><div class="s" id="g-sub">НЕОН · ЭПОХА I</div></div>
       <div class="ku-top-actions">
-        <button class="ku-btn icon" id="btn-pause" aria-label="Пауза"><svg viewBox="0 0 24 24"><line x1="9" y1="5" x2="9" y2="19"/><line x1="15" y1="5" x2="15" y2="19"/></svg></button>
+        <button class="ku-btn icon" id="btn-pause" aria-label="Пауза (P)" title="Пауза (P)"><svg viewBox="0 0 24 24"><line x1="9" y1="5" x2="9" y2="19"/><line x1="15" y1="5" x2="15" y2="19"/></svg></button>
       </div>
     </header>
-    <div class="ku-hud">
-      <div class="ku-stat"><span>Очки</span><b id="score-val">0</b></div>
-      <div class="ku-stat gold"><span>Рекорд</span><b id="best-val">0</b></div>
-      <div class="ku-stat c2"><span>Скорость</span><b id="speed-val">×1.0</b></div>
+    <div class="ku-hud" id="hud">
+      <div class="ku-stat"><span>Очки</span><b id="hud-score">0</b></div>
+      <div class="ku-stat gold"><span id="hud-best-l">Рекорд</span><b id="hud-best">0</b></div>
+      <div class="ku-stat c2"><span>Скорость</span><b id="hud-speed">×1.0</b></div>
     </div>
     <div id="stage">
-      <div class="ku-pbar" id="pbar" title="До следующей сотни"><i id="progress-fill"></i></div>
-      <div id="board-box" class="ku-board"><canvas id="c"></canvas><div id="theme-indicator"></div></div>
-      <p class="ku-hint" id="game-hint">Тап — прыжок · свайп вниз или тап у земли — пригнуться</p>
+      <div class="ku-pbar" id="pbar" title="До следующей сотни"><i id="pbar-fill"></i></div>
+      <div id="board" class="ku-board"><canvas id="cv" aria-label="Поле: динозавр бежит по пустыне"></canvas><div id="banner"></div><div id="center"></div></div>
+      <p class="ku-hint" id="g-hint">Пробел / ↑ — прыжок (держи — выше) · ↓ — присед · P — пауза</p>
     </div>
   </section>
 </main>
 
 <!-- ═══ ПАУЗА ═══ -->
-<div class="ku-overlay" id="menu-pause">
-  <div class="ku-card">
-    <h2>⏸ ПАУЗА</h2>
-    <button class="ku-btn primary" id="btn-resume">Продолжить</button>
-    <button class="ku-btn" id="btn-pause-restart">Заново</button>
-    <button class="ku-btn" id="btn-rules2">📖 Правила</button>
-    <button class="ku-btn ghost" id="btn-quit">В меню</button>
+<div class="ku-overlay" id="ov-pause"><div class="ku-card" role="dialog" aria-modal="true" aria-labelledby="pause-h">
+  <h2 id="pause-h">⏸ ПАУЗА</h2>
+  <p id="pause-info">—</p>
+  <div class="ov-btns">
+    <button class="ku-btn primary" id="p-resume">▶ Продолжить</button>
+    <button class="ku-btn" id="p-restart">🔄 Заново</button>
+    <button class="ku-btn" id="p-rules">📖 Правила</button>
+    <button class="ku-btn" id="p-settings">⚙️ Настройки</button>
+    <button class="ku-btn ghost" id="p-menu">В меню</button>
   </div>
-</div>
+</div></div>
 
 <!-- ═══ КОНЕЦ ЗАБЕГА ═══ -->
-<div class="ku-overlay" id="menu-game-over">
-  <div class="ku-card">
-    <h2 class="lose">ИГРА ОКОНЧЕНА</h2>
-    <div class="ku-new-best" id="new-best" hidden>🏆 НОВЫЙ РЕКОРД!</div>
-    <div class="ku-big-score" id="final-score">0</div>
-    <div class="dn-medals">
-      <div class="dn-medal bronze" id="medal-bronze" title="100+ очков">🥉</div>
-      <div class="dn-medal silver" id="medal-silver" title="300+ очков">🥈</div>
-      <div class="dn-medal gold" id="medal-gold" title="700+ очков">🥇</div>
-      <div class="dn-medal platinum" id="medal-platinum" title="1500+ очков">💎</div>
-    </div>
-    <div class="ku-over-stats">
-      <div>Рекорд<b id="over-best">0</b></div>
-      <div>Скорость<b id="over-speed">×1.0</b></div>
-      <div>Тема<b id="over-theme">Ночь · I</b></div>
-    </div>
-    <button class="ku-btn primary" id="btn-restart">Играть снова</button>
-    <button class="ku-btn ghost" id="btn-go-menu">В меню</button>
+<div class="ku-overlay" id="ov-over"><div class="ku-card" role="dialog" aria-modal="true" aria-labelledby="over-h">
+  <h2 class="lose" id="over-h">ИГРА ОКОНЧЕНА</h2>
+  <div class="ku-new-best" id="over-best" hidden>🏆 НОВЫЙ РЕКОРД!</div>
+  <div class="ku-big-score" id="over-score">0</div>
+  <div class="dn-medals" id="over-medals">
+    <div class="dn-medal bronze" title="100+ очков">🥉</div>
+    <div class="dn-medal silver" title="300+ очков">🥈</div>
+    <div class="dn-medal gold" title="700+ очков">🥇</div>
+    <div class="dn-medal platinum" title="1500+ очков">💎</div>
   </div>
-</div>
+  <p id="over-note"></p>
+  <div class="ku-over-stats" id="over-stats"></div>
+  <div id="over-unlock"></div>
+  <div class="ov-btns">
+    <button class="ku-btn primary" id="o-again">🔄 Играть снова</button>
+    <button class="ku-btn ghost" id="o-menu">В меню</button>
+  </div>
+</div></div>
 
 <!-- ═══ ПРАВИЛА ═══ -->
-<div class="ku-overlay" id="menu-rules">
-  <div class="ku-modal">
-    <header><h2>📖 Правила</h2><button class="ku-btn icon" id="btn-rules-x" aria-label="Закрыть">✕</button></header>
-    <div class="ku-body">
-      <h3>Цель</h3>
-      <ul class="ku-rules">
-        <li><b>Беги как можно дальше.</b> Очки растут вместе со скоростью, скорость растёт со временем.</li>
-        <li><b>Кактусы</b> — одиночные, высокие и двойные: перепрыгивай.</li>
-        <li><b>Птеродактили</b> появляются после 500 очков: низкого — перепрыгни, высокого — пригнись или перепрыгни.</li>
-      </ul>
-      <h3>Темы и эпохи</h3>
-      <ul class="ku-rules">
-        <li>Каждые ~30 секунд меняется тема (<b>Ночь, Рассвет, Кибер, Пламя</b>), после полного круга тем начинается новая <b>эпоха</b> — неон ярче.</li>
-        <li>Медали за забег: <b>🥉 100</b>, <b>🥈 300</b>, <b>🥇 700</b>, <b>💎 1500</b> очков.</li>
-      </ul>
-      <h3>Управление</h3>
-      <ul class="ku-rules">
-        <li><b>Пробел / ↑ / тап</b> — прыжок.</li>
-        <li><b>↓ / свайп вниз / тап у земли</b> — пригнуться; в воздухе — быстрое приземление.</li>
-        <li><b>P / Esc / ⏸</b> — пауза.</li>
-      </ul>
-    </div>
-    <footer><button class="ku-btn primary" id="btn-rules-close">Понятно</button></footer>
+<div class="ku-overlay" id="ov-rules"><div class="ku-modal" role="dialog" aria-modal="true" aria-labelledby="rules-h">
+  <header><h2 id="rules-h">📖 Правила</h2><button class="ku-btn icon" data-close aria-label="Закрыть">✕</button></header>
+  <div class="ku-body">
+    <h3>Цель</h3>
+    <ul class="ku-rules">
+      <li><b>Беги как можно дальше.</b> Очки — пройденное расстояние; скорость растёт сама: в «Классике» от <span class="k">×1.0</span> до <span class="k">×2.2</span> примерно за 2 минуты.</li>
+      <li>Первые 3 секунды препятствий нет. Задел кактус или птеродактиля — забег окончен.</li>
+    </ul>
+    <h3>Управление</h3>
+    <ul class="ku-rules">
+      <li><b>Пробел / ↑ / тап</b> — прыжок. Короткое нажатие — низкий прыжок, <b>держи — выше</b>.</li>
+      <li><b>↓ / свайп вниз / держи ниже середины экрана</b> — присесть. В прыжке ↓ — <b>быстрое падение</b>; если держишь ↓ при приземлении — сразу присед. Из приседа прыгнуть нельзя — сначала отпусти.</li>
+      <li>Прыжок, нажатый чуть раньше приземления, не теряется. <b>P / Esc / ⏸</b> — пауза; при сворачивании игра встаёт на паузу сама. После проигрыша кнопки «Играть снова» срабатывают через секунду — случайный тап не начнёт забег заново.</li>
+    </ul>
+    <h3>Препятствия</h3>
+    <ul class="ku-rules">
+      <li><b>Кактусы</b> — малые и большие, по одному или группой до трёх. Группы появляются, только когда скорость позволяет их перепрыгнуть (большие — со скорости <span class="k">×1.2</span>).</li>
+      <li><b>Птеродактили</b> — со скорости <span class="k">×1.4</span> (≈ 450 очков), на трёх высотах: <b>низкий</b> — перепрыгни, <b>средний</b> — пригнись, <b>высокий</b> — беги под ним (прыгать нельзя). Птица летит чуть быстрее или медленнее земли.</li>
+      <li>Расстояние между препятствиями растёт вместе со скоростью — каждое можно пройти. Столкновение считается по фигуре (голова, тело, хвост, лапы), а не по общей рамке.</li>
+    </ul>
+    <h3>Ночь, темы и эпохи</h3>
+    <ul class="ku-rules">
+      <li>Каждые <b>700 очков</b> наступает ночь (12 секунд): небо темнеет, выходят луна и звёзды; препятствия светятся ярче.</li>
+      <li>В темноте меняется тема — <b>Неон, Рассвет, Кибер, Пламя</b>; после круга из 4 тем начинается новая <b>эпоха</b> (I–IV) — неон ярче. Стартовую тему можно выбрать в настройках.</li>
+    </ul>
+    <h3>Режимы</h3>
+    <ul class="ku-rules">
+      <li><b>🦖 Классика</b> — скорость <span class="k">×1.0 → ×2.2</span>, птеродактили с <span class="k">×1.4</span>.</li>
+      <li><b>📅 Испытание дня</b> — правила Классики, но препятствия задаёт дата: трасса одинаковая у всех и весь день. <b>В зачёт идёт только первая попытка</b> — она засчитывается, как только забег начался (выход в меню тоже её завершает); дальше можно тренироваться на той же трассе вне зачёта. Серия — дни подряд с зачётной попыткой.</li>
+      <li><b>🔥 Хардкор</b> — старт сразу с <span class="k">×1.5</span>, предел <span class="k">×2.5</span>, птеродактили с первых секунд и их вдвое больше.</li>
+      <li><b>🎯 Тренировка</b> — постоянная скорость на выбор, только кактусы или только птицы, можно показать хитбоксы. Проиграть нельзя: столкновения считаются, рекорды — нет.</li>
+    </ul>
+    <h3>Медали и скины</h3>
+    <ul class="ku-rules">
+      <li>Медаль за забег: <b>🥉 100</b>, <b>🥈 300</b>, <b>🥇 700</b>, <b>💎 1 500</b> очков (кроме тренировки).</li>
+      <li>Медали и достижения открывают <b>скины</b> динозавра — выбрать в меню «🎨 Скины».</li>
+    </ul>
   </div>
-</div>
+  <footer><button class="ku-btn primary" data-close>Понятно</button></footer>
+</div></div>
 
+<!-- ═══ СКИНЫ ═══ -->
+<div class="ku-overlay" id="ov-skins"><div class="ku-modal" role="dialog" aria-modal="true" aria-labelledby="skins-h">
+  <header><h2 id="skins-h">🎨 Скины <span class="ku-muted" id="skins-count"></span></h2><button class="ku-btn icon" data-close aria-label="Закрыть">✕</button></header>
+  <div class="ku-body"><div class="skins" id="skins-list"></div></div>
+  <footer><button class="ku-btn primary" data-close>Готово</button></footer>
+</div></div>
+
+<!-- ═══ ТРЕНИРОВКА ═══ -->
+<div class="ku-overlay" id="ov-practice"><div class="ku-modal" role="dialog" aria-modal="true" aria-labelledby="pr-h">
+  <header><h2 id="pr-h">🎯 Тренировка</h2><button class="ku-btn icon" data-close aria-label="Закрыть">✕</button></header>
+  <div class="ku-body">
+    <p class="set-note" style="margin-top:0">Скорость не растёт, проиграть нельзя — столкновения только считаются. Рекорды и статистика забегов не меняются.</p>
+    <div class="ku-field"><div class="ku-label">Скорость</div>
+      <div class="ku-seg" id="pr-speed"><button data-v="6">×1.0</button><button data-v="8.5">×1.4</button><button data-v="10">×1.7</button><button data-v="13">×2.2</button><button data-v="15">×2.5</button></div></div>
+    <div class="ku-field"><div class="ku-label">Препятствия</div>
+      <div class="ku-seg" id="pr-types"><button data-v="all">Все</button><button data-v="cactus">🌵 Кактусы</button><button data-v="ptero">🦅 Птицы</button></div></div>
+    <label class="ku-switch-row">Показывать хитбоксы<input type="checkbox" id="pr-boxes"><span class="ku-switch"></span></label>
+  </div>
+  <footer><button class="ku-btn ghost" data-close>Отмена</button><button class="ku-btn primary" id="pr-start">▶ Начать</button></footer>
+</div></div>
+
+<!-- ═══ СТАТИСТИКА ═══ -->
+<div class="ku-overlay" id="ov-stats"><div class="ku-modal" role="dialog" aria-modal="true" aria-labelledby="stats-h">
+  <header><h2 id="stats-h">📊 Статистика</h2><button class="ku-btn icon" data-close aria-label="Закрыть">✕</button></header>
+  <div class="ku-body">
+    <div class="ku-seg st-tabs" id="st-tabs"><button data-v="classic">Классика</button><button data-v="daily">Дня</button><button data-v="hardcore">Хардкор</button><button data-v="total">Всего</button></div>
+    <div class="stats-grid" id="st-grid"></div>
+    <p class="st-note" id="st-note"></p>
+  </div>
+  <footer><button class="ku-btn primary" data-close>Готово</button></footer>
+</div></div>
+
+<!-- ═══ ДОСТИЖЕНИЯ ═══ -->
+<div class="ku-overlay" id="ov-ach"><div class="ku-modal" role="dialog" aria-modal="true" aria-labelledby="ach-h">
+  <header><h2 id="ach-h">🏅 Достижения <span class="ku-muted" id="ach-count"></span></h2><button class="ku-btn icon" data-close aria-label="Закрыть">✕</button></header>
+  <div class="ku-body"><div class="list" id="ach-list"></div></div>
+</div></div>
+
+<!-- ═══ ИСТОРИЯ ═══ -->
+<div class="ku-overlay" id="ov-history"><div class="ku-modal" role="dialog" aria-modal="true" aria-labelledby="hist-h">
+  <header><h2 id="hist-h">📜 История</h2><button class="ku-btn icon" data-close aria-label="Закрыть">✕</button></header>
+  <div class="ku-body"><div class="list" id="history-list"></div></div>
+</div></div>
+
+<!-- ═══ НАСТРОЙКИ ═══ -->
+<div class="ku-overlay" id="ov-settings"><div class="ku-modal" role="dialog" aria-modal="true" aria-labelledby="set-h">
+  <header><h2 id="set-h">⚙️ Настройки</h2><button class="ku-btn icon" data-close aria-label="Закрыть">✕</button></header>
+  <div class="ku-body">
+    <h3>Звук и вибрация</h3>
+    <label class="ku-switch-row">Звуки<input type="checkbox" data-opt="sound"><span class="ku-switch"></span></label>
+    <label class="ku-switch-row">Вибрация<input type="checkbox" data-opt="vibration"><span class="ku-switch"></span></label>
+    <h3>Вид</h3>
+    <label class="ku-switch-row">Меньше движения<input type="checkbox" data-opt="reduce"><span class="ku-switch"></span></label>
+    <p class="set-note">Без тряски, вспышек, частиц и параллакса звёзд; надписи не вылетают.</p>
+    <div class="ku-field"><div class="ku-label">Стартовая тема</div>
+      <div class="ku-seg" id="set-theme"><button data-v="0">Неон</button><button data-v="1">Рассвет</button><button data-v="2">Кибер</button><button data-v="3">Пламя</button></div></div>
+    <h3>Управление на экране</h3>
+    <label class="ku-switch-row">Ниже середины экрана — присед<input type="checkbox" data-opt="zones"><span class="ku-switch"></span></label>
+    <p class="set-note">Если выключить, тап в любом месте — прыжок, присед — свайпом вниз.</p>
+    <h3>Данные</h3>
+    <div class="set-btns"><button class="ku-btn sm danger" id="btn-reset">🗑 Сбросить прогресс</button></div>
+    <p class="set-note">Сбрасывает рекорды, статистику, достижения, историю и скины. Зачётные попытки испытания дня остаются засчитанными.</p>
+  </div>
+  <footer><button class="ku-btn primary" data-close>Готово</button></footer>
+</div></div>
+
+<div class="ku-toast" id="toast"></div>
 <script>
 'use strict';
-const $ = id => document.getElementById(id);
-const fmt = n => Math.floor(n).toLocaleString('ru-RU');
 
-/* roundRect для старых WebView (Safari < 16, Chrome < 99) */
-if (typeof CanvasRenderingContext2D !== 'undefined' && !CanvasRenderingContext2D.prototype.roundRect) {
-  CanvasRenderingContext2D.prototype.roundRect = function (x, y, w, h, r) {
-    r = Math.max(0, Math.min(+r || 0, Math.abs(w) / 2, Math.abs(h) / 2));
-    this.moveTo(x + r, y); this.arcTo(x + w, y, x + w, y + h, r); this.arcTo(x + w, y + h, x, y + h, r);
-    this.arcTo(x, y + h, x, y, r); this.arcTo(x, y, x + w, y, r); this.closePath();
-    return this;
+/* ═══ engine.js ═══ */
+/* ═══════════════════════════════════════════════════════════════════════════
+ * Дино — движок (без DOM: работает и в браузере, и в Node для тестов).
+ *
+ * Мир — как у Chrome Dino: полоса 600 ед. шириной, земля на y = 140, динозавр стоит на x = 50.
+ * На экране мир только масштабируется, поэтому на любом телефоне видно одно и то же
+ * и время на реакцию одинаковое.
+ *
+ * Шаг фиксированный — 1/60 с (кадр оригинала на 60 Гц): на 120/144 Гц игра не ускоряется.
+ * Скорость растёт на 0,001 ед/тик за тик от стартовой до максимальной (Классика: 6 → 13 за ~2 мин),
+ * очки = пройденное расстояние × 0,025, ночь — каждые 700 очков.
+ *
+ * Мир (скорость, препятствия, ночь, темы) не зависит от действий игрока: у него своё зерно
+ * случайности. Поэтому «Испытание дня» одинаково у всех, а бот в тестах может просчитать мир
+ * заранее и найти путь через все препятствия.
+ * ═════════════════════════════════════════════════════════════════════════ */
+const DinoEngine = (() => {
+  const TICK_MS = 1000 / 60;
+  const W = 600;                       // ширина мира: препятствия появляются за правым краем
+  const GROUND = 140;                  // линия земли (низ лап)
+  const DINO_X = 50;
+  const RUN_W = 44, RUN_H = 47, DUCK_W = 59, DUCK_H = 25;
+  const TOP0 = GROUND - RUN_H;         // 93 — верх стоящего динозавра
+
+  // Физика прыжка (единицы мира за тик) — как в оригинале
+  const PH = {
+    gravity: 0.6,
+    jumpV: 10, jumpSpeedK: 0.1,        // старт прыжка: 10 + скорость/10 (на скорости прыжок чуть сильнее)
+    dropV: 5,                          // отпустил кнопку — подъём «обрезается» до этой скорости…
+    minRise: 30,                       // …но не раньше, чем поднялся на 30 ед. (короткий тап = заметный прыжок)
+    maxTop: 30,                        // выше y = 30 подъём обрезается всегда — потолок полного прыжка
+    dropK: 3, dropStartV: 1,           // быстрое падение (↓ в воздухе): смещение ×3
+    buffer: 6                          // нажатие прыжка за ≤ 6 тиков (0,1 с) до приземления не теряется
   };
+  const MIN_Y = TOP0 - PH.minRise;     // 63
+  const SCORE_K = 0.025;
+  const NIGHT_EVERY = 700, NIGHT_TICKS = 720, FADE_TICKS = 60;   // ночь: каждые 700 очков на 12 с
+  const THEME_FADE = 60;
+  const MAX_DUP = 2;                   // не больше 2 препятствий одного вида подряд
+  const GAP_MAX_K = 1.5;
+  const FRAME_TICKS = 10;              // взмах крыльев — 6 раз в секунду
+
+  /* ── Виды препятствий (размеры и правила интервалов — как в оригинале) ──
+   * multi — с какой скорости можно группу из 2–3 штук (её должно быть реально перепрыгнуть);
+   * minGap — добавка к зазору, зазор = ширина × скорость + minGap × 0,6 … ×1,5 (растёт со скоростью) */
+  const TYPES = {
+    cs: { name: 'cactus', w: 17, h: 35, ys: [GROUND - 35], multi: 4, minGap: 120, minSpeed: 0 },
+    cl: { name: 'cactus', w: 25, h: 50, ys: [GROUND - 50], multi: 7, minGap: 120, minSpeed: 0 },
+    pt: { name: 'ptero', w: 46, h: 40, ys: [100, 75, 50], multi: 999, minGap: 150, minSpeed: 8.5, offset: 0.8 }
+  };
+  const TYPE_KEYS = ['cs', 'cl', 'pt'];
+
+  /* ── Режимы ──
+   * start/max/acc — кривая скорости, clear — тиков без препятствий в начале,
+   * ptMin — с какой скорости птеродактили, ptW — их вес при выборе (у кактусов вес 1) */
+  const MODES = {
+    classic:  { start: 6, max: 13, acc: 0.001, clear: 180, gapK: 0.6, ptMin: 8.5, ptW: 1, death: true },
+    daily:    { start: 6, max: 13, acc: 0.001, clear: 180, gapK: 0.6, ptMin: 8.5, ptW: 1, death: true },
+    hardcore: { start: 9, max: 15, acc: 0.001, clear: 120, gapK: 0.6, ptMin: 0, ptW: 2, death: true },
+    practice: { start: 6, max: 6, acc: 0, clear: 120, gapK: 0.6, ptMin: 0, ptW: 1, death: false }
+  };
+
+  /* ── Формы спрайтов и хитбоксы ──
+   * Форма — прямоугольники [x, y, w, h, r] (r — скругление): по ним рисуется силуэт.
+   * Хитбоксы [x, y, w, h] лежат ВНУТРИ формы (проверяется тестом) и повторяют её по частям:
+   * столкновение засчитывается только там, где что-то нарисовано, а не по общей рамке. */
+  const SHAPE = {
+    run: {
+      tail: [0, 17, 11, 8, 3], body: [8, 18, 27, 18, 6], neck: [23, 10, 11, 12, 2], head: [23, 0, 21, 15, 3],
+      arm: [34, 23, 6, 3, 1],
+      // ноги: стоя — до земли; на бегу одна поднята (legUp) — хитбокс ноги внутри и той и другой
+      legA: [12, 35, 6, 12, 2], legB: [23, 35, 6, 12, 2], legUp: 4
+    },
+    duck: {
+      tail: [0, 5, 11, 6, 3], body: [8, 3, 37, 16, 6], head: [40, 0, 19, 13, 3],
+      legA: [16, 17, 6, 8, 2], legB: [30, 17, 6, 8, 2], legUp: 2
+    },
+    // кактусы: одна «штука»; зеркальный вариант — x ↦ ширина − x − w
+    cs: [[5, 0, 7, 35, 3], [0, 9, 4, 11, 1.5], [0, 16, 7, 4, 1.5], [13, 5, 4, 11, 1.5], [10, 12, 7, 4, 1.5]],
+    cl: [[8, 0, 9, 50, 3], [0, 12, 6, 18, 3], [0, 25, 10, 6, 3], [19, 6, 6, 17, 3], [15, 18, 10, 6, 3]],
+    pt: [[0, 15, 7, 3, 1], [4, 11, 12, 10, 3], [14, 9, 7, 3, 1], [12, 15, 26, 9, 3], [36, 17, 10, 4, 2]],
+    // крыло — треугольник: вверх (кадр 0) и вниз (кадр 1)
+    ptWing: [[[17, 16], [33, 16], [27, 0]], [[17, 23], [33, 23], [25, 39]]]
+  };
+  const HIT = {
+    run: [[24, 1, 19, 13], [23, 10, 11, 23], [10, 19, 23, 15], [1, 18, 9, 6], [35, 24, 4, 1], [13, 34, 4, 8], [24, 34, 4, 8]],
+    duck: [[41, 1, 17, 11], [10, 5, 33, 12], [1, 6, 9, 4], [17, 16, 4, 6], [31, 16, 4, 6]],
+    cs: [[6, 1, 5, 33], [1, 10, 3, 9], [1, 16, 5, 3], [13, 6, 3, 9], [11, 12, 5, 3]],
+    cl: [[9, 1, 7, 48], [1, 13, 4, 17], [1, 26, 8, 4], [20, 7, 4, 16], [16, 19, 8, 4]],
+    pt: [[1, 15, 5, 3], [5, 12, 10, 8], [13, 16, 24, 7], [37, 18, 8, 2]],
+    ptWing: [[[22, 8, 8, 8], [20, 11, 11, 5]], [[19, 22, 12, 5], [22, 27, 6, 6]]]
+  };
+
+  /* ── Случайность мира: mulberry32, состояние — в g.rs ── */
+  function rnd(g) {
+    let t = (g.rs = (g.rs + 0x6D2B79F5) | 0);
+    t = Math.imul(t ^ (t >>> 15), t | 1);
+    t ^= t + Math.imul(t ^ (t >>> 7), t | 61);
+    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+  }
+  const randInt = (g, a, b) => a + Math.floor(rnd(g) * (b - a + 1));
+  function hashStr(s) {                     // FNV-1a
+    let h = 0x811c9dc5;
+    for (let i = 0; i < s.length; i++) { h ^= s.charCodeAt(i); h = Math.imul(h, 0x01000193); }
+    return h >>> 0;
+  }
+  const dailySeed = dateKey => hashStr('dino-daily-v1-' + dateKey);
+
+  /* ── Хитбоксы препятствия: кэш по виду, размеру группы, зеркалам и кадру ── */
+  const boxCache = new Map();
+  function obstacleRel(type, size, mirror, frame) {
+    const key = type + size + ':' + mirror + ':' + frame;
+    let b = boxCache.get(key);
+    if (b) return b;
+    b = [];
+    if (type === 'pt') {
+      for (const r of HIT.pt) b.push(r.slice());
+      for (const r of HIT.ptWing[frame]) b.push(r.slice());
+    } else {
+      const uw = TYPES[type].w;
+      for (let i = 0; i < size; i++) {
+        const mir = (mirror >> i) & 1;
+        for (const r of HIT[type]) b.push([i * uw + (mir ? uw - r[0] - r[2] : r[0]), r[1], r[2], r[3]]);
+      }
+    }
+    boxCache.set(key, b);
+    return b;
+  }
+
+  /* ── Динозавр ── */
+  function newDino() {
+    return { y: TOP0, py: TOP0, vy: 0, jumping: false, duck: false, drop: false, reached: false, cutPending: false,
+             buf: 0, inJ: false, airT: 0 };
+  }
+  function startJump(d, speed) {
+    d.vy = -(PH.jumpV + speed * PH.jumpSpeedK);
+    d.jumping = true; d.reached = false; d.cutPending = false; d.drop = false; d.duck = false; d.buf = 0; d.airT = 0;
+  }
+  // «отпустил кнопку»: подъём обрезается до dropV, если уже поднялся на минимальную высоту
+  function cut(d) { if (d.reached && d.vy < -PH.dropV) d.vy = -PH.dropV; }
+
+  /* Один тик динозавра. inp: { jump, duck — удерживаются; jp, dp — было нажатие за этот тик }.
+   * Возвращает битовую маску событий: 1 — прыжок, 2 — быстрое падение, 4 — приземление. */
+  function dinoStep(d, inp, speed) {
+    let ev = 0;
+    const press = inp.jp || (inp.jump && !d.inJ);
+    const release = !inp.jump && d.inJ;
+    d.inJ = !!inp.jump;
+    d.py = d.y;
+    const duckHeld = !!(inp.duck || inp.dp);
+    // ↓: на земле — присед, в воздухе — быстрое падение (пока держишь)
+    if (duckHeld) {
+      if (d.jumping) {
+        if (!d.drop) { d.drop = true; d.vy = Math.max(d.vy, PH.dropStartV); ev |= 2; }
+      } else d.duck = true;
+    } else { d.drop = false; d.duck = false; }
+    // прыжок: на земле и не в приседе; в воздухе — запоминаем нажатие до приземления
+    if (press) {
+      if (!d.jumping && !d.duck) {
+        startJump(d, speed); ev |= 1;
+        if (!inp.jump) d.cutPending = true;   // нажал и отпустил внутри одного тика — короткий прыжок
+      } else if (d.jumping) d.buf = PH.buffer;
+    }
+    if (release && d.jumping) { if (d.reached) cut(d); else d.cutPending = true; }
+    if (d.jumping) {
+      d.airT++;
+      d.y += d.drop ? d.vy * PH.dropK : d.vy;
+      d.vy += PH.gravity;
+      if (d.y < MIN_Y || d.drop) d.reached = true;
+      if (d.reached && d.cutPending) { cut(d); d.cutPending = false; }
+      if (d.y < PH.maxTop || d.drop) cut(d);
+      if (d.y > TOP0) {                       // приземлился
+        d.y = TOP0; d.vy = 0; d.jumping = false; d.drop = false; d.reached = false; d.cutPending = false;
+        d.duck = duckHeld;                    // ↓ всё ещё нажата — сразу присед
+        ev |= 4;
+        if (d.buf > 0 && !d.duck) {           // прыжок, нажатый перед приземлением
+          startJump(d, speed); ev |= 1;
+          if (!d.inJ) d.cutPending = true;    // кнопку уже отпустили — короткий прыжок
+        }
+      }
+    }
+    if (d.buf > 0) d.buf--;
+    return ev;
+  }
+
+  /* Хитбоксы динозавра в координатах мира → out (массив [x, y, w, h]); возвращает число боксов */
+  function dinoBoxes(d, out) {
+    const rel = d.duck ? HIT.duck : HIT.run;
+    const top = d.duck ? GROUND - DUCK_H : d.y;
+    for (let i = 0; i < rel.length; i++) {
+      const r = rel[i], o = out[i] || (out[i] = [0, 0, 0, 0]);
+      o[0] = DINO_X + r[0]; o[1] = top + r[1]; o[2] = r[2]; o[3] = r[3];
+    }
+    return rel.length;
+  }
+  const _db = [];
+  /* Пересекается ли динозавр с препятствием, стоящим в (x, y): сначала общие рамки, затем по частям */
+  function hitsObstacle(d, type, size, mirror, frame, x, y) {
+    const dw = d.duck ? DUCK_W : RUN_W, dh = d.duck ? DUCK_H : RUN_H, dt = d.duck ? GROUND - DUCK_H : d.y;
+    const t = TYPES[type], ow = t.w * (type === 'pt' ? 1 : size);
+    if (!(DINO_X < x + ow && DINO_X + dw > x && dt < y + t.h && dt + dh > y)) return false;
+    const n = dinoBoxes(d, _db), ob = obstacleRel(type, size, mirror, frame);
+    for (let i = 0; i < n; i++) {
+      const a = _db[i];
+      for (let j = 0; j < ob.length; j++) {
+        const b = ob[j], bx = x + b[0], by = y + b[1];
+        if (a[0] < bx + b[2] && a[0] + a[2] > bx && a[1] < by + b[3] && a[1] + a[3] > by) return true;
+      }
+    }
+    return false;
+  }
+
+  /* ── Партия ── */
+  function create(opts) {
+    opts = opts || {};
+    const mode = MODES[opts.mode] ? opts.mode : 'classic';
+    const cfg = Object.assign({}, MODES[mode]);
+    let types = TYPE_KEYS.slice();
+    if (mode === 'practice') {
+      const p = opts.practice || {};
+      const sp = Math.min(15, Math.max(6, +p.speed || 6));
+      cfg.start = cfg.max = sp;
+      if (p.types === 'cactus') types = ['cs', 'cl'];
+      else if (p.types === 'ptero') types = ['pt'];
+    }
+    const seed = (opts.seed >>> 0) || 1;
+    return {
+      mode, cfg, types, seed, rs: seed | 0,
+      tick: 0, running: false, over: false, ghost: !!opts.ghost,
+      speed: cfg.start, dist: 0, score: 0,
+      dino: newDino(),
+      obs: [], nextId: 1, hist: [],          // hist — виды последних препятствий (правило повторов)
+      night: 0, nightT: -1, nightK: 0,        // nightT ≥ 0 — идёт ночь
+      themeStart: (opts.theme | 0) & 3, themeStep: 0, themeT: THEME_FADE,
+      ev: [],
+      st: { jumps: 0, drops: 0, ducked: 0, birds: 0, cacti: 0, triple: 0, maxTick: 0, hits: 0 },
+      cause: '', killer: null, log: opts.log ? [] : null
+    };
+  }
+  const theme = g => (g.themeStart + g.themeStep) & 3;
+  const prevTheme = g => (g.themeStart + Math.max(0, g.themeStep - 1)) & 3;
+  const era = g => Math.min(3, g.themeStep >> 2);
+
+  function begin(g) { g.running = true; }
+
+  function spawn(g) {
+    // вид: равновероятно (птеродактиль — с весом ptW) среди доступных на этой скорости,
+    // без третьего подряд одинакового
+    const cand = [];
+    let dupType = '';
+    if (g.hist.length >= MAX_DUP && g.hist.every(t => t === g.hist[0])) dupType = g.hist[0];
+    for (const k of g.types) {
+      const minSp = k === 'pt' ? g.cfg.ptMin : TYPES[k].minSpeed;
+      if (g.speed < minSp || k === dupType) continue;
+      cand.push(k);
+    }
+    if (!cand.length) for (const k of g.types) cand.push(k);   // тренировка с одним видом — повторы можно
+    let total = 0;
+    for (const k of cand) total += k === 'pt' ? g.cfg.ptW : 1;
+    let r = rnd(g) * total, type = cand[cand.length - 1];
+    for (const k of cand) { r -= k === 'pt' ? g.cfg.ptW : 1; if (r < 0) { type = k; break; } }
+    const T = TYPES[type];
+    let size = randInt(g, 1, 3);
+    if (size > 1 && T.multi > g.speed) size = 1;            // группа — только когда её реально перепрыгнуть
+    const y = T.ys[T.ys.length > 1 ? randInt(g, 0, T.ys.length - 1) : 0];
+    let mirror = 0, off = 0;
+    if (type === 'pt') off = rnd(g) > 0.5 ? T.offset : -T.offset;   // птица чуть быстрее или медленнее земли
+    else for (let i = 0; i < size; i++) if (rnd(g) < 0.5) mirror |= 1 << i;
+    const w = T.w * size;
+    const minGap = Math.round(w * g.speed + T.minGap * g.cfg.gapK);   // зазор растёт со скоростью
+    const gap = randInt(g, minGap, Math.round(minGap * GAP_MAX_K));
+    const o = { id: g.nextId++, type, size, x: W + T.w, px: W + T.w, y, w, h: T.h, gap, off, mirror,
+                frame: 0, ft: 0, next: false, passed: false, ducked: false, hit: false, jumped: false };
+    g.obs.push(o);
+    g.hist.unshift(type); if (g.hist.length > MAX_DUP) g.hist.length = MAX_DUP;
+    if (g.log) g.log.push([g.tick, type, size, y, gap, off, mirror, g.speed]);
+    return o;
+  }
+
+  /* Мир за тик: движение и анимация препятствий, удаление ушедших, появление новых */
+  function worldTick(g) {
+    for (const o of g.obs) {
+      o.px = o.x;
+      o.x -= g.speed + o.off;
+      if (o.type === 'pt' && ++o.ft >= FRAME_TICKS) { o.ft = 0; o.frame ^= 1; }
+    }
+    while (g.obs.length && g.obs[0].x + g.obs[0].w < 0) g.obs.shift();
+    if (g.tick > g.cfg.clear) {
+      const last = g.obs[g.obs.length - 1];
+      if (!last) spawn(g);
+      else if (!last.next && last.x + last.w + last.gap < W) { last.next = true; spawn(g); }
+    }
+  }
+
+  function collide(g) {
+    const d = g.dino;
+    for (const o of g.obs) {
+      if (o.x > DINO_X + DUCK_W) continue;         // ещё не долетело до динозавра
+      if (hitsObstacle(d, o.type, o.size, o.mirror, o.frame, o.x, o.y)) return o;
+    }
+    return null;
+  }
+
+  /* Один тик партии */
+  function step(g, inp) {
+    g.ev.length = 0;
+    if (g.over || !g.running) return;
+    g.tick++;
+    const d = g.dino;
+    const e = dinoStep(d, inp || {}, g.speed);
+    if (e & 1) { g.st.jumps++; g.ev.push('jump'); }
+    if (e & 2) { g.st.drops++; g.ev.push('drop'); }
+    if (e & 4) g.ev.push('land');
+    worldTick(g);
+    if (!g.ghost) {
+      const o = collide(g);
+      if (o) {
+        if (g.cfg.death) {
+          g.over = true; g.cause = o.type === 'pt' ? 'ptero' : 'cactus'; g.killer = o;
+          g.ev.push('die');
+          return;
+        }
+        if (!o.hit) { o.hit = true; g.st.hits++; g.ev.push('hit'); }
+      }
+    }
+    // пройденные препятствия (для статистики и достижений)
+    for (const o of g.obs) {
+      if (o.passed) continue;
+      const over = o.x < DINO_X + RUN_W && o.x + o.w > DINO_X;
+      if (over) { if (o.type === 'pt' && d.duck) o.ducked = true; if (d.jumping) o.jumped = true; }
+      if (o.x + o.w < DINO_X) {
+        o.passed = true;
+        if (o.hit) continue;
+        if (o.type === 'pt') { g.st.birds++; if (o.ducked && o.y === 75) { g.st.ducked++; g.ev.push('ducked'); } }
+        else { g.st.cacti++; if (o.type === 'cl' && o.size === 3) { g.st.triple++; g.ev.push('triple'); } }
+      }
+    }
+    // расстояние, очки, скорость (растёт, пока не достигнет предела режима)
+    g.dist += g.speed;
+    const s = Math.floor(g.dist * SCORE_K);
+    if (s !== g.score) {
+      if (Math.floor(s / 100) > Math.floor(g.score / 100)) g.ev.push('milestone');
+      g.score = s;
+    }
+    if (g.speed < g.cfg.max) {
+      g.speed = Math.min(g.cfg.max, g.speed + g.cfg.acc);
+      if (g.speed >= g.cfg.max && !g.st.maxTick) { g.st.maxTick = g.tick; g.ev.push('maxspeed'); }
+    }
+    // ночь каждые 700 очков на 12 с; посреди ночи (в темноте) меняется тема, к рассвету она уже новая;
+    // после 4 тем — новая эпоха (неон ярче)
+    if (g.nightT >= 0) {
+      g.nightT++;
+      g.nightK = Math.min(1, g.nightT / FADE_TICKS, (NIGHT_TICKS - g.nightT) / FADE_TICKS);
+      if (g.nightT === NIGHT_TICKS >> 1) { g.themeStep++; g.themeT = 0; }
+      if (g.nightT >= NIGHT_TICKS) { g.nightT = -1; g.nightK = 0; g.ev.push(g.themeStep % 4 === 0 ? 'era' : 'dawn'); }
+    } else if (Math.floor(g.score / NIGHT_EVERY) > g.night) {
+      g.night++; g.nightT = 0; g.nightK = 0; g.ev.push('night');
+    }
+    if (g.themeT < THEME_FADE) g.themeT++;
+  }
+
+  /* Отпечаток состояния — для проверки детерминизма */
+  function stateHash(g) {
+    let h = 0x811c9dc5;
+    const mix = v => { const s = String(Math.round(v * 1000)); for (let i = 0; i < s.length; i++) { h ^= s.charCodeAt(i); h = Math.imul(h, 0x01000193); } };
+    mix(g.tick); mix(g.speed); mix(g.dist); mix(g.dino.y); mix(g.dino.vy); mix(g.dino.duck ? 1 : 0); mix(g.rs);
+    for (const o of g.obs) { mix(o.id); mix(o.x); mix(o.y); mix(o.size); }
+    return h >>> 0;
+  }
+
+  /* ── Привязка к реальному времени ──
+   * Тик n охватывает время (t0 + (n−1)·Δ, t0 + n·Δ]. События ввода с метками времени применяются
+   * к тому тику, в который попали, — результат не зависит от частоты кадров (30/60/120/144 Гц).
+   * Кадр сильно опоздал (фон, подвисание) — время не догоняем, а сдвигаем (игра «ждёт»). */
+  class Driver {
+    constructor(onTick) { this.onTick = onTick; this.t0 = 0; this.n = 0; this.q = []; this.held = { jump: false, duck: false }; }
+    reset(t0) { this.t0 = t0; this.n = 0; this.q.length = 0; }
+    resume(now) { this.t0 = now - this.n * TICK_MS; }               // после паузы — без «догона»
+    push(t, kind) {                                                  // kind: jd ju dd du
+      let i = this.q.length;
+      while (i > 0 && this.q[i - 1].t > t) i--;
+      this.q.splice(i, 0, { t, kind });
+    }
+    advance(now, maxTicks) {
+      maxTicks = maxTicks || 8;
+      let target = Math.floor((now - this.t0) / TICK_MS + 1e-9);
+      if (target - this.n > maxTicks) { this.t0 += (target - this.n - maxTicks) * TICK_MS; target = this.n + maxTicks; }
+      let ticks = 0;
+      while (this.n < target) {
+        this.n++; ticks++;
+        const tEnd = this.t0 + this.n * TICK_MS;
+        const inp = { jump: this.held.jump, duck: this.held.duck, jp: false, dp: false };
+        while (this.q.length && this.q[0].t <= tEnd) {
+          const e = this.q.shift();
+          if (e.kind === 'jd') { inp.jp = true; this.held.jump = true; }
+          else if (e.kind === 'ju') this.held.jump = false;
+          else if (e.kind === 'dd') { inp.dp = true; this.held.duck = true; }
+          else if (e.kind === 'du') this.held.duck = false;
+        }
+        inp.jump = this.held.jump; inp.duck = this.held.duck;
+        if (this.onTick(inp) === false) break;
+      }
+      return { ticks, alpha: Math.max(0, Math.min(1, (now - (this.t0 + this.n * TICK_MS)) / TICK_MS)) };
+    }
+  }
+
+  /* ── Перенос рекорда прежней версии ──
+   * Раньше очки шли быстрее: +скорость×0,15 за тик, скорость 5 и +0,4 каждые 500 тиков.
+   * Пересчитываем по времени забега: сколько тиков нужно было продержаться ради такого счёта
+   * и сколько очков за это же время даёт «Классика». */
+  function legacyConvert(old) {
+    old = +old;
+    if (!(old > 0)) return 0;
+    let s = 0, spd = 5, t = 0, dist = 0, sp = MODES.classic.start;
+    while (s < old && t < 400000) {
+      t++;
+      if (t % 500 === 0) spd += 0.4;
+      s += spd * 0.15;
+      dist += sp; sp = Math.min(MODES.classic.max, sp + MODES.classic.acc);
+    }
+    return Math.floor(dist * SCORE_K);
+  }
+
+  /* Скорость → множитель для показа (×1.0 = старт «Классики») */
+  const speedMul = sp => sp / MODES.classic.start;
+
+  return {
+    TICK_MS, W, GROUND, DINO_X, RUN_W, RUN_H, DUCK_W, DUCK_H, TOP0, PH, SCORE_K, NIGHT_EVERY, NIGHT_TICKS, FADE_TICKS,
+    THEME_FADE, TYPES, MODES, SHAPE, HIT, MIN_Y,
+    create, begin, step, worldTick, collide, newDino, dinoStep, dinoBoxes, hitsObstacle, obstacleRel,
+    theme, prevTheme, era, stateHash, Driver, hashStr, dailySeed, legacyConvert, speedMul, rnd
+  };
+})();
+
+/* ═══ theme.js ═══ */
+/* ═══════════════════════════════════════════════════════════════════════════
+ * Дино — темы, эпохи, день и ночь: цвета поля (без DOM — проверяются тестом на контраст).
+ * Тема — палитра поля (земля, кактусы, птицы, фон); эпоха — яркость неона и оттенка неба;
+ * ночь — небо темнеет, выходят луна и звёзды. Препятствия всегда ярче неба (контраст ≥ 3:1).
+ * ═════════════════════════════════════════════════════════════════════════ */
+const DinoTheme = (() => {
+  const hex = h => [parseInt(h.slice(1, 3), 16), parseInt(h.slice(3, 5), 16), parseInt(h.slice(5, 7), 16)];
+  const mix = (a, b, k) => [a[0] + (b[0] - a[0]) * k, a[1] + (b[1] - a[1]) * k, a[2] + (b[2] - a[2]) * k];
+  const css = (c, a) => a == null ? `rgb(${c[0] | 0},${c[1] | 0},${c[2] | 0})` : `rgba(${c[0] | 0},${c[1] | 0},${c[2] | 0},${(+a).toFixed(3)})`;
+
+  // цвета — из палитры набора ku-arcade; dino — цвет скина «Неон» в этой теме
+  const THEMES = [
+    { name: 'Неон',    ground: '#5b8cff', dino: '#51f58b', cactus: '#ff5d7d', bird: '#ffd60a', back: 'mountains' },
+    { name: 'Рассвет', ground: '#ff4dd2', dino: '#ff9f43', cactus: '#51f58b', bird: '#00e5ff', back: 'sun' },
+    { name: 'Кибер',   ground: '#c77dff', dino: '#00e5ff', cactus: '#ff4dd2', bird: '#ffd60a', back: 'city' },
+    { name: 'Пламя',   ground: '#ff9f43', dino: '#ffd60a', cactus: '#51f58b', bird: '#c77dff', back: 'dunes' }
+  ];
+  const ERA = ['I', 'II', 'III', 'IV'];
+  const RGB = THEMES.map(t => ({ ground: hex(t.ground), dino: hex(t.dino), cactus: hex(t.cactus), bird: hex(t.bird) }));
+
+  // Небо: [верх, середина, горизонт]; днём — «неоновые сумерки» с оттенком темы, ночью — почти чёрное
+  const DAY = [hex('#0a0e2a'), hex('#0e1334'), hex('#13183c')];
+  const NIGHT = [hex('#020309'), hex('#04061a'), hex('#070a20')];
+  function sky(ti, era, nightK) {
+    const t = RGB[ti].ground;
+    const day = [mix(DAY[0], t, 0.06 + 0.01 * era), mix(DAY[1], t, 0.09 + 0.015 * era), mix(DAY[2], t, 0.12 + 0.015 * era)];
+    const night = [NIGHT[0], mix(NIGHT[1], t, 0.04), mix(NIGHT[2], t, 0.08 + 0.015 * era)];
+    return day.map((c, i) => mix(c, night[i], nightK));
+  }
+  // Фоновые силуэты (горы, город…): тёмная заливка (небо, затемнённое на BACK_DARK) и тонкий контур
+  // цвета земли с прозрачностью BACK_LINE — за препятствием фон не становится светлее
+  const BACK_DARK = 0.35, BACK_LINE = 0.2;
+
+  /* Палитра кадра: плавный переход от прошлой темы к текущей (k = 0…1), эпоха, ночь */
+  function palette(ti, prevTi, k, era, nightK) {
+    const a = RGB[prevTi], b = RGB[ti], m = key => k >= 1 ? b[key] : mix(a[key], b[key], k);
+    const s0 = sky(prevTi, era, nightK), s1 = sky(ti, era, nightK);
+    return {
+      ground: m('ground'), dino: m('dino'), cactus: m('cactus'), bird: m('bird'),
+      sky: k >= 1 ? s1 : s0.map((c, i) => mix(c, s1[i], k)),
+      glow: 1 + era * 0.3 + nightK * 0.35,             // сила свечения: эпоха и ночь
+      stars: 0.25 + 0.75 * nightK,
+      back: k >= 1 ? THEMES[ti].back : null, backFrom: THEMES[prevTi].back, backK: k
+    };
+  }
+
+  // относительная яркость и контраст (WCAG)
+  const lin = v => { v /= 255; return v <= 0.03928 ? v / 12.92 : Math.pow((v + 0.055) / 1.055, 2.4); };
+  const lum = c => 0.2126 * lin(c[0]) + 0.7152 * lin(c[1]) + 0.0722 * lin(c[2]);
+  const contrast = (a, b) => { const x = lum(a), y = lum(b); return (Math.max(x, y) + 0.05) / (Math.min(x, y) + 0.05); };
+
+  return { THEMES, ERA, RGB, sky, palette, mix, css, hex, lum, contrast, BACK_DARK, BACK_LINE };
+})();
+
+/* ═══ render.js ═══ */
+/* ═══════════════════════════════════════════════════════════════════════════
+ * Дино — отрисовка на canvas. Рисуем в единицах мира (через матрицу масштаба), поэтому
+ * картинка одинакова на любом экране. Силуэты динозавра, кактусов и птиц строятся из тех же
+ * прямоугольников, что и хитбоксы в движке (DinoEngine.SHAPE / HIT).
+ * Положения между тиками интерполируются — на 120 Гц движение плавное, а физика та же.
+ * ═════════════════════════════════════════════════════════════════════════ */
+const DinoRender = (() => {
+  const E = DinoEngine, T = DinoTheme;
+  const BAND = 28;                    // сколько мира видно под линией земли
+  const MIN_VIS = 180;                // минимальная видимая высота мира (прыжок + земля)
+  let cv = null, ctx = null, dpr = 1, cssH = 0, sc = 1, top = 0;
+  const css = T.css, mix = T.mix;
+
+  /* ── Детерминированный «шум» для декораций (не трогает случайность мира) ── */
+  function prng(seed) { let s = seed >>> 0; return () => { s = (s + 0x6D2B79F5) | 0; let t = Math.imul(s ^ (s >>> 15), s | 1); t ^= t + Math.imul(t ^ (t >>> 7), t | 61); return ((t ^ (t >>> 14)) >>> 0) / 4294967296; }; }
+  const mod = (a, n) => ((a % n) + n) % n;
+
+  /* ── Декорации: звёзды, облака, силуэты фона (по зерну, плитка шириной 600) ── */
+  const STARS = (() => { const r = prng(7), a = []; for (let i = 0; i < 46; i++) a.push({ x: r() * 600, y: -150 + r() * 230, s: 0.5 + r() * 1.1, p: r() * 6.28 }); return a; })();
+  const CLOUDS = (() => { const r = prng(11), a = []; for (let i = 0; i < 4; i++) a.push({ x: i * 190 + r() * 80, y: 18 + r() * 52, w: 34 + r() * 30 }); return a; })();
+  const PEBBLES = (() => { const r = prng(5), a = []; for (let i = 0; i < 34; i++) a.push({ x: r() * 600, y: 4 + r() * 18, w: 1.5 + r() * 5, h: 0.8 + r() * 1.2 }); return a; })();
+  function ridge(seed, step, hMin, hMax) {          // зубчатый хребет: точки [x, высота], плитка 600
+    const r = prng(seed), pts = [];
+    for (let x = 0; x < 600; x += step * (0.6 + r() * 0.8)) pts.push([x, hMin + r() * (hMax - hMin)]);
+    pts.push([600, pts[0][1]]);
+    return pts;
+  }
+  function blocks(seed, wMin, wMax, hMin, hMax) {   // кварталы города
+    const r = prng(seed), a = [];
+    for (let x = 0; x < 600;) { const w = wMin + r() * (wMax - wMin); a.push({ x, w: Math.min(w, 600 - x), h: hMin + r() * (hMax - hMin), win: Math.floor(r() * 1e6) }); x += w + 2 + r() * 6; }
+    return a;
+  }
+  const BACK = {
+    mountains: { far: ridge(21, 46, 34, 78), near: ridge(22, 30, 14, 40) },
+    sun: { near: ridge(31, 60, 8, 22) },
+    city: { far: blocks(41, 18, 40, 30, 80), near: blocks(42, 14, 30, 12, 42) },
+    dunes: { far: ridge(51, 90, 16, 34), near: ridge(52, 70, 8, 20) }
+  };
+
+  /* ── Размер холста: мир шириной 600 вписывается по ширине (или по высоте, если мало места) ── */
+  function fit(availW, availH, maxScale, maxVis) {
+    let s = Math.min(availW / E.W, availH / MIN_VIS, maxScale || 1.6);
+    s = Math.max(0.3, s);
+    const w = Math.floor(E.W * s);
+    const vis = Math.max(MIN_VIS, Math.min(availH / s, maxVis || 260));
+    return { w, h: Math.floor(vis * s), s };
+  }
+  function resize(canvas, w, h, ratio) {
+    cv = canvas; ctx = cv.getContext('2d');
+    dpr = Math.max(1, Math.min(ratio || 1, 2));
+    cssH = h; sc = w / E.W;
+    cv.style.width = w + 'px'; cv.style.height = h + 'px';
+    cv.width = Math.round(w * dpr); cv.height = Math.round(h * dpr);
+    top = E.GROUND + BAND - h / sc;
+  }
+  const worldToCss = (x, y) => [x * sc, (y - top) * sc];
+  const blur = u => u * sc * dpr;                    // shadowBlur не масштабируется матрицей
+
+  /* ── Скины динозавра ── */
+  const SKINS = [
+    { id: 'neon', name: 'Неон', desc: 'Цвет меняется вместе с темой' },
+    { id: 'retro', name: 'Ретро', body: '#e3e8f6', dark: '#8d96b3', glow: '#ffffff' },
+    { id: 'robo', name: 'Робо', body: '#a6b8da', dark: '#56688c', glow: '#00e5ff' },
+    { id: 'bones', name: 'Скелет', body: '#1a1f3c', dark: '#0f132a', glow: '#eef2ff', rim: '#c9d2f2' },
+    { id: 'dragon', name: 'Дракон', body: '#c77dff', dark: '#7d3fc0', glow: '#ff4dd2' },
+    { id: 'ninja', name: 'Ниндзя', body: '#262b4a', dark: '#161a33', glow: '#ff5d7d', rim: '#8f9ac2' },
+    { id: 'magma', name: 'Магма', body: '#4a1517', dark: '#260b0c', glow: '#ff9f43', rim: '#ff9f43' },
+    { id: 'galaxy', name: 'Галактика', body: '#2b3196', dark: '#191c5e', glow: '#00e5ff', rim: '#7d8cff' },
+    { id: 'king', name: 'Король', body: '#ffd60a', dark: '#b88a00', glow: '#ffd60a' }
+  ];
+  const skinById = id => SKINS.find(s => s.id === id) || SKINS[0];
+
+  function rr(c, r) { c.roundRect(r[0], r[1], r[2], r[3], r[4] || 0); }
+  function liftLeg(r, up) { return [r[0], r[1], r[2], r[3] - up, r[4]]; }
+
+  /* Динозавр в координатах спрайта (0,0 — левый верх). pose: run | duck | jump | stand | dead.
+   * leg — кадр бега (0/1), t — время, мс (анимация скина), col — цвет тела для «Неона» */
+  function drawDino(c, skinId, pose, leg, t, col, glowK, dead) {
+    const sk = skinById(skinId), duck = pose === 'duck';
+    const S = duck ? E.SHAPE.duck : E.SHAPE.run;
+    const body = sk.body || css(col), dark = sk.dark || css(mix(col, [5, 8, 30], 0.45));
+    const glowCol = sk.glow || css(col);
+    const retro = sk.id === 'retro';
+    // ноги (сзади тела): на бегу одна поднята
+    const moving = pose === 'run' || pose === 'duck';
+    const la = moving && leg === 0 ? liftLeg(S.legA, S.legUp) : S.legA, lb = moving && leg === 1 ? liftLeg(S.legB, S.legUp) : S.legB;
+    c.fillStyle = dark;
+    c.beginPath(); rr(c, retro ? [la[0], la[1], la[2], la[3], 0] : la); rr(c, retro ? [lb[0], lb[1], lb[2], lb[3], 0] : lb); c.fill();
+    // ступни
+    c.fillRect(la[0], la[1] + la[3] - 2, la[2] + 2.5, 2); c.fillRect(lb[0], lb[1] + lb[3] - 2, lb[2] + 2.5, 2);
+
+    // плащ короля — за телом
+    if (sk.id === 'king') {
+      const w = Math.sin(t / 140) * 2;
+      c.fillStyle = '#ff5d7d';
+      c.beginPath();
+      if (duck) { c.moveTo(14, 4); c.lineTo(2 - w, 9); c.lineTo(4, 17); c.lineTo(20, 12); }
+      else { c.moveTo(24, 12); c.lineTo(6 - w, 16); c.lineTo(2 - w, 34); c.lineTo(14, 30); }
+      c.closePath(); c.fill();
+    }
+    // тело: один контур из частей формы
+    const parts = duck ? [S.tail, S.body, S.head] : [S.tail, S.body, S.neck, S.head, S.arm];
+    c.beginPath();
+    for (const p of parts) rr(c, retro ? [p[0], p[1], p[2], p[3], 0] : p);
+    let fill = body;
+    if (!retro) {
+      const g = c.createLinearGradient(0, 0, 0, duck ? 25 : 47);
+      if (sk.id === 'galaxy') { g.addColorStop(0, '#3b2a8f'); g.addColorStop(1, '#1b2a7a'); }
+      else if (sk.id === 'magma') { g.addColorStop(0, '#5a1a17'); g.addColorStop(1, '#2a0c0c'); }
+      else { g.addColorStop(0, sk.body ? lighten(sk.body, 0.25) : css(mix(col, [255, 255, 255], 0.28))); g.addColorStop(1, body); }
+      fill = g;
+    }
+    c.fillStyle = fill;
+    if (!retro || dead) { c.shadowColor = dead ? '#ff5d7d' : glowCol; c.shadowBlur = blur(dead ? 9 : 5 * glowK); }
+    c.fill();
+    c.shadowBlur = 0;
+    if (dead) { c.strokeStyle = '#ffffff'; c.lineWidth = 1.1; c.stroke(); }          // авария: белый контур и красное свечение
+    else if (sk.rim) { c.strokeStyle = sk.rim; c.globalAlpha = 0.75; c.lineWidth = 0.9; c.stroke(); c.globalAlpha = 1; }
+
+    // живот — светлее
+    if (!retro && !dead && sk.id !== 'bones') {
+      c.fillStyle = 'rgba(255,255,255,0.16)';
+      c.beginPath(); if (duck) c.roundRect(14, 11, 26, 6, 3); else c.roundRect(14, 27, 18, 7, 3.5); c.fill();
+    }
+    decorate(c, sk, duck, t, dead);
+
+    // глаз и рот
+    const ex = duck ? 51 : 35, ey = duck ? 4.5 : 5;
+    if (dead) {
+      c.strokeStyle = '#ff2d55'; c.lineWidth = 1.4;
+      c.beginPath(); c.moveTo(ex - 2.2, ey - 2.2); c.lineTo(ex + 2.2, ey + 2.2); c.moveTo(ex + 2.2, ey - 2.2); c.lineTo(ex - 2.2, ey + 2.2); c.stroke();
+    } else if (sk.id === 'robo') {
+      // визор вместо глаза
+      c.fillStyle = '#00e5ff'; c.shadowColor = '#00e5ff'; c.shadowBlur = blur(4);
+      c.fillRect(duck ? 46 : 30, duck ? 3 : 3.5, duck ? 11 : 12, 3); c.shadowBlur = 0;
+    } else if (sk.id === 'ninja') {
+      c.fillStyle = '#eef2ff'; c.fillRect(ex - 3, ey - 0.8, 6, 1.8);
+    } else {
+      const blink = pose === 'stand' && (t % 3200) < 140;
+      if (retro) { c.fillStyle = '#1b2030'; c.fillRect(ex - 1.5, ey - (blink ? 0.5 : 1.5), 3, blink ? 1 : 3); }
+      else if (blink) { c.fillStyle = '#0b0f24'; c.fillRect(ex - 2.4, ey - 0.4, 4.8, 1); }
+      else {
+        c.fillStyle = sk.id === 'bones' ? '#0b0f24' : '#ffffff';
+        c.beginPath(); c.arc(ex, ey, 2.6, 0, 6.2832); c.fill();
+        c.fillStyle = sk.id === 'bones' ? '#ff5d7d' : '#0b0f24';
+        if (sk.id === 'bones') { c.shadowColor = '#ff5d7d'; c.shadowBlur = blur(4); }
+        c.beginPath(); c.arc(ex + 0.9, ey, 1.25, 0, 6.2832); c.fill(); c.shadowBlur = 0;
+      }
+    }
+    // рот
+    c.fillStyle = sk.id === 'bones' ? '#eef2ff' : 'rgba(5,8,25,0.55)';
+    if (duck) c.fillRect(52, 9.5, 6, 1); else c.fillRect(36, 10.5, 7, 1);
+    if (sk.id === 'bones') { for (let i = 0; i < 3; i++) c.fillRect((duck ? 53 : 37) + i * 2, duck ? 10.5 : 11.5, 1, 1.2); }
+  }
+  function lighten(h, k) { return css(mix(T.hex(h), [255, 255, 255], k)); }
+
+  function decorate(c, sk, duck, t, dead) {
+    const id = sk.id;
+    if (id === 'robo') {
+      c.fillStyle = '#56688c';
+      for (const [x, y] of duck ? [[16, 8], [24, 8], [32, 8]] : [[14, 23], [22, 23], [14, 31]]) { c.beginPath(); c.arc(x, y, 1, 0, 6.28); c.fill(); }
+      // антенна с огоньком
+      const ax = duck ? 47 : 30, ay = 0;
+      c.strokeStyle = '#8fa6c8'; c.lineWidth = 0.9; c.beginPath(); c.moveTo(ax, ay); c.lineTo(ax - 2, ay - 5); c.stroke();
+      c.fillStyle = (Math.floor(t / 400) % 2) ? '#ff5d7d' : '#51f58b';
+      c.beginPath(); c.arc(ax - 2, ay - 5.5, 1.3, 0, 6.28); c.fill();
+    } else if (id === 'bones') {
+      c.strokeStyle = '#dfe6ff'; c.lineWidth = 1; c.globalAlpha = 0.85;
+      c.beginPath();
+      if (duck) { for (let i = 0; i < 4; i++) { const x = 16 + i * 6; c.moveTo(x, 6); c.quadraticCurveTo(x + 2, 11, x, 16); } c.moveTo(10, 5.5); c.lineTo(42, 5.5); }
+      else { for (let i = 0; i < 3; i++) { const y = 23 + i * 4; c.moveTo(13, y); c.quadraticCurveTo(22, y + 2, 31, y); } c.moveTo(27, 12); c.lineTo(27, 21); c.moveTo(4, 21); c.lineTo(12, 21); }
+      c.stroke(); c.globalAlpha = 1;
+    } else if (id === 'dragon') {
+      c.fillStyle = '#ff4dd2';
+      c.beginPath();
+      const sp = duck ? [[12, 3], [19, 3], [26, 3], [33, 3], [40, 1]] : [[10, 18], [16, 18], [22, 17], [24, 11], [26, 5]];
+      for (const [x, y] of sp) { c.moveTo(x - 2.5, y + 0.5); c.lineTo(x, y - 4); c.lineTo(x + 2.5, y + 0.5); }
+      c.fill();
+      // крыло
+      const fl = Math.sin(t / 120) * 2;
+      c.fillStyle = 'rgba(125,63,192,0.9)';
+      c.beginPath();
+      if (duck) { c.moveTo(20, 6); c.lineTo(30, 1 - fl); c.lineTo(34, 8); } else { c.moveTo(14, 22); c.lineTo(22, 12 - fl); c.lineTo(28, 24); }
+      c.closePath(); c.fill();
+    } else if (id === 'ninja') {
+      // повязка и развевающиеся концы
+      const y = duck ? 2 : 2.5, x0 = duck ? 40 : 23, w = duck ? 19 : 21;
+      c.fillStyle = '#ff5d7d'; c.shadowColor = '#ff5d7d'; c.shadowBlur = blur(3);
+      c.fillRect(x0, y, w, 2.6);
+      const wv = Math.sin(t / 90) * 2.5;
+      c.beginPath(); c.moveTo(x0 + 1, y + 0.5); c.lineTo(x0 - 9, y - 2 + wv); c.lineTo(x0 - 8, y + 1.5 + wv); c.lineTo(x0 + 1, y + 2.4);
+      c.moveTo(x0 + 1, y + 1.4); c.lineTo(x0 - 7, y + 4 - wv); c.lineTo(x0 - 6, y + 6 - wv); c.lineTo(x0 + 1, y + 2.6);
+      c.fill(); c.shadowBlur = 0;
+    } else if (id === 'magma') {
+      c.strokeStyle = '#ff9f43'; c.lineWidth = 1; c.shadowColor = '#ff9f43'; c.shadowBlur = blur(4);
+      c.globalAlpha = 0.7 + 0.3 * Math.sin(t / 260);
+      c.beginPath();
+      if (duck) { c.moveTo(12, 8); c.lineTo(18, 12); c.lineTo(24, 7); c.lineTo(31, 13); c.lineTo(38, 8); c.moveTo(44, 4); c.lineTo(48, 9); }
+      else { c.moveTo(12, 22); c.lineTo(17, 27); c.lineTo(22, 22); c.lineTo(28, 30); c.moveTo(26, 4); c.lineTo(30, 9); c.lineTo(34, 6); c.moveTo(4, 20); c.lineTo(9, 22); }
+      c.stroke(); c.globalAlpha = 1; c.shadowBlur = 0;
+      if (!dead) for (let i = 0; i < 3; i++) {     // искры над спиной
+        const ph = ((t / 900) + i / 3) % 1;
+        c.fillStyle = `rgba(255,159,67,${(1 - ph).toFixed(2)})`;
+        c.fillRect((duck ? 18 : 12) + i * 7, (duck ? 2 : 16) - ph * 12, 1.2, 1.2);
+      }
+    } else if (id === 'galaxy') {
+      const r = prng(3);
+      for (let i = 0; i < 12; i++) {
+        const x = duck ? 6 + r() * 48 : 4 + r() * 36, y = duck ? 3 + r() * 14 : 2 + r() * 33;
+        const a = 0.45 + 0.55 * Math.sin(t / 300 + i * 1.7);
+        c.fillStyle = `rgba(238,242,255,${Math.max(0, a).toFixed(2)})`;
+        c.fillRect(x, y, 1, 1);
+      }
+    } else if (id === 'king') {
+      // корона
+      const x = duck ? 43 : 26, y = 0;
+      c.fillStyle = '#ffe680'; c.shadowColor = '#ffd60a'; c.shadowBlur = blur(4);
+      c.beginPath(); c.moveTo(x, y + 0.5); c.lineTo(x, y - 4); c.lineTo(x + 3, y - 1.5); c.lineTo(x + 5.5, y - 5.5); c.lineTo(x + 8, y - 1.5); c.lineTo(x + 11, y - 4); c.lineTo(x + 11, y + 0.5); c.closePath(); c.fill();
+      c.shadowBlur = 0;
+      c.fillStyle = '#ff4dd2'; c.fillRect(x + 4.8, y - 2.2, 1.6, 1.6);
+    } else if (id === 'retro') {
+      // «пиксели» по спине
+      c.fillStyle = '#c3cae0';
+      const px = duck ? [[12, 6], [20, 6], [28, 6]] : [[12, 22], [18, 26], [24, 22]];
+      for (const [x, y] of px) c.fillRect(x, y, 2, 2);
+    }
+  }
+
+  /* ── Препятствия ── */
+  function obstaclePath(c, o, x, y) {
+    c.beginPath();
+    if (o.type === 'pt') {
+      for (const r of E.SHAPE.pt) c.roundRect(x + r[0], y + r[1], r[2], r[3], r[4]);
+      const w = E.SHAPE.ptWing[o.frame];
+      c.moveTo(x + w[0][0], y + w[0][1]); c.lineTo(x + w[1][0], y + w[1][1]); c.lineTo(x + w[2][0], y + w[2][1]); c.closePath();
+      return;
+    }
+    const uw = E.TYPES[o.type].w;
+    for (let i = 0; i < o.size; i++) {
+      const mir = (o.mirror >> i) & 1;
+      for (const r of E.SHAPE[o.type]) c.roundRect(x + i * uw + (mir ? uw - r[0] - r[2] : r[0]), y + r[1], r[2], r[3], r[4]);
+    }
+  }
+  function drawObstacle(c, o, x, P, hit) {
+    const col = o.type === 'pt' ? P.bird : P.cactus;
+    const y = o.y;
+    obstaclePath(c, o, x, y);
+    const g = c.createLinearGradient(0, y, 0, y + o.h);
+    g.addColorStop(0, css(mix(col, [255, 255, 255], 0.22))); g.addColorStop(1, css(col));
+    c.fillStyle = hit ? 'rgba(255,93,125,0.55)' : g;
+    c.shadowColor = css(col); c.shadowBlur = blur(5 * P.glow);
+    c.fill();
+    c.shadowBlur = 0;
+    // блик сверху и тёмная обводка — читается даже на светлом силуэте фона
+    c.strokeStyle = 'rgba(4,6,22,0.55)'; c.lineWidth = 0.7; c.stroke();
+    if (o.type === 'pt') {
+      c.fillStyle = '#0b0f24'; c.beginPath(); c.arc(x + 9, y + 14.5, 1.2, 0, 6.28); c.fill();
+    } else {
+      c.fillStyle = 'rgba(255,255,255,0.28)';
+      const uw = E.TYPES[o.type].w;
+      for (let i = 0; i < o.size; i++) {
+        const mir = (o.mirror >> i) & 1, tr = E.SHAPE[o.type][0];
+        const tx = x + i * uw + (mir ? uw - tr[0] - tr[2] : tr[0]);
+        c.fillRect(tx + 1.5, y + 3, 1.2, tr[3] - 8);
+      }
+    }
+  }
+
+  /* ── Фон: небо, звёзды, луна, силуэты, облака, земля ── */
+  function drawSky(c, P, nightK, dist, t, reduce, nights, nightT) {
+    const bottom = E.GROUND + BAND;
+    const g = c.createLinearGradient(0, top, 0, E.GROUND);
+    g.addColorStop(0, css(P.sky[0])); g.addColorStop(0.55, css(P.sky[1])); g.addColorStop(1, css(P.sky[2]));
+    c.fillStyle = g; c.fillRect(0, top, E.W, E.GROUND - top + 1);
+    // звёзды (ночью ярче)
+    const so = reduce ? 0 : dist * 0.01;
+    for (const s of STARS) {
+      const y = s.y;
+      if (y < top - 2 || y > E.GROUND - 30) continue;
+      const tw = reduce ? 0.7 : 0.55 + 0.45 * Math.sin(t / 700 + s.p);
+      const a = P.stars * tw * 0.8;
+      if (a < 0.03) continue;
+      c.fillStyle = `rgba(238,242,255,${a.toFixed(2)})`;
+      c.fillRect(mod(s.x - so, E.W), y, s.s, s.s);
+    }
+    // луна: фаза меняется от ночи к ночи (серп → половина → полная → … как в оригинале)
+    if (nightK > 0.01) {
+      const mx = 470 - Math.max(0, nightT) * 0.06, my = Math.max(top + 16, 26), r = 10;
+      const PH = [0.15, 0.25, 0.38, 0.5, 0.62, 0.75, 0.85], p = PH[Math.max(0, nights - 1) % PH.length];
+      c.globalAlpha = nightK;
+      c.fillStyle = 'rgba(244,241,220,0.10)';            // неосвещённая часть — едва видна
+      c.beginPath(); c.arc(mx, my, r, 0, 6.2832); c.fill();
+      moonPath(c, mx, my, r, p);
+      c.fillStyle = '#f4f1dc'; c.shadowColor = '#fff6c8'; c.shadowBlur = blur(9);
+      c.fill(); c.shadowBlur = 0;
+      c.globalAlpha = 1;
+    }
+    // силуэты фона: при смене темы — плавный переход
+    if (P.backK >= 1 || !P.backFrom) drawBack(c, P.back, P, dist, 1);
+    else { drawBack(c, P.backFrom, P, dist, 1 - P.backK); drawBack(c, P.back || P.backFrom, P, dist, P.backK); }
+    // облака
+    for (const cl of CLOUDS) {
+      const x = mod(cl.x - dist * 0.2, E.W + 160) - 80;
+      const y = cl.y;
+      c.beginPath();
+      c.ellipse(x, y, cl.w * 0.5, 5.5, 0, 0, 6.2832);
+      c.ellipse(x - cl.w * 0.16, y - 4, cl.w * 0.24, 5, 0, 0, 6.2832);
+      c.ellipse(x + cl.w * 0.14, y - 5, cl.w * 0.2, 5.5, 0, 0, 6.2832);
+      c.fillStyle = 'rgba(255,255,255,0.05)'; c.fill();
+      c.strokeStyle = 'rgba(255,255,255,0.08)'; c.lineWidth = 0.8; c.stroke();
+    }
+    // земля
+    const gg = c.createLinearGradient(0, E.GROUND, 0, bottom);
+    gg.addColorStop(0, css(P.ground, 0.16)); gg.addColorStop(1, css(P.ground, 0));
+    c.fillStyle = 'rgba(3,4,14,0.55)'; c.fillRect(0, E.GROUND, E.W, bottom - E.GROUND);
+    c.fillStyle = gg; c.fillRect(0, E.GROUND, E.W, bottom - E.GROUND);
+    c.fillStyle = css(P.ground);
+    c.shadowColor = css(P.ground); c.shadowBlur = blur(4 * P.glow);
+    c.fillRect(0, E.GROUND - 0.6, E.W, 1.5);
+    c.shadowBlur = 0;
+    // камешки и штрихи — едут со скоростью земли
+    c.fillStyle = css(P.ground, 0.35);
+    for (const p of PEBBLES) c.fillRect(mod(p.x - dist, E.W + 10) - 5, E.GROUND + p.y * 0.8, p.w, p.h);
+    c.fillStyle = css(P.ground, 0.12);
+    const off = mod(-dist, 24);
+    for (let x = off - 24; x < E.W; x += 24) { c.fillRect(x, E.GROUND + 9, 12, 0.8); c.fillRect(x + 6, E.GROUND + 16, 8, 0.8); }
+  }
+
+  // освещённая часть луны: фаза p (0 — новолуние, 0,5 — полнолуние); растущая — справа, убывающая — слева
+  function moonPath(c, x, y, r, p) {
+    const waxing = p <= 0.5, f = waxing ? p * 2 : (1 - p) * 2;      // 0…1 — доля «от серпа до полной»
+    const rx = Math.abs(1 - 2 * f) * r, H = Math.PI / 2;
+    c.beginPath();
+    if (waxing) { c.arc(x, y, r, -H, H, false); c.ellipse(x, y, Math.max(0.01, rx), r, 0, H, -H, f < 0.5); }
+    else { c.arc(x, y, r, H, -H, false); c.ellipse(x, y, Math.max(0.01, rx), r, 0, -H, H, f < 0.5); }
+    c.closePath();
+  }
+
+  function drawBack(c, kind, P, dist, alpha) {
+    if (!kind || alpha <= 0.01) return;
+    const B = BACK[kind];
+    const dark = css(mix(P.sky[2], [0, 0, 0], T.BACK_DARK), alpha);
+    const line = css(P.ground, T.BACK_LINE * alpha);
+    const ridgeLayer = (pts, par) => {
+      const off = mod(dist * par, E.W);
+      for (const base of [-off, E.W - off]) {
+        c.beginPath(); c.moveTo(base, E.GROUND);
+        for (const [x, h] of pts) c.lineTo(base + x, E.GROUND - h);
+        c.lineTo(base + E.W, E.GROUND); c.closePath();
+        c.fillStyle = dark; c.fill();
+        c.beginPath();
+        pts.forEach(([x, h], i) => i ? c.lineTo(base + x, E.GROUND - h) : c.moveTo(base + x, E.GROUND - h));
+        c.strokeStyle = line; c.lineWidth = 0.8; c.stroke();
+      }
+    };
+    if (kind === 'mountains') {
+      ridgeLayer(B.far, 0.05); ridgeLayer(B.near, 0.12);
+    } else if (kind === 'sun') {
+      // солнце-«синтвейв» за холмами
+      const sx = 400, sy = E.GROUND - 6, r = 46;
+      c.save();
+      c.beginPath(); c.arc(sx, sy, r, Math.PI, 0); c.closePath(); c.clip();
+      const g = c.createLinearGradient(0, sy - r, 0, sy);
+      g.addColorStop(0, css(T.RGB[0].bird, 0.2 * alpha)); g.addColorStop(1, css(P.ground, 0.16 * alpha));
+      c.fillStyle = g; c.fillRect(sx - r, sy - r, r * 2, r);
+      c.fillStyle = css(P.sky[2], alpha);
+      for (let i = 0; i < 6; i++) { const yy = sy - 6 - i * 7; c.fillRect(sx - r, yy, r * 2, 1 + i * 0.35); }
+      c.restore();
+      ridgeLayer(B.near, 0.12);
+    } else if (kind === 'city') {
+      const layer = (bl, par, winA) => {
+        const off = mod(dist * par, E.W);
+        for (const base of [-off, E.W - off]) for (const b of bl) {
+          const x = base + b.x;
+          if (x > E.W || x + b.w < 0) continue;
+          c.fillStyle = dark; c.fillRect(x, E.GROUND - b.h, b.w, b.h);
+          c.strokeStyle = line; c.lineWidth = 0.8; c.strokeRect(x + 0.4, E.GROUND - b.h + 0.4, b.w - 0.8, b.h);
+          if (winA) {
+            const r = prng(b.win);
+            c.fillStyle = css(T.RGB[2].bird, winA * alpha);
+            for (let wy = E.GROUND - b.h + 5; wy < E.GROUND - 4; wy += 6) for (let wx = x + 3; wx < x + b.w - 3; wx += 5) if (r() < 0.3) c.fillRect(wx, wy, 1.6, 1.6);
+          }
+        }
+      };
+      layer(B.far, 0.05, 0.16); layer(B.near, 0.12, 0);
+    } else if (kind === 'dunes') {
+      // вулкан вдали
+      const vx = 680 - mod(dist * 0.03 + 260, E.W + 160);           // вулкан медленно уходит влево и возвращается справа
+      c.beginPath(); c.moveTo(vx - 70, E.GROUND); c.lineTo(vx - 14, E.GROUND - 58); c.lineTo(vx + 14, E.GROUND - 58); c.lineTo(vx + 70, E.GROUND); c.closePath();
+      c.fillStyle = dark; c.fill(); c.strokeStyle = line; c.lineWidth = 0.8; c.stroke();
+      c.fillStyle = css(T.RGB[3].ground, 0.25 * alpha); c.fillRect(vx - 12, E.GROUND - 59.5, 24, 1.6);
+      ridgeLayer(B.far, 0.06); ridgeLayer(B.near, 0.13);
+    }
+  }
+
+  /* ── Частицы (оформление; живут по реальному времени) ── */
+  let parts = [];
+  function burst(x, y, color, n, speed, life) {
+    for (let i = 0; i < n; i++) {
+      const a = Math.random() * 6.2832, v = (0.3 + Math.random()) * (speed || 2);
+      parts.push({ x, y, vx: Math.cos(a) * v, vy: Math.sin(a) * v - 0.6, life: 1, dec: 1 / ((life || 600) * (0.6 + Math.random() * 0.6)), s: 1 + Math.random() * 2.2, c: color });
+    }
+  }
+  function dust(x, y, color) {
+    for (let i = 0; i < 5; i++) parts.push({ x: x + Math.random() * 10, y, vx: -0.6 - Math.random() * 1.2, vy: -0.3 - Math.random() * 0.6, life: 1, dec: 1 / 380, s: 1 + Math.random() * 1.4, c: color });
+  }
+  function stepParts(dt) {
+    const k = dt / 16.667;
+    for (const p of parts) { p.x += p.vx * k; p.y += p.vy * k; p.vy += 0.08 * k; p.life -= p.dec * dt; }
+    parts = parts.filter(p => p.life > 0);
+  }
+  function drawParts(c) {
+    for (const p of parts) { c.globalAlpha = Math.max(0, Math.min(1, p.life)); c.fillStyle = p.c; c.fillRect(p.x - p.s / 2, p.y - p.s / 2, p.s, p.s); }
+    c.globalAlpha = 1;
+  }
+
+  /* ── Кадр игры ──
+   * v: { skin, alpha, t (мс), reduce, boxes, phase: ready|run|dead|pause, shake (0…1), crashAt } */
+  function frame(g, v) {
+    if (!ctx) return;
+    const c = ctx, k = dpr * sc;
+    const a = v.alpha == null ? 1 : v.alpha;
+    const ti = E.theme(g), pi = E.prevTheme(g);
+    const P = T.palette(ti, pi, Math.min(1, g.themeT / E.THEME_FADE), E.era(g), g.nightK);
+    const dist = g.dist - (g.running && !g.over ? g.speed * (1 - a) : 0);
+    c.setTransform(k, 0, 0, k, 0, -top * k);
+    c.clearRect(0, top, E.W, cssH / sc);
+    let sx = 0, sy = 0;
+    if (v.shake > 0 && !v.reduce) { sx = (Math.random() - 0.5) * 6 * v.shake; sy = (Math.random() - 0.5) * 4 * v.shake; }
+    c.save(); c.translate(sx, sy);
+    drawSky(c, P, g.nightK, dist, v.t, v.reduce, g.night, g.nightT);
+    // препятствия (интерполяция между тиками)
+    for (const o of g.obs) {
+      const x = o.px + (o.x - o.px) * a;
+      if (x > E.W + 2 || x + o.w < -2) continue;
+      drawObstacle(c, o, x, P, o.hit);
+    }
+    // динозавр
+    const d = g.dino;
+    const y = d.py + (d.y - d.py) * a;
+    const pose = g.over ? (d.duck ? 'duck' : 'run') : !g.running ? 'stand' : d.duck ? 'duck' : d.jumping ? 'jump' : 'run';
+    const leg = Math.floor(g.tick / 6) & 1;
+    const lift = Math.max(0, E.TOP0 - y);
+    // тень на земле
+    c.fillStyle = `rgba(0,0,0,${(0.3 * Math.max(0.3, 1 - lift / 100)).toFixed(2)})`;
+    c.beginPath(); c.ellipse(E.DINO_X + 22, E.GROUND + 1.5, 18 * Math.max(0.4, 1 - lift / 140), 2, 0, 0, 6.2832); c.fill();
+    c.save();
+    c.translate(E.DINO_X, d.duck ? E.GROUND - E.DUCK_H : y);
+    drawDino(c, v.skin, g.over ? (d.duck ? 'duck' : 'jump') : pose, leg, v.t, P.dino, P.glow, g.over);
+    if (v.hitFlash > 0) {                          // тренировка: столкновение подсвечивается
+      c.globalAlpha = v.hitFlash * 0.6; c.fillStyle = '#ff5d7d';
+      c.beginPath(); for (const p of Object.values(d.duck ? E.SHAPE.duck : E.SHAPE.run)) if (Array.isArray(p)) c.roundRect(p[0], p[1], p[2], p[3], p[4]); c.fill();
+      c.globalAlpha = 1;
+    }
+    c.restore();
+    // быстрое падение — штрихи скорости
+    if (d.drop && !g.over && !v.reduce) {
+      c.strokeStyle = css(P.dino, 0.35); c.lineWidth = 0.8; c.beginPath();
+      for (let i = 0; i < 3; i++) { c.moveTo(E.DINO_X + 10 + i * 10, y - 4 - i * 2); c.lineTo(E.DINO_X + 10 + i * 10, y - 14 - i * 3); }
+      c.stroke();
+    }
+    drawParts(c);
+    if (v.boxes) drawBoxes(c, g, a);
+    c.restore();
+  }
+
+  function drawBoxes(c, g, a) {
+    c.lineWidth = 0.6;
+    c.strokeStyle = 'rgba(81,245,139,0.95)';
+    const tmp = [], n = E.dinoBoxes(g.dino, tmp);
+    for (let i = 0; i < n; i++) c.strokeRect(tmp[i][0], tmp[i][1], tmp[i][2], tmp[i][3]);
+    c.strokeStyle = 'rgba(255,214,10,0.95)';
+    for (const o of g.obs) {
+      const x = o.px + (o.x - o.px) * a;
+      for (const b of E.obstacleRel(o.type, o.size, o.mirror, o.frame)) c.strokeRect(x + b[0], o.y + b[1], b[2], b[3]);
+    }
+  }
+
+  /* Превью скина (меню, окно скинов): динозавр на полоске земли */
+  function preview(canvas, skinId, t, opts) {
+    opts = opts || {};
+    const w = canvas.clientWidth || +canvas.getAttribute('width') || 120, h = canvas.clientHeight || +canvas.getAttribute('height') || 60;
+    const r = Math.max(1, Math.min(window.devicePixelRatio || 1, 2));
+    if (canvas.width !== Math.round(w * r)) { canvas.width = Math.round(w * r); canvas.height = Math.round(h * r); }
+    const c = canvas.getContext('2d');
+    const s = Math.min(h / 62, w / 70);
+    const prevDpr = dpr, prevSc = sc; dpr = r; sc = s;
+    c.setTransform(r * s, 0, 0, r * s, 0, 0);
+    c.clearRect(0, 0, w / s, h / s);
+    const gy = h / s - 6, gx = (w / s - (opts.duck ? 59 : 44)) / 2;
+    const col = T.RGB[opts.theme || 0];
+    if (opts.ground !== false) {
+      c.fillStyle = css(col.ground); c.shadowColor = css(col.ground); c.shadowBlur = 3 * r * s;
+      c.fillRect(0, gy, w / s, 1.2); c.shadowBlur = 0;
+      if (opts.run) { c.fillStyle = css(col.ground, 0.3); const off = mod(-t * 0.36, 16); for (let x = off - 16; x < w / s; x += 16) c.fillRect(x, gy + 3, 7, 0.8); }
+    }
+    c.save();
+    c.translate(gx, gy - (opts.duck ? 25 : 47));
+    if (opts.locked) c.globalAlpha = 0.28;
+    drawDino(c, skinId, opts.run ? 'run' : 'stand', Math.floor(t / 100) & 1, t, col.dino, 1, false);
+    c.restore();
+    dpr = prevDpr; sc = prevSc;
+  }
+
+  return { fit, resize, frame, preview, burst, dust, stepParts, SKINS, skinById, worldToCss, MIN_VIS, get scale() { return sc; },
+           clearParts() { parts = []; } };
+})();
+
+/* ═══ ui.js ═══ */
+/* ═══════════════════════════════════════════════════════════════════════════
+ * Дино — интерфейс: меню, режимы, ввод (клавиши, мышь, касания, свайпы), игровой цикл,
+ * пауза, конец забега, статистика, достижения, скины, история, настройки, хранилище.
+ * ═════════════════════════════════════════════════════════════════════════ */
+const $ = s => document.querySelector(s), $$ = s => document.querySelectorAll(s);
+const E = DinoEngine, R = DinoRender, TH = DinoTheme;
+const fmt = n => Math.floor(n || 0).toLocaleString('ru-RU');
+const now = () => performance.now();
+const asObj = o => (o && typeof o === 'object' && !Array.isArray(o)) ? o : {};
+const nn = v => (Number.isFinite(v) && v >= 0 ? Math.min(Math.floor(v), 1e12) : 0);      // неотрицательное целое из хранилища
+const plural = (n, a, b, c) => { const m = n % 10, h = n % 100; return m === 1 && h !== 11 ? a : m >= 2 && m <= 4 && (h < 12 || h > 14) ? b : c; };
+const fmtDur = ms => {
+  const s = Math.floor(Math.max(0, ms || 0) / 1000), h = Math.floor(s / 3600), m = Math.floor((s % 3600) / 60), r = s % 60;
+  return h ? `${h}:${String(m).padStart(2, '0')}:${String(r).padStart(2, '0')}` : `${m}:${String(r).padStart(2, '0')}`;
+};
+const dateKey = d => d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');
+const dayNum = s => Math.round(Date.UTC(+s.slice(0, 4), +s.slice(5, 7) - 1, +s.slice(8, 10)) / 86400000);
+const DATE_RE = /^\d{4}-\d{2}-\d{2}$/;
+const ruDate = k => k.slice(8, 10) + '.' + k.slice(5, 7);
+const toast = (m, k, d) => { if (window.KuArcade) KuArcade.toast(m, ((k || '') + (screen === 'game' ? ' top' : '')).trim(), d); };
+
+/* ═══ Хранилище ═══ */
+const store = {
+  get(k, d) { try { const v = localStorage.getItem(k); if (v === null) return d; const o = JSON.parse(v); return o === null ? d : o; } catch (e) { return d; } },
+  set(k, v) { try { localStorage.setItem(k, JSON.stringify(v)); } catch (e) {} },
+  raw(k) { try { return localStorage.getItem(k); } catch (e) { return null; } }
+};
+// dino_best — рекорд прежней версии (другие очки): не трогаем, переносим в «Классику» пересчётом
+const KEY = { oldBest: 'dino_best', stats: 'dino_stats', set: 'dino_settings', hist: 'dino_history', ach: 'dino_ach', daily: 'dino_daily' };
+const MODES = {
+  classic: { name: 'Классика', short: 'КЛАССИКА', icon: '🦖' },
+  daily: { name: 'Испытание дня', short: 'ИСПЫТАНИЕ ДНЯ', icon: '📅' },
+  hardcore: { name: 'Хардкор', short: 'ХАРДКОР', icon: '🔥' },
+  practice: { name: 'Тренировка', short: 'ТРЕНИРОВКА', icon: '🎯' }
+};
+const COUNTED = ['classic', 'daily', 'hardcore'];
+const MEDALS = [{ t: 100, icon: '🥉', name: 'Бронза' }, { t: 300, icon: '🥈', name: 'Серебро' }, { t: 700, icon: '🥇', name: 'Золото' }, { t: 1500, icon: '💎', name: 'Платина' }];
+const medalOf = s => MEDALS.reduce((m, x, i) => s >= x.t ? i + 1 : m, 0);
+const HISTORY_MAX = 40;
+const RESTART_LOCK = 1000;       // мс после проигрыша, когда «Играть снова» не срабатывает
+const OVER_DELAY = 450;          // окно итогов — после короткой паузы на месте аварии
+const COUNTDOWN = 1200;          // отсчёт после паузы
+
+/* ── Настройки ── */
+const reducedPref = (() => { try { return matchMedia('(prefers-reduced-motion: reduce)').matches; } catch (e) { return false; } })();
+const PR_SPEEDS = [6, 8.5, 10, 13, 15];
+const settings = (() => {
+  const o = asObj(store.get(KEY.set, null));
+  const s = { sound: true, vibration: true, reduce: reducedPref, zones: true, skin: 'neon', theme: 0, pr: { speed: 6, types: 'all', boxes: false } };
+  for (const k of ['sound', 'vibration', 'reduce', 'zones']) if (typeof o[k] === 'boolean') s[k] = o[k];
+  if (typeof o.skin === 'string' && R.SKINS.some(x => x.id === o.skin)) s.skin = o.skin;
+  if (Number.isInteger(o.theme) && o.theme >= 0 && o.theme <= 3) s.theme = o.theme;
+  const p = asObj(o.pr);
+  if (PR_SPEEDS.includes(p.speed)) s.pr.speed = p.speed;
+  if (['all', 'cactus', 'ptero'].includes(p.types)) s.pr.types = p.types;
+  if (typeof p.boxes === 'boolean') s.pr.boxes = p.boxes;
+  return s;
+})();
+const saveSettings = () => store.set(KEY.set, settings);
+
+/* ── Статистика ──
+ * by[mode]: runs — забеги, best — рекорд (в «Испытании дня» — лучшая зачётная попытка), sum — сумма очков,
+ * time — мс, jumps, medals — сколько раз получена каждая медаль. total — по всем режимам, кроме тренировки. */
+const blankMode = () => ({ runs: 0, best: 0, sum: 0, time: 0, jumps: 0, medals: [0, 0, 0, 0] });
+const TOTAL_KEYS = ['runs', 'score', 'jumps', 'drops', 'ducked', 'birds', 'cacti', 'time', 'dCactus', 'dBird', 'maxMedal', 'best'];
+function loadStats() {
+  const o = asObj(store.get(KEY.stats, null));
+  const st = { by: {}, total: {}, practice: { runs: 0, time: 0, hits: 0 }, legacy: null };
+  const by = asObj(o.by);
+  for (const m of COUNTED) {
+    const r = asObj(by[m]), x = blankMode();
+    for (const f of ['runs', 'best', 'sum', 'time', 'jumps']) x[f] = nn(r[f]);
+    if (Array.isArray(r.medals)) for (let i = 0; i < 4; i++) x.medals[i] = nn(r.medals[i]);
+    st.by[m] = x;
+  }
+  const t = asObj(o.total);
+  for (const k of TOTAL_KEYS) st.total[k] = nn(t[k]);
+  st.total.maxMedal = Math.min(4, st.total.maxMedal);
+  const p = asObj(o.practice);
+  for (const k of ['runs', 'time', 'hits']) st.practice[k] = nn(p[k]);
+  const lg = asObj(o.legacy);
+  if (nn(lg.old) > 0) st.legacy = { old: nn(lg.old), conv: nn(lg.conv) };
+  return st;
+}
+let stats = loadStats();
+// перенос рекорда прежней версии (один раз): старые очки шли быстрее — пересчёт по времени забега
+(() => {
+  if (stats.legacy) return;
+  const old = parseInt(store.raw(KEY.oldBest), 10);
+  if (!(Number.isFinite(old) && old > 0 && old < 1e9)) return;
+  const conv = E.legacyConvert(old);
+  stats.legacy = { old, conv };
+  if (conv > stats.by.classic.best) stats.by.classic.best = conv;
+  stats.total.best = Math.max(stats.total.best, conv);
+  stats.total.maxMedal = Math.max(stats.total.maxMedal, medalOf(conv));
+  store.set(KEY.stats, stats);
+})();
+const saveStats = () => store.set(KEY.stats, stats);
+
+/* ── Испытание дня ── done: { 'ГГГГ-ММ-ДД': очки зачётной попытки }, att — день, в который попытка начата,
+ * cur — прогресс идущей зачётной попытки (если вкладку закрыли посреди забега — засчитывается он) */
+function loadDaily() {
+  const o = asObj(store.get(KEY.daily, null));
+  const d = { done: {}, att: '', cur: null, streak: 0, bestStreak: 0, last: '' };
+  const done = asObj(o.done);
+  for (const k in done) if (DATE_RE.test(k)) d.done[k] = nn(done[k]);
+  if (typeof o.att === 'string' && DATE_RE.test(o.att)) d.att = o.att;
+  if (typeof o.last === 'string' && DATE_RE.test(o.last)) d.last = o.last;
+  d.streak = nn(o.streak); d.bestStreak = Math.max(nn(o.bestStreak), d.streak);
+  const c = asObj(o.cur);
+  if (typeof c.d === 'string' && DATE_RE.test(c.d)) d.cur = { d: c.d, score: nn(c.score) };
+  return d;
+}
+let daily = loadDaily();
+function saveDaily() {
+  const keys = Object.keys(daily.done).sort();
+  while (keys.length > 120) delete daily.done[keys.shift()];
+  store.set(KEY.daily, daily);
+}
+function recordDaily(day, score) {
+  if (daily.done[day] != null) return;
+  daily.done[day] = score;
+  const gap = daily.last ? dayNum(day) - dayNum(daily.last) : 99;
+  daily.streak = gap === 1 ? daily.streak + 1 : gap === 0 ? daily.streak : 1;
+  daily.last = day;
+  daily.bestStreak = Math.max(daily.bestStreak, daily.streak);
+  daily.cur = null;
+  saveDaily();
+}
+const dailyStreak = () => { const td = dateKey(new Date()); return daily.last && dayNum(td) - dayNum(daily.last) <= 1 ? daily.streak : 0; };
+// зачётная попытка прервана (вкладку закрыли посреди забега) — засчитываем сохранённый прогресс
+let recoveredDaily = false;
+if (daily.cur && daily.done[daily.cur.d] == null) {
+  const c = daily.cur;
+  recoveredDaily = true;
+  recordDaily(c.d, c.score);
+  if (c.score > stats.by.daily.best) { stats.by.daily.best = c.score; stats.total.best = Math.max(stats.total.best, c.score); saveStats(); }
 }
 
-/* localStorage может быть недоступен (приватный режим, песочница iframe) */
-const store = {
-  get(k, d) { try { const v = localStorage.getItem(k); return v === null ? d : v; } catch (e) { return d; } },
-  set(k, v) { try { localStorage.setItem(k, v); } catch (e) {} }
-};
+/* ── История ── */
+const history = (() => {
+  const a = store.get(KEY.hist, []);
+  if (!Array.isArray(a)) return [];
+  return a.filter(h => h && typeof h === 'object' && MODES[h.m] && Number.isFinite(h.t)).slice(0, HISTORY_MAX).map(h => ({
+    t: h.t, m: h.m, s: nn(h.s), med: Math.min(4, nn(h.med)), c: ['cactus', 'ptero', 'quit'].includes(h.c) ? h.c : 'quit',
+    nb: !!h.nb, dz: [0, 1, 2].includes(h.dz) ? h.dz : 0, j: nn(h.j), ms: nn(h.ms)
+  }));
+})();
+const saveHistory = () => store.set(KEY.hist, history.slice(0, HISTORY_MAX));
 
-/**
- * AUDIO SYSTEM
- */
+/* ═══ Достижения ═══ */
+const ACH = [
+  { id: 'first', icon: '🦕', title: 'Первый забег', desc: 'Завершите забег в любом режиме, кроме тренировки' },
+  { id: 'night', icon: '🌙', title: 'Ночной бегун', desc: 'Доберитесь до ночи — 700 очков за забег' },
+  { id: 's1000', icon: '💯', title: 'Тысяча', desc: 'Наберите 1 000 очков за забег' },
+  { id: 'maxspeed', icon: '⚡', title: 'Предельная скорость', desc: 'Разгонитесь до максимума в «Классике» (≈ 1 660 очков)' },
+  { id: 'themes', icon: '🎨', title: 'Все краски', desc: 'Увидьте все 4 темы за один забег (≈ 2 100 очков)' },
+  { id: 's5000', icon: '🌟', title: 'Пять тысяч', desc: 'Наберите 5 000 очков за забег' },
+  { id: 's10000', icon: '👑', title: 'Десять тысяч', desc: 'Наберите 10 000 очков за забег' },
+  { id: 'ducker', icon: '🦅', title: 'Ниже травы', desc: 'Пригнитесь под 25 птеродактилями (всего)', prog: () => [stats.total.ducked, 25] },
+  { id: 'triple', icon: '🌵', title: 'Через тройку', desc: 'Перепрыгните группу из трёх больших кактусов' },
+  { id: 'dropper', icon: '🪂', title: 'Камнем вниз', desc: 'Сделайте 50 быстрых падений (↓ в прыжке), всего', prog: () => [stats.total.drops, 50] },
+  { id: 'hard1000', icon: '🔥', title: 'Хардкорщик', desc: 'Наберите 1 000 очков в «Хардкоре»' },
+  { id: 'daily1', icon: '📅', title: 'Испытатель', desc: 'Пройдите испытание дня (зачётная попытка)' },
+  { id: 'daily7', icon: '🗓️', title: 'Неделя испытаний', desc: 'Испытание дня 7 дней подряд', prog: () => [daily.bestStreak, 7] },
+  { id: 'marathon', icon: '🏃', title: 'Марафонец', desc: 'Пробегите всего 50 000 очков', prog: () => [stats.total.score, 50000] },
+  { id: 'jumper', icon: '🦘', title: 'Попрыгунчик', desc: 'Сделайте 1 000 прыжков', prog: () => [stats.total.jumps, 1000] }
+];
+let unlocked = (() => { const o = asObj(store.get(KEY.ach, null)), u = {}; for (const a of ACH) if (Number.isFinite(o[a.id]) && o[a.id] > 0) u[a.id] = o[a.id]; return u; })();
+const saveAch = () => store.set(KEY.ach, unlocked);
+if (recoveredDaily && !unlocked.daily1) { unlocked.daily1 = Date.now(); saveAch(); }   // прерванная зачётная попытка — тоже зачёт
+function award(id, list) { if (unlocked[id]) return; unlocked[id] = Date.now(); list.push(id); }
+
+/* ═══ Скины: открываются медалями и достижениями ═══ */
+const SKIN_NEED = { retro: { medal: 1 }, robo: { medal: 2 }, bones: { medal: 3 }, dragon: { medal: 4 },
+  ninja: { ach: 'ducker' }, magma: { ach: 'hard1000' }, galaxy: { ach: 'daily1' }, king: { ach: 's5000' } };
+const skinOpen = id => { const n = SKIN_NEED[id]; if (!n) return true; return n.medal ? stats.total.maxMedal >= n.medal : !!unlocked[n.ach]; };
+const skinNeedText = id => {
+  const n = SKIN_NEED[id];
+  if (!n) return R.skinById(id).desc || '';
+  if (n.medal) { const m = MEDALS[n.medal - 1]; return `Медаль ${m.icon} — ${fmt(m.t)} очков за забег`; }
+  const a = ACH.find(x => x.id === n.ach); return `Достижение «${a.title}»`;
+};
+if (!skinOpen(settings.skin)) settings.skin = 'neon';
+
+/* ═══ Звук и вибрация ═══ */
 const AudioSys = {
   ctx: null,
   init() {
+    if (!settings.sound) return;
     try {
       if (!this.ctx) this.ctx = new (window.AudioContext || window.webkitAudioContext)();
       if (this.ctx.state === 'suspended') this.ctx.resume();
     } catch (e) {}
   },
-  tone(freq, type, dur, vol = 0.5, slide = null) {
-    if (!this.ctx) return;
+  tone(freq, type, dur, vol, slide, delay) {
+    if (!settings.sound || !this.ctx || this.ctx.state !== 'running') return;
     try {
       const o = this.ctx.createOscillator(), g = this.ctx.createGain();
       o.type = type; o.connect(g); g.connect(this.ctx.destination);
-      const now = this.ctx.currentTime;
-      o.frequency.setValueAtTime(freq, now);
-      if (slide) o.frequency.exponentialRampToValueAtTime(slide, now + dur);
-      g.gain.setValueAtTime(vol, now);
-      g.gain.exponentialRampToValueAtTime(0.01, now + dur);
-      o.start(now); o.stop(now + dur);
+      const t0 = this.ctx.currentTime + (delay || 0);
+      o.frequency.setValueAtTime(freq, t0);
+      if (slide) o.frequency.exponentialRampToValueAtTime(slide, t0 + dur);
+      g.gain.setValueAtTime(vol, t0);
+      g.gain.exponentialRampToValueAtTime(0.001, t0 + dur);
+      o.start(t0); o.stop(t0 + dur + 0.02);
     } catch (e) {}
-  },
-  sfx: {
-    jump: () => AudioSys.tone(400, 'sine', 0.08, 0.25, 550),
-    point: () => { AudioSys.tone(800, 'square', 0.08, 0.2); setTimeout(() => AudioSys.tone(1200, 'square', 0.12, 0.15), 80); },
-    die: () => { AudioSys.tone(150, 'sawtooth', 0.4, 0.4, 40); },
-    duck: () => AudioSys.tone(200, 'triangle', 0.05, 0.1),
-    themeChange: () => { AudioSys.tone(500, 'sine', 0.12, 0.3, 1000); setTimeout(() => AudioSys.tone(750, 'sine', 0.15, 0.25), 100); },
   }
 };
-const vibrate = ms => { try { navigator.vibrate && navigator.vibrate(ms); } catch (e) {} };
+const sfx = {
+  jump: () => AudioSys.tone(420, 'sine', 0.09, 0.18, 620),
+  drop: () => AudioSys.tone(300, 'triangle', 0.07, 0.12, 160),
+  point: () => { AudioSys.tone(820, 'square', 0.07, 0.08); AudioSys.tone(1230, 'square', 0.1, 0.07, null, 0.08); },
+  die: () => { AudioSys.tone(170, 'sawtooth', 0.38, 0.22, 45); AudioSys.tone(90, 'square', 0.25, 0.12, 40, 0.05); },
+  hit: () => AudioSys.tone(140, 'square', 0.12, 0.12, 90),
+  night: () => { AudioSys.tone(520, 'sine', 0.3, 0.12, 260); AudioSys.tone(390, 'sine', 0.4, 0.1, 200, 0.15); },
+  dawn: () => { AudioSys.tone(500, 'sine', 0.14, 0.14, 900); AudioSys.tone(750, 'sine', 0.18, 0.12, null, 0.1); },
+  ach: () => { AudioSys.tone(660, 'triangle', 0.12, 0.14); AudioSys.tone(990, 'triangle', 0.18, 0.12, null, 0.11); },
+  go: () => AudioSys.tone(880, 'sine', 0.12, 0.12)
+};
+const vib = p => { if (settings.vibration) try { navigator.vibrate && navigator.vibrate(p); } catch (e) {} };
 
-/**
- * THEMES — 4 базовые палитры (цвета палитры ku-arcade) × 4 эпохи интенсивности неона
- * tint/star — RGB-тройки для полупрозрачных заливок
- */
-const BaseThemes = [
-  { name: 'Ночь',    ground: '#5b8cff', dino: '#51f58b', dinoDark: '#1d9c55', obs: '#ff5d7d', particle: '#51f58b', tint: '91,140,255',  star: '238,242,255' },
-  { name: 'Рассвет', ground: '#ff4dd2', dino: '#ff9f43', dinoDark: '#b4611b', obs: '#51f58b', particle: '#ff4dd2', tint: '255,77,210',  star: '255,170,235' },
-  { name: 'Кибер',   ground: '#c77dff', dino: '#00e5ff', dinoDark: '#008aa6', obs: '#ff4dd2', particle: '#c77dff', tint: '199,125,255', star: '214,180,255' },
-  { name: 'Пламя',   ground: '#ff9f43', dino: '#ffd60a', dinoDark: '#a98a00', obs: '#51f58b', particle: '#ff9f43', tint: '255,159,67',  star: '255,205,150' },
-];
-const ERA = ['I', 'II', 'III', 'IV'];
-const MEDALS = [{ id: 'bronze', t: 100, icon: '🥉', name: 'Бронза' }, { id: 'silver', t: 300, icon: '🥈', name: 'Серебро' },
-                { id: 'gold', t: 700, icon: '🥇', name: 'Золото' }, { id: 'platinum', t: 1500, icon: '💎', name: 'Платина' }];
+/* ═══ Партия ═══ */
+let screen = 'menu';
+let G = null;            // движок текущего забега
+let run = null;          // { mode, counted, day, done, practice } — сведения о забеге для учёта
+let phase = 'idle';      // ready | run | pause | countdown | dead | over
+let pausedFrom = '';
+let deathAt = 0, overTimer = 0, cdEnd = 0, shake = 0, hitFlash = 0, needDraw = true;
+const drv = new E.Driver(inp => {
+  E.step(G, inp);
+  if (G.ev.length) handleEvents(G.ev);
+  return phase === 'run' && !G.over;
+});
+const todayKey = () => dateKey(new Date());
 
-/**
- * PARTICLE
- */
-class Particle {
-  constructor(x, y, color, speed = 4) {
-    this.x = x; this.y = y; this.color = color;
-    const a = Math.random() * Math.PI * 2, s = Math.random() * speed + 1;
-    this.vx = Math.cos(a) * s; this.vy = Math.sin(a) * s;
-    this.life = 1; this.decay = Math.random() * 0.025 + 0.015;
-    this.size = Math.random() * 5 + 2;
-  }
-  update() { this.x += this.vx; this.y += this.vy; this.vy += 0.1; this.vx *= 0.97; this.life -= this.decay; }
-  draw(ctx) {
-    ctx.globalAlpha = Math.max(0, this.life);
-    ctx.fillStyle = this.color;
-    ctx.fillRect(this.x - this.size / 2, this.y - this.size / 2, this.size * this.life, this.size * this.life);
-    ctx.globalAlpha = 1;
+function newSeed() {
+  try { const a = new Uint32Array(1); crypto.getRandomValues(a); return a[0] || 1; } catch (e) { return (Math.random() * 4294967295 >>> 0) || 1; }
+}
+
+function startGame(mode, opts) {
+  opts = opts || {};
+  clearTimeout(overTimer);
+  closeOverlays();
+  const day = todayKey();
+  const seed = mode === 'daily' ? E.dailySeed(day) : newSeed();
+  G = E.create({ mode, seed, theme: settings.theme, practice: settings.pr });
+  run = { mode, day, counted: mode === 'daily' && daily.att !== day && daily.done[day] == null, done: false, begun: false };
+  R.clearParts();
+  shake = 0; hitFlash = 0;
+  resetInput();
+  showScreen('game');
+  $('#g-title').textContent = MODES[mode].short + (mode === 'daily' ? ' · ' + ruDate(day) : mode === 'practice' ? ' · ×' + E.speedMul(G.cfg.start).toFixed(1) : '');
+  $('#hud-best-l').textContent = mode === 'practice' ? 'Удары' : mode === 'daily' ? 'Зачёт' : 'Рекорд';
+  hud = {};
+  layout();
+  if (opts.go) beginRun(now());
+  else setPhase('ready');
+  updateHud(true);
+  needDraw = true;
+}
+
+function beginRun(t) {
+  if (!G || G.running) return;
+  E.begin(G);
+  run.begun = true;
+  run.t0 = Date.now();
+  if (run.counted) { daily.att = run.day; daily.cur = { d: run.day, score: 0 }; saveDaily(); }
+  drv.reset(t - E.TICK_MS * 0.5);
+  setPhase('run');
+  sfx.go();
+}
+
+function setPhase(p) {
+  phase = p;
+  document.body.classList.toggle('running', p === 'run' || p === 'countdown');
+  const showZones = p === 'ready' && settings.zones && touchUI();
+  document.body.classList.toggle('zones-show', showZones);
+  const c = $('#center');
+  if (p === 'ready') {
+    const chip = G.mode === 'daily' ? (run.counted ? '<div class="chip">ПОПЫТКА В ЗАЧЁТ</div>' : '<div class="chip pr">ТРЕНИРОВКА — ЗАЧЁТ УЖЕ ЕСТЬ</div>') : '';
+    c.innerHTML = chip + `<div class="msg">${touchUI() ? 'ТАП' : 'ПРОБЕЛ / ТАП'} — СТАРТ</div>` +
+      (G.mode === 'daily' && run.counted ? '<div class="sub">Попытка засчитается, как только начнётся забег</div>' : '') +
+      (touchUI() && document.body.classList.contains('portrait') ? '<div class="rot">📱 Поверните телефон — поле будет крупнее</div>' : '');
+  } else if (p !== 'countdown') c.innerHTML = '';
+}
+
+/* События тика → звук, частицы, надписи */
+function handleEvents(ev) {
+  for (const e of ev) {
+    switch (e) {
+      case 'jump': sfx.jump(); break;
+      case 'drop': sfx.drop(); break;
+      case 'land': if (!settings.reduce) R.dust(E.DINO_X + 8, E.GROUND - 1, 'rgba(200,210,255,0.5)'); break;
+      case 'milestone': {
+        sfx.point(); popHud('#hud-score');
+        floatText(E.DINO_X + 22, G.dino.y - 8, '✦ ' + fmt(Math.floor(G.score / 100) * 100), TH.css(TH.RGB[E.theme(G)].dino));
+        saveProgress();
+        break;
+      }
+      case 'night': sfx.night(); banner('🌙 НОЧЬ', '#c9d2ff'); break;
+      case 'dawn': case 'era': {
+        const th = TH.THEMES[E.theme(G)];
+        sfx.dawn();
+        banner(e === 'era' ? `✨ ЭПОХА ${TH.ERA[E.era(G)]} · ${th.name.toUpperCase()}` : `☀ УТРО · ${th.name.toUpperCase()}`, th.ground);
+        break;
+      }
+      case 'maxspeed': if (G.mode !== 'practice') banner('⚡ МАКСИМАЛЬНАЯ СКОРОСТЬ', '#ffd60a'); break;
+      case 'triple': floatText(E.DINO_X + 22, G.dino.y - 10, '🌵×3', '#51f58b'); break;
+      case 'hit': sfx.hit(); vib(30); hitFlash = 1; break;
+      case 'die': onDeath(); break;
+    }
   }
 }
 
-/**
- * GAME ENGINE
- * Физика считается фиксированными тиками по 1/60 с (как раньше на 60 Гц) — на 120/144 Гц
- * игра больше не ускоряется. Все константы (гравитация, прыжок, скорость, очки) — прежние.
- */
-const TICK = 1000 / 60;
-
-const Game = {
-  canvas: $('c'),
-  ctx: null, dpr: 1,
-  W: 0, H: 0, GND: 0,
-
-  state: 'MENU', // MENU, PLAYING, PAUSED, DEAD
-  score: 0, displayScore: 0, best: 0, bestAtStart: 0,
-  spd: 5, baseSpd: 5,
-  dino: null, obstacles: [], particles: [], stars: [], groundDetails: [],
-  frameCount: 0, shakeTimer: 0, tick: 0, milestone: 0,
-  themeIdx: 0, eraIdx: 0, themeSteps: 0,
-  dieTimer: 0, themeTimer: 0, acc: 0, lastTs: 0,
-  keyDuck: false, touches: new Map(),   // pointerId → { y0, duck }
-  _isDucking: false, _hud: {},
-
-  get theme() { return BaseThemes[this.themeIdx % BaseThemes.length]; },
-
-  /* ── Размер поля: ширина до 650 px (как раньше), высота до 380 px ── */
-  layout() {
-    const stage = $('stage');
-    if (!stage.clientHeight) return false;                 // экран игры скрыт
-    const FRAME = 16;                                       // рамка .ku-board: padding 7 + border 1
-    const extra = $('pbar').offsetHeight + $('game-hint').offsetHeight + 20;
-    const W = Math.floor(Math.max(240, Math.min(stage.clientWidth - FRAME, 650)));
-    const H = Math.floor(Math.max(200, Math.min(stage.clientHeight - extra - FRAME, 380)));
-    const dpr = Math.min(window.devicePixelRatio || 1, 2);
-    if (W === this.W && H === this.H && dpr === this.dpr && this.ctx) return true;
-    const oldGND = this.GND, oldW = this.W;
-    this.W = W; this.H = H; this.GND = H - 40; this.dpr = dpr;
-    this.canvas.style.width = W + 'px'; this.canvas.style.height = H + 'px';
-    this.canvas.width = Math.round(W * dpr); this.canvas.height = Math.round(H * dpr);
-    this.ctx = this.canvas.getContext('2d');
-    $('pbar').style.width = (W + FRAME) + 'px';
-    // поворот/ресайз посреди забега: переносим всё на новую линию земли
-    const dy = oldGND ? this.GND - oldGND : 0;
-    if (dy) {
-      if (this.dino) this.dino.y += dy;
-      this.obstacles.forEach(o => { o.y += dy; });
-      this.particles.forEach(p => { p.y += dy; });
-    }
-    if (this.dino) this.dino.x = this.W * 0.12;
-    if (!this.stars.length || W !== oldW) this.makeBackdrop();
-    if (this.state === 'PAUSED' || this.state === 'DEAD') this.draw();   // холст очистился при смене размера
-    return true;
-  },
-
-  makeBackdrop() {
-    this.stars = [];
-    for (let i = 0; i < 40; i++) {
-      this.stars.push({
-        x: Math.random() * this.W, y: Math.random() * (this.H - 60),
-        size: Math.random() * 1.5 + 0.5, twinkle: Math.random() * Math.PI * 2, speed: Math.random() * 0.2 + 0.05
-      });
-    }
-    this.groundDetails = [];
-    for (let i = 0; i < 30; i++) {
-      this.groundDetails.push({ x: Math.random() * this.W, w: Math.random() * 8 + 2, h: Math.random() * 3 + 1 });
-    }
-  },
-
-  init() {
-    this.best = Math.max(0, parseInt(store.get('dino_best', '0'), 10) || 0);
-    window.addEventListener('resize', () => { if (this.state !== 'MENU') this.layout(); });
-
-    // ── Ввод: pointer-события (одно событие на касание, без «двойных» mouse/touch) ──
-    const cv = this.canvas;
-    cv.addEventListener('pointerdown', e => {
-      if (e.pointerType === 'mouse' && e.button !== 0) return;
-      e.preventDefault();
-      AudioSys.init();
-      if (this.state !== 'PLAYING') return;
-      if (e.pointerType === 'mouse') { this.jump(); return; }
-      try { cv.setPointerCapture(e.pointerId); } catch (err) {}
-      const rect = cv.getBoundingClientRect();
-      const relY = (e.clientY - rect.top) / rect.height;
-      const t = { y0: e.clientY, duck: relY > 0.7 };      // тап у земли — пригнуться
-      this.touches.set(e.pointerId, t);
-      if (t.duck) this.syncDuck(); else this.jump();
-    });
-    cv.addEventListener('pointermove', e => {
-      const t = this.touches.get(e.pointerId);
-      if (!t || this.state !== 'PLAYING') return;
-      const rect = cv.getBoundingClientRect();
-      const swipeDown = e.clientY - t.y0 > 26;             // свайп вниз
-      const inLow = (e.clientY - rect.top) / rect.height > 0.7;
-      const duck = swipeDown || inLow;
-      if (duck !== t.duck) { t.duck = duck; this.syncDuck(); }
-    });
-    const release = e => { if (this.touches.delete(e.pointerId)) this.syncDuck(); };
-    cv.addEventListener('pointerup', release);
-    cv.addEventListener('pointercancel', release);
-    cv.addEventListener('contextmenu', e => e.preventDefault());
-
-    document.addEventListener('keydown', e => {
-      if (e.ctrlKey || e.metaKey || e.altKey) return;
-      const code = e.code;
-      if (code === 'Space' || code === 'ArrowUp' || code === 'KeyW') {
-        if (this.state === 'PLAYING') {
-          e.preventDefault(); AudioSys.init(); this.jump();
-          if (document.activeElement && document.activeElement.tagName === 'BUTTON') document.activeElement.blur();
-        }
-      } else if (code === 'ArrowDown' || code === 'KeyS') {
-        if (this.state === 'PLAYING') { e.preventDefault(); if (!this.keyDuck) { this.keyDuck = true; this.syncDuck(); } }
-      } else if (code === 'Escape' || code === 'KeyP') {
-        if (this.state === 'PLAYING') { e.preventDefault(); this.pause(); }
-        else if (this.state === 'PAUSED' && !$('menu-rules').classList.contains('open')) { e.preventDefault(); this.resume(); }
-      }
-    });
-    document.addEventListener('keyup', e => {
-      if ((e.code === 'ArrowDown' || e.code === 'KeyS') && this.keyDuck) { this.keyDuck = false; this.syncDuck(); }
-    });
-    // уход со вкладки / сворачивание — пауза
-    document.addEventListener('visibilitychange', () => { if (document.hidden) this.pause(); });
-    window.addEventListener('pagehide', () => { this.pause(); this.saveBest(); });
-
-    // ── Кнопки ──
-    $('btn-start').onclick = () => { AudioSys.init(); this.startGame(); };
-    $('btn-restart').onclick = () => { AudioSys.init(); this.startGame(); };
-    $('btn-pause-restart').onclick = () => { AudioSys.init(); this.startGame(); };
-    $('btn-resume').onclick = () => this.resume();
-    $('btn-quit').onclick = () => this.toMenu();
-    $('btn-go-menu').onclick = () => this.toMenu();
-    $('btn-pause').onclick = e => { e.currentTarget.blur(); this.pause(); };
-    let rulesFromPause = false;
-    $('btn-rules').onclick = () => { rulesFromPause = false; $('menu-rules').classList.add('open'); };
-    $('btn-rules2').onclick = () => { rulesFromPause = true; $('menu-pause').classList.remove('open'); $('menu-rules').classList.add('open'); };
-    $('btn-rules-close').onclick = $('btn-rules-x').onclick = () => {
-      $('menu-rules').classList.remove('open');
-      if (rulesFromPause && this.state === 'PAUSED') $('menu-pause').classList.add('open');
-    };
-
-    try {
-      if (window.matchMedia && matchMedia('(hover:hover) and (pointer:fine)').matches)
-        $('game-hint').textContent = 'Пробел / ↑ / клик — прыжок · ↓ — пригнуться · P — пауза';
-    } catch (e) {}
-    this.refreshMenu();
-    requestAnimationFrame(ts => this.loop(ts));
-  },
-
-  /* ── Экраны / оверлеи ── */
-  showScreen(name) {
-    $('screen-menu').classList.toggle('active', name === 'menu');
-    $('screen-game').classList.toggle('active', name === 'game');
-  },
-  closeOverlays() { ['menu-pause', 'menu-game-over', 'menu-rules'].forEach(id => $(id).classList.remove('open')); },
-  refreshMenu() {
-    $('menu-best').textContent = 'Рекорд: ' + fmt(this.best);
-    const m = MEDALS.filter(x => this.best >= x.t).pop();
-    $('menu-stats').textContent = m ? 'Лучшая медаль: ' + m.icon + ' ' + m.name + ' • Рекорд: ' + fmt(this.best)
-                                    : 'Медали: 🥉 100 • 🥈 300 • 🥇 700 • 💎 1500 очков';
-  },
-
-  saveBest() { store.set('dino_best', String(Math.floor(this.best))); },
-
-  pause() {
-    if (this.state !== 'PLAYING') return;              // в DEAD/MENU паузы нет
-    this.state = 'PAUSED';
-    this.touches.clear(); this.keyDuck = false; this._isDucking = false;
-    $('menu-pause').classList.add('open');
-  },
-  resume() {
-    if (this.state !== 'PAUSED') return;
-    this.closeOverlays();
-    this.state = 'PLAYING';
-  },
-  toMenu() {
-    clearTimeout(this.dieTimer);
-    this.saveBest();
-    this.state = 'MENU';
-    this.touches.clear(); this.keyDuck = false; this._isDucking = false;
-    this.closeOverlays();
-    this.showScreen('menu');
-    this.refreshMenu();
-  },
-
-  jump() {
-    if (this.state !== 'PLAYING') return;
-    if (this.dino && this.dino.y >= this.GND) {
-      this.dino.vy = -13;
-      AudioSys.sfx.jump();
-    }
-  },
-
-  syncDuck() {
-    let duck = this.keyDuck;
-    this.touches.forEach(t => { if (t.duck) duck = true; });
-    this.duck(duck);
-  },
-  duck(active) {
-    if (this.state !== 'PLAYING') return;
-    if (active && !this._isDucking && this.dino) {
-      AudioSys.sfx.duck();
-      // в воздухе ↓ / свайп вниз — быстрое приземление (иначе свайп, начатый тапом-прыжком, не даёт пригнуться)
-      if (this.dino.y < this.GND) this.dino.vy = Math.max(this.dino.vy, 9);
-    }
-    this._isDucking = active;
-  },
-
-  startGame() {
-    clearTimeout(this.dieTimer); clearTimeout(this.themeTimer);
-    this.saveBest();                                   // «Заново» из паузы посреди рекордного забега
-    this.closeOverlays();
-    this.showScreen('game');
-    this.layout();
-    document.querySelectorAll('#board-box .float-text').forEach(el => el.remove());
-    $('theme-indicator').classList.remove('visible');
-    this.score = 0; this.displayScore = 0; this.bestAtStart = this.best;
-    this.spd = this.baseSpd;
-    this.tick = 0; this.milestone = 0;
-    this.themeIdx = 0; this.eraIdx = 0; this.themeSteps = 0;
-    this.obstacles = []; this.particles = [];
-    this.shakeTimer = 0; this.frameCount = 0;
-    this.touches.clear(); this.keyDuck = false; this._isDucking = false;
-
-    this.dino = {
-      x: this.W * 0.12,
-      y: this.GND,
-      vy: 0,
-      w: 32, h: 38,
-      duckH: 22,
-      isDucking: false,
-      legFrame: 0, legTick: 0
-    };
-
-    this._hud = {};
-    this.updateHUD(true);
-    this.updateThemeLabel();
-    this.acc = 0;
-    this.state = 'PLAYING';
-  },
-
-  spawnObstacle() {
-    const type = Math.random();
-
-    if (type < 0.5) {
-      // Cactus (short or tall)
-      const tall = Math.random() < 0.35;
-      this.obstacles.push({
-        type: 'cactus',
-        x: this.W + 10,
-        y: tall ? this.GND - 34 : this.GND - 20,
-        w: 18, h: tall ? 34 : 20,
-        hasArms: Math.random() < 0.6
-      });
-    } else if (type < 0.75) {
-      // Double cactus
-      this.obstacles.push({
-        type: 'cactus',
-        x: this.W + 10,
-        y: this.GND - 24,
-        w: 32, h: 24,
-        hasArms: true
-      });
-    } else if (this.score > 500) {
-      // Pterodactyl: «высокий» летит на уровне головы — под ним проходит только пригнувшийся динозавр
-      // (раньше он висел на GND-55 и пролетал над стоящим — приседание было бесполезным);
-      // низкий — только перепрыгнуть.
-      const flyHeight = Math.random() < 0.5 ? this.GND - 46 : this.GND - 30;
-      this.obstacles.push({
-        type: 'ptero',
-        x: this.W + 10,
-        y: flyHeight,
-        w: 36, h: 20,
-        wingFrame: 0, wingTick: 0
-      });
-    } else {
-      // Small cactus cluster
-      this.obstacles.push({
-        type: 'cactus',
-        x: this.W + 10,
-        y: this.GND - 16,
-        w: 26, h: 16,
-        hasArms: false
-      });
-    }
-  },
-
-  updateHUD(force) {
-    const h = this._hud;
-    const ds = Math.floor(this.displayScore);
-    if (force || h.score !== ds) { h.score = ds; $('score-val').textContent = fmt(ds); }
-    const bs = Math.floor(this.best);
-    if (force || h.best !== bs) { h.best = bs; $('best-val').textContent = fmt(bs); }
-    const sp = '×' + (this.spd / this.baseSpd).toFixed(1);
-    if (force || h.spd !== sp) { h.spd = sp; $('speed-val').textContent = sp; }
-    const pr = ds % 100;
-    if (force || h.pr !== pr) { h.pr = pr; $('progress-fill').style.width = pr + '%'; }
-  },
-  pop(id) {
-    const el = $(id);
-    el.classList.remove('pop'); void el.offsetWidth; el.classList.add('pop');
-  },
-  updateThemeLabel() {
-    $('theme-name').textContent = (this.theme.name + ' · эпоха ' + ERA[this.eraIdx]).toUpperCase();
-  },
-
-  spawnFloatText(x, y, text, color) {
-    const el = document.createElement('div');
-    el.className = 'float-text';
-    el.textContent = text;
-    // координаты поля → координаты внутри .ku-board (канвас сдвинут на рамку)
-    el.style.left = (this.canvas.offsetLeft + x) + 'px';
-    el.style.top = (this.canvas.offsetTop + y) + 'px';
-    el.style.color = color;
-    $('board-box').appendChild(el);
-    setTimeout(() => el.remove(), 800);
-  },
-
-  spawnParts(x, y, color, count, speed) {
-    for (let i = 0; i < count; i++) this.particles.push(new Particle(x, y, color, speed));
-  },
-
-  update() {
-    const t = this.theme;
-    const d = this.dino;
-
-    this.tick++;
-    this.frameCount++;
-
-    // Speed increase over time
-    if (this.tick % 500 === 0) {
-      this.spd += 0.4;
-    }
-
-    // Theme change every 2000 ticks; full circle of themes → next era (brighter neon)
-    if (this.tick > 0 && this.tick % 2000 === 0) {
-      this.themeSteps++;
-      this.themeIdx = this.themeSteps % BaseThemes.length;
-      this.eraIdx = Math.min(ERA.length - 1, Math.floor(this.themeSteps / BaseThemes.length));
-      AudioSys.sfx.themeChange();
-      const nt = BaseThemes[this.themeIdx];
-      const ti = $('theme-indicator');
-      ti.textContent = `🌟 ${nt.name} · эпоха ${ERA[this.eraIdx]}`;
-      ti.style.color = nt.ground;
-      ti.classList.add('visible');
-      clearTimeout(this.themeTimer);
-      this.themeTimer = setTimeout(() => ti.classList.remove('visible'), 1500);
-      this.updateThemeLabel();
-    }
-
-    // Dino physics
-    d.isDucking = this._isDucking;
-    d.vy += 0.65;
-    d.y += d.vy;
-    if (d.y >= this.GND) { d.y = this.GND; d.vy = 0; }
-
-    // Running animation
-    d.legTick++;
-    if (d.legTick % 6 === 0) d.legFrame = 1 - d.legFrame;
-
-    // Obstacles
-    const minGap = Math.max(180, 320 - this.spd * 10);
-    if (this.obstacles.length === 0 || this.obstacles[this.obstacles.length - 1].x < this.W - minGap - Math.random() * 150) {
-      this.spawnObstacle();
-    }
-
-    this.obstacles.forEach(o => {
-      o.x -= this.spd;
-      if (o.type === 'ptero') {
-        o.wingTick++;
-        if (o.wingTick % 12 === 0) o.wingFrame = 1 - o.wingFrame;
-      }
-    });
-    this.obstacles = this.obstacles.filter(o => o.x > -60);
-
-    // Score
-    this.score += this.spd * 0.15;
-    this.displayScore = this.score;
-
-    // Best (сохраняется в localStorage в конце забега, а не 60 раз в секунду)
-    if (this.score > this.best) this.best = this.score;
-
-    // Milestone sound every 100 points
-    const ms = Math.floor(this.score / 100);
-    if (ms > this.milestone) {
-      this.milestone = ms;
-      AudioSys.sfx.point();
-      this.spawnParts(d.x, d.y - d.h, t.particle, 15, 4);
-      this.spawnFloatText(d.x, d.y - d.h - 10, '✦ 100', t.particle);
-      this.pop('score-val');
-    }
-
-    if (this.tick % 6 === 0) this.updateHUD();
-
-    // Stars parallax
-    this.stars.forEach(s => {
-      s.twinkle += 0.015;
-      s.x -= s.speed * (this.spd / this.baseSpd);
-      if (s.x < -5) { s.x = this.W + 5; s.y = Math.random() * (this.H - 60); }
-    });
-
-    // Ground details
-    this.groundDetails.forEach(g => {
-      g.x -= this.spd;
-      if (g.x < -10) { g.x = this.W + Math.random() * 50; g.w = Math.random() * 8 + 2; g.h = Math.random() * 3 + 1; }
-    });
-
-    // Collision
-    const dLeft = d.x + 4;
-    const dRight = d.x + d.w - 4;
-    const dTop = d.isDucking ? d.y - d.duckH + 2 : d.y - d.h + 4;
-    const dBottom = d.y - 2;
-
-    for (const o of this.obstacles) {
-      const oLeft = o.x + 3;
-      const oRight = o.x + o.w - 3;
-      const oTop = o.y + 3;
-      const oBottom = o.y + o.h - 2;
-
-      if (dRight > oLeft && dLeft < oRight && dBottom > oTop && dTop < oBottom) {
-        this.die(); return;
-      }
-    }
-
-    // Particles
-    this.updateFx();
-  },
-
-  /* частицы и тряска живут и после гибели (раньше замирали, а экран трясся бесконечно) */
-  updateFx() {
-    this.particles.forEach(p => p.update());
-    this.particles = this.particles.filter(p => p.life > 0);
-    if (this.shakeTimer > 0) this.shakeTimer--;
-  },
-
-  die() {
-    this.state = 'DEAD';
-    this.touches.clear(); this.keyDuck = false; this._isDucking = false;
-    AudioSys.sfx.die();
-    vibrate([50, 50, 50]);
-    this.shakeTimer = 15;
-    this.updateHUD(true);
-    this.saveBest();
-
-    this.spawnParts(this.dino.x + this.dino.w / 2, this.dino.y - this.dino.h / 2, '#ff5d7d', 25, 5);
-    this.spawnParts(this.dino.x + this.dino.w / 2, this.dino.y - this.dino.h / 2, '#ffd60a', 15, 4);
-
-    clearTimeout(this.dieTimer);
-    this.dieTimer = setTimeout(() => {
-      if (this.state !== 'DEAD') return;
-      const ds = Math.floor(this.displayScore);
-      $('final-score').textContent = fmt(ds);
-      $('new-best').hidden = !(this.score > this.bestAtStart && ds > 0);
-      MEDALS.forEach(m => $('medal-' + m.id).classList.toggle('earned', ds >= m.t));
-      $('over-best').textContent = fmt(this.best);
-      $('over-speed').textContent = '×' + (this.spd / this.baseSpd).toFixed(1);
-      $('over-theme').textContent = this.theme.name + ' · ' + ERA[this.eraIdx];
-      $('menu-game-over').classList.add('open');
-    }, 600);
-  },
-
-  loop(ts) {
-    requestAnimationFrame(t2 => this.loop(t2));
-    let dt = this.lastTs ? ts - this.lastTs : TICK;
-    this.lastTs = ts;
-    if (dt > 250) dt = TICK;                   // вкладка была скрыта
-    this.acc = Math.min(this.acc + dt, TICK * 6);
-    // небольшой допуск к дрожанию rAF, чтобы на 60 Гц не было кадров с 0 и 2 тиками
-    while (this.acc >= TICK - 1.5) {
-      this.acc -= TICK;
-      if (this.state === 'PLAYING') this.update();
-      else if (this.state === 'DEAD') this.updateFx();
-    }
-    // в паузе и после затухания взрыва кадр не меняется — не перерисовываем
-    if (this.state === 'PLAYING' || (this.state === 'DEAD' && (this.particles.length || this.shakeTimer > 0))) this.draw();
-  },
-
-  draw() {
-    const ctx = this.ctx;
-    if (!ctx) return;
-    const t = this.theme;
-    const W = this.W, H = this.H, GND = this.GND;
-    const glow = 1 + this.eraIdx * 0.35;       // эпоха = интенсивность неона
-
-    ctx.setTransform(this.dpr, 0, 0, this.dpr, 0, 0);
-    ctx.clearRect(0, 0, W, H);
-
-    // Background: тёмное «стекло» набора + оттенок темы
-    const sky = ctx.createLinearGradient(0, 0, 0, H);
-    sky.addColorStop(0, 'rgba(4,6,22,.62)');
-    sky.addColorStop(1, `rgba(${t.tint},${(0.07 + this.eraIdx * 0.03).toFixed(2)})`);
-    ctx.fillStyle = sky;
-    ctx.fillRect(0, 0, W, H);
-
-    // Shake
-    ctx.save();
-    if (this.shakeTimer > 0) {
-      const intensity = this.shakeTimer * 0.8;
-      ctx.translate((Math.random() - 0.5) * intensity, (Math.random() - 0.5) * intensity);
-    }
-
-    // Stars (в поздних эпохах их больше)
-    const nStars = Math.round(this.stars.length * (0.55 + 0.15 * this.eraIdx));
-    for (let i = 0; i < nStars; i++) {
-      const s = this.stars[i];
-      const alpha = 0.3 + Math.sin(s.twinkle) * 0.3;
-      ctx.fillStyle = `rgba(${t.star},${Math.max(0, alpha).toFixed(2)})`;
-      ctx.beginPath(); ctx.arc(s.x, s.y, s.size, 0, Math.PI * 2); ctx.fill();
-    }
-
-    // Ground glow + line
-    const gg = ctx.createLinearGradient(0, GND, 0, H);
-    gg.addColorStop(0, `rgba(${t.tint},.10)`); gg.addColorStop(1, `rgba(${t.tint},0)`);
-    ctx.fillStyle = gg; ctx.fillRect(0, GND, W, H - GND);
-    ctx.shadowBlur = 10 * glow; ctx.shadowColor = t.ground;
-    ctx.fillStyle = t.ground;
-    ctx.fillRect(0, GND, W, 2);
-    ctx.shadowBlur = 0;
-
-    // Ground details
-    ctx.fillStyle = t.ground;
-    ctx.globalAlpha = 0.3;
-    this.groundDetails.forEach(g => {
-      ctx.fillRect(g.x, GND + 5, g.w, g.h);
-    });
-    ctx.globalAlpha = 1;
-
-    // Ground texture pattern (moving dashes)
-    ctx.fillStyle = t.ground;
-    ctx.globalAlpha = 0.1 + this.eraIdx * 0.03;
-    const dashOffset = (this.frameCount * -this.spd) % 24;
-    for (let x = dashOffset; x < W; x += 24) {
-      ctx.fillRect(x, GND + 12, 12, 1);
-      ctx.fillRect(x + 6, GND + 20, 8, 1);
-    }
-    ctx.globalAlpha = 1;
-
-    // Obstacles
-    this.obstacles.forEach(o => {
-      if (o.type === 'cactus') this.drawCactus(o, glow);
-      else if (o.type === 'ptero') this.drawPtero(o, glow);
-    });
-
-    // Particles
-    this.particles.forEach(p => p.draw(ctx));
-
-    // Dino
-    if (this.dino) this.drawDino(glow);
-
-    ctx.restore();
-  },
-
-  drawDino(glow) {
-    const ctx = this.ctx;
-    const t = this.theme;
-    const d = this.dino;
-    const ducking = d.isDucking;
-    const bodyH = ducking ? d.duckH : d.h;
-    const bodyW = ducking ? d.w + 8 : d.w;
-
-    // Тень на земле (остаётся на земле и уменьшается в прыжке)
-    const lift = Math.max(0, this.GND - d.y);
-    const k = Math.max(0.35, 1 - lift / 160);
-    ctx.fillStyle = `rgba(0,0,0,${(0.28 * k).toFixed(2)})`;
-    ctx.beginPath();
-    ctx.ellipse(d.x + bodyW / 2, this.GND + 2, bodyW * 0.4 * k, 3, 0, 0, Math.PI * 2);
-    ctx.fill();
-
-    ctx.save();
-    ctx.translate(d.x, d.y);
-    const legOn = this.state === 'PLAYING';
-
-    if (ducking) {
-      // Ducking dino — flat body, ноги под телом до земли
-      ctx.fillStyle = t.dinoDark;
-      const legOff = legOn && d.legFrame ? 4 : -4;
-      ctx.fillRect(bodyW / 2 - 4 + legOff, -6, 4, 6);
-      ctx.fillRect(bodyW / 2 + 2 - legOff, -6, 4, 6);
-
-      ctx.fillStyle = t.dino;
-      ctx.shadowBlur = 10 * glow; ctx.shadowColor = t.dino;
-      ctx.beginPath();
-      ctx.roundRect(0, -bodyH, bodyW, bodyH - 4, 6);
-      ctx.fill();
-      ctx.shadowBlur = 0;
-
-      // Eye
-      ctx.fillStyle = '#fff';
-      ctx.beginPath(); ctx.arc(bodyW - 6, -bodyH + 6, 4, 0, Math.PI * 2); ctx.fill();
-      ctx.fillStyle = '#000';
-      ctx.beginPath(); ctx.arc(bodyW - 5, -bodyH + 6, 2, 0, Math.PI * 2); ctx.fill();
-    } else {
-      // Legs (раньше рисовались на 24–38 px НИЖЕ линии земли — отдельно от динозавра)
-      ctx.fillStyle = t.dinoDark;
-      const legOff = legOn ? (d.legFrame ? 5 : -5) : 0;
-      ctx.fillRect(bodyW / 2 - 5 + legOff, -10, 4, 10);
-      ctx.fillRect(bodyW / 2 + 1 - legOff, -10, 4, 10);
-
-      // Standing dino
-      ctx.fillStyle = t.dino;
-      ctx.shadowBlur = 12 * glow; ctx.shadowColor = t.dino;
-
-      // Body
-      ctx.beginPath();
-      ctx.roundRect(4, -bodyH + 8, bodyW - 8, bodyH - 16, 5);
-      ctx.fill();
-
-      // Head
-      ctx.beginPath();
-      ctx.roundRect(bodyW - 16, -bodyH, 18, 16, 5);
-      ctx.fill();
-      ctx.shadowBlur = 0;
-
-      // Eye
-      ctx.fillStyle = '#fff';
-      ctx.beginPath(); ctx.arc(bodyW - 4, -bodyH + 7, 4, 0, Math.PI * 2); ctx.fill();
-      ctx.fillStyle = '#000';
-      ctx.beginPath(); ctx.arc(bodyW - 3, -bodyH + 7, 2, 0, Math.PI * 2); ctx.fill();
-
-      // Mouth
-      ctx.fillStyle = t.dinoDark;
-      ctx.fillRect(bodyW + 2, -bodyH + 11, 4, 2);
-
-      // Arms (tiny!)
-      ctx.fillStyle = t.dinoDark;
-      ctx.fillRect(bodyW - 10, -bodyH + 20, 6, 2);
-
-      // Tail
-      ctx.fillStyle = t.dino;
-      ctx.beginPath();
-      ctx.moveTo(4, -bodyH + 14);
-      ctx.lineTo(-8, -bodyH + 18);
-      ctx.lineTo(4, -bodyH + 22);
-      ctx.closePath(); ctx.fill();
-    }
-
-    ctx.restore();
-  },
-
-  drawCactus(o, glow) {
-    const ctx = this.ctx;
-    const t = this.theme;
-
-    ctx.shadowBlur = 10 * glow; ctx.shadowColor = t.obs;
-    ctx.fillStyle = t.obs;
-
-    // Main trunk
-    ctx.beginPath();
-    ctx.roundRect(o.x, o.y, o.w, o.h, 4);
-    ctx.fill();
-
-    // Arms
-    if (o.hasArms && o.h > 18) {
-      ctx.fillRect(o.x - 7, o.y + 6, 8, 5);
-      ctx.fillRect(o.x - 7, o.y + 2, 4, 9);
-      ctx.fillRect(o.x + o.w, o.y + 10, 8, 5);
-      ctx.fillRect(o.x + o.w + 4, o.y + 6, 4, 9);
-    }
-
-    ctx.shadowBlur = 0;
-
-    // Inner highlight
-    ctx.fillStyle = 'rgba(255,255,255,0.15)';
-    ctx.fillRect(o.x + 3, o.y + 3, o.w - 6, o.h - 6);
-  },
-
-  drawPtero(o, glow) {
-    const ctx = this.ctx;
-    const t = this.theme;
-
-    ctx.save();
-    ctx.translate(o.x + o.w / 2, o.y + o.h / 2);
-
-    ctx.shadowBlur = 12 * glow; ctx.shadowColor = t.obs;
-    ctx.fillStyle = t.obs;
-
-    // Body
-    ctx.beginPath();
-    ctx.roundRect(-o.w / 2, -3, o.w, 6, 3);
-    ctx.fill();
-
-    // Head/beak — смотрит по ходу полёта (влево, навстречу динозавру)
-    ctx.fillRect(-o.w / 2 - 6, -2, 10, 4);
-
-    // Wings
-    const wingY = o.wingFrame ? -12 : 4;
-    ctx.beginPath();
-    ctx.moveTo(-8, 0);
-    ctx.lineTo(0, wingY);
-    ctx.lineTo(8, 0);
-    ctx.closePath();
-    ctx.fill();
-
-    ctx.shadowBlur = 0;
-
-    // Eye
-    ctx.fillStyle = '#fff';
-    ctx.beginPath(); ctx.arc(-o.w / 2 + 6, 0, 2, 0, Math.PI * 2); ctx.fill();
-
-    ctx.restore();
+function onDeath() {
+  phase = 'dead';
+  document.body.classList.remove('running');
+  deathAt = now();
+  resetInput();
+  sfx.die(); vib([50, 40, 70]);
+  if (!settings.reduce) {
+    shake = 1;
+    R.burst(E.DINO_X + 24, G.dino.y + 20, '#ff5d7d', 26, 2.6, 700);
+    R.burst(E.DINO_X + 24, G.dino.y + 20, '#ffd60a', 14, 2, 600);
   }
-};
+  const res = finishRun(G.cause);
+  updateHud(true);
+  overTimer = setTimeout(() => showOver(res), OVER_DELAY);
+}
 
-Game.init();
+/* Итог забега: статистика, рекорды, медали, испытание дня, история, достижения, скины */
+function finishRun(cause) {
+  if (!run || run.done || !run.begun || !G) return null;
+  run.done = true;
+  const mode = G.mode, sc = G.score, ms = Math.round(G.tick * E.TICK_MS), st = G.st;
+  const res = { mode, score: sc, cause, newBest: false, medal: 0, ach: [], skins: [], counted: run.counted, prevBest: 0 };
+  if (mode === 'practice') {
+    stats.practice.runs++; stats.practice.time += ms; stats.practice.hits += st.hits;
+    saveStats();
+    return res;
+  }
+  const skinsBefore = R.SKINS.filter(s => skinOpen(s.id)).map(s => s.id);
+  const rec = stats.by[mode];
+  rec.runs++; rec.sum += sc; rec.time += ms; rec.jumps += st.jumps;
+  res.medal = medalOf(sc);
+  if (res.medal) rec.medals[res.medal - 1]++;
+  res.prevBest = rec.best;
+  if (mode !== 'daily' || run.counted) { if (sc > rec.best) { res.newBest = sc > 0; rec.best = sc; } }
+  const T = stats.total;
+  T.runs++; T.score += sc; T.jumps += st.jumps; T.drops += st.drops; T.ducked += st.ducked; T.birds += st.birds; T.cacti += st.cacti; T.time += ms;
+  if (cause === 'cactus') T.dCactus++; else if (cause === 'ptero') T.dBird++;
+  T.maxMedal = Math.max(T.maxMedal, res.medal); T.best = Math.max(T.best, sc);
+  if (mode === 'daily' && run.counted) recordDaily(run.day, sc);
+  history.unshift({ t: Date.now(), m: mode, s: sc, med: res.medal, c: cause || 'quit', nb: res.newBest, dz: mode === 'daily' ? (run.counted ? 1 : 2) : 0, j: st.jumps, ms });
+  if (history.length > HISTORY_MAX) history.length = HISTORY_MAX;
+  // достижения
+  const got = res.ach;
+  award('first', got);
+  if (sc >= 700) award('night', got);
+  if (sc >= 1000) award('s1000', got);
+  if (sc >= 5000) award('s5000', got);
+  if (sc >= 10000) award('s10000', got);
+  if (mode === 'classic' && st.maxTick > 0) award('maxspeed', got);
+  if (G.themeStep >= 3) award('themes', got);
+  if (T.ducked >= 25) award('ducker', got);
+  if (st.triple > 0) award('triple', got);
+  if (T.drops >= 50) award('dropper', got);
+  if (mode === 'hardcore' && sc >= 1000) award('hard1000', got);
+  if (mode === 'daily' && run.counted) award('daily1', got);
+  if (daily.bestStreak >= 7) award('daily7', got);
+  if (T.score >= 50000) award('marathon', got);
+  if (T.jumps >= 1000) award('jumper', got);
+  res.skins = R.SKINS.filter(s => skinOpen(s.id) && !skinsBefore.includes(s.id)).map(s => s.id);
+  saveStats(); saveHistory(); saveAch();
+  if (got.length) sfx.ach();
+  // после аварии открытия видны в окне итогов; при выходе из забега — тостами
+  if (cause === 'quit') {
+    const msgs = got.map(id => '🏅 Достижение: ' + ACH.find(a => a.id === id).title).concat(res.skins.map(id => '🎨 Новый скин: ' + R.skinById(id).name));
+    msgs.forEach((m, i) => setTimeout(() => toast(m, 'gold', 2200), 300 + i * 2400));
+  }
+  return res;
+}
+
+/* Прогресс посреди забега: рекорд не теряется при закрытии вкладки, зачётная попытка дня — тоже */
+function saveProgress() {
+  if (!run || !run.begun || run.done || !G) return;
+  if (run.counted) { daily.cur = { d: run.day, score: G.score }; saveDaily(); }
+}
+
+function showOver(res) {
+  if (phase !== 'dead' || !G) return;
+  phase = 'over';
+  const sc = G.score, mode = G.mode;
+  $('#over-h').textContent = mode === 'daily' && run.counted ? 'ИСПЫТАНИЕ ДНЯ' : 'ИГРА ОКОНЧЕНА';
+  $('#over-score').textContent = fmt(sc);
+  $('#over-best').hidden = !(res && res.newBest);
+  const md = res ? res.medal : 0;
+  $$('#over-medals .dn-medal').forEach((el, i) => el.classList.toggle('earned', md > i));
+  const rec = stats.by[mode];
+  const why = G.cause === 'ptero' ? '🦅 Птеродактиль' : '🌵 Кактус';
+  const rows = [
+    [mode === 'daily' ? 'Зачёт дня' : 'Рекорд', mode === 'daily' ? (daily.done[run.day] != null ? fmt(daily.done[run.day]) : '—') : fmt(rec.best)],
+    ['Время', fmtDur(G.tick * E.TICK_MS)],
+    ['Прыжков', fmt(G.st.jumps)],
+    ['Скорость', '×' + E.speedMul(G.speed).toFixed(1)],
+    ['Тема', TH.THEMES[E.theme(G)].name + ' · ' + TH.ERA[E.era(G)]],
+    ['Причина', why]
+  ];
+  $('#over-stats').innerHTML = rows.map(r => `<div>${r[0]}<b>${r[1]}</b></div>`).join('');
+  let note = '';
+  if (mode === 'daily') note = run.counted ? `Результат дня засчитан: <b>${fmt(sc)}</b>. Серия: ${fmt(dailyStreak())} ${plural(dailyStreak(), 'день', 'дня', 'дней')}. Дальше — тренировка на той же трассе.`
+                                            : `Тренировочная попытка — в зачёт идёт первая (${fmt(daily.done[run.day] || 0)}).`;
+  else if (res && !res.newBest && rec.best > sc) note = `До рекорда не хватило ${fmt(rec.best - sc)}`;
+  $('#over-note').innerHTML = note;
+  const un = [];
+  if (res) {
+    if (res.skins.length) un.push('🎨 Новый скин: <b>' + res.skins.map(id => R.skinById(id).name).join(', ') + '</b>');
+    if (res.ach.length) {
+      const names = res.ach.map(id => ACH.find(a => a.id === id).title), more = names.length - 2;
+      un.push('🏅 ' + (names.length <= 3 ? names.join(' · ') : names.slice(0, 2).join(' · ') + ` и ещё ${more} ${plural(more, 'достижение', 'достижения', 'достижений')}`));
+    }
+  }
+  $('#over-unlock').innerHTML = un.join('<br>');
+  $('#o-again').textContent = mode === 'daily' && !run.counted ? '🔄 Ещё раз (вне зачёта)' : mode === 'daily' ? '🔄 Тренироваться' : '🔄 Играть снова';
+  // защита от случайного рестарта: кнопки оживают через секунду после аварии
+  const btns = [$('#o-again'), $('#o-menu')];
+  btns.forEach(b => b.classList.add('locked'));
+  setTimeout(() => btns.forEach(b => b.classList.remove('locked')), Math.max(0, deathAt + RESTART_LOCK - now()));
+  openOverlay('#ov-over');
+}
+const restartReady = () => phase === 'over' && now() - deathAt >= RESTART_LOCK;
+
+function pauseGame() {
+  if (!G || !['run', 'countdown', 'ready'].includes(phase)) return;
+  pausedFrom = phase === 'ready' ? 'ready' : 'run';
+  phase = 'pause';
+  document.body.classList.remove('running');
+  releaseAll();
+  saveProgress();
+  $('#center').innerHTML = '';
+  $('#pause-info').innerHTML = pausedFrom === 'ready' ? 'Забег ещё не начался' :
+    `Очки: <b>${fmt(G.score)}</b> · скорость ×${E.speedMul(G.speed).toFixed(1)}` + (run.counted ? ' · попытка в зачёт' : '');
+  openOverlay('#ov-pause');
+}
+function resumeGame() {
+  if (phase !== 'pause') return;
+  closeOverlays();
+  blurActive();
+  if (pausedFrom === 'ready') { setPhase('ready'); return; }
+  phase = 'countdown';
+  document.body.classList.add('running');
+  delete $('#center').dataset.n;
+  cdEnd = now() + COUNTDOWN;
+}
+async function restartFromPause() {
+  if (run && run.counted && run.begun && !run.done &&
+      !(await KuArcade.confirm('Зачётная попытка закончится с текущим счётом. Начать заново вне зачёта?', { title: 'ЗАНОВО', ok: 'Заново', cancel: 'Отмена' }))) return;
+  finishRun('quit');
+  startGame(G.mode, { go: G.running });
+}
+async function toMenu() {
+  if (run && run.counted && run.begun && !run.done &&
+      !(await KuArcade.confirm('Зачётная попытка дня закончится с текущим счётом.', { title: 'В МЕНЮ', ok: 'Выйти', cancel: 'Отмена' }))) return;
+  finishRun('quit');
+  clearTimeout(overTimer);
+  closeOverlays();
+  phase = 'idle'; G = null; run = null;
+  document.body.classList.remove('running', 'zones-show');
+  showScreen('menu');
+}
+
+/* ═══ Ввод ═══
+ * Источники нажатий (клавиша, каждый палец) копятся: прыжок/присед «держится», пока держит хоть один.
+ * Каждое новое нажатие прыжка — отдельный импульс (второй палец, автоповтор клавиши — тоже прыжок).
+ * События уходят в Driver с отметкой времени и применяются к своему тику. */
+const jumpSrc = new Set(), duckSrc = new Set(), ptrs = new Map();
+let touchCache = null;
+function touchUI() {
+  if (touchCache === null) { try { touchCache = matchMedia('(pointer: coarse)').matches || navigator.maxTouchPoints > 0; } catch (e) { touchCache = false; } }
+  return touchCache;
+}
+function srcDown(kind, src) {
+  const set = kind === 'j' ? jumpSrc : duckSrc;
+  set.add(src);
+  drv.push(now(), kind === 'j' ? 'jd' : 'dd');
+  if (kind === 'd' && typeof src === 'number') $('#zones .zd').classList.add('press');
+}
+function srcUp(kind, src) {
+  const set = kind === 'j' ? jumpSrc : duckSrc;
+  if (!set.delete(src)) return;
+  if (!set.size) drv.push(now(), kind === 'j' ? 'ju' : 'du');
+  if (kind === 'd' && ![...duckSrc].some(s => typeof s === 'number')) $('#zones .zd').classList.remove('press');
+}
+function releaseAll() {
+  if (jumpSrc.size) drv.push(now(), 'ju');
+  if (duckSrc.size) drv.push(now(), 'du');
+  jumpSrc.clear(); duckSrc.clear(); ptrs.clear();
+  $('#zones .zd').classList.remove('press');
+}
+function resetInput() { jumpSrc.clear(); duckSrc.clear(); ptrs.clear(); drv.held.jump = drv.held.duck = false; drv.q.length = 0; $('#zones .zd').classList.remove('press'); }
+const blurActive = () => { const a = document.activeElement; if (a && a !== document.body && a.blur) a.blur(); };
+const anyModal = () => !!document.querySelector('.ku-overlay.open:not(#ov-pause):not(#ov-over)') || !!document.querySelector('.ku-dialog');
+
+function pressJump(src) {
+  AudioSys.init();
+  if (phase === 'ready') { blurActive(); beginRun(now()); }
+  if (phase !== 'run') return;
+  srcDown('j', src);
+}
+function pressDuck(src) {
+  AudioSys.init();
+  if (phase === 'ready') { blurActive(); beginRun(now()); }
+  if (phase !== 'run') return;
+  srcDown('d', src);
+}
+
+document.addEventListener('keydown', e => {
+  if (e.ctrlKey || e.metaKey || e.altKey) return;
+  const c = e.code;
+  const isJump = c === 'Space' || c === 'ArrowUp' || c === 'KeyW', isDuck = c === 'ArrowDown' || c === 'KeyS';
+  if (anyModal()) return;                          // окна сами обрабатывают Esc
+  if (screen !== 'game') {
+    if (c === 'Enter' && document.activeElement === $('#menu-dino-wrap')) openSkins();
+    return;
+  }
+  if (isJump || isDuck) e.preventDefault();       // пробел не «нажимает» кнопку в фокусе и не листает
+  if (phase === 'over' || phase === 'dead') {
+    if ((isJump || c === 'Enter') && !e.repeat && restartReady()) { e.preventDefault(); againFromOver(); }
+    return;
+  }
+  if (phase === 'pause') {
+    if ((c === 'Escape' || c === 'KeyP' || (isJump && !e.repeat))) { e.preventDefault(); resumeGame(); }
+    return;
+  }
+  if (c === 'Escape' || c === 'KeyP') { e.preventDefault(); pauseGame(); return; }
+  if (isJump) { if (!e.repeat || phase === 'run') pressJump('key'); }   // автоповтор — прыжки подряд, как в оригинале
+  else if (isDuck && !e.repeat) pressDuck('key');
+});
+document.addEventListener('keyup', e => {
+  const c = e.code;
+  if (c === 'Space' || c === 'ArrowUp' || c === 'KeyW') srcUp('j', 'key');
+  else if (c === 'ArrowDown' || c === 'KeyS') srcUp('d', 'key');
+});
+
+const gameEl = $('#screen-game');
+gameEl.addEventListener('pointerdown', e => {
+  if (e.target.closest('button')) return;
+  if (e.pointerType === 'mouse' && e.button !== 0) return;
+  e.preventDefault();
+  if (!['ready', 'run'].includes(phase)) return;
+  const role = settings.zones && e.clientY > window.innerHeight / 2 ? 'duck' : 'jump';
+  try { gameEl.setPointerCapture(e.pointerId); } catch (err) {}
+  ptrs.set(e.pointerId, { role, y0: e.clientY });
+  if (role === 'jump') pressJump(e.pointerId); else pressDuck(e.pointerId);
+});
+gameEl.addEventListener('pointermove', e => {
+  const p = ptrs.get(e.pointerId);
+  if (!p || phase !== 'run') return;
+  if (p.role === 'jump' && e.clientY - p.y0 > 26) {          // свайп вниз: прыжок → присед / быстрое падение
+    p.role = 'duck'; srcUp('j', e.pointerId); srcDown('d', e.pointerId);
+  }
+});
+const ptrEnd = e => { const p = ptrs.get(e.pointerId); if (!p) return; ptrs.delete(e.pointerId); srcUp(p.role === 'jump' ? 'j' : 'd', e.pointerId); };
+gameEl.addEventListener('pointerup', ptrEnd);
+gameEl.addEventListener('pointercancel', ptrEnd);
+gameEl.addEventListener('contextmenu', e => e.preventDefault());
+
+// пауза при уходе со вкладки, сворачивании и потере фокуса
+document.addEventListener('visibilitychange', () => { if (document.hidden) { pauseGame(); saveProgress(); } });
+window.addEventListener('blur', () => pauseGame());
+window.addEventListener('pagehide', () => { pauseGame(); saveProgress(); });
+
+/* ═══ Экран, раскладка, HUD ═══ */
+function showScreen(name) {
+  screen = name;
+  $('#screen-menu').classList.toggle('active', name === 'menu');
+  $('#screen-game').classList.toggle('active', name === 'game');
+  document.body.classList.toggle('ku-calm', name === 'game');
+  if (name === 'menu') refreshMenu();
+}
+
+let layoutPending = 0;
+function layout() {
+  if (screen !== 'game') return;
+  const vw = window.innerWidth, vh = window.innerHeight;
+  const portrait = vh > vw * 1.15, short = vh < 520;
+  const pad = portrait && settings.zones && touchUI();
+  document.body.classList.toggle('portrait', portrait);
+  document.body.classList.toggle('short', short);
+  document.body.classList.toggle('zones-pad', pad);
+  // размеры — по раскладке (offset*), а не getBoundingClientRect: экран въезжает анимацией со сдвигом
+  const stage = $('#stage');
+  const pb = $('#pbar'), hint = $('#g-hint');
+  const pbH = pb.offsetParent ? pb.offsetHeight + 8 : 0, hH = hint.offsetParent ? hint.offsetHeight + 8 : 0;
+  const frame = portrait ? 10 : 16;                 // рамка .ku-board: padding + border
+  const availW = Math.max(200, stage.clientWidth - frame);
+  let availH = Math.max(120, stage.clientHeight - pbH - hH - frame);
+  // телефон стоя: поле целиком выше середины экрана, ниже — зона приседа
+  if (pad) availH = Math.min(availH, Math.max(110, vh / 2 - 14 - (stage.offsetTop + pbH) - frame));
+  const f = R.fit(availW, availH, 1.6, portrait ? 300 : 240);
+  R.resize($('#cv'), f.w, f.h, window.devicePixelRatio || 1);
+  pb.style.width = (f.w + frame) + 'px';
+  // подпись «⬆ Прыжок» над линией середины — только если между полем и линией есть место
+  const boardBottom = stage.offsetTop + pbH + f.h + frame;
+  document.body.classList.toggle('zu-hide', pad && vh / 2 - boardBottom < 44);
+  needDraw = true;
+  if (G) draw(1);
+}
+window.addEventListener('resize', () => { cancelAnimationFrame(layoutPending); layoutPending = requestAnimationFrame(layout); });
+
+let hud = {};
+function updateHud(force) {
+  if (!G) return;
+  const set = (k, v, sel) => { if (force || hud[k] !== v) { hud[k] = v; $(sel).textContent = v; } };
+  set('score', fmt(G.score), '#hud-score');
+  let best;
+  if (G.mode === 'practice') best = fmt(G.st.hits);
+  else if (G.mode === 'daily') best = run.counted ? fmt(G.score) : fmt(daily.done[run.day] || 0);
+  else best = fmt(Math.max(stats.by[G.mode].best, run.done ? 0 : G.score));
+  set('best', best, '#hud-best');
+  const sp = '×' + E.speedMul(G.speed).toFixed(1);
+  set('speed', sp, '#hud-speed');
+  if (force || hud.max !== (G.speed >= G.cfg.max)) { hud.max = G.speed >= G.cfg.max; $('#hud-speed').classList.toggle('max', hud.max && G.mode !== 'practice'); }
+  const pr = G.score % 100;
+  if (force || hud.pr !== pr) { hud.pr = pr; $('#pbar-fill').style.width = pr + '%'; }
+  const sub = TH.THEMES[E.theme(G)].name.toUpperCase() + ' · ЭПОХА ' + TH.ERA[E.era(G)] + (G.nightT >= 0 ? ' · НОЧЬ' : '');
+  set('sub', sub, '#g-sub');
+}
+function popHud(sel) { const el = $(sel); el.classList.remove('pop'); void el.offsetWidth; el.classList.add('pop'); }
+
+let bannerTimer = 0;
+function banner(text, color) {
+  const b = $('#banner');
+  b.textContent = text; b.style.color = color || '';
+  b.classList.add('show');
+  clearTimeout(bannerTimer);
+  bannerTimer = setTimeout(() => b.classList.remove('show'), 1800);
+}
+function floatText(wx, wy, text, color) {
+  if (settings.reduce) return;
+  const cv = $('#cv'), [x, y] = R.worldToCss(wx, wy);
+  const el = document.createElement('div');
+  el.className = 'float'; el.textContent = text; el.style.color = color || '';
+  el.style.left = (cv.offsetLeft + x) + 'px'; el.style.top = (cv.offsetTop + y) + 'px';
+  $('#board').appendChild(el);
+  setTimeout(() => el.remove(), 950);
+}
+
+/* ═══ Цикл ═══ */
+let lastFrame = 0;
+function draw(alpha) {
+  R.frame(G, { skin: settings.skin, alpha, t: now(), reduce: settings.reduce, boxes: G.mode === 'practice' && settings.pr.boxes, shake, hitFlash });
+}
+function loop(t) {
+  requestAnimationFrame(loop);
+  const dt = lastFrame ? Math.min(100, t - lastFrame) : 16.7;
+  lastFrame = t;
+  if (screen === 'game' && G) {
+    let alpha = 1;
+    if (phase === 'run') {
+      alpha = drv.advance(t).alpha;
+      needDraw = true;
+    } else if (phase === 'countdown') {
+      const left = cdEnd - t;
+      if (left <= 0) { phase = 'run'; $('#center').innerHTML = ''; drv.resume(t); sfx.go(); }
+      else {
+        const n = String(Math.ceil(left / (COUNTDOWN / 3)));
+        if ($('#center').dataset.n !== n) { $('#center').dataset.n = n; $('#center').innerHTML = `<div class="big">${n}</div>`; }
+      }
+      needDraw = true;
+    } else if (phase === 'ready') needDraw = true;     // динозавр моргает
+    if (shake > 0) { shake = Math.max(0, shake - dt / 380); needDraw = true; }
+    if (hitFlash > 0) { hitFlash = Math.max(0, hitFlash - dt / 300); needDraw = true; }
+    R.stepParts(dt);
+    if (needDraw || phase === 'dead') { draw(alpha); needDraw = false; }
+    if (phase === 'run' || phase === 'dead') updateHud();
+  } else if (screen === 'menu') menuPreview(t);
+}
+
+let prevT = 0;
+function menuPreview(t) {
+  if (settings.reduce && prevT) return;
+  if (t - prevT < 33) return;                      // превью — 30 кадров в секунду хватает
+  prevT = t;
+  const cv = $('#menu-dino');
+  if (!cv.offsetParent) return;
+  R.preview(cv, settings.skin, settings.reduce ? 0 : t, { run: !settings.reduce, theme: settings.theme });
+}
+
+/* ═══ Окна ═══ */
+function openOverlay(sel) {
+  const el = $(sel); el.classList.add('open');
+  const f = el.querySelector('.ku-btn.primary:not(.locked), [data-close]');
+  setTimeout(() => { try { if (f && !touchUI()) f.focus({ preventScroll: true }); } catch (e) {} }, 30);
+}
+function closeOverlay(el) { el.classList.remove('open'); }
+function closeOverlays() { $$('.ku-overlay.open').forEach(el => { if (!el.classList.contains('ku-dialog')) el.classList.remove('open'); }); }
+// модальные окна поверх паузы: закрыли — пауза снова видна
+let modalReturn = null;
+function openModal(sel, fromPause) {
+  modalReturn = fromPause ? '#ov-pause' : null;
+  if (fromPause) closeOverlay($('#ov-pause'));
+  openOverlay(sel);
+}
+function closeModal(el) {
+  closeOverlay(el);
+  if (modalReturn && phase === 'pause') openOverlay(modalReturn);
+  modalReturn = null;
+  if (screen === 'menu') refreshMenu();
+}
+$$('.ku-overlay [data-close]').forEach(b => b.addEventListener('click', () => closeModal(b.closest('.ku-overlay'))));
+$$('.ku-overlay').forEach(ov => ov.addEventListener('pointerdown', e => {
+  if (e.target === ov && ov.querySelector('.ku-modal')) closeModal(ov);
+}));
+document.addEventListener('keydown', e => {
+  if (e.key !== 'Escape' || document.querySelector('.ku-dialog')) return;
+  const m = [...$$('.ku-overlay.open')].find(o => o.querySelector('.ku-modal'));
+  if (m) { e.preventDefault(); closeModal(m); }
+});
+
+/* ── Меню ── */
+function refreshMenu() {
+  const by = stats.by;
+  $('#best-classic').textContent = 'Рекорд: ' + fmt(by.classic.best);
+  $('#best-hardcore').textContent = 'Рекорд: ' + fmt(by.hardcore.best);
+  const td = todayKey(), dd = daily.done[td];
+  $('#best-daily').textContent = dd != null ? `Сегодня: ${fmt(dd)} · серия ${fmt(dailyStreak())}` : daily.att === td ? 'Попытка начата' : 'Одна попытка в зачёт';
+  $('#menu-skin-name').textContent = R.skinById(settings.skin).name;
+  const T = stats.total;
+  const m = T.maxMedal ? MEDALS[T.maxMedal - 1] : null;
+  $('#menu-stats').innerHTML = T.runs
+    ? `Забегов: ${fmt(T.runs)} • Всего пробежано: ${fmt(T.score)}` + (m ? `<br>Лучшая медаль: ${m.icon} ${m.name} • Достижений: ${Object.keys(unlocked).length}/${ACH.length}` : '')
+    : 'Медали за забег: 🥉 100 • 🥈 300 • 🥇 700 • 💎 1 500 очков';
+  $('#menu-hint').innerHTML = touchUI() && !matchMedia('(hover:hover)').matches
+    ? (settings.zones ? 'Тап выше середины экрана — прыжок (держи — выше)<br>Ниже середины или свайп вниз — присед, в прыжке — быстрое падение' : 'Тап — прыжок (держи — выше) · свайп вниз — присед, в прыжке — быстрое падение')
+    : 'Клавиши: пробел / ↑ — прыжок (держи — выше) · ↓ — присед, в прыжке — быстрое падение · P / Esc — пауза<br>Мышь: клик — прыжок' + (settings.zones ? ', клик ниже середины экрана — присед' : '');
+  $('#g-hint').textContent = touchUI() && !matchMedia('(hover:hover)').matches
+    ? (settings.zones ? 'Тап выше середины экрана — прыжок · ниже — присед' : 'Тап — прыжок (держи — выше) · свайп вниз — присед')
+    : 'Пробел / ↑ — прыжок (держи — выше) · ↓ — присед · P — пауза';
+  prevT = 0;
+}
+
+/* ── Скины ── */
+function openSkins(fromPause) {
+  const list = $('#skins-list');
+  list.innerHTML = '';
+  let open = 0;
+  for (const s of R.SKINS) {
+    const ok = skinOpen(s.id); if (ok) open++;
+    const b = document.createElement('button');
+    b.className = 'skin' + (ok ? '' : ' lock') + (settings.skin === s.id ? ' sel' : '');
+    b.type = 'button'; b.dataset.id = s.id;
+    b.setAttribute('aria-label', s.name + (ok ? '' : ' (закрыт)'));
+    b.innerHTML = `<canvas width="100" height="56"></canvas><div class="sn">${s.name}</div><div class="sd">${ok ? (settings.skin === s.id ? '✓ Выбран' : (s.id === 'neon' ? s.desc : 'Открыт')) : skinNeedText(s.id)}</div>`;
+    b.addEventListener('click', () => {
+      if (!skinOpen(s.id)) { toast('🔒 ' + skinNeedText(s.id)); return; }
+      settings.skin = s.id; saveSettings();
+      openSkins(fromPause && false);
+      if (G) needDraw = true;
+    });
+    list.appendChild(b);
+    R.preview(b.querySelector('canvas'), s.id, 400, { locked: !ok, theme: settings.theme });
+  }
+  $('#skins-count').textContent = `${open}/${R.SKINS.length}`;
+  if (!$('#ov-skins').classList.contains('open')) openModal('#ov-skins', fromPause);
+}
+
+/* ── Тренировка ── */
+function segInit(sel, val, onPick) {
+  const seg = $(sel);
+  seg.querySelectorAll('button').forEach(b => {
+    b.classList.toggle('active', b.dataset.v === String(val));
+    b.onclick = () => { seg.querySelectorAll('button').forEach(x => x.classList.toggle('active', x === b)); onPick(b.dataset.v); };
+  });
+}
+function openPractice() {
+  segInit('#pr-speed', settings.pr.speed, v => { settings.pr.speed = +v; saveSettings(); });
+  segInit('#pr-types', settings.pr.types, v => { settings.pr.types = v; saveSettings(); });
+  $('#pr-boxes').checked = settings.pr.boxes;
+  $('#pr-boxes').onchange = () => { settings.pr.boxes = $('#pr-boxes').checked; saveSettings(); };
+  openModal('#ov-practice');
+}
+$('#pr-start').addEventListener('click', () => { closeOverlay($('#ov-practice')); startGame('practice'); });
+
+/* ── Статистика ── */
+let statsTab = 'classic';
+function openStats(fromPause) {
+  segInit('#st-tabs', statsTab, v => { statsTab = v; renderStats(); });
+  renderStats();
+  openModal('#ov-stats', fromPause);
+}
+function renderStats() {
+  const card = (v, l, cls) => `<div class="st-card ${cls || ''}"><div class="sv">${v}</div><div class="sl">${l}</div></div>`;
+  let html = '', note = '';
+  if (statsTab === 'total') {
+    const T = stats.total;
+    html = card(fmt(T.runs), 'Забегов') + card(fmt(T.best), 'Лучший счёт', 'gold') + card(fmt(T.score), 'Всего пробежано') +
+      card(fmt(T.jumps), 'Прыжков') + card(fmt(T.drops), 'Быстрых падений') + card(fmt(T.cacti), 'Кактусов позади') +
+      card(fmt(T.birds), 'Птеродактилей') + card(fmt(T.ducked), 'Под птицей пригнувшись') + card(fmtDur(T.time), 'Время в забегах') +
+      card(fmt(T.dCactus), 'Аварий: кактус') + card(fmt(T.dBird), 'Аварий: птица') + card(fmt(stats.practice.runs) + ' · ' + fmtDur(stats.practice.time), 'Тренировки');
+    if (stats.legacy && stats.legacy.conv) note = `Рекорд прежней версии — ${fmt(stats.legacy.old)} (старые очки шли быстрее). По времени забега он равен ${fmt(stats.legacy.conv)} очкам «Классики» и учтён в её рекорде.`;
+  } else {
+    const r = stats.by[statsTab];
+    html = card(fmt(r.runs), 'Забегов') + card(fmt(r.best), statsTab === 'daily' ? 'Лучший зачёт' : 'Рекорд', 'gold') +
+      card(r.runs ? fmt(r.sum / r.runs) : '0', 'Средний счёт') + card(fmtDur(r.time), 'Время') + card(fmt(r.jumps), 'Прыжков') +
+      MEDALS.map((m, i) => card(fmt(r.medals[i]), m.icon + ' ' + m.name)).join('');
+    if (statsTab === 'daily') {
+      const td = todayKey(), dd = daily.done[td];
+      html += card(fmt(Object.keys(daily.done).length), 'Дней в зачёт') + card(fmt(dailyStreak()), 'Серия, дней') + card(fmt(daily.bestStreak), 'Лучшая серия') +
+        card(dd != null ? fmt(dd) : '—', 'Сегодня', 'gold');
+      note = 'В зачёт идёт только первая попытка дня; остальные — тренировка на той же трассе (в забеги и медали входят, в рекорд дня — нет).';
+    }
+  }
+  $('#st-grid').innerHTML = html;
+  $('#st-note').textContent = note;
+}
+
+/* ── Достижения ── */
+function openAch(fromPause) {
+  $('#ach-count').textContent = `${Object.keys(unlocked).length}/${ACH.length}`;
+  $('#ach-list').innerHTML = ACH.map(a => {
+    const u = !!unlocked[a.id];
+    let prog = '';
+    if (!u && a.prog) { const [v, max] = a.prog(); prog = `<div class="ach-prog"><i style="width:${Math.min(100, 100 * v / max).toFixed(1)}%"></i></div>`; }
+    const skin = Object.keys(SKIN_NEED).find(k => SKIN_NEED[k].ach === a.id);
+    return `<div class="ach-item${u ? ' unlocked' : ''}"><div class="ach-icon">${a.icon}</div><div class="ach-info"><h4>${a.title}</h4><p>${a.desc}${skin ? ` · скин «${R.skinById(skin).name}»` : ''}${u ? ' · ✓ ' + new Date(unlocked[a.id]).toLocaleDateString('ru-RU') : ''}</p>${prog}</div></div>`;
+  }).join('');
+  openModal('#ov-ach', fromPause);
+}
+
+/* ── История ── */
+function openHistory() {
+  const causes = { cactus: '🌵 кактус', ptero: '🦅 птеродактиль', quit: '⏹ выход' };
+  $('#history-list').innerHTML = history.length ? history.map(h => {
+    const d = new Date(h.t);
+    const when = d.toLocaleDateString('ru-RU', { day: '2-digit', month: '2-digit' }) + ' ' + d.toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' });
+    const tags = (h.nb ? '<span class="tag g">рекорд</span>' : '') + (h.dz === 1 ? '<span class="tag g">в зачёт</span>' : h.dz === 2 ? '<span class="tag">тренировка</span>' : '');
+    return `<div class="h-item"><div class="hm">${MODES[h.m].icon}</div><div class="hi"><b>${MODES[h.m].name}</b>${tags}<br>${when} · ${causes[h.c]} · ${fmtDur(h.ms)}</div><div class="hs">${h.med ? MEDALS[h.med - 1].icon + ' ' : ''}${fmt(h.s)}</div></div>`;
+  }).join('') : '<div class="empty">Пока пусто — сыграйте первый забег</div>';
+  openModal('#ov-history');
+}
+
+/* ── Настройки ── */
+function openSettings(fromPause) {
+  $$('#ov-settings [data-opt]').forEach(inp => {
+    inp.checked = !!settings[inp.dataset.opt];
+    inp.onchange = () => {
+      settings[inp.dataset.opt] = inp.checked; saveSettings();
+      if (inp.dataset.opt === 'reduce') applyReduce();
+      if (inp.dataset.opt === 'sound' && inp.checked) AudioSys.init();
+      if (inp.dataset.opt === 'zones') { refreshMenu(); layout(); }
+    };
+  });
+  segInit('#set-theme', settings.theme, v => { settings.theme = +v; saveSettings(); prevT = 0; });
+  openModal('#ov-settings', fromPause);
+}
+const applyReduce = () => { document.body.classList.toggle('rm', settings.reduce); prevT = 0; needDraw = true; };
+$('#btn-reset').addEventListener('click', async () => {
+  const ok = await KuArcade.confirm('Рекорды, статистика, достижения, история и открытые скины будут удалены. Настройки и зачётные попытки дня останутся.', { title: 'СБРОС', ok: 'Сбросить', danger: true });
+  if (!ok) return;
+  stats = { by: { classic: blankMode(), daily: blankMode(), hardcore: blankMode() }, total: Object.fromEntries(TOTAL_KEYS.map(k => [k, 0])), practice: { runs: 0, time: 0, hits: 0 }, legacy: stats.legacy ? { old: stats.legacy.old, conv: 0 } : null };
+  unlocked = {}; history.length = 0;
+  daily.streak = 0; daily.bestStreak = 0;
+  settings.skin = 'neon';
+  saveStats(); saveAch(); saveHistory(); saveDaily(); saveSettings();
+  refreshMenu();
+  toast('Прогресс сброшен', 'bad');
+});
+
+/* ── Кнопки ── */
+const on = (sel, fn) => $(sel).addEventListener('click', fn);
+on('#btn-classic', () => { AudioSys.init(); startGame('classic'); });
+on('#btn-daily', () => { AudioSys.init(); startGame('daily'); });
+on('#btn-hardcore', () => { AudioSys.init(); startGame('hardcore'); });
+on('#btn-practice', () => { AudioSys.init(); openPractice(); });
+on('#btn-skins', () => openSkins());
+on('#menu-dino-wrap', () => openSkins());
+on('#btn-rules', () => openModal('#ov-rules'));
+on('#btn-stats', () => openStats());
+on('#btn-ach', () => openAch());
+on('#btn-history', () => openHistory());
+on('#btn-settings', () => openSettings());
+on('#btn-pause', e => { e.currentTarget.blur(); if (phase === 'pause') resumeGame(); else pauseGame(); });
+on('#p-resume', () => resumeGame());
+on('#p-restart', () => restartFromPause());
+on('#p-rules', () => openModal('#ov-rules', true));
+on('#p-settings', () => openSettings(true));
+on('#p-menu', () => toMenu());
+function againFromOver() { if (!restartReady()) return; AudioSys.init(); blurActive(); startGame(G.mode, { go: true }); }
+on('#o-again', () => againFromOver());
+on('#o-menu', () => { if (restartReady()) toMenu(); });
+
+/* ═══ Старт ═══ */
+applyReduce();
+refreshMenu();
+requestAnimationFrame(loop);
+// для тестов и отладки
+window.__dino = { get G() { return G; }, get phase() { return phase; }, get deathAt() { return deathAt; }, get run() { return run; }, get stats() { return stats; }, get daily() { return daily; },
+  get settings() { return settings; }, get unlocked() { return unlocked; }, history, drv, finishRun, startGame, layout, ACH, SKIN_NEED, skinOpen };
+
 </script>
 </body>
 </html>

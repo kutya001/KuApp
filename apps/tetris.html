@@ -13,6 +13,7 @@
   --panel:rgba(255,255,255,.06);--panel-border:rgba(255,255,255,.13);
   --accent:#00e5ff;--accent2:#ff4dd2;--text:#eef2ff;--muted:#8f9ac2;
   --pI:#00e5ff;--pO:#ffd60a;--pT:#c77dff;--pS:#51f58b;--pZ:#ff5d7d;--pJ:#5b8cff;--pL:#ff9f43;
+  --tp:54px;   /* размер экранной кнопки управления */
 }
 *{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent}
 /* атрибут hidden должен побеждать display:flex у .stat (иначе «Время» в классике и «Комбо ×2» в Blast видны всегда) */
@@ -46,6 +47,12 @@ body{font-family:'Rubik',system-ui,sans-serif;color:var(--text);
 .menu-row{display:flex;gap:10px;margin-top:16px;flex-wrap:wrap;justify-content:center}
 .menu-stats{margin-top:26px;color:var(--muted);font-size:13px;text-align:center}
 .menu-hint{margin-top:8px;color:var(--muted);font-size:11px;opacity:.7;text-align:center;max-width:560px;line-height:1.6}
+/* настройка марафона над главной кнопкой: «150 линий / без конца» и начальный уровень */
+.mara-opts{width:min(340px,88vw);display:flex;flex-direction:column;gap:8px}
+.mara-opts .ku-seg{width:100%}
+.lvl-row{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:6px 6px 6px 14px;border-radius:14px;
+  background:rgba(255,255,255,.04);border:1px solid var(--panel-border);font-size:13px;color:var(--muted)}
+.lvl-row b.lv{color:var(--accent)}
 
 /* ---------- BUTTONS ---------- */
 .btn{font-family:'Rubik',sans-serif;font-size:15px;font-weight:600;color:var(--text);
@@ -62,6 +69,8 @@ body{font-family:'Rubik',system-ui,sans-serif;color:var(--text);
 .btn.accent2{background:linear-gradient(135deg,#ff4dd2,#8099e8);color:#1a0412;border:none}
 .btn.sprint{background:linear-gradient(135deg,#51f58b,#00c2a8);color:#03210f;border:none}
 .btn.ultra{background:linear-gradient(135deg,#ffd60a,#ff9f43);color:#241500;border:none}
+.btn.dig{background:linear-gradient(135deg,#ff9f43,#ff5d7d);color:#250a03;border:none}
+.btn.zen{background:linear-gradient(135deg,#5b8cff,#c77dff);color:#060a24;border:none}
 .btn.big{width:min(340px,88vw);padding:15px;font-size:19px;flex-direction:column;gap:4px}
 .btn.duo{width:163px;padding:13px 8px;font-size:16px;flex-direction:column;gap:3px}
 .btn.big .best,.btn.duo .best{font-size:11.5px;font-weight:500;opacity:.85}
@@ -69,6 +78,7 @@ body{font-family:'Rubik',system-ui,sans-serif;color:var(--text);
 .btn.ghost{background:transparent}
 .btn.danger{border-color:#ff5d7d66;color:#ff8fa3}
 .btn.warn{border-color:#ffd60a55;color:#ffe38a}
+.btn.sm{padding:8px 14px;font-size:13px;border-radius:12px}
 
 /* ---------- GAME LAYOUT ---------- */
 /* Шапка игровых экранов — .ku-top из ku-arcade.css: слева пусто (там кнопка «←» платформы), кнопки игры справа */
@@ -104,6 +114,25 @@ body{font-family:'Rubik',system-ui,sans-serif;color:var(--text);
 .board-wrap.shake{animation:shake .18s}
 @keyframes shake{0%,100%{transform:none}25%{transform:translateY(5px)}75%{transform:translateY(-2px)}}
 #playCanvas{display:block;border-radius:11px;touch-action:none}
+
+/* ---------- ЭКРАННЫЕ КНОПКИ (по желанию, включаются в настройках) ----------
+   Слева — «крестовина»: ← ↓ → и жёсткий сброс сверху; справа — повороты, удержание и 180°.
+   Телефон в портрете и компьютер — под полем; телефон в альбоме — по краям экрана. */
+.touch-pad{display:flex;justify-content:space-between;align-items:flex-end;gap:12px;width:100%;max-width:440px;margin:8px auto 0;flex:none;touch-action:none}
+.tp-cluster{display:grid;gap:6px;touch-action:none}
+.tp-left{grid-template-columns:repeat(3,var(--tp));grid-template-rows:repeat(2,var(--tp))}
+.tp-right{grid-template-columns:repeat(2,var(--tp));grid-template-rows:repeat(2,var(--tp))}
+.tp-drop{grid-area:1/2}.tp-l{grid-area:2/1}.tp-d{grid-area:2/2}.tp-r{grid-area:2/3}
+.tp-hold{grid-area:1/1}.tp-180{grid-area:1/2}.tp-ccw{grid-area:2/1}.tp-cw{grid-area:2/2}
+.tp-btn{width:var(--tp);height:var(--tp);border-radius:16px;display:flex;align-items:center;justify-content:center;cursor:pointer;
+  color:var(--text);font-family:'Russo One',sans-serif;font-size:11px;letter-spacing:.5px;touch-action:none;transition:transform .08s,border-color .15s,box-shadow .15s;
+  background:linear-gradient(160deg,rgba(255,255,255,.12),rgba(255,255,255,.03));border:1px solid var(--panel-border);
+  box-shadow:0 4px 14px rgba(0,0,0,.35),inset 0 1px 0 rgba(255,255,255,.1)}
+.tp-btn svg{width:26px;height:26px;fill:none;stroke:currentColor;stroke-width:2.4;stroke-linecap:round;stroke-linejoin:round}
+.tp-btn.pressed{transform:scale(.92);border-color:var(--accent);box-shadow:0 0 16px color-mix(in srgb,var(--accent) 45%,transparent)}
+.tp-drop{color:var(--accent)}
+.tp-cw,.tp-ccw{color:var(--pT)}
+.tp-hold{color:var(--pO)}
 
 /* ---------- КОМПАКТНАЯ РАСКЛАДКА (телефоны, планшет в портрете, низкие окна) ----------
    Условие совпадает с COMPACT_MQ в скрипте. Раньше было max-height:850px — и ноутбук 1280×800 получал
@@ -145,6 +174,8 @@ body{font-family:'Rubik',system-ui,sans-serif;color:var(--text);
 
   .gesture-hint-bar{display:block;font-size:9px;line-height:1.35;color:var(--muted);text-align:center;padding:3px 8px;border-radius:10px;
     background:rgba(16,20,48,.85);border:1px solid var(--panel-border);letter-spacing:.3px;margin-top:4px;width:100%;max-width:360px}
+  #screen-classic.pad-on .gesture-hint-bar{display:none}   /* с экранными кнопками подсказка о жестах не нужна */
+  .touch-pad{margin-top:6px}
 
   /* Block Blast: шапка сверху, показатели + поле + лоток + подсказка — одной группой по центру */
   #screen-blast.active{justify-content:flex-start}
@@ -154,6 +185,16 @@ body{font-family:'Rubik',system-ui,sans-serif;color:var(--text);
   .blast-hud .stat{padding:5px 12px}
   .blast-tray{margin-top:10px;gap:10px}
   .hint-line{font-size:11px;margin-top:8px}
+}
+@media (max-width:370px){:root{--tp:50px}}
+/* телефон в альбоме: кнопки по краям экрана, поле — посередине между ними; полоска-подсказка о жестах
+   отнимала ~40 px высоты (клетка 13,6 px) — жесты описаны в меню и правилах */
+@media (orientation:landscape) and (max-height:500px){
+  :root{--tp:48px}
+  .gesture-hint-bar{display:none!important}
+  .touch-pad{position:fixed;left:0;right:0;bottom:var(--safe-bottom);max-width:none;margin:0;padding:0 max(12px,env(safe-area-inset-left,0px));
+    pointer-events:none;z-index:5}
+  .tp-cluster{pointer-events:auto}
 }
 
 /* ---------- BLAST ---------- */
@@ -187,8 +228,9 @@ body{font-family:'Rubik',system-ui,sans-serif;color:var(--text);
 .modal header{display:flex;justify-content:space-between;align-items:center;padding:15px 20px;border-bottom:1px solid var(--panel-border)}
 .modal h2{font-family:'Russo One';font-size:17px;letter-spacing:1px}
 .modal h2 .cnt{color:var(--accent);font-size:14px}
-.settings-body,.history-list,.ach-body,.stats-body{padding:16px 20px;overflow-y:auto}
-.settings-body h3{font-family:'Russo One';font-size:12px;letter-spacing:1.5px;color:var(--accent);margin:16px 0 6px;text-transform:uppercase}
+.settings-body,.history-list,.ach-body,.stats-body,.rules-body{padding:16px 20px;overflow-y:auto}
+.settings-body h3,.rules-body h3{font-family:'Russo One';font-size:12px;letter-spacing:1.5px;color:var(--accent);margin:16px 0 6px;text-transform:uppercase}
+.rules-body h3:first-child{margin-top:0}
 .modal footer{padding:14px 20px;border-top:1px solid var(--panel-border)}
 .theme-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(108px,1fr));gap:10px;margin:10px 0 6px}
 .theme-card{border:2px solid var(--panel-border);border-radius:14px;padding:8px;
@@ -201,19 +243,21 @@ body{font-family:'Rubik',system-ui,sans-serif;color:var(--text);
 .theme-name{font-size:12px;font-weight:600}
 .set-row{display:flex;align-items:center;justify-content:space-between;gap:14px;padding:9px 2px}
 .set-row>label{font-size:14px;color:var(--text)}
-.stepper{display:flex;align-items:center;gap:8px}
+.set-row>label small,.switch-row small{display:block;font-size:11px;color:var(--muted);margin-top:2px;font-weight:400}
+.stepper{display:flex;align-items:center;gap:8px;flex:none}
 .stepper button{width:32px;height:32px;border-radius:10px;font-size:17px;font-weight:700;cursor:pointer;color:var(--text);
   background:linear-gradient(160deg,rgba(255,255,255,.12),rgba(255,255,255,.04));border:1px solid var(--panel-border);transition:.15s}
 @media (hover:hover){.stepper button:hover{border-color:var(--accent);box-shadow:0 0 10px color-mix(in srgb,var(--accent) 35%,transparent)}}
 .stepper button:active{transform:scale(.9)}
-.stepper b{min-width:36px;text-align:center;font-family:'Russo One';font-size:16px;color:var(--accent)}
+.stepper b{min-width:36px;text-align:center;font-family:'Russo One';font-size:16px;color:var(--accent);white-space:nowrap}
+.stepper.wide b{min-width:64px;font-size:14px}
 .scale-wrap{display:flex;align-items:center;gap:12px;flex:1;max-width:260px}
 .scale-wrap b{font-family:'Russo One';font-size:13px;color:var(--accent);min-width:44px;text-align:right}
 input[type=range]{-webkit-appearance:none;appearance:none;flex:1;height:6px;border-radius:3px;background:rgba(255,255,255,.15);outline:none;cursor:pointer}
 input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:18px;height:18px;border-radius:50%;background:var(--accent);
   box-shadow:0 0 12px var(--accent);border:2px solid #fff;cursor:pointer}
 input[type=range]::-moz-range-thumb{width:16px;height:16px;border-radius:50%;background:var(--accent);box-shadow:0 0 12px var(--accent);border:2px solid #fff;cursor:pointer}
-.switch-row{display:flex;align-items:center;justify-content:space-between;padding:10px 2px;cursor:pointer;font-size:14px}
+.switch-row{display:flex;align-items:center;justify-content:space-between;gap:14px;padding:10px 2px;cursor:pointer;font-size:14px}
 .switch-row input{display:none}
 .switch{width:46px;height:26px;border-radius:13px;background:rgba(255,255,255,.15);position:relative;transition:.2s;flex:none}
 .switch::after{content:'';position:absolute;width:20px;height:20px;border-radius:50%;background:#fff;top:3px;left:3px;transition:.2s}
@@ -228,6 +272,16 @@ input[type=range]::-moz-range-thumb{width:16px;height:16px;border-radius:50%;bac
 .hist-score{font-family:'Russo One';font-size:18px;color:var(--accent);grid-row:span 2}
 .hist-meta{font-size:11px;color:var(--muted)}
 .empty{color:var(--muted);text-align:center;padding:26px 0}
+
+/* правила */
+.rules-body{font-size:14px;line-height:1.55;color:#d6dcf5}
+.rules-body ul{padding-left:18px;margin:0}
+.rules-body li{margin:0 0 7px}
+.rules-body b{color:var(--text)}
+.pts-table{width:100%;border-collapse:collapse;font-size:13px;margin:4px 0 2px}
+.pts-table td{padding:5px 6px;border-bottom:1px solid var(--panel-border)}
+.pts-table td:last-child{text-align:right;font-family:'Russo One';color:var(--accent);white-space:nowrap}
+.rules-note{font-size:12px;color:var(--muted);margin-top:6px}
 
 /* achievements / stats */
 .ach-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:10px}
@@ -253,20 +307,30 @@ input[type=range]::-moz-range-thumb{width:16px;height:16px;border-radius:50%;bac
 .overlay[hidden]{display:none}
 .overlay-card{background:linear-gradient(170deg,var(--bg2),var(--bg1));border:1px solid var(--panel-border);border-radius:22px;
   padding:28px 32px;display:flex;flex-direction:column;gap:12px;min-width:min(320px,92vw);text-align:center;
-  box-shadow:0 20px 80px rgba(0,0,0,.65),0 0 50px color-mix(in srgb,var(--accent) 10%,transparent);animation:popIn .3s ease}
+  box-shadow:0 20px 80px rgba(0,0,0,.65),0 0 50px color-mix(in srgb,var(--accent) 10%,transparent);animation:popIn .3s ease;
+  max-height:calc(100dvh - 32px);overflow-y:auto}
 @keyframes popIn{from{transform:scale(.88);opacity:0}}
 .overlay-card h2{font-family:'Russo One';font-size:24px;letter-spacing:1px;
   background:linear-gradient(90deg,var(--accent),var(--accent2));-webkit-background-clip:text;background-clip:text;color:transparent}
+.overlay-card h2.win{background:linear-gradient(90deg,#51f58b,#ffd60a);-webkit-background-clip:text;background-clip:text}
 .new-best{font-family:'Russo One';color:#ffd60a;font-size:17px;animation:pulse 1s infinite;text-shadow:0 0 16px rgba(255,214,10,.5)}
+.over-reason{color:var(--muted);font-size:13px;margin-top:-4px}
+.over-ach{color:#ffe38a;font-size:13px;line-height:1.4;max-width:300px;margin:-4px auto 2px}
 .over-stats{display:flex;flex-direction:column;gap:7px;margin:8px 0}
 .over-stats div{display:flex;justify-content:space-between;gap:36px;font-size:14px;color:var(--muted)}
 .over-stats b{color:var(--text);font-family:'Russo One';font-size:15px}
+@media (max-height:500px){.overlay-card{padding:18px 26px;gap:9px}.over-stats{gap:4px;margin:2px 0}}
 
 #toast{position:fixed;left:50%;bottom:26px;transform:translate(-50%,20px);background:rgba(8,12,30,.94);
   border:1px solid var(--panel-border);color:var(--text);padding:11px 22px;border-radius:12px;z-index:80;opacity:0;
-  pointer-events:none;transition:.3s;font-size:14px;box-shadow:0 8px 30px rgba(0,0,0,.5);max-width:90vw;text-align:center}
+  pointer-events:none;transition:.3s;font-size:14px;box-shadow:0 8px 30px rgba(0,0,0,.5);width:max-content;max-width:90vw;text-align:center}
 #toast.show{opacity:1;transform:translate(-50%,0)}
 #toast.ach{border-color:#ffd60a88;color:#ffe38a;box-shadow:0 0 26px rgba(255,214,10,.35)}
+/* во время партии тост — в строке шапки (между кнопкой «←» платформы и ⏸), на месте заголовка:
+   внизу он закрывал стопку и экранные кнопки, под шапкой — верх поля, где появляются фигуры */
+#toast.top{bottom:auto;top:var(--safe-top);transform:translate(-50%,-12px);max-width:calc(100vw - 136px);min-height:44px;
+  padding:5px 14px;font-size:13px;line-height:1.3;display:flex;align-items:center;justify-content:center;background:#0b0f26}
+#toast.top.show{transform:translate(-50%,0)}
 /* подтверждение в стиле игры вместо системного confirm() (раньше внутри платформы он молча возвращал false) */
 #confirmOverlay{z-index:75}
 .confirm-text{color:var(--muted);font-size:14px;line-height:1.5;max-width:300px;margin:0 auto}
@@ -274,6 +338,9 @@ input[type=range]::-moz-range-thumb{width:16px;height:16px;border-radius:50%;bac
 /* раскладка игровых экранов на узких экранах — в блоке «КОМПАКТНАЯ РАСКЛАДКА» выше */
 @media (max-width:820px){
   .menu-duo .btn.duo{width:150px}
+}
+@media (max-width:340px){
+  .menu-duo .btn.duo{width:136px}
 }
 
 /* Цвета от темы через color-mix() — только где браузер его умеет (Chrome 111+, iOS 16.2+);
@@ -293,25 +360,37 @@ input[type=range]::-moz-range-thumb{width:16px;height:16px;border-radius:50%;bac
   <!-- ================= MENU ================= -->
   <section id="screen-menu" class="screen active">
     <h1 class="logo"><span style="--i:0">Т</span><span style="--i:1">Е</span><span style="--i:2">Т</span><span style="--i:3">Р</span><span style="--i:4">И</span><span style="--i:5">С</span></h1>
-    <p class="tagline">Неоновая аркада • 4 режима • Темы • Рекорды</p>
-    <div class="pills"><span>SRS + T-Spin</span><span>Perfect Clear</span><span>🎵 Коробейники</span><span>Спринт 40</span><span>Ультра 2 мин</span><span>Достижения</span><span>Свайпы</span></div>
+    <p class="tagline">Неоновая аркада • 7 режимов • Темы • Рекорды</p>
+    <div class="pills"><span>SRS + T-Spin</span><span>Perfect Clear</span><span>🎵 Коробейники</span><span>Марафон 150</span><span>Копатель</span><span>Дзен</span><span>Свайпы и кнопки</span></div>
     <div class="menu-btns">
-      <button class="btn big primary" id="btnPlayClassic">🎮 Классический Тетрис<span class="best" id="menuBestClassic">Рекорд: 0</span></button>
+      <div class="mara-opts">
+        <div class="ku-seg" id="segMarathon" role="group" aria-label="Марафон">
+          <button type="button" data-v="150">🏁 150 линий</button><button type="button" data-v="endless">♾️ Без конца</button>
+        </div>
+        <div class="lvl-row"><span>Начальный уровень</span>
+          <div class="stepper" id="stLevel"><button type="button" aria-label="Уровень меньше">−</button><b>1</b><button type="button" aria-label="Уровень больше">+</button></div></div>
+      </div>
+      <button class="btn big primary" id="btnPlayMarathon">🎮 Марафон<span class="best" id="menuBestMarathon">150 линий · Рекорд: 0</span></button>
       <div class="menu-duo">
         <button class="btn duo sprint" id="btnPlaySprint">🏃 Спринт<span class="best" id="menuBestSprint">40 линий на время</span></button>
         <button class="btn duo ultra" id="btnPlayUltra">⏱️ Ультра<span class="best" id="menuBestUltra">2 минуты на очки</span></button>
       </div>
+      <div class="menu-duo">
+        <button class="btn duo dig" id="btnPlayDig">⛏️ Копатель<span class="best" id="menuBestDig">10 линий мусора</span></button>
+        <button class="btn duo zen" id="btnPlayZen">🧘 Дзен<span class="best" id="menuBestZen">Без проигрыша</span></button>
+      </div>
       <button class="btn big accent2" id="btnPlayBlast">🧩 Block Blast<span class="best" id="menuBestBlast">Рекорд: 0</span></button>
     </div>
     <div class="menu-row">
+      <button class="btn ghost" id="btnRules">📖 Правила</button>
       <button class="btn ghost" id="btnHistory">📜 История</button>
       <button class="btn ghost" id="btnAch">🏅 Достижения</button>
       <button class="btn ghost" id="btnStats">📊 Статистика</button>
       <button class="btn ghost" id="btnSettings">⚙️ Настройки</button>
     </div>
     <div class="menu-stats" id="menuStats">Сыграно игр: 0 • Суммарно очков: 0</div>
-    <div class="menu-hint">Клавиши: ← → ↓ движение · ↑/X поворот · Z поворот ↺ · Пробел — сброс · C — удержание · P — пауза<br>
-    На телефоне: тап — поворот · свайп в стороны — движение · свайп вниз — сброс · свайп вверх — удержание</div>
+    <div class="menu-hint">Клавиши: ← → ↓ движение · ↑/X поворот ↻ · Z/Ctrl поворот ↺ · Пробел — сброс · C/Shift — удержание · P — пауза<br>
+    На телефоне: тап — поворот · свайп в стороны — движение · вниз — сброс · вверх — удержание · экранные кнопки — в настройках</div>
   </section>
 
   <!-- ================= CLASSIC ================= -->
@@ -319,7 +398,7 @@ input[type=range]::-moz-range-thumb{width:16px;height:16px;border-radius:50%;bac
     <header class="ku-top">
       <div class="ku-top-left"></div>
       <div class="ku-top-title">
-        <div class="t" id="classicTitle">КЛАССИЧЕСКИЙ ТЕТРИС</div>
+        <div class="t" id="classicTitle">МАРАФОН</div>
         <div class="s">СЧЁТ: <b id="cScoreTop">0</b></div>
       </div>
       <div class="ku-top-actions">
@@ -331,11 +410,12 @@ input[type=range]::-moz-range-thumb{width:16px;height:16px;border-radius:50%;bac
         <div class="panel" id="holdPanel"><h3>HOLD</h3><canvas id="holdCanvas"></canvas></div>
         <div class="panel stats">
           <div class="stat" id="cScoreStat"><span>Очки</span><b id="cScore">0</b></div>
-          <div class="stat"><span>Уровень</span><b id="cLevel">1</b></div>
+          <div class="stat" id="cLevelWrap"><span>Уровень</span><b id="cLevel">1</b></div>
           <div class="stat"><span>Линии</span><b id="cLines">0</b></div>
+          <div class="stat" id="cGarbageWrap" hidden><span>Мусор</span><b id="cGarbage">10</b></div>
           <div class="stat"><span>Рекорд</span><b id="cBest">0</b></div>
           <div class="stat" id="cTimerWrap" hidden><span id="cTimerLabel">Время</span><b id="cTimer">0:00</b></div>
-          <div class="stat"><span id="cProgLabel">До уровня</span><div class="pbar"><i id="cProg"></i></div></div>
+          <div class="stat" id="cProgWrap"><span id="cProgLabel">До уровня</span><div class="pbar"><i id="cProg"></i></div></div>
           <div class="chip b2b" id="cB2B" hidden>⚡ BACK-TO-BACK</div>
         </div>
         <div class="combo-panel" id="cComboPanel" hidden>🔥 КОМБО ×<span id="cCombo">1</span></div>
@@ -345,12 +425,26 @@ input[type=range]::-moz-range-thumb{width:16px;height:16px;border-radius:50%;bac
         <div class="panel"><h3>NEXT</h3><canvas id="nextCanvas"></canvas></div>
         <div class="panel keys">
           <h3>Управление</h3>
-          <p>← → — движение</p><p>↑ / X — поворот ↻</p><p>Z — поворот ↺</p>
-          <p>↓ — мягкое падение</p><p>Пробел — жёсткий сброс</p><p>C / Shift — удержание</p><p>P / Esc — пауза</p>
+          <p>← → — движение</p><p>↑ / X — поворот ↻</p><p>Z / Ctrl — поворот ↺</p><p id="key180" hidden>A — поворот 180°</p>
+          <p>↓ — мягкий сброс</p><p>Пробел — жёсткий сброс</p><p>C / Shift — удержание</p><p>P / Esc — пауза</p>
         </div>
       </aside>
     </div>
-    <div class="gesture-hint-bar">👆 Тап — поворот · 👈👉 свайп — движение · 👇 вниз — спуск, рывком — сброс · ☝️ вверх — удержание</div>
+    <div class="touch-pad" id="touchPad" hidden>
+      <div class="tp-cluster tp-left">
+        <button class="tp-btn tp-drop" data-act="hard" aria-label="Жёсткий сброс"><svg viewBox="0 0 24 24"><polyline points="6 5 12 11 18 5"/><polyline points="6 11 12 17 18 11"/><line x1="5" y1="21" x2="19" y2="21"/></svg></button>
+        <button class="tp-btn tp-l" data-act="left" aria-label="Влево"><svg viewBox="0 0 24 24"><polyline points="15 5 8 12 15 19"/></svg></button>
+        <button class="tp-btn tp-d" data-act="soft" aria-label="Мягкий сброс"><svg viewBox="0 0 24 24"><polyline points="5 9 12 16 19 9"/></svg></button>
+        <button class="tp-btn tp-r" data-act="right" aria-label="Вправо"><svg viewBox="0 0 24 24"><polyline points="9 5 16 12 9 19"/></svg></button>
+      </div>
+      <div class="tp-cluster tp-right">
+        <button class="tp-btn tp-hold" data-act="hold" aria-label="Удержание">HOLD</button>
+        <button class="tp-btn tp-180" data-act="r180" aria-label="Поворот на 180°" hidden>180°</button>
+        <button class="tp-btn tp-ccw" data-act="ccw" aria-label="Поворот против часовой"><svg viewBox="0 0 24 24"><path d="M4 12a8 8 0 1 0 2.34-5.66"/><polyline points="4 4 4 9 9 9"/></svg></button>
+        <button class="tp-btn tp-cw" data-act="cw" aria-label="Поворот по часовой"><svg viewBox="0 0 24 24"><path d="M20 12a8 8 0 1 1-2.34-5.66"/><polyline points="20 4 20 9 15 9"/></svg></button>
+      </div>
+    </div>
+    <div class="gesture-hint-bar">👆 Тап — поворот · ✌️ два пальца — ↺ · 👈👉 свайп — движение · 👇 вниз — спуск, рывком — сброс · ☝️ вверх — удержание</div>
   </section>
 
   <!-- ================= BLAST ================= -->
@@ -381,10 +475,59 @@ input[type=range]::-moz-range-thumb{width:16px;height:16px;border-radius:50%;bac
 
 <canvas id="dragLayer"></canvas>
 
+<!-- ================= RULES ================= -->
+<div class="modal-backdrop" id="rulesModal">
+  <div class="modal">
+    <header><h2>📖 Правила</h2><button class="btn icon modal-close" aria-label="Закрыть">✕</button></header>
+    <div class="rules-body">
+      <h3>Цель</h3>
+      <p>Складывайте падающие фигуры так, чтобы заполнять горизонтальные линии — полная линия исчезает. Партия заканчивается, когда новой фигуре негде появиться или фигура целиком фиксируется выше поля.</p>
+      <h3>Режимы</h3>
+      <ul>
+        <li><b>🏁 Марафон</b> — 150 линий и победа. Уровень растёт каждые 10 линий (до 15-го), скорость — по формуле Guideline. Можно начать с уровня 1–15.</li>
+        <li><b>♾️ Без конца</b> — тот же марафон без финиша (прежний «Классический», рекорд сохранён).</li>
+        <li><b>🏃 Спринт</b> — 40 линий на время; время останавливается на 40-й линии.</li>
+        <li><b>⏱️ Ультра</b> — больше всего очков за 2 минуты.</li>
+        <li><b>⛏️ Копатель</b> — внизу 10 линий мусора с одной дыркой в каждой; расчистите их на время.</li>
+        <li><b>🧘 Дзен</b> — без проигрыша и спешки: скорость не растёт, а когда стопка дойдёт до верха, нижние ряды уберутся сами. Сессию можно завершить в паузе.</li>
+        <li><b>🧩 Block Blast</b> — другая игра: перетаскивайте фигуры на поле, заполняйте ряды и столбцы.</li>
+      </ul>
+      <h3>Очки (× уровень)</h3>
+      <table class="pts-table">
+        <tr><td>1 / 2 / 3 / 4 линии</td><td>100 / 300 / 500 / 800</td></tr>
+        <tr><td>T-Spin: без линий / 1 / 2 / 3</td><td>400 / 800 / 1200 / 1600</td></tr>
+        <tr><td>Mini T-Spin: без линий / 1 / 2</td><td>100 / 200 / 400</td></tr>
+        <tr><td>Back-to-Back (тетрис или T-Spin с линиями подряд)</td><td>×1,5</td></tr>
+        <tr><td>Комбо (линии несколькими фигурами подряд)</td><td>50 × комбо</td></tr>
+        <tr><td>Perfect Clear (поле пустое): 1 / 2 / 3 / 4 линии</td><td>+800 / 1200 / 1800 / 2000</td></tr>
+        <tr><td>Perfect Clear тетрисом в серии Back-to-Back</td><td>+3200</td></tr>
+        <tr><td>Мягкий / жёсткий сброс, за клетку</td><td>1 / 2</td></tr>
+      </table>
+      <p class="rules-note">Уровень берётся до очистки. Одиночная, двойная и тройная прерывают серию Back-to-Back, T-Spin без линий — нет. Фигура без линий обнуляет комбо.</p>
+      <h3>Фигуры и повороты</h3>
+      <ul>
+        <li><b>SRS</b>: если поворот упирается в стену или блоки, фигура пробует 5 сдвигов («отталкивается»); у палки I своя таблица.</li>
+        <li><b>T-Spin</b>: последний ход T-фигуры — поворот, и 3 из 4 углов вокруг её центра заняты. Заняты оба угла со стороны выступа — полный T-Spin, иначе Mini (кроме поворота с 5-м сдвигом — он всегда полный).</li>
+        <li><b>Мешок 7</b>: каждые 7 фигур — все 7 разных. Видно 5 следующих.</li>
+        <li><b>Удержание</b>: одна фигура в запасе; снова — только после фиксации следующей.</li>
+        <li><b>Фиксация</b>: коснувшись опоры, фигура ждёт 0,5 с. Сдвиг или поворот продлевает время, но не больше 15 раз (счёт обнуляется, если фигура опустится ниже).</li>
+        <li><b>Поворот на 180°</b> — не по Guideline, включается в настройках.</li>
+      </ul>
+      <h3>Управление</h3>
+      <ul>
+        <li><b>Клавиатура</b>: ← → движение · ↓ мягкий сброс · Пробел — жёсткий · ↑/X ↻ · Z/Ctrl ↺ · A 180° · C/Shift удержание · P/Esc пауза.</li>
+        <li><b>Жесты</b>: тап — ↻ · тап двумя пальцами — ↺ (или 180°) · свайп в стороны — движение · вниз — спуск, рывком — сброс · вверх — удержание · тап по HOLD — удержание.</li>
+        <li><b>Экранные кнопки</b> и скорость автоповтора (DAS, ARR, мягкий сброс) — в настройках.</li>
+      </ul>
+    </div>
+    <footer><button class="btn primary modal-close" style="width:100%">Понятно</button></footer>
+  </div>
+</div>
+
 <!-- ================= HISTORY ================= -->
 <div class="modal-backdrop" id="historyModal">
   <div class="modal">
-    <header><h2>📜 История игр</h2><button class="btn icon modal-close">✕</button></header>
+    <header><h2>📜 История игр</h2><button class="btn icon modal-close" aria-label="Закрыть">✕</button></header>
     <div class="history-list" id="historyList"></div>
     <footer><button class="btn danger" id="btnClearHistory">🗑 Очистить историю</button></footer>
   </div>
@@ -393,7 +536,7 @@ input[type=range]::-moz-range-thumb{width:16px;height:16px;border-radius:50%;bac
 <!-- ================= ACHIEVEMENTS ================= -->
 <div class="modal-backdrop" id="achModal">
   <div class="modal">
-    <header><h2>🏅 Достижения <span class="cnt" id="achCount"></span></h2><button class="btn icon modal-close">✕</button></header>
+    <header><h2>🏅 Достижения <span class="cnt" id="achCount"></span></h2><button class="btn icon modal-close" aria-label="Закрыть">✕</button></header>
     <div class="ach-body"><div class="ach-grid" id="achGrid"></div></div>
   </div>
 </div>
@@ -401,7 +544,7 @@ input[type=range]::-moz-range-thumb{width:16px;height:16px;border-radius:50%;bac
 <!-- ================= STATS ================= -->
 <div class="modal-backdrop" id="statsModal">
   <div class="modal">
-    <header><h2>📊 Статистика</h2><button class="btn icon modal-close">✕</button></header>
+    <header><h2>📊 Статистика</h2><button class="btn icon modal-close" aria-label="Закрыть">✕</button></header>
     <div class="stats-body"><div class="stats-grid" id="statsGrid"></div></div>
   </div>
 </div>
@@ -409,10 +552,20 @@ input[type=range]::-moz-range-thumb{width:16px;height:16px;border-radius:50%;bac
 <!-- ================= SETTINGS ================= -->
 <div class="modal-backdrop" id="settingsModal">
   <div class="modal">
-    <header><h2>⚙️ Настройки</h2><button class="btn icon modal-close">✕</button></header>
+    <header><h2>⚙️ Настройки</h2><button class="btn icon modal-close" aria-label="Закрыть">✕</button></header>
     <div class="settings-body">
       <h3>🎨 Тема оформления</h3>
       <div class="theme-grid" id="themeGrid"></div>
+      <h3>🎮 Управление</h3>
+      <div class="set-row"><label>Задержка автоповтора<small>DAS: сколько держать ← →, пока фигура не поедет сама</small></label>
+        <div class="stepper wide" id="stDas"><button type="button" aria-label="Меньше">−</button><b>167 мс</b><button type="button" aria-label="Больше">+</button></div></div>
+      <div class="set-row"><label>Скорость автоповтора<small>ARR: пауза между шагами; 0 — сразу к стенке</small></label>
+        <div class="stepper wide" id="stArr"><button type="button" aria-label="Меньше">−</button><b>33 мс</b><button type="button" aria-label="Больше">+</button></div></div>
+      <div class="set-row"><label>Мягкий сброс<small>во сколько раз быстрее обычного падения (Guideline — ×20)</small></label>
+        <div class="stepper wide" id="stSdf"><button type="button" aria-label="Медленнее">−</button><b>×20</b><button type="button" aria-label="Быстрее">+</button></div></div>
+      <label class="switch-row"><span>Поворот на 180°<small>клавиша A, тап двумя пальцами, кнопка «180°»</small></span><input type="checkbox" id="opt180"><span class="switch"></span></label>
+      <label class="switch-row"><span>Экранные кнопки<small>← → ↓, повороты, сброс и удержание — вместо жестов</small></span><input type="checkbox" id="optPad"><span class="switch"></span></label>
+      <div class="data-btns"><button class="btn sm ghost" id="btnHandlingReset">↺ Управление по умолчанию</button></div>
       <h3>📐 Размер игрового поля</h3>
       <div class="set-row"><label>Ширина · Тетрис</label>
         <div class="stepper" id="stW"><button type="button">−</button><b>10</b><button type="button">+</button></div></div>
@@ -452,6 +605,8 @@ input[type=range]::-moz-range-thumb{width:16px;height:16px;border-radius:50%;bac
     <h2>⏸ ПАУЗА</h2>
     <button class="btn primary" id="btnResume">Продолжить</button>
     <button class="btn" id="btnPauseRestart">Заново</button>
+    <button class="btn" id="btnPauseFinish" hidden>🏁 Завершить сессию</button>
+    <button class="btn" id="btnPauseRules">📖 Правила</button>
     <button class="btn" id="btnPauseSettings">⚙️ Настройки</button>
     <button class="btn ghost" id="btnPauseMenu">В меню</button>
   </div>
@@ -461,8 +616,10 @@ input[type=range]::-moz-range-thumb{width:16px;height:16px;border-radius:50%;bac
 <div class="overlay" id="overOverlay" hidden>
   <div class="overlay-card">
     <h2 id="overTitle">ИГРА ОКОНЧЕНА</h2>
+    <p class="over-reason" id="overReason" hidden></p>
     <div class="new-best" id="overNewBest" hidden>🏆 НОВЫЙ РЕКОРД!</div>
     <div class="over-stats" id="overStats"></div>
+    <p class="over-ach" id="overAch" hidden></p>
     <button class="btn primary" id="btnAgain">Играть снова</button>
     <button class="btn ghost" id="btnOverMenu">В меню</button>
   </div>
@@ -482,6 +639,485 @@ input[type=range]::-moz-range-thumb{width:16px;height:16px;border-radius:50%;bac
 
 <script>
 'use strict';
+/* ═══ движок: начало ═══ */
+/* ==================== ДВИЖОК ТЕТРИСА (Tetris Guideline) ====================
+ * Чистая логика без DOM, звука и хранилища — проверяется тестами в Node (tests/engine.test.js).
+ * Поле: hidden строк буфера («зона исчезновения») над rows видимыми строками, x — вправо, y — вниз.
+ * Строки по Guideline (снизу, с 1): видимые 1…20, фигуры появляются в 21–22 = индексы hidden-1 и hidden-2.
+ * Интерфейс читает состояние (board, cur, queue, holdType, score…) и забирает события через drain().
+ * ========================================================================== */
+const TE = (function () {
+  'use strict';
+  const TYPES = ['I', 'O', 'T', 'S', 'Z', 'J', 'L'];
+  /* положение 0 (появление): все горизонтально, J/L/T плоской стороной вниз */
+  const BASE = {
+    I: [[0, 0, 0, 0], [1, 1, 1, 1], [0, 0, 0, 0], [0, 0, 0, 0]],
+    J: [[1, 0, 0], [1, 1, 1], [0, 0, 0]],
+    L: [[0, 0, 1], [1, 1, 1], [0, 0, 0]],
+    O: [[1, 1], [1, 1]],
+    S: [[0, 1, 1], [1, 1, 0], [0, 0, 0]],
+    T: [[0, 1, 0], [1, 1, 1], [0, 0, 0]],
+    Z: [[1, 1, 0], [0, 1, 1], [0, 0, 0]]
+  };
+  function rotCW(m) {
+    const n = m.length, r = Array.from({ length: n }, () => Array(n).fill(0));
+    for (let y = 0; y < n; y++) for (let x = 0; x < n; x++) r[x][n - 1 - y] = m[y][x];
+    return r;
+  }
+  /* SHAPES[тип][ориентация 0..3] — поворот вокруг центра рамки 3×3 (у I — 4×4), как в SRS */
+  const SHAPES = {}, BOTTOM = {};
+  for (const t of TYPES) {
+    const s = [BASE[t]];
+    for (let i = 1; i < 4; i++) s.push(t === 'O' ? BASE.O : rotCW(s[i - 1]));
+    SHAPES[t] = s;
+    /* нижняя занятая строка рамки — «самая низкая строка», до которой опускалась фигура, считается по клеткам */
+    BOTTOM[t] = s.map(m => { let b = 0; m.forEach((row, y) => { if (row.some(v => v)) b = y; }); return b; });
+  }
+
+  /* Таблицы сдвигов SRS (TetrisWiki): [dx, dy], y вверх — в коде y вниз, поэтому ny = y - dy.
+     Ключ «из>в», ориентации 0, 1 (R), 2, 3 (L). */
+  const KICKS = {
+    '0>1': [[0, 0], [-1, 0], [-1, 1], [0, -2], [-1, -2]], '1>0': [[0, 0], [1, 0], [1, -1], [0, 2], [1, 2]],
+    '1>2': [[0, 0], [1, 0], [1, -1], [0, 2], [1, 2]],     '2>1': [[0, 0], [-1, 0], [-1, 1], [0, -2], [-1, -2]],
+    '2>3': [[0, 0], [1, 0], [1, 1], [0, -2], [1, -2]],    '3>2': [[0, 0], [-1, 0], [-1, -1], [0, 2], [-1, 2]],
+    '3>0': [[0, 0], [-1, 0], [-1, -1], [0, 2], [-1, 2]],  '0>3': [[0, 0], [1, 0], [1, 1], [0, -2], [1, -2]]
+  };
+  const KICKS_I = {
+    '0>1': [[0, 0], [-2, 0], [1, 0], [-2, -1], [1, 2]],   '1>0': [[0, 0], [2, 0], [-1, 0], [2, 1], [-1, -2]],
+    '1>2': [[0, 0], [-1, 0], [2, 0], [-1, 2], [2, -1]],   '2>1': [[0, 0], [1, 0], [-2, 0], [1, -2], [-2, 1]],
+    '2>3': [[0, 0], [2, 0], [-1, 0], [2, 1], [-1, -2]],   '3>2': [[0, 0], [-2, 0], [1, 0], [-2, -1], [1, 2]],
+    '3>0': [[0, 0], [1, 0], [-2, 0], [1, -2], [-2, 1]],   '0>3': [[0, 0], [-1, 0], [2, 0], [-1, 2], [2, -1]]
+  };
+  /* Поворот на 180° в Guideline нет — таблица SRS+ (как в TETR.IO), одна для всех фигур; включается в настройках */
+  const KICKS_180 = {
+    '0>2': [[0, 0], [0, 1], [1, 1], [-1, 1], [1, 0], [-1, 0]],
+    '2>0': [[0, 0], [0, -1], [-1, -1], [1, -1], [-1, 0], [1, 0]],
+    '1>3': [[0, 0], [1, 0], [1, 2], [1, 1], [0, 2], [0, 1]],
+    '3>1': [[0, 0], [-1, 0], [-1, 2], [-1, 1], [0, 2], [0, 1]]
+  };
+
+  /* Очки Guideline (× уровень до очистки) */
+  const LINE = [0, 100, 300, 500, 800];
+  const TSPIN = [400, 800, 1200, 1600];
+  const MINI = [100, 200, 400];
+  const PC = [0, 800, 1200, 1800, 2000], PC_B2B_TETRIS = 3200;
+
+  const LOCK_DELAY = 500;     // задержка фиксации, мс
+  const MAX_RESETS = 15;      // сдвигов/поворотов на опоре, продлевающих фиксацию
+  const CLEAR_MS = 350;       // анимация очистки линий
+  const COUNTDOWN_MS = 2050;  // 3-2-1-GO
+  const FRAME = 1000 / 60;
+  const TICK = 1;             // внутренний шаг 1 мс: результат не зависит от частоты кадров (60/120/144 Гц)
+  const EPS = 1e-6;
+
+  /* Режимы. levelUp — уровень растёт каждые 10 линий; cap — потолок уровня; goal — линий до победы;
+     time — лимит времени (мс); garbage — линий мусора на старте; zen — без проигрыша. */
+  const MODES = {
+    marathon: { levelUp: true, cap: 15, goal: 150, startLevel: true },
+    classic:  { levelUp: true, cap: 0, goal: 0, startLevel: true },
+    sprint:   { levelUp: false, goal: 40 },
+    ultra:    { levelUp: true, cap: 0, time: 120000 },
+    dig:      { levelUp: false, garbage: 10 },
+    zen:      { levelUp: false, zen: true }
+  };
+
+  /* Кривая скорости Guideline (Tetris Worlds): (0,8 − (L−1)·0,007)^(L−1) с на строку.
+     С 20-го уровня это уже «20G» — фигура падает на дно за кадр. */
+  function gravityMs(level) {
+    const L = Math.max(1, Math.min(20, Math.floor(level) || 1));
+    return Math.pow(0.8 - (L - 1) * 0.007, L - 1) * 1000;
+  }
+
+  /* Генератор с зерном (mulberry32) — для воспроизводимых тестов */
+  function rng(seed) {
+    let a = seed >>> 0;
+    return function () {
+      a = (a + 0x6D2B79F5) >>> 0;
+      let t = a;
+      t = Math.imul(t ^ (t >>> 15), t | 1);
+      t ^= t + Math.imul(t ^ (t >>> 7), t | 61);
+      return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+    };
+  }
+  const num = (v, d) => { v = +v; return Number.isFinite(v) ? v : d; };
+  const clampInt = (v, a, b, d) => Math.max(a, Math.min(b, Math.round(num(v, d))));
+
+  function create(o) {
+    o = o || {};
+    const mode = MODES[o.mode] ? o.mode : 'classic';
+    const M = MODES[mode];
+    const g = {
+      mode, M,
+      cols: clampInt(o.cols, 4, 20, 10), rows: clampInt(o.rows, 8, 40, 20), hidden: clampInt(o.hidden, 4, 40, 20),
+      startLevel: M.startLevel ? clampInt(o.startLevel, 1, 15, 1) : 1,
+      rand: typeof o.rand === 'function' ? o.rand : Math.random,
+      das: Math.max(0, num(o.das, 10 * FRAME)),   // задержка автоповтора
+      arr: Math.max(0, num(o.arr, 2 * FRAME)),    // период автоповтора (0 — сразу к стенке)
+      sdf: Math.max(0, num(o.sdf, 20)),           // мягкий сброс: во сколько раз быстрее гравитации (0 — мгновенно)
+      allow180: !!o.allow180,
+      ev: []
+    };
+    g.total = g.rows + g.hidden;
+    if (o.garbage != null) g.garbageRows = clampInt(o.garbage, 0, g.rows - 2, 10);
+    else g.garbageRows = M.garbage ? Math.min(M.garbage, g.rows - 6) : 0;
+
+    function emit(t, d) { const e = d || {}; e.t = t; g.ev.push(e); }
+
+    /* ---------- поле и фигуры ---------- */
+    function collide(m, px, py) {
+      for (let y = 0; y < m.length; y++) {
+        const row = m[y];
+        for (let x = 0; x < row.length; x++) {
+          if (!row[x]) continue;
+          const bx = px + x, by = py + y;
+          if (bx < 0 || bx >= g.cols || by >= g.total) return true;
+          if (by >= 0 && g.board[by][bx]) return true;   // выше буфера — свободно
+        }
+      }
+      return false;
+    }
+    function grounded() { const c = g.cur; return !!c && collide(c.m, c.x, c.y + 1); }
+    function ghostY() {
+      const c = g.cur; if (!c) return 0;
+      let y = c.y; while (!collide(c.m, c.x, y + 1)) y++;
+      return y;
+    }
+    function refillBag() {   // мешок 7: все 7 фигур в случайном порядке (тасование Фишера — Йетса)
+      const b = TYPES.slice();
+      for (let i = b.length - 1; i > 0; i--) { const j = Math.floor(g.rand() * (i + 1)); const t = b[i]; b[i] = b[j]; b[j] = t; }
+      g.bag.push(...b);
+    }
+    function fillQueue() { while (g.queue.length < 6) { if (!g.bag.length) refillBag(); g.queue.push(g.bag.shift()); } }
+
+    /* ---------- появление ---------- */
+    function spawn(type) {
+      let t = type;
+      if (!t) { t = g.queue.shift(); fillQueue(); }
+      const m = SHAPES[t][0];
+      const c = { type: t, rot: 0, m, x: Math.floor((g.cols - m[0].length) / 2), y: g.hidden - 2,
+                  last: 'spawn', kick: -1, lowY: 0, resets: 0, landed: false };
+      if (collide(m, c.x, c.y)) {
+        if (M.zen) zenRelief();
+        if (collide(m, c.x, c.y)) { g.blocked = c; end('over', 'blockout'); return false; }   // block out
+      }
+      if (!collide(m, c.x, c.y + 1)) c.y++;   // сразу опускается на строку, если путь свободен
+      c.lowY = bottom(c);
+      g.cur = c; g.state = 'fall'; g.dropAcc = 0; g.lockT = 0;
+      emit('spawn', { type: t });
+      return true;
+    }
+    /* «Дзен»: вместо проигрыша убираем нижние ряды — верх стопки опускается до середины поля */
+    function zenRelief() {
+      let top = g.total;
+      for (let y = 0; y < g.total; y++) if (g.board[y].some(v => v)) { top = y; break; }
+      const n = Math.max(1, Math.min(g.total, (g.total - top) - Math.floor(g.rows / 2)));
+      g.board.splice(g.total - n, n);
+      for (let i = 0; i < n; i++) g.board.unshift(Array(g.cols).fill(0));
+      g.zenSaves++;
+      emit('zen', { rows: n });
+    }
+
+    /* ---------- задержка фиксации (Extended Placement) ----------
+       Опора → 0,5 с до фиксации. Удачный сдвиг/поворот после касания продлевает время, но не больше 15 раз:
+       после 15-го фигура на опоре фиксируется сразу. Опустилась ниже прежней нижней строки — счёт заново. */
+    function bottom(c) { return c.y + BOTTOM[c.type][c.rot]; }   // нижняя клетка фигуры на поле
+    function afterManip() {
+      const c = g.cur;
+      if (bottom(c) > c.lowY) { c.lowY = bottom(c); c.resets = 0; c.landed = false; g.lockT = 0; }
+      else if (c.landed) { c.resets++; g.lockT = 0; }
+      if (c.landed && c.resets >= MAX_RESETS && grounded()) lock();
+    }
+    function stepDown(soft) {
+      const c = g.cur;
+      if (!c || collide(c.m, c.x, c.y + 1)) return false;
+      c.y++; c.last = soft ? 'soft' : 'fall';
+      if (bottom(c) > c.lowY) { c.lowY = bottom(c); c.resets = 0; c.landed = false; }
+      g.lockT = 0;
+      if (soft) { g.score += 1; emit('soft'); }
+      return true;
+    }
+    function shift(dx) {
+      const c = g.cur;
+      if (!c || g.state !== 'fall' || collide(c.m, c.x + dx, c.y)) return false;
+      c.x += dx; c.last = 'move';
+      emit('move', { dx });
+      afterManip();
+      return true;
+    }
+    function rotate(dir) {   // 1 — по часовой, -1 — против, 2 — на 180°
+      const c = g.cur;
+      if (!c || g.state !== 'fall') return false;
+      if (dir === 2 && !g.allow180) return false;
+      if (c.type === 'O') { emit('rotate', { o: true }); return false; }   // O в SRS не сдвигается
+      const to = (c.rot + (dir === 2 ? 2 : dir) + 4) % 4;
+      const tests = (dir === 2 ? KICKS_180 : c.type === 'I' ? KICKS_I : KICKS)[c.rot + '>' + to];
+      const m = SHAPES[c.type][to];
+      for (let i = 0; i < tests.length; i++) {
+        const nx = c.x + tests[i][0], ny = c.y - tests[i][1];
+        if (collide(m, nx, ny)) continue;
+        c.x = nx; c.y = ny; c.rot = to; c.m = m; c.last = 'rotate'; c.kick = dir === 2 ? -1 : i;
+        emit('rotate', { dir, kick: i });
+        afterManip();
+        return true;
+      }
+      return false;
+    }
+    function softStep() { return g.state === 'fall' && stepDown(true); }
+    function hardDrop() {
+      const c = g.cur;
+      if (!c || g.state !== 'fall') return false;
+      const y0 = c.y;
+      while (!collide(c.m, c.x, c.y + 1)) c.y++;
+      const d = c.y - y0;
+      if (d > 0) { c.last = 'drop'; g.score += 2 * d; }   // сброс с высоты — уже не T-Spin
+      emit('hard', { dist: d, type: c.type, x: c.x, y0, y1: c.y, m: c.m });
+      lock();
+      return true;
+    }
+    function hold() {
+      if (!g.cur || g.state !== 'fall' || !g.canHold) return false;
+      const t = g.cur.type, h = g.holdType;
+      g.cur = null; g.holdType = t; g.canHold = false;
+      emit('hold', { type: t });
+      spawn(h || null);
+      return true;
+    }
+
+    /* ---------- T-Spin: правило 3 углов, Mini — по углам «спереди» ---------- */
+    function tspinKind(c) {
+      if (c.type !== 'T' || c.last !== 'rotate') return null;
+      const cx = c.x + 1, cy = c.y + 1;
+      const occ = (x, y) => x < 0 || x >= g.cols || y >= g.total || (y >= 0 && !!g.board[y][x]);
+      const cor = [occ(cx - 1, cy - 1), occ(cx + 1, cy - 1), occ(cx - 1, cy + 1), occ(cx + 1, cy + 1)];
+      if (cor.filter(Boolean).length < 3) return null;
+      const front = [[0, 1], [1, 3], [2, 3], [0, 2]][c.rot];   // углы со стороны выступа T
+      return (cor[front[0]] && cor[front[1]]) || c.kick === 4 ? 'full' : 'mini';   // 5-я проверка (TST) — полный
+    }
+
+    /* ---------- фиксация ---------- */
+    function lock() {
+      const c = g.cur;
+      if (!c) return;
+      const tspin = tspinKind(c);   // до записи фигуры в поле
+      const cells = [];
+      let above = 0, n = 0;
+      for (let y = 0; y < c.m.length; y++) for (let x = 0; x < c.m[y].length; x++) {
+        if (!c.m[y][x]) continue;
+        const by = c.y + y, bx = c.x + x;
+        n++;
+        if (by < g.hidden) above++;
+        if (by >= 0) g.board[by][bx] = c.type;
+        cells.push({ x: bx, y: by });
+      }
+      g.cur = null; g.pieces++; g.lockT = 0; g.dropAcc = 0;
+      emit('lock', { cells, type: c.type });
+      if (above === n) {   // lock out: фигура целиком выше видимого поля
+        if (M.zen) zenRelief();
+        else { end('over', 'lockout'); return; }
+      }
+      const full = [];
+      for (let y = 0; y < g.total; y++) if (g.board[y].every(v => v)) full.push(y);
+      let pc = full.length > 0;
+      if (pc) for (let y = 0; y < g.total && pc; y++) if (full.indexOf(y) < 0 && g.board[y].some(v => v)) pc = false;
+      scoreLock(full.length, tspin, pc, full);
+      if (g.garbageRows) {
+        let left = 0;
+        for (let y = 0; y < g.total; y++) if (full.indexOf(y) < 0 && g.board[y].some(v => v === 'G')) left++;
+        if (left !== g.garbageLeft) { g.garbageLeft = left; emit('garbage', { left }); }
+        if (!left) finish('won', 'dig');
+      }
+      if (M.goal && g.lines >= M.goal) finish('won', 'goal');
+      if (full.length) { g.state = 'clearing'; g.clearRows = full; g.clearT = 0; }
+      else afterClear();
+    }
+    function scoreLock(n, tspin, pc, rows) {
+      const L = g.level;
+      if (tspin === 'mini' && n >= 3) tspin = 'full';
+      if (!n && !tspin) { g.combo = -1; return; }
+      let base, difficult;
+      if (tspin === 'full') { base = TSPIN[n]; difficult = n > 0; }
+      else if (tspin === 'mini') { base = MINI[n]; difficult = n > 0; }
+      else { base = LINE[n]; difficult = n === 4; }
+      let pts = base * L, b2b = false;
+      if (n > 0) {
+        if (difficult) {   // Back-to-Back: подряд «трудные» очистки (тетрис, T-Spin с линиями) — ×1,5
+          if (g.b2b) { pts = Math.floor(pts * 1.5); b2b = true; g.b2bCount++; } else g.b2bCount = 1;
+          g.b2b = true;
+        } else { g.b2b = false; g.b2bCount = 0; }   // одиночная/двойная/тройная прерывают серию
+        g.combo++;
+      } else g.combo = -1;   // T-Spin без линий: серию B2B не прерывает, комбо — прерывает
+      const comboPts = g.combo > 0 ? 50 * g.combo * L : 0;
+      const pcPts = pc ? (n === 4 && b2b ? PC_B2B_TETRIS : PC[n]) * L : 0;
+      const total = pts + comboPts + pcPts;
+      g.score += total;
+      if (n) { g.lines += n; if (n === 4) g.tetrises++; }
+      if (tspin) g.tspins++;
+      if (pc) g.pcs++;
+      if (g.combo > g.maxCombo) g.maxCombo = g.combo;
+      emit('clear', { n, tspin, pts, b2b, b2bCount: g.b2bCount, combo: g.combo, comboPts, pc, pcPts, total, rows, level: L });
+      if (n && M.levelUp) {
+        let nl = g.startLevel + Math.floor(g.lines / 10);
+        if (M.cap) nl = Math.min(M.cap, nl);
+        if (nl > g.level) { g.level = nl; emit('level', { level: nl }); }
+      }
+    }
+    function afterClear() {
+      if (g.clearRows.length) {
+        for (const r of g.clearRows) { g.board.splice(r, 1); g.board.unshift(Array(g.cols).fill(0)); }   // сверху вниз
+        g.clearRows = [];
+      }
+      if (g.finish) { g.state = g.finish.kind; g.cur = null; emit(g.finish.kind, { reason: g.finish.reason }); return; }
+      g.canHold = true;
+      spawn(null);
+    }
+    /* победа фиксируется в момент очистки (таймер останавливается), экран итогов — после анимации */
+    function finish(kind, reason) { if (!g.finish) { g.finish = { kind, reason }; g.endTime = g.time; } }
+    function end(kind, reason) {
+      if (g.state === 'over' || g.state === 'won') return;
+      g.finish = { kind, reason }; g.endTime = g.time;
+      g.state = kind; g.cur = null;
+      emit(kind, { reason });
+    }
+
+    /* ---------- автоповтор (DAS/ARR) ---------- */
+    function curDir() {
+      if (g.dir < 0 && g.keys.left) return -1;
+      if (g.dir > 0 && g.keys.right) return 1;
+      return g.keys.left ? -1 : g.keys.right ? 1 : 0;
+    }
+    function charge(dt) {   // пока нет фигуры (отсчёт, очистка) DAS копится, но не двигает
+      if (curDir()) g.dasT = Math.min(g.das, g.dasT + dt); else { g.dasT = 0; g.arrT = 0; }
+    }
+    function repeatShift(d) {
+      if (g.arr > 0) return shift(d);
+      let k = 0;
+      while (g.cur && g.state === 'fall' && shift(d)) k++;   // ARR 0 — сразу к стенке
+      return k > 0;
+    }
+    function autoShift(dt) {
+      const d = curDir();
+      if (!d) { g.dasT = 0; g.arrT = 0; return; }
+      if (g.dasT < g.das - EPS) {
+        g.dasT += dt;
+        if (g.dasT < g.das - EPS) return;
+        g.arrT = Math.max(0, g.dasT - g.das); g.dasT = g.das;   // DAS «зарядился»: первый повтор сразу,
+        if (!repeatShift(d)) { g.arrT = 0; return; }             // остаток шага — в счёт ARR
+        if (g.arr <= 0) return;
+      } else {
+        if (g.arr <= 0) { repeatShift(d); return; }
+        g.arrT += dt;
+      }
+      while (g.arrT >= g.arr - EPS && g.cur && g.state === 'fall') {
+        g.arrT -= g.arr;
+        if (!shift(d)) { g.arrT = 0; break; }
+      }
+    }
+    function press(k) {
+      if (k === 'left' || k === 'right') {
+        if (g.keys[k]) return;
+        g.keys[k] = true; g.dir = k === 'left' ? -1 : 1; g.dasT = 0; g.arrT = 0;   // последнее нажатие главнее
+        if (g.state === 'fall') shift(g.dir);
+      } else if (k === 'soft') {
+        if (g.keys.soft) return;
+        g.keys.soft = true; g.dropAcc = 0;
+        if (g.state === 'fall') stepDown(true);
+      }
+    }
+    function release(k) {
+      if (!g.keys[k]) return;
+      g.keys[k] = false;
+      if (k === 'soft') { g.dropAcc = 0; return; }
+      const other = k === 'left' ? 'right' : 'left';
+      g.dir = g.keys[other] ? (other === 'left' ? -1 : 1) : 0;
+      g.dasT = 0; g.arrT = 0;
+    }
+    function releaseAll() { g.keys.left = g.keys.right = g.keys.soft = false; g.dir = 0; g.dasT = 0; g.arrT = 0; }
+
+    /* ---------- такт ----------
+       Время кадра копится и расходуется шагами по 1 мс: гравитация, DAS/ARR, задержка фиксации и таймеры
+       режимов считаются одинаково при любой частоте кадров. */
+    function update(dt) {
+      if (!(dt > 0)) return;
+      g.acc += Math.min(dt, 1000);
+      while (g.acc >= TICK - EPS) {
+        g.acc -= TICK;
+        if (g.state === 'over' || g.state === 'won') { g.acc = 0; return; }
+        tick(TICK);
+      }
+    }
+    function tick(dt) {
+      if (g.state === 'countdown') {
+        g.countT += dt; charge(dt);
+        if (g.countT >= COUNTDOWN_MS - EPS) spawn(null);
+        return;
+      }
+      if (!g.finish) {
+        g.time += dt;
+        if (M.time) {
+          g.timeLeft = Math.max(0, M.time - g.time);
+          if (g.timeLeft <= EPS) { g.timeLeft = 0; end('over', 'time'); return; }
+        }
+      }
+      if (g.state === 'clearing') {
+        charge(dt);
+        g.clearT += dt;
+        if (g.clearT >= CLEAR_MS - EPS) afterClear();
+        return;
+      }
+      if (g.state !== 'fall' || !g.cur) return;
+      autoShift(dt);
+      if (g.state !== 'fall' || !g.cur) return;
+      const grav = gravityMs(g.level);
+      const soft = g.keys.soft;
+      const iv = soft ? (g.sdf > 0 ? grav / g.sdf : 0) : grav;
+      if (iv <= 0) { while (stepDown(true)); g.dropAcc = 0; }
+      else {
+        g.dropAcc += dt;
+        while (g.dropAcc >= iv - EPS) { g.dropAcc -= iv; if (!stepDown(soft)) { g.dropAcc = 0; break; } }
+      }
+      if (grounded()) {
+        g.cur.landed = true;
+        if (g.cur.resets >= MAX_RESETS) { lock(); return; }
+        g.lockT += dt;
+        if (g.lockT >= LOCK_DELAY - EPS) lock();
+      } else g.lockT = 0;
+    }
+    function begin() { if (g.state === 'countdown') { g.countT = COUNTDOWN_MS; spawn(null); } }
+    function drain() { const e = g.ev; g.ev = []; return e; }
+
+    function makeGarbage(n) {   // «Копатель»: n линий с одной дыркой, дырка не над дыркой ниже
+      let prev = -1;
+      for (let i = 0; i < n; i++) {
+        let hole = Math.floor(g.rand() * g.cols);
+        if (hole === prev && g.cols > 1) hole = (hole + 1 + Math.floor(g.rand() * (g.cols - 1))) % g.cols;
+        prev = hole;
+        const row = g.board[g.total - 1 - i];
+        for (let x = 0; x < g.cols; x++) row[x] = x === hole ? 0 : 'G';
+      }
+      g.garbageLeft = n;
+    }
+
+    Object.assign(g, {
+      board: Array.from({ length: g.total }, () => Array(g.cols).fill(0)),
+      cur: null, holdType: null, canHold: true, queue: [], bag: [], blocked: null,
+      score: 0, lines: 0, level: g.startLevel, combo: -1, b2b: false, b2bCount: 0,
+      pieces: 0, tetrises: 0, tspins: 0, pcs: 0, maxCombo: 0, zenSaves: 0,
+      state: 'countdown', countT: 0, clearT: 0, clearRows: [], finish: null,
+      time: 0, timeLeft: M.time || 0, endTime: 0, dropAcc: 0, lockT: 0, acc: 0,
+      keys: { left: false, right: false, soft: false }, dir: 0, dasT: 0, arrT: 0, garbageLeft: 0,
+      collide, grounded, ghostY, update, begin, drain, press, release, releaseAll,
+      shift, rotate, softStep, hardDrop, hold
+    });
+    if (g.garbageRows) makeGarbage(g.garbageRows);
+    fillQueue();
+    return g;
+  }
+
+  return { TYPES, SHAPES, BOTTOM, KICKS, KICKS_I, KICKS_180, LINE, TSPIN, MINI, PC, PC_B2B_TETRIS,
+           LOCK_DELAY, MAX_RESETS, CLEAR_MS, COUNTDOWN_MS, FRAME, TICK, MODES, gravityMs, rng, create };
+})();
+/* ═══ движок: конец ═══ */
+
 /* ==================== УТИЛИТЫ ==================== */
 const $=s=>document.querySelector(s), $$=s=>document.querySelectorAll(s);
 const clamp=(v,a,b)=>Math.max(a,Math.min(b,v));
@@ -495,8 +1131,12 @@ function fmtTime(ms){ms=Math.max(0,ms|0);const m=Math.floor(ms/60000),s=Math.flo
 function fmtTimeMs(ms){ms=Math.max(0,ms|0);const m=Math.floor(ms/60000),s=Math.floor(ms%60000/1000),d=Math.floor(ms%1000/100);return m+':'+String(s).padStart(2,'0')+'.'+d;}
 const esc=s=>String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const num=(v,d)=>{v=+v;return Number.isFinite(v)?v:(d||0);};
+const obj=v=>v&&typeof v==='object'&&!Array.isArray(v)?v:{};   // из хранилища/импорта может прийти что угодно
+function plural(n,one,few,many){n=Math.abs(n)%100;const n1=n%10;return n>10&&n<20?many:n1>1&&n1<5?few:n1===1?one:many;}
 /* компактная раскладка (телефон / низкое окно) — то же условие, что в CSS */
 const COMPACT_MQ=window.matchMedia('(max-width:820px), (max-height:700px)');
+/* телефон в альбоме — экранные кнопки по краям экрана (то же условие, что в CSS) */
+const SIDE_PAD_MQ=window.matchMedia('(orientation:landscape) and (max-height:500px)');
 let compact=COMPACT_MQ.matches;
 function isCompact(){return compact=COMPACT_MQ.matches;}
 function setupCanvas(cv,w,h,scale){
@@ -512,9 +1152,14 @@ function setupCanvas(cv,w,h,scale){
 }
 function toast(msg,cls,dur){
   const t=$('#toast');t.textContent=msg;
-  t.className=cls?('show '+cls):'show';
+  /* во время партии — в строке шапки: внизу тост закрывал стопку и экранные кнопки. Пока открыты пауза,
+     итоги или окно — как обычно, внизу (иначе закрывал бы заголовок окна) */
+  const top=(currentScreen==='classic'||currentScreen==='blast')&&!overlayOpen();
+  t.className=(cls?('show '+cls):'show')+(top?' top':'');
   clearTimeout(t._tm);t._tm=setTimeout(()=>t.classList.remove('show'),dur||2200);
 }
+function hideTopToast(){const t=$('#toast');if(t.classList.contains('top'))t.classList.remove('show');}
+function overlayOpen(){return modalOpen||!$('#pauseOverlay').hidden||!$('#overOverlay').hidden||!$('#confirmOverlay').hidden;}
 function vib(p){if(settings.vibration&&navigator.vibrate){try{navigator.vibrate(p);}catch(e){}}}
 
 /* ==================== ХРАНИЛИЩЕ ==================== */
@@ -523,39 +1168,57 @@ const store={
   set(k,v){try{localStorage.setItem(k,JSON.stringify(v));}catch(e){}},
   del(k){try{localStorage.removeItem(k);}catch(e){}}
 };
-/* все ключи Тетриса. «Полный сброс» удаляет только их — данные платформы (mcg_*, kuapp_*) и других игр не трогает */
+/* все ключи Тетриса. «Полный сброс» удаляет только их — данные платформы (mcg_*, kuapp_*) и других игр не трогает.
+   Новые режимы и настройки живут в тех же ключах (новые поля), прежние данные игроков читаются как есть. */
 const T_KEYS=['t_settings','t_best','t_best_classic','t_best_blast','t_history','t_ach','t_stats'];
-const DEF_SETTINGS={theme:'neon',sound:true,music:true,musicVol:0.55,sfxVol:0.7,vibration:true,ghost:true,fieldW:10,fieldH:20,blastSize:8,scale:1};
-/* числа из хранилища/импорта приводим к числам: NaN ломал размеры канваса и громкость, строки попадали в innerHTML */
+const FRAME_MS=1000/60;
+const SDF_STEPS=[5,10,20,40,0];   // мягкий сброс: ×5…×40 и «мгновенно» (0)
+const DEF_HANDLING={das:10,arr:2,sdf:20};   // Guideline: DAS 10 кадров (167 мс), ARR 2 кадра (33 мс), мягкий сброс ×20
+const DEF_SETTINGS=Object.assign({theme:'neon',sound:true,music:true,musicVol:0.55,sfxVol:0.7,vibration:true,ghost:true,fieldW:10,fieldH:20,blastSize:8,scale:1,
+  startLevel:1,marathon:'150',rot180:false,pad:false},DEF_HANDLING);
+/* числа из хранилища/импорта приводим к числам: NaN ломал размеры канваса и громкость, строки попадали в innerHTML.
+   Для настроек — строго: null, '', true/false — не число (иначе null превращался в 0 и, например, в «мгновенный» сброс) */
+const numOr=(v,d)=>typeof v==='number'?(Number.isFinite(v)?v:d):typeof v==='string'&&v.trim()!==''&&Number.isFinite(+v)?+v:d;
 function sanitizeSettings(s){
-  s.scale=clamp(num(s.scale,1),0.6,1.4);
-  s.musicVol=clamp(num(s.musicVol,DEF_SETTINGS.musicVol),0,1);
-  s.sfxVol=clamp(num(s.sfxVol,DEF_SETTINGS.sfxVol),0,1);
-  ['sound','music','vibration','ghost'].forEach(k=>{if(typeof s[k]!=='boolean')s[k]=DEF_SETTINGS[k];});
+  s.scale=clamp(numOr(s.scale,1),0.6,1.4);
+  s.musicVol=clamp(numOr(s.musicVol,DEF_SETTINGS.musicVol),0,1);
+  s.sfxVol=clamp(numOr(s.sfxVol,DEF_SETTINGS.sfxVol),0,1);
+  ['sound','music','vibration','ghost','rot180','pad'].forEach(k=>{if(typeof s[k]!=='boolean')s[k]=DEF_SETTINGS[k];});
+  s.startLevel=clamp(Math.round(numOr(s.startLevel,1)),1,15);
+  s.marathon=s.marathon==='endless'?'endless':'150';
+  s.das=clamp(Math.round(numOr(s.das,DEF_HANDLING.das)),3,20);
+  s.arr=clamp(Math.round(numOr(s.arr,DEF_HANDLING.arr)),0,6);
+  const sd=numOr(s.sdf,NaN);
+  s.sdf=SDF_STEPS.includes(sd)?sd:DEF_HANDLING.sdf;
   return s;
 }
 function sanitizeNums(o,def){for(const k in def)o[k]=Math.max(0,num(o[k],def[k]));return o;}
-const DEF_BEST={classic:0,blast:0,ultra:0,sprint:0};
-let settings=sanitizeSettings(Object.assign({},DEF_SETTINGS,store.get('t_settings',{})));
-let best=Object.assign({},DEF_BEST,store.get('t_best',{}));
-if(!best.classic)best.classic=store.get('t_best_classic',0)||0;
-if(!best.blast)best.blast=store.get('t_best_blast',0)||0;
+const DEF_BEST={classic:0,blast:0,ultra:0,sprint:0,marathon:0,dig:0,zen:0};   // sprint, dig — время в мс (меньше — лучше)
+const storedSettings=obj(store.get('t_settings',{}));
+let settings=sanitizeSettings(Object.assign({},DEF_SETTINGS,storedSettings));
+let best=Object.assign({},DEF_BEST,obj(store.get('t_best',{})));
+if(!num(best.classic))best.classic=num(store.get('t_best_classic',0));
+if(!num(best.blast))best.blast=num(store.get('t_best_blast',0));
 sanitizeNums(best,DEF_BEST);
+/* игрок прежней версии с рекордом «Классики» (= «Марафон без конца») сразу видит его на главной кнопке */
+if(!('marathon' in storedSettings)&&best.classic>0)settings.marathon='endless';
 function saveBest(){store.set('t_best',best);}
 let history=store.get('t_history',[]); if(!Array.isArray(history))history=[];
-let unlocked=store.get('t_ach',{}); if(!unlocked||typeof unlocked!=='object')unlocked={};
-const DEF_STATS={games:0,score:0,lines:0,tetrises:0,tspins:0,pcs:0,maxCombo:0,bestSprint:0,ultraBest:0,playTime:0,blastLines:0};
-let stats=sanitizeNums(Object.assign({},DEF_STATS,store.get('t_stats',{})),DEF_STATS);
+history=history.filter(h=>h&&typeof h==='object');
+let unlocked=obj(store.get('t_ach',{}));
+const DEF_STATS={games:0,score:0,lines:0,tetrises:0,tspins:0,pcs:0,maxCombo:0,bestSprint:0,ultraBest:0,playTime:0,blastLines:0,
+  marathonWins:0,digWins:0,bestDig:0,zenLines:0};
+let stats=sanitizeNums(Object.assign({},DEF_STATS,obj(store.get('t_stats',{}))),DEF_STATS);
 function saveStats(){store.set('t_stats',stats);}
 function saveSettings(){store.set('t_settings',settings);}
 
 /* ==================== ТЕМЫ ==================== */
 const THEMES={
-  neon:{name:'Неон',bg:['#070b24','#151038','#0a2540'],panel:'rgba(255,255,255,.06)',panelBorder:'rgba(255,255,255,.13)',accent:'#00e5ff',accent2:'#ff4dd2',text:'#eef2ff',muted:'#8f9ac2',cellBg:'rgba(255,255,255,.035)',pieces:{I:'#00e5ff',O:'#ffd60a',T:'#c77dff',S:'#51f58b',Z:'#ff5d7d',J:'#5b8cff',L:'#ff9f43'},glow:true},
-  sunset:{name:'Закат',bg:['#1c0f2e','#4a1942','#8a3033'],panel:'rgba(255,255,255,.07)',panelBorder:'rgba(255,255,255,.14)',accent:'#ffb347',accent2:'#ff6b9d',text:'#ffeedd',muted:'#c49a8a',cellBg:'rgba(255,255,255,.04)',pieces:{I:'#ffd166',O:'#ff9f1c',T:'#ff5d8f',S:'#9ef01a',Z:'#ef476f',J:'#4d96ff',L:'#ff7b54'},glow:true},
-  ocean:{name:'Океан',bg:['#02121f','#04304a','#065a60'],panel:'rgba(255,255,255,.06)',panelBorder:'rgba(255,255,255,.13)',accent:'#35e0c0',accent2:'#4da6ff',text:'#e8fbf5',muted:'#7fa8a0',cellBg:'rgba(255,255,255,.035)',pieces:{I:'#4dd8ff',O:'#ffd166',T:'#b388ff',S:'#2ee6a8',Z:'#ff7b7b',J:'#5e9bff',L:'#ffab5e'},glow:true},
-  retro:{name:'Ретро',bg:['#051505','#0f380f','#1c4a1c'],panel:'rgba(155,188,15,.08)',panelBorder:'rgba(155,188,15,.22)',accent:'#9bbc0f',accent2:'#c6de41',text:'#d5e8a5',muted:'#7f9a55',cellBg:'rgba(155,188,15,.05)',pieces:{I:'#9bbc0f',O:'#e0f08a',T:'#5f9e3f',S:'#b4d94e',Z:'#3f7d2c',J:'#79b356',L:'#c8e06a'},glow:false},
-  candy:{name:'Конфеты',bg:['#241a2e','#3d2a4e','#5a3a63'],panel:'rgba(255,255,255,.08)',panelBorder:'rgba(255,255,255,.16)',accent:'#ff8fc7',accent2:'#8fd8ff',text:'#fdf2ff',muted:'#b8a3c7',cellBg:'rgba(255,255,255,.045)',pieces:{I:'#8fe3ff',O:'#ffe38f',T:'#d8a6ff',S:'#a6ffc4',Z:'#ffa6b8',J:'#a6c4ff',L:'#ffc4a6'},glow:true}
+  neon:{name:'Неон',bg:['#070b24','#151038','#0a2540'],panel:'rgba(255,255,255,.06)',panelBorder:'rgba(255,255,255,.13)',accent:'#00e5ff',accent2:'#ff4dd2',text:'#eef2ff',muted:'#8f9ac2',cellBg:'rgba(255,255,255,.035)',pieces:{I:'#00e5ff',O:'#ffd60a',T:'#c77dff',S:'#51f58b',Z:'#ff5d7d',J:'#5b8cff',L:'#ff9f43'},garbage:'#6b7396',glow:true},
+  sunset:{name:'Закат',bg:['#1c0f2e','#4a1942','#8a3033'],panel:'rgba(255,255,255,.07)',panelBorder:'rgba(255,255,255,.14)',accent:'#ffb347',accent2:'#ff6b9d',text:'#ffeedd',muted:'#c49a8a',cellBg:'rgba(255,255,255,.04)',pieces:{I:'#ffd166',O:'#ff9f1c',T:'#ff5d8f',S:'#9ef01a',Z:'#ef476f',J:'#4d96ff',L:'#ff7b54'},garbage:'#8a6a78',glow:true},
+  ocean:{name:'Океан',bg:['#02121f','#04304a','#065a60'],panel:'rgba(255,255,255,.06)',panelBorder:'rgba(255,255,255,.13)',accent:'#35e0c0',accent2:'#4da6ff',text:'#e8fbf5',muted:'#7fa8a0',cellBg:'rgba(255,255,255,.035)',pieces:{I:'#4dd8ff',O:'#ffd166',T:'#b388ff',S:'#2ee6a8',Z:'#ff7b7b',J:'#5e9bff',L:'#ffab5e'},garbage:'#56747a',glow:true},
+  retro:{name:'Ретро',bg:['#051505','#0f380f','#1c4a1c'],panel:'rgba(155,188,15,.08)',panelBorder:'rgba(155,188,15,.22)',accent:'#9bbc0f',accent2:'#c6de41',text:'#d5e8a5',muted:'#7f9a55',cellBg:'rgba(155,188,15,.05)',pieces:{I:'#9bbc0f',O:'#e0f08a',T:'#5f9e3f',S:'#b4d94e',Z:'#3f7d2c',J:'#79b356',L:'#c8e06a'},garbage:'#4a5e33',glow:false},
+  candy:{name:'Конфеты',bg:['#241a2e','#3d2a4e','#5a3a63'],panel:'rgba(255,255,255,.08)',panelBorder:'rgba(255,255,255,.16)',accent:'#ff8fc7',accent2:'#8fd8ff',text:'#fdf2ff',muted:'#b8a3c7',cellBg:'rgba(255,255,255,.045)',pieces:{I:'#8fe3ff',O:'#ffe38f',T:'#d8a6ff',S:'#a6ffc4',Z:'#ffa6b8',J:'#a6c4ff',L:'#ffc4a6'},garbage:'#9a8aa8',glow:true}
 };
 let THEME=THEMES.neon;
 function applyTheme(key){
@@ -570,6 +1233,8 @@ function applyTheme(key){
   saveSettings();
 }
 function palette(){return Object.values(THEME.pieces);}
+/* цвет клетки поля: фигура или серый мусор «Копателя» */
+function cellColor(t){return t==='G'?(THEME.garbage||'#6b7396'):(THEME.pieces[t]||'#ffffff');}
 
 /* ==================== ЗВУК + МУЗЫКА ==================== */
 let audioCtx=null,sfxGain=null,musicGain=null;
@@ -612,7 +1277,8 @@ const sfx={
   click:()=>tone(500,0.04,'sine',0.03),
   place:()=>tone(300,0.06,'triangle',0.04),
   combo:()=>[660,880].forEach((f,i)=>tone(f,0.08,'square',0.04,i*0.05)),
-  ach:()=>[659,784,1046].forEach((f,i)=>tone(f,0.12,'sine',0.05,i*0.09))
+  ach:()=>[659,784,1046].forEach((f,i)=>tone(f,0.12,'sine',0.05,i*0.09)),
+  zen:()=>[392,494,587,784].forEach((f,i)=>tone(f,0.3,'sine',0.035,i*0.12))
 };
 /* --- «Коробейники» --- */
 const NOTES={A2:110,B2:123.47,D3:146.83,E2:82.41,A4:440,B4:493.88,C5:523.25,D5:587.33,E5:659.25,F5:698.46,G5:783.99,A5:880};
@@ -638,10 +1304,10 @@ function buildLoop(){
 }
 const music={
   playing:false,loopStart:0,timer:null,bpm:134,oscs:[],
-  start(level){
+  start(level,calm){
     if(!settings.music)return;
     const c=ac();
-    this.bpm=bpmForLevel(level);
+    this.bpm=calm?108:bpmForLevel(level);   // в «Дзене» — спокойный темп
     this.playing=true;
     this.loopStart=c.currentTime+0.1;
     if(!this.timer)this.timer=setInterval(()=>this.schedule(),80);
@@ -669,6 +1335,8 @@ const music={
   setLevel(level){this.bpm=bpmForLevel(level);},
   stop(){
     this.playing=false;
+    /* интервал планировщика тоже останавливаем: раньше он тикал всё время после первой партии */
+    if(this.timer){clearInterval(this.timer);this.timer=null;}
     for(const o of this.oscs){try{o.stop();}catch(e){}}
     this.oscs=[];
   }
@@ -692,7 +1360,7 @@ function playMusicNote(f,t,d,v){
 }
 
 /* ==================== ЭКРАНЫ ==================== */
-let currentScreen='menu', modalOpen=false, lastMode='classic';
+let currentScreen='menu', modalOpen=false, lastMode='marathon';
 function showScreen(id){currentScreen=id;$$('.screen').forEach(s=>s.classList.toggle('active',s.id==='screen-'+id));}
 
 /* ==================== ДОСТИЖЕНИЯ ==================== */
@@ -701,6 +1369,7 @@ const ACHIEVEMENTS=[
  {id:'first_line',icon:'➖',name:'Разминка',desc:'Очистите первую линию'},
  {id:'tetris',icon:'💎',name:'Тетрис!',desc:'Очистите 4 линии за раз'},
  {id:'tspin',icon:'🌀',name:'Крутой финт',desc:'Сделайте T-Spin'},
+ {id:'tst',icon:'🌪️',name:'Тройной финт',desc:'Сделайте T-Spin Triple'},
  {id:'pc',icon:'✨',name:'Идеальная чистота',desc:'Соберите Perfect Clear'},
  {id:'combo5',icon:'🔥',name:'Разогрев',desc:'Достигните комбо ×5'},
  {id:'combo10',icon:'☄️',name:'Неудержимый',desc:'Достигните комбо ×10'},
@@ -712,15 +1381,23 @@ const ACHIEVEMENTS=[
  {id:'lines1000',icon:'🏗️',name:'Архитектор',desc:'1000 линий всего'},
  {id:'games10',icon:'🕹️',name:'Завсегдатай',desc:'Сыграйте 10 игр'},
  {id:'games50',icon:'👾',name:'Ветеран',desc:'Сыграйте 50 игр'},
+ {id:'marathon',icon:'🏁',name:'Марафонец',desc:'Пройдите Марафон: 150 линий'},
  {id:'sprint',icon:'🏃',name:'Спринтер',desc:'Завершите Спринт 40'},
  {id:'ultra50k',icon:'⏱️',name:'Ультрамарафонец',desc:'50 000 очков в Ультре'},
+ {id:'dig',icon:'⛏️',name:'Шахтёр',desc:'Расчистите мусор в Копателе'},
+ {id:'zen',icon:'🧘',name:'Нирвана',desc:'100 линий в Дзене'},
  {id:'blast50',icon:'🧩',name:'Подрывник',desc:'50 линий в Block Blast'}
 ];
 const ACH_MAP={};ACHIEVEMENTS.forEach(a=>ACH_MAP[a.id]=a);
+/* только известные достижения с датой-числом: мусор в хранилище раньше завышал счётчик «N / 18» */
+function cleanAch(u){const r={};u=obj(u);ACHIEVEMENTS.forEach(a=>{if(u[a.id])r[a.id]=num(u[a.id])||Date.now();});return r;}
+unlocked=cleanAch(unlocked);
+let sessionAch=[];   // достижения, открытые в текущей партии, — строкой в окне итогов
 function award(id){
   if(unlocked[id])return;
   const a=ACH_MAP[id];if(!a)return;
   unlocked[id]=Date.now();store.set('t_ach',unlocked);
+  if(currentScreen==='classic'||currentScreen==='blast')sessionAch.push(a.icon+' '+a.name);
   toast('🏅 Достижение: '+a.name+' — '+a.desc,'ach',3200);
   sfx.ach();vib([30,50,30]);
 }
@@ -741,8 +1418,11 @@ function renderStatsModal(){
     ['🌀',fmt(stats.tspins),'T-Spin\'ов'],
     ['✨',fmt(stats.pcs),'Perfect Clear'],
     ['🔥','×'+stats.maxCombo,'Макс. комбо'],
+    ['🏁',fmt(stats.marathonWins),'Марафонов пройдено'],
     ['🏃',stats.bestSprint?fmtTimeMs(stats.bestSprint):'—','Лучший спринт'],
     ['⏱️',fmt(stats.ultraBest),'Рекорд Ультры'],
+    ['⛏️',stats.bestDig?fmtTimeMs(stats.bestDig):'—','Лучший Копатель'],
+    ['🧘',fmt(stats.zenLines),'Линий в Дзене'],
     ['🧩',fmt(stats.blastLines),'Линий в Blast'],
     ['⏳',fmtTime(stats.playTime*1000),'Время в игре'],
     ['🏅',Object.keys(unlocked).length+' / '+ACHIEVEMENTS.length,'Достижения']
@@ -751,314 +1431,182 @@ function renderStatsModal(){
 }
 
 /* ==================== РАЗМЕРЫ ПОЛЯ ==================== */
-const HIDDEN=2, CELL=32, BCELL=45;
-let COLS=10, ROWS=20, TOTAL=22, BS=8;
+const HIDDEN=20, CELL=32, BCELL=45;   // HIDDEN — буфер над полем (Guideline: 20 строк), фигуры появляются в его нижних строках
+let COLS=10, ROWS=20, BS=8;
 function applyFieldSizeSettings(){
   COLS=clamp(settings.fieldW|0||10,6,12);
   ROWS=clamp(settings.fieldH|0||20,12,24);
-  TOTAL=ROWS+HIDDEN;
   BS=clamp(settings.blastSize|0||8,6,10);
   settings.fieldW=COLS;settings.fieldH=ROWS;settings.blastSize=BS;
 }
-function effectiveScale(cols,rows,cell,mode){
+/* масштаб поля Тетриса: в компактной раскладке берём реальное место, которое осталось сетке между шапкой,
+   кнопками и подсказкой; на компьютере — окно минус шапка/поля (и минус экранные кнопки, если включены) */
+function classicScale(){
   const isMobile=isCompact();
+  const lay=$('#classicLayout');
+  const pad=padShown(), side=pad&&SIDE_PAD_MQ.matches;
   let availH,availW;
-  /* компакт, классика: сверху 14 + шапка 44+6, снизу подсказка ~42 + 10, рамка поля 8;
-     по ширине: поля экрана 12 + колонки 58×2 + зазоры 4×2 + рамка 8 */
-  if(mode==='classic'){availH=window.innerHeight-(isMobile?124:185);availW=window.innerWidth-(isMobile?144:390);}
+  if(isMobile&&currentScreen==='classic'&&lay.clientHeight>0){
+    availH=lay.clientHeight-8;                        // рамка поля 3+3 и 1+1
+    availW=lay.clientWidth-2*58-2*4-8;
+  }else if(isMobile){availH=window.innerHeight-124-(pad&&!side?126:0);availW=window.innerWidth-144;}
+  else{availH=window.innerHeight-185-(pad?padHeight()+8:0);availW=window.innerWidth-390;}
+  if(side)availW=Math.min(availW,window.innerWidth-2*(padClusterW()+16)-2*58-2*4-8);   // кнопки по бокам
+  const fit=Math.min(availH/(ROWS*CELL),availW/(COLS*CELL));
+  return clamp(Math.min(settings.scale,fit),0.25,2.5);
+}
+function effectiveScale(cols,rows,cell){
+  const isMobile=isCompact();
   /* компакт, Blast: шапка, показатели, лоток фигур 106+10, подсказка; по ширине поля экрана 12 + рамка 16 */
-  else{availH=window.innerHeight-(isMobile?318:305);availW=window.innerWidth-(isMobile?28:16);}
+  const availH=window.innerHeight-(isMobile?318:305),availW=window.innerWidth-(isMobile?28:16);
   const fit=Math.min(availH/(rows*cell),availW/(cols*cell));
   return clamp(Math.min(settings.scale,fit),0.25,2.5);
 }
 
-/* ==================== КЛАССИЧЕСКИЙ ТЕТРИС ==================== */
-const TETRO={
-  I:[[0,0,0,0],[1,1,1,1],[0,0,0,0],[0,0,0,0]],
-  J:[[1,0,0],[1,1,1],[0,0,0]],
-  L:[[0,0,1],[1,1,1],[0,0,0]],
-  O:[[1,1],[1,1]],
-  S:[[0,1,1],[1,1,0],[0,0,0]],
-  T:[[0,1,0],[1,1,1],[0,0,0]],
-  Z:[[1,1,0],[0,1,1],[0,0,0]]
-};
-const KICKS_JLSTZ={
-  '0>1':[[0,0],[-1,0],[-1,1],[0,-2],[-1,-2]], '1>0':[[0,0],[1,0],[1,-1],[0,2],[1,2]],
-  '1>2':[[0,0],[1,0],[1,-1],[0,2],[1,2]], '2>1':[[0,0],[-1,0],[-1,1],[0,-2],[-1,-2]],
-  '2>3':[[0,0],[1,0],[1,1],[0,-2],[1,-2]], '3>2':[[0,0],[-1,0],[-1,-1],[0,2],[-1,2]],
-  '3>0':[[0,0],[-1,0],[-1,-1],[0,2],[-1,2]], '0>3':[[0,0],[1,0],[1,1],[0,-2],[1,-2]]
-};
-const KICKS_I={
-  '0>1':[[0,0],[-2,0],[1,0],[-2,-1],[1,2]], '1>0':[[0,0],[2,0],[-1,0],[2,1],[-1,-2]],
-  '1>2':[[0,0],[-1,0],[2,0],[-1,2],[2,-1]], '2>1':[[0,0],[1,0],[-2,0],[1,-2],[-2,1]],
-  '2>3':[[0,0],[2,0],[-1,0],[2,1],[-1,-2]], '3>2':[[0,0],[-2,0],[1,0],[-2,-1],[1,2]],
-  '3>0':[[0,0],[1,0],[-2,0],[1,-2],[-2,1]], '0>3':[[0,0],[-1,0],[2,0],[-1,2],[2,-1]]
-};
-const PC_TABLE=[0,800,1200,1800,2000];
-function rotCW(m){const n=m.length,r=Array.from({length:n},()=>Array(n).fill(0));for(let y=0;y<n;y++)for(let x=0;x<n;x++)r[x][n-1-y]=m[y][x];return r;}
-function rotCCW(m){const n=m.length,r=Array.from({length:n},()=>Array(n).fill(0));for(let y=0;y<n;y++)for(let x=0;x<n;x++)r[n-1-x][y]=m[y][x];return r;}
-
+/* ==================== ТЕТРИС: интерфейс к движку ==================== */
 const playCv=$('#playCanvas'); let pctx=setupCanvas(playCv,COLS*CELL,ROWS*CELL,1);
-const holdCv=$('#holdCanvas'); const hctx=setupCanvas(holdCv,112,76);
+const holdCv=$('#holdCanvas'); let hctx=setupCanvas(holdCv,112,76);
 const nextCv=$('#nextCanvas'); let nctx;
 
-const G={
-  mode:'classic',board:null,cur:null,hold:null,canHold:true,queue:[],bag:[],
-  score:0,lines:0,level:1,combo:-1,b2b:false,b2bCount:0,
-  state:'idle',paused:false,
-  dropAcc:0,lockAcc:0,lockResets:0,clearRows:[],clearT:0,countdownT:0,lastClearN:0,
-  elapsed:0,timeLeft:120000,
-  particles:[],floaters:[],trails:[],lockFlash:null,flashT:0,
-  startTs:0,dasAcc:0,arrAcc:0,softAcc:0
+let E=null;   // идущая партия (TE.create) или null
+/* состояние интерфейса партии: режим, пауза, эффекты (частицы, надписи, следы сброса, вспышки) */
+const G={mode:'marathon',paused:false,recorded:false,particles:[],floaters:[],trails:[],lockFlash:null,flashT:0};
+const MODE_INFO={
+  marathon:{title:'МАРАФОН · 150 ЛИНИЙ',hist:'🏁 Марафон'},
+  classic:{title:'МАРАФОН · БЕЗ КОНЦА',hist:'♾️ Без конца'},
+  sprint:{title:'СПРИНТ · 40 ЛИНИЙ',hist:'🏃 Спринт'},
+  ultra:{title:'УЛЬТРА · 2 МИНУТЫ',hist:'⏱️ Ультра'},
+  dig:{title:'КОПАТЕЛЬ',hist:'⛏️ Копатель'},
+  zen:{title:'ДЗЕН',hist:'🧘 Дзен'},
+  blast:{title:'BLOCK BLAST',hist:'🧩 Blast'}
 };
-const keys={left:false,right:false,down:false};
+function engineOpts(mode){
+  return {mode,cols:COLS,rows:ROWS,hidden:HIDDEN,startLevel:settings.startLevel,
+    das:settings.das*FRAME_MS,arr:settings.arr*FRAME_MS,sdf:settings.sdf,allow180:settings.rot180};
+}
+/* настройки управления меняются из паузы — применяем к идущей партии */
+function applyHandling(){
+  if(!E)return;
+  const o=engineOpts(E.mode);
+  E.das=o.das;E.arr=o.arr;E.sdf=o.sdf;E.allow180=o.allow180;
+}
+function canPlay(){return currentScreen==='classic'&&!!E&&!G.paused&&!modalOpen&&E.state!=='over'&&E.state!=='won';}
 
-function refillBag(){const b=['I','O','T','S','Z','J','L'];for(let i=b.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[b[i],b[j]]=[b[j],b[i]];}G.bag.push(...b);}
-function ensureQueue(){while(G.queue.length<5){if(G.bag.length<7)refillBag();G.queue.push(G.bag.shift());}}
-function collide(m,px,py){
-  for(let y=0;y<m.length;y++)for(let x=0;x<m[y].length;x++){
-    if(!m[y][x])continue;
-    const bx=px+x,by=py+y;
-    if(bx<0||bx>=COLS||by>=TOTAL)return true;
-    if(by>=0&&G.board[by][bx])return true;
-  }
-  return false;
+function startClassic(mode){
+  if(!TE.MODES[mode])mode='marathon';
+  G.mode=mode;lastMode=mode;
+  E=TE.create(engineOpts(mode));
+  G.particles=[];G.floaters=[];G.trails=[];G.lockFlash=null;G.flashT=0;G.paused=false;G.recorded=false;
+  swipe=null;padReleaseAll();sessionAch=[];
+  $('#classicTitle').textContent=mode==='dig'?'КОПАТЕЛЬ · '+E.garbageRows+' '+plural(E.garbageRows,'ЛИНИЯ','ЛИНИИ','ЛИНИЙ'):MODE_INFO[mode].title;
+  $('#pauseOverlay').hidden=true;hideOver();
+  showScreen('classic');
+  updatePadVisibility();   // включает/выключает экранные кнопки и пересчитывает размер поля
+  updateHUD();drawNext();drawHold();
+  stats.games++;
+  award('first_game');if(stats.games>=10)award('games10');if(stats.games>=50)award('games50');
+  saveStats();
+  music.stop();music.start(E.level,mode==='zen');
 }
-function grounded(){const c=G.cur;return c&&collide(c.m,c.x,c.y+1);}
-function maxRowOf(c){
-  let mr=-9;
-  for(let y=0;y<c.m.length;y++)for(let x=0;x<c.m[y].length;x++)if(c.m[y][x])mr=Math.max(mr,c.y+y);
-  return mr;
-}
-function spawnType(type){
-  const m=TETRO[type].map(r=>r.slice());
-  G.cur={type,rot:0,x:Math.floor((COLS-m[0].length)/2),y:0,m,lastAction:null,lastKick:-1};
-  let guard=0;
-  while(maxRowOf(G.cur)<HIDDEN&&!collide(m,G.cur.x,G.cur.y+1)&&guard++<8)G.cur.y++;
-  G.dropAcc=0;G.lockAcc=0;G.lockResets=0;
-  if(collide(m,G.cur.x,G.cur.y)){G.cur=null;gameOver();return;}
-  G.state='fall';
-}
-function spawn(){ensureQueue();spawnType(G.queue.shift());ensureQueue();G.canHold=true;drawNext();drawHold();}
-function tryMove(dx,dy,byGravity){
-  if(!G.cur||G.state!=='fall')return false;
-  const c=G.cur;
-  if(!collide(c.m,c.x+dx,c.y+dy)){
-    c.x+=dx;c.y+=dy;
-    /* любое удачное смещение (и падение под гравитацией) снимает флаг «последним был поворот»:
-       иначе T, повёрнутая наверху и упавшая в щель, давала ложный T-Spin */
-    c.lastAction=byGravity?'fall':'move';
-    if(dx!==0)sfx.move();
-    if(grounded()){if(G.lockResets<15){G.lockAcc=0;G.lockResets++;}}else G.lockAcc=0;
-    return true;
-  }
-  return false;
-}
-function tryRotate(dir){
-  if(!G.cur||G.state!=='fall')return;
-  const c=G.cur;
-  if(c.type==='O'){sfx.rotate();return;}
-  const to=(c.rot+dir+4)%4;
-  const nm=dir>0?rotCW(c.m):rotCCW(c.m);
-  const table=(c.type==='I'?KICKS_I:KICKS_JLSTZ)[c.rot+'>'+to];
-  for(let ki=0;ki<table.length;ki++){
-    const[kx,ky]=table[ki];
-    const nx=c.x+kx,ny=c.y-ky;
-    if(!collide(nm,nx,ny)){
-      c.m=nm;c.x=nx;c.y=ny;c.rot=to;
-      c.lastAction='rotate';c.lastKick=ki;
-      sfx.rotate();vib(5);
-      if(grounded()){if(G.lockResets<15){G.lockAcc=0;G.lockResets++;}}
-      return;
+
+/* события движка → звук, эффекты, статистика, достижения, конец партии */
+function handleEvents(){
+  if(!E)return;
+  const evs=E.drain();
+  if(!evs.length)return;
+  let hud=false;
+  for(const e of evs){
+    switch(e.t){
+      case 'move':sfx.move();break;
+      case 'rotate':sfx.rotate();vib(5);break;
+      case 'soft':sfx.soft();hud=true;break;
+      case 'hard':
+        if(e.dist>0)e.m.forEach((row,y)=>row.forEach((v,x)=>{
+          if(v)G.trails.push({x:(e.x+x)*CELL+CELL/2,y0:(e.y0+y-E.hidden)*CELL,y1:(e.y1+y-E.hidden)*CELL,t:0,life:220,color:cellColor(e.type)});
+        }));
+        sfx.hard();vib(10);shakeBoard();hud=true;break;
+      case 'hold':sfx.hold();break;
+      case 'spawn':drawNext();drawHold();break;
+      case 'lock':sfx.lock();vib(15);G.lockFlash={cells:e.cells.filter(c=>c.y>=E.hidden),t:0};hud=true;break;
+      case 'clear':onClear(e);hud=true;break;
+      case 'level':
+        sfx.levelup();G.flashT=1;music.setLevel(e.level);addFloater(G,'УРОВЕНЬ '+e.level+'!',THEME.accent2);
+        if(e.level>=10)award('lvl10');hud=true;break;
+      case 'garbage':hud=true;break;
+      case 'zen':addFloater(G,'🧘 −'+e.rows+' '+plural(e.rows,'ряд','ряда','рядов'),THEME.accent);G.flashT=Math.max(G.flashT,0.7);sfx.zen();break;
+      case 'won':case 'over':finishGame(e.t,e.reason,true);break;
     }
   }
+  if(hud)updateHUD();
 }
-function softDrop(){if(tryMove(0,1,false)){G.score++;G.dropAcc=0;sfx.soft();updateHUD();}}
-function hardDrop(){
-  if(!G.cur||G.state!=='fall')return;
-  const c=G.cur;let d=0;const startY=c.y;
-  while(!collide(c.m,c.x,c.y+1)){c.y++;d++;}
-  if(d>0){
-    c.lastAction='drop';   /* сброс с высоты — уже не T-Spin */
-    for(let y=0;y<c.m.length;y++)for(let x=0;x<c.m[y].length;x++){
-      if(!c.m[y][x])continue;
-      G.trails.push({x:(c.x+x)*CELL+CELL/2,y0:(startY+y-HIDDEN)*CELL,y1:(c.y+y-HIDDEN)*CELL,t:0,life:220,color:THEME.pieces[c.type]});
-    }
-  }
-  G.score+=d*2;sfx.hard();vib(10);shakeBoard();updateHUD();lockPiece();
-}
-function doHold(){
-  if(!G.cur||G.state!=='fall'||!G.canHold)return;
-  sfx.hold();
-  const t=G.cur.type;
-  if(G.hold){const h=G.hold;G.hold=t;spawnType(h);}
-  else{G.hold=t;ensureQueue();spawnType(G.queue.shift());ensureQueue();}
-  G.canHold=false;drawNext();drawHold();
-}
-/* --- T-Spin детекция (правило 3 углов) --- */
-function detectTspin(c){
-  if(c.type!=='T'||c.lastAction!=='rotate')return null;
-  const cx=c.x+1,cy=c.y+1;
-  const occ=(x,y)=>{
-    if(x<0||x>=COLS||y<0||y>=TOTAL)return true;
-    return !!G.board[y][x];
-  };
-  const corners=[occ(cx-1,cy-1),occ(cx+1,cy-1),occ(cx-1,cy+1),occ(cx+1,cy+1)];
-  const cnt=corners.filter(Boolean).length;
-  if(cnt<3)return null;
-  const FRONT={0:[0,1],1:[1,3],2:[2,3],3:[0,2]}[c.rot];
-  const frontFull=FRONT.every(i=>corners[i]);
-  return (frontFull||c.lastKick===4)?'full':'mini';
-}
-function lockPiece(){
-  const c=G.cur;if(!c)return;
-  sfx.lock();vib(15);
-  const tspin=detectTspin(c);
-  let topOut=false;const cells=[];
-  for(let y=0;y<c.m.length;y++)for(let x=0;x<c.m[y].length;x++){
-    if(!c.m[y][x])continue;
-    const by=c.y+y,bx=c.x+x;
-    if(by<HIDDEN){topOut=true;continue;}
-    if(by>=TOTAL){G.cur=null;gameOver();return;}
-    G.board[by][bx]=c.type;
-    cells.push({x:bx,y:by});
-  }
-  G.cur=null;
-  if(topOut){gameOver();return;}
-  G.lockFlash={cells,t:0};
-  const full=[];
-  for(let y=0;y<TOTAL;y++)if(G.board[y].every(v=>v))full.push(y);
-  if(full.length){
-    G.state='clearing';G.clearRows=full;G.clearT=0;G.lastClearN=full.length;
-    sfx.clear();if(full.length===4){sfx.tetris();shakeBoard();}
-    if(tspin){sfx.tspin();G.flashT=Math.max(G.flashT,0.6);}
-    spawnClearParticles(full);
-    applyScore(full.length,tspin);
-  }else{
-    if(tspin){sfx.tspin();applyScore(0,tspin);}
-    else{G.combo=-1;updateHUD();}
-    spawn();
-  }
-}
-function applyScore(n,tspin){
-  const lvl=G.level;
-  let pts=0,label='';
-  if(tspin){
-    if(tspin==='mini'){pts=(n===0?100:n===1?200:400)*lvl;label=n>0?'T-SPIN MINI ×'+n:'T-SPIN MINI';}
-    else{pts=([400,800,1200,1600][n]||400)*lvl;label=['T-SPIN!','T-SPIN SINGLE','T-SPIN DOUBLE!','T-SPIN TRIPLE!!'][n];}
-    stats.tspins++;saveStats();
-    if(n>0){if(G.b2b){pts=Math.floor(pts*1.5);G.b2bCount++;}else G.b2bCount=1;G.b2b=true;}
-    addFloater(G,label,THEME.pieces.T);
-    award('tspin');
-  }else if(n===4){
-    pts=800*lvl;label='ТЕТРИС!';
-    if(G.b2b){pts=Math.floor(pts*1.5);G.b2bCount++;}else G.b2bCount=1;
-    G.b2b=true;stats.tetrises++;saveStats();
-    addFloater(G,label+' +'+fmt(pts),THEME.accent);
-    award('tetris');
-  }else if(n>0){
-    pts=[0,100,300,500][n]*lvl;G.b2b=false;G.b2bCount=0;
-    label=['','SINGLE','DOUBLE!','TRIPLE!'][n];
-    addFloater(G,label+' +'+fmt(pts),'#ffffff');
-  }else{G.b2b=false;G.b2bCount=0;}
-  if(G.b2bCount>=3)award('b2b3');
-  if(n>0){
-    G.lines+=n;   /* раньше G.lines не рос: уровень всегда 1, скорость не росла, спринт не завершался */
-    G.combo++;
-    if(G.combo>0)pts+=50*G.combo*lvl;
-    stats.lines+=n;stats.maxCombo=Math.max(stats.maxCombo,G.combo);saveStats();
-    if(G.combo>0)addFloater(G,'КОМБО ×'+G.combo,'#ffd60a');
-    if(G.combo>=5)award('combo5');
-    if(G.combo>=10)award('combo10');
-    award('first_line');
+function onClear(e){
+  const n=e.n,ts=e.tspin;
+  if(n){sfx.clear();if(n===4){sfx.tetris();shakeBoard();}spawnClearParticles(e.rows);}
+  if(ts){sfx.tspin();G.flashT=Math.max(G.flashT,0.6);}
+  let label='',color='#ffffff';
+  if(ts){label=(ts==='mini'?'MINI T-SPIN':'T-SPIN')+(n?' '+['','SINGLE','DOUBLE','TRIPLE'][n]:'')+(ts==='full'&&n>=2?'!':'');color=THEME.pieces.T;}
+  else if(n===4){label='ТЕТРИС!';color=THEME.accent;}
+  else if(n){label=['','SINGLE','DOUBLE!','TRIPLE!'][n];}
+  if(e.b2b)label='B2B '+label;
+  if(label)addFloater(G,label+' +'+fmt(e.pts),color);
+  if(e.combo>0){addFloater(G,'КОМБО ×'+e.combo+' +'+fmt(e.comboPts),'#ffd60a');if(e.combo>1)sfx.combo();}
+  if(e.pc){addFloater(G,'✨ PERFECT CLEAR! +'+fmt(e.pcPts),'#ffffff');G.flashT=1;sfx.pc();vib([40,60,40,60,80]);stats.pcs++;award('pc');}
+  if(n){
+    stats.lines+=n;award('first_line');
     if(stats.lines>=100)award('lines100');
     if(stats.lines>=1000)award('lines1000');
-  }else G.combo=-1;
-  G.score+=pts;
-  if(G.score>=10000)award('s10k');
-  if(G.score>=100000)award('s100k');
-  const prev=G.level;
-  if(G.mode!=='sprint')G.level=Math.floor(G.lines/10)+1;
-  if(G.level>prev){sfx.levelup();G.flashT=1;music.setLevel(G.level);addFloater(G,'УРОВЕНЬ '+G.level+'!',THEME.accent2);}
-  if(G.level>=10)award('lvl10');
-  updateHUD();
+    if(G.mode==='zen'){stats.zenLines+=n;if(stats.zenLines>=100)award('zen');}
+  }
+  if(n===4){stats.tetrises++;award('tetris');}
+  if(ts){stats.tspins++;award('tspin');if(ts==='full'&&n===3)award('tst');}
+  stats.maxCombo=Math.max(stats.maxCombo,e.combo);
+  if(e.combo>=5)award('combo5');
+  if(e.combo>=10)award('combo10');
+  if(e.b2bCount>=3)award('b2b3');
+  if(E.score>=10000)award('s10k');
+  if(E.score>=100000)award('s100k');
+  saveStats();
 }
-function speedFor(lv){return Math.max(28,Math.pow(0.8-(lv-1)*0.007,lv-1)*1000);}
 function shakeBoard(){const el=$('#classicBoardWrap');el.classList.remove('shake');void el.offsetWidth;el.classList.add('shake');}
 
 function classicUpdate(dt){
-  if(G.state==='countdown'){G.countdownT+=dt;if(G.countdownT>=2050)spawn();updateFx(G,dt);return;}
-  if(G.state==='clearing'){
-    G.clearT+=dt;
-    if(G.clearT>=350){
-      for(const r of G.clearRows.slice().sort((a,b)=>a-b)){G.board.splice(r,1);G.board.unshift(Array(COLS).fill(0));}
-      G.clearRows=[];
-      /* Perfect Clear */
-      if(G.lastClearN>0&&G.board.every(row=>row.every(v=>!v))){
-        const pts=PC_TABLE[G.lastClearN]*G.level;
-        G.score+=pts;stats.pcs++;saveStats();
-        addFloater(G,'✨ PERFECT CLEAR! +'+fmt(pts),'#ffffff');
-        G.flashT=1;sfx.pc();vib([40,60,40,60,80]);
-        award('pc');updateHUD();
-      }
-      G.lastClearN=0;
-      if(G.mode==='sprint'&&G.lines>=40){sprintComplete();updateFx(G,dt);return;}
-      spawn();
-    }
-  }
-  if((G.state==='fall'||G.state==='clearing')&&G.mode!=='classic'){
-    if(G.mode==='sprint')G.elapsed+=dt;
-    else if(G.mode==='ultra'){
-      G.timeLeft-=dt;
-      if(G.timeLeft<=0){G.timeLeft=0;ultraEnd();updateFx(G,dt);return;}
-    }
-  }
-  if(G.state==='fall'&&G.cur){
-    if(keys.left||keys.right){
-      const dir=keys.right?1:-1;
-      G.dasAcc+=dt;
-      if(G.dasAcc>=150){G.arrAcc+=dt;while(G.arrAcc>=40){G.arrAcc-=40;tryMove(dir,0,false);}}
-    }else{G.dasAcc=0;G.arrAcc=0;}
-    if(keys.down){G.softAcc+=dt;while(G.softAcc>=40){G.softAcc-=40;softDrop();}}else G.softAcc=0;
-    if(G.state==='fall'&&G.cur){
-      const iv=G.mode==='sprint'?100:speedFor(G.level);
-      G.dropAcc+=dt;
-      while(G.dropAcc>=iv){G.dropAcc-=iv;if(!tryMove(0,1,true)){G.dropAcc=0;break;}}
-      if(grounded()){G.lockAcc+=dt;if(G.lockAcc>=500)lockPiece();}else G.lockAcc=0;
-    }
-  }
-  if(G.mode!=='classic')updateHUD();
+  if(E){E.update(dt);handleEvents();}
   updateFx(G,dt);
+  if(E&&(E.mode==='sprint'||E.mode==='ultra'||E.mode==='dig'||E.mode==='zen'))updateTimer();
 }
-function updateFx(obj,dt){
-  for(let i=obj.particles.length-1;i>=0;i--){
-    const p=obj.particles[i];p.t+=dt;
-    if(p.t>=p.life){obj.particles.splice(i,1);continue;}
+function updateFx(o,dt){
+  for(let i=o.particles.length-1;i>=0;i--){
+    const p=o.particles[i];p.t+=dt;
+    if(p.t>=p.life){o.particles.splice(i,1);continue;}
     p.x+=p.vx*dt;p.y+=p.vy*dt;p.vy+=0.0016*dt;
   }
-  for(let i=obj.floaters.length-1;i>=0;i--){
-    const f=obj.floaters[i];f.t+=dt;
-    if(f.t>=1000)obj.floaters.splice(i,1);
+  for(let i=o.floaters.length-1;i>=0;i--){
+    const f=o.floaters[i];f.t+=dt;
+    if(f.t>=1000)o.floaters.splice(i,1);
   }
-  if(obj.trails)for(let i=obj.trails.length-1;i>=0;i--){
-    obj.trails[i].t+=dt;if(obj.trails[i].t>=obj.trails[i].life)obj.trails.splice(i,1);
+  if(o.trails)for(let i=o.trails.length-1;i>=0;i--){
+    o.trails[i].t+=dt;if(o.trails[i].t>=o.trails[i].life)o.trails.splice(i,1);
   }
-  if(obj.lockFlash){obj.lockFlash.t+=dt;if(obj.lockFlash.t>=180)obj.lockFlash=null;}
-  if(obj.flashT>0)obj.flashT=Math.max(0,obj.flashT-dt/400);
+  if(o.lockFlash){o.lockFlash.t+=dt;if(o.lockFlash.t>=180)o.lockFlash=null;}
+  if(o.flashT>0)o.flashT=Math.max(0,o.flashT-dt/400);
 }
-function addFloater(obj,text,color){obj.floaters.push({text,color,t:0});}
+/* одновременные надписи (ТЕТРИС, КОМБО, PERFECT CLEAR) — столбиком, а не друг на друге */
+function addFloater(o,text,color){
+  const row=o.floaters.filter(f=>f.t<150).length;
+  o.floaters.push({text,color,t:0,row});
+}
 function spawnClearParticles(rows){
-  for(const r of rows)for(let x=0;x<COLS;x++){
-    const c=G.board[r][x];const col=THEME.pieces[c]||'#ffffff';
+  for(const r of rows)for(let x=0;x<E.cols;x++){
+    const col=cellColor(E.board[r][x]);
     for(let i=0;i<3;i++)G.particles.push({
-      x:x*CELL+16,y:(r-HIDDEN)*CELL+16,
+      x:x*CELL+16,y:(r-E.hidden)*CELL+16,
       vx:(Math.random()-0.5)*0.32,vy:(Math.random()-0.75)*0.32,
       t:0,life:550+Math.random()*350,color:col,s:3+Math.random()*4
     });
   }
 }
 
-/* ---------- отрисовка классики ---------- */
+/* ---------- отрисовка ---------- */
 function drawBlock(ctx,x,y,s,color){
   ctx.save();
   const r=s*0.2;
@@ -1081,11 +1629,11 @@ function drawBlock(ctx,x,y,s,color){
   ctx.restore();
 }
 function drawShape(ctx,m,px,py,type,ghost){
-  const color=THEME.pieces[type];
+  const color=cellColor(type),hid=E.hidden;
   for(let y=0;y<m.length;y++)for(let x=0;x<m[y].length;x++){
     if(!m[y][x])continue;
-    const sy=py+y;if(sy<HIDDEN)continue;
-    const X=(px+x)*CELL,Y=(sy-HIDDEN)*CELL;
+    const sy=py+y;if(sy<hid)continue;
+    const X=(px+x)*CELL,Y=(sy-hid)*CELL;
     if(ghost){
       ctx.fillStyle=alphaC(color,0.10);roundRect(ctx,X+3,Y+3,CELL-6,CELL-6,6);ctx.fill();
       ctx.strokeStyle=alphaC(color,0.55);ctx.lineWidth=2;roundRect(ctx,X+3,Y+3,CELL-6,CELL-6,6);ctx.stroke();
@@ -1099,59 +1647,83 @@ function classicDraw(ts){
     ctx.fillStyle=(x+y)%2?THEME.cellBg:'rgba(255,255,255,0.015)';
     roundRect(ctx,x*CELL+1.5,y*CELL+1.5,CELL-3,CELL-3,5);ctx.fill();
   }
-  let topFilled=TOTAL;
-  if(G.board)for(let y=0;y<TOTAL;y++){if(G.board[y].some(v=>v)){topFilled=y;break;}}
-  const danger=clamp(1-(topFilled-HIDDEN)/(ROWS*0.5),0,1);
-  if(danger>0&&G.board){
+  if(!E)return;
+  const hid=E.hidden,B=E.board;
+  let topFilled=E.total;
+  for(let y=0;y<E.total;y++){if(B[y].some(v=>v)){topFilled=y;break;}}
+  const danger=E.mode==='zen'?0:clamp(1-(topFilled-hid)/(ROWS*0.5),0,1);   // в «Дзене» без тревожной подсветки
+  if(danger>0){
     const a=(0.10+0.10*Math.abs(Math.sin((ts||0)*0.005)))*danger;
     const dg=ctx.createLinearGradient(0,0,0,H*0.45);
     dg.addColorStop(0,`rgba(255,60,80,${a})`);dg.addColorStop(1,'rgba(255,60,80,0)');
     ctx.fillStyle=dg;ctx.fillRect(0,0,W,H*0.45);
   }
-  const clearing=G.state==='clearing';
-  const sweepX=clearing?(G.clearT/350)*(W+CELL*2)-CELL:-1;
-  if(G.board)for(let y=HIDDEN;y<TOTAL;y++)for(let x=0;x<COLS;x++){
-    const t=G.board[y][x];if(!t)continue;
-    if(clearing&&G.clearRows.includes(y)&&(x+0.5)*CELL<sweepX)continue;
-    drawBlock(ctx,x*CELL,(y-HIDDEN)*CELL,CELL,THEME.pieces[t]);
+  const clearing=E.state==='clearing';
+  const sweepX=clearing?(E.clearT/TE.CLEAR_MS)*(W+CELL*2)-CELL:-1;
+  for(let y=hid;y<E.total;y++)for(let x=0;x<COLS;x++){
+    const t=B[y][x];if(!t)continue;
+    if(clearing&&E.clearRows.includes(y)&&(x+0.5)*CELL<sweepX)continue;
+    drawBlock(ctx,x*CELL,(y-hid)*CELL,CELL,cellColor(t));
   }
-  if(clearing){
-    const top=(Math.min(...G.clearRows)-HIDDEN)*CELL;
-    const bot=(Math.max(...G.clearRows)-HIDDEN+1)*CELL;
+  /* клетки, зафиксированные выше поля (по Guideline это ещё не проигрыш), — красная метка у верхнего края столбца */
+  for(let x=0;x<COLS;x++){
+    let over=false;for(let y=hid-4;y<hid;y++)if(y>=0&&B[y][x]){over=true;break;}
+    if(!over)continue;
+    const og=ctx.createLinearGradient(0,0,0,CELL*0.7);
+    og.addColorStop(0,'rgba(255,93,125,.95)');og.addColorStop(1,'rgba(255,93,125,0)');
+    ctx.fillStyle=og;ctx.fillRect(x*CELL+2,0,CELL-4,CELL*0.7);
+  }
+  if(clearing&&E.clearRows.length){
+    const top=(Math.min(...E.clearRows)-hid)*CELL;
+    const bot=(Math.max(...E.clearRows)-hid+1)*CELL;
     const bg=ctx.createLinearGradient(sweepX-CELL*1.6,0,sweepX,0);
     bg.addColorStop(0,'rgba(255,255,255,0)');bg.addColorStop(1,'rgba(255,255,255,0.95)');
     ctx.fillStyle=bg;ctx.fillRect(Math.max(0,sweepX-CELL*1.6),top,Math.min(W,CELL*1.6),bot-top);
   }
-  if(G.cur&&settings.ghost&&G.state==='fall'){
-    let gy=G.cur.y;while(!collide(G.cur.m,G.cur.x,gy+1))gy++;
-    if(gy!==G.cur.y)drawShape(ctx,G.cur.m,G.cur.x,gy,G.cur.type,true);
+  const c=E.cur;
+  if(c&&settings.ghost&&E.state==='fall'){
+    const gy=E.ghostY();
+    if(gy!==c.y)drawShape(ctx,c.m,c.x,gy,c.type,true);
   }
-  if(G.cur)drawShape(ctx,G.cur.m,G.cur.x,G.cur.y,G.cur.type,false);
+  if(c){
+    drawShape(ctx,c.m,c.x,c.y,c.type,false);
+    /* часть фигуры ещё над полем (при высокой стопке она может появиться целиком в строках 21–22) —
+       полоска её цвета у верхнего края в этих столбцах */
+    const col=cellColor(c.type);
+    for(let x=0;x<c.m[0].length;x++){
+      let above=false;for(let y=0;y<c.m.length;y++)if(c.m[y][x]&&c.y+y<hid){above=true;break;}
+      if(!above)continue;
+      const pg=ctx.createLinearGradient(0,0,0,CELL*0.45);
+      pg.addColorStop(0,alphaC(col,0.95));pg.addColorStop(1,alphaC(col,0));
+      ctx.fillStyle=pg;ctx.fillRect((c.x+x)*CELL+3,0,CELL-6,CELL*0.45);
+    }
+  }
   if(G.lockFlash){
     const a=0.55*(1-G.lockFlash.t/180);
     ctx.fillStyle=`rgba(255,255,255,${a})`;
     for(const cl of G.lockFlash.cells){
-      if(cl.y<HIDDEN)continue;
-      roundRect(ctx,cl.x*CELL+2,(cl.y-HIDDEN)*CELL+2,CELL-4,CELL-4,6);ctx.fill();
+      roundRect(ctx,cl.x*CELL+2,(cl.y-hid)*CELL+2,CELL-4,CELL-4,6);ctx.fill();
     }
   }
   for(const tr of G.trails){
     const a=0.35*(1-tr.t/tr.life);
     const gr=ctx.createLinearGradient(0,tr.y0,0,tr.y1);
     gr.addColorStop(0,alphaC(tr.color,0));gr.addColorStop(1,alphaC(tr.color,a));
-    ctx.fillStyle=gr;ctx.fillRect(tr.x-4,Math.max(0,tr.y0),8,tr.y1-tr.y0);
+    ctx.fillStyle=gr;ctx.fillRect(tr.x-4,Math.max(0,tr.y0),8,tr.y1-Math.max(0,tr.y0));
   }
   for(const p of G.particles){
     ctx.globalAlpha=Math.max(0,1-p.t/p.life);
     ctx.fillStyle=p.color;roundRect(ctx,p.x-p.s/2,p.y-p.s/2,p.s,p.s,2);ctx.fill();
   }
   ctx.globalAlpha=1;
+  ctx.textAlign='center';ctx.textBaseline='middle';
   for(const f of G.floaters){
     const k=f.t/1000;
+    const fs=Math.max(12,Math.min(22,W/(f.text.length*0.62)));   // длинная надпись («B2B T-SPIN DOUBLE! +1 800») ужимается по ширине поля
     ctx.globalAlpha=1-k;
-    ctx.font='700 22px "Russo One"';ctx.textAlign='center';ctx.textBaseline='middle';
+    ctx.font='400 '+fs.toFixed(1)+'px "Russo One"';
     ctx.shadowColor=f.color;ctx.shadowBlur=14;ctx.fillStyle=f.color;
-    ctx.fillText(f.text,W/2,H*0.42-k*46);
+    ctx.fillText(f.text,W/2,H*0.42-k*46+f.row*30);
     ctx.shadowBlur=0;
   }
   ctx.globalAlpha=1;
@@ -1159,148 +1731,163 @@ function classicDraw(ts){
   const vg=ctx.createRadialGradient(W/2,H/2,Math.min(W,H)*0.45,W/2,H/2,Math.max(W,H)*0.78);
   vg.addColorStop(0,'rgba(0,0,0,0)');vg.addColorStop(1,'rgba(0,0,0,0.30)');
   ctx.fillStyle=vg;ctx.fillRect(0,0,W,H);
-  if(G.state==='countdown'){
+  if(E.state==='countdown'){
     ctx.fillStyle='rgba(0,0,0,0.45)';ctx.fillRect(0,0,W,H);
-    const n=3-Math.floor(G.countdownT/550);
+    const n=3-Math.floor(E.countT/550);
     ctx.font='400 84px "Russo One"';ctx.textAlign='center';ctx.textBaseline='middle';
     ctx.shadowColor=THEME.accent;ctx.shadowBlur=34;ctx.fillStyle=THEME.accent;
     ctx.fillText(n>0?n:'GO!',W/2,H/2);ctx.shadowBlur=0;
+    if(E.mode==='marathon'||E.mode==='classic'){
+      ctx.font='400 18px "Russo One"';ctx.fillStyle=THEME.text;ctx.globalAlpha=.85;
+      ctx.fillText('УРОВЕНЬ '+E.level,W/2,H/2+70);ctx.globalAlpha=1;
+    }
   }
 }
 function drawMini(ctx,type,cx,cy,maxW,maxH){
-  const m=TETRO[type];let minX=9,maxX=-1,minY=9,maxY=-1;
+  const m=TE.SHAPES[type][0];let minX=9,maxX=-1,minY=9,maxY=-1;
   for(let y=0;y<m.length;y++)for(let x=0;x<m[y].length;x++)if(m[y][x]){minX=Math.min(minX,x);maxX=Math.max(maxX,x);minY=Math.min(minY,y);maxY=Math.max(maxY,y);}
   const w=maxX-minX+1,h=maxY-minY+1;
   const cs=Math.min(maxW/w,maxH/h,22);
   const ox=cx-w*cs/2,oy=cy-h*cs/2;
-  for(let y=minY;y<=maxY;y++)for(let x=minX;x<=maxX;x++)if(m[y][x])drawBlock(ctx,ox+(x-minX)*cs,oy+(y-minY)*cs,cs,THEME.pieces[type]);
+  for(let y=minY;y<=maxY;y++)for(let x=minX;x<=maxX;x++)if(m[y][x])drawBlock(ctx,ox+(x-minX)*cs,oy+(y-minY)*cs,cs,cellColor(type));
 }
 function drawHold(){
   hctx.clearRect(0,0,holdCv._w,holdCv._h);
-  if(G.hold)drawMini(hctx,G.hold,holdCv._w/2,holdCv._h/2,holdCv._w-14,holdCv._h-14);
+  if(!E||!E.holdType)return;
+  hctx.globalAlpha=E.canHold?1:0.35;   // после удержания — серая, пока фигура не зафиксируется
+  drawMini(hctx,E.holdType,holdCv._w/2,holdCv._h/2,holdCv._w-14,holdCv._h-14);
+  hctx.globalAlpha=1;
 }
 function sizeNextCanvas(){
   const isMobile=isCompact();
-  nctx=setupCanvas(nextCv,isMobile?52:112,isMobile?160:238);
+  nctx=setupCanvas(nextCv,isMobile?52:112,isMobile?196:300);
 }
+/* 5 следующих фигур: первая крупнее и ярче */
 function drawNext(){
   if(!nctx)return;
-  nctx.clearRect(0,0,nextCv._w,nextCv._h);
-  const horiz=nextCv._w>nextCv._h;
-  for(let i=0;i<3;i++){
-    const t=G.queue[i];if(!t)continue;
-    const cx=horiz?(i+0.5)*(nextCv._w/3):nextCv._w/2;
-    const cy=horiz?nextCv._h/2:(i+0.5)*(nextCv._h/3);
-    const mw=horiz?nextCv._w/3-10:nextCv._w-10;
-    const mh=horiz?nextCv._h-10:nextCv._h/3-10;
-    nctx.globalAlpha=i===0?1:0.65;
-    drawMini(nctx,t,cx,cy,mw,mh);
+  const W=nextCv._w,H=nextCv._h;
+  nctx.clearRect(0,0,W,H);
+  if(!E)return;
+  const first=H*0.25,rest=(H-first)/4;
+  for(let i=0;i<5;i++){
+    const t=E.queue[i];if(!t)continue;
+    const slotH=i?rest:first,top=i?first+(i-1)*rest:0;
+    nctx.globalAlpha=i===0?1:0.62;
+    drawMini(nctx,t,W/2,top+slotH/2,W-(i?16:10),slotH-(i?10:8));
   }
   nctx.globalAlpha=1;
 }
 function popEl(el){if(!el)return;el.classList.remove('pop');void el.offsetWidth;el.classList.add('pop');}
-function modeBest(){return G.mode==='ultra'?best.ultra:best.classic;}
+function modeBestText(mode){
+  switch(mode){
+    case 'sprint':return best.sprint?fmtTimeMs(best.sprint):'—';
+    case 'dig':return best.dig?fmtTimeMs(best.dig):'—';
+    default:return fmt(best[mode]||0);
+  }
+}
+function updateTimer(){
+  if(!E)return;
+  const tw=$('#cTimer');
+  if(E.mode==='ultra')tw.textContent=fmtTime(E.timeLeft+999);   // обратный отсчёт: 0:00 — когда время вышло
+  else if(E.mode==='zen')tw.textContent=fmtTime(E.time);
+  else tw.textContent=fmtTimeMs(E.finish?E.endTime:E.time);
+  if(E.mode==='ultra')$('#cProg').style.width=(E.timeLeft/120000*100)+'%';
+}
 function updateHUD(){
-  const sc=$('#cScore');
-  const scTop=$('#cScoreTop');
-  const val=fmt(G.score);
-  if(sc&&sc.textContent!==val){sc.textContent=val;popEl(sc);}
-  if(scTop&&scTop.textContent!==val){scTop.textContent=val;}
-  $('#cLevel').textContent=G.level;
-  $('#cLines').textContent=G.mode==='sprint'?G.lines+'/40':G.lines;
-  $('#cBest').textContent=G.mode==='sprint'?(best.sprint?fmtTimeMs(best.sprint):'—'):fmt(modeBest());
-  const tw=$('#cTimerWrap');
-  if(G.mode==='sprint'){tw.hidden=false;$('#cTimerLabel').textContent='Время';$('#cTimer').textContent=fmtTimeMs(G.elapsed);
-    $('#cProgLabel').textContent='Линии '+G.lines+'/40';$('#cProg').style.width=Math.min(100,G.lines/40*100)+'%';}
-  else if(G.mode==='ultra'){tw.hidden=false;$('#cTimerLabel').textContent='Осталось';$('#cTimer').textContent=fmtTime(G.timeLeft);
-    $('#cProgLabel').textContent='Время';$('#cProg').style.width=(G.timeLeft/120000*100)+'%';}
-  else{tw.hidden=true;$('#cProgLabel').textContent='До уровня';$('#cProg').style.width=((G.lines%10)*10)+'%';}
-  $('#cB2B').hidden=!G.b2b;
+  if(!E)return;
+  const m=E.mode;
+  const sc=$('#cScore'),scTop=$('#cScoreTop'),val=fmt(E.score);
+  if(sc.textContent!==val){sc.textContent=val;popEl(sc);}
+  if(scTop.textContent!==val)scTop.textContent=val;
+  $('#cLevel').textContent=E.level;
+  $('#cLevelWrap').hidden=m==='sprint'||m==='dig'||m==='zen';   // там уровень не меняется
+  $('#cLines').textContent=m==='sprint'?E.lines+'/40':m==='marathon'?E.lines+'/150':E.lines;
+  $('#cBest').textContent=modeBestText(m);
+  const gw=$('#cGarbageWrap');gw.hidden=m!=='dig';
+  if(m==='dig')$('#cGarbage').textContent=E.garbageLeft;
+  const timed=m==='sprint'||m==='ultra'||m==='dig'||m==='zen';
+  $('#cTimerWrap').hidden=!timed;
+  $('#cTimerLabel').textContent=m==='ultra'?'Осталось':'Время';
+  $('#cProgWrap').hidden=m==='zen';
+  const pl=$('#cProgLabel'),pb=$('#cProg');
+  if(m==='sprint'){pl.textContent='Линии';pb.style.width=Math.min(100,E.lines/40*100)+'%';}
+  else if(m==='ultra'){pl.textContent='Время';}
+  else if(m==='dig'){pl.textContent='Убрано';pb.style.width=((E.garbageRows-E.garbageLeft)/Math.max(1,E.garbageRows)*100)+'%';}
+  else if(m==='marathon'&&E.level>=15){pl.textContent='До финиша';pb.style.width=Math.min(100,E.lines/150*100)+'%';}
+  else{pl.textContent='До уровня';pb.style.width=((E.lines%10)*10)+'%';}
+  if(timed)updateTimer();
+  $('#cB2B').hidden=!E.b2b;
   const cp=$('#cComboPanel');
-  if(G.combo>0){cp.hidden=false;$('#cCombo').textContent=G.combo;}else cp.hidden=true;
+  if(E.combo>0){cp.hidden=false;$('#cCombo').textContent=E.combo;}else cp.hidden=true;
 }
-function startClassic(mode){
-  mode=mode||'classic';
-  G.mode=mode;
-  G.board=Array.from({length:TOTAL},()=>Array(COLS).fill(0));
-  G.hold=null;G.bag=[];G.queue=[];ensureQueue();
-  G.score=0;G.lines=0;G.level=1;G.combo=-1;G.b2b=false;G.b2bCount=0;
-  G.elapsed=0;G.timeLeft=120000;G.lastClearN=0;
-  G.particles=[];G.floaters=[];G.trails=[];G.lockFlash=null;G.flashT=0;
-  G.paused=false;G.state='countdown';G.countdownT=0;G.startTs=performance.now();
-  /* фигура появляется после отсчёта 3-2-1 (classicUpdate → spawn). Раньше здесь сразу вызывался spawnType,
-     он ставил state='fall' — отсчёт никогда не показывался */
-  G.cur=null;G.canHold=true;G.clearRows=[];G.clearT=0;G.dropAcc=0;G.lockAcc=0;G.dasAcc=0;G.arrAcc=0;G.softAcc=0;
-  keys.left=keys.right=keys.down=false;swipe=null;
-  $('#classicTitle').textContent=mode==='sprint'?'СПРИНТ · 40 ЛИНИЙ':mode==='ultra'?'УЛЬТРА · 2 МИНУТЫ':'КЛАССИЧЕСКИЙ ТЕТРИС';
-  $('#pauseOverlay').hidden=true;hideOver();
-  showScreen('classic');updateHUD();drawNext();drawHold();
-  stats.games++;
-  award('first_game');if(stats.games>=10)award('games10');if(stats.games>=50)award('games50');
-  saveStats();
-  music.stop();music.start(G.level);
+
+/* ---------- конец партии ---------- */
+const REASONS={blockout:'Новой фигуре негде появиться',lockout:'Фигура зафиксировалась выше поля'};
+function finishGame(kind,reason,show){
+  if(!E||G.recorded)return;
+  G.recorded=true;
+  music.stop();padReleaseAll();E.releaseAll();
+  const mode=E.mode,score=E.score,won=kind==='won';
+  const dur=Math.round(E.time/1000);   // только время игры: без паузы и отсчёта (раньше считалось по часам)
+  stats.score+=score;stats.playTime+=dur;
+  const h={mode,score,lines:E.lines,level:E.level,dur};
+  if(E.cols!==10||E.rows!==20)h.field=E.cols+'×'+E.rows;
+  let rec=false;
+  if(mode==='sprint'||mode==='dig'){
+    const key=mode,t=won?E.endTime:E.time;
+    h.time=t;
+    if(won){
+      rec=!best[key]||t<best[key];if(rec)best[key]=t;
+      if(mode==='sprint'){stats.bestSprint=stats.bestSprint?Math.min(stats.bestSprint,t):t;award('sprint');}
+      else{stats.bestDig=stats.bestDig?Math.min(stats.bestDig,t):t;stats.digWins++;award('dig');}
+    }else h.failed=true;
+    if(mode==='dig')h.left=E.garbageLeft;
+  }else{
+    rec=score>(best[mode]||0);if(rec)best[mode]=score;
+    if(mode==='marathon'||mode==='classic')h.start=E.startLevel;
+    if(mode==='marathon'){h.won=won;if(won){stats.marathonWins++;award('marathon');}}
+    if(mode==='ultra'){stats.ultraBest=Math.max(stats.ultraBest,best.ultra);if(score>=50000)award('ultra50k');}
+  }
+  saveBest();saveStats();
+  if(mode!=='zen'||E.pieces>0)addHistory(h);   // пустую сессию «Дзена» не записываем
+  if(won||(mode==='ultra'&&reason==='time')){sfx.win();vib([40,40,40,40,120]);}
+  else if(mode!=='zen'){sfx.over();vib([80,60,80]);}
+  if(show)showOver(mode,kind,reason,rec);
+  refreshMenuStats();
 }
-function finishGameCommon(dur){
-  stats.score+=G.score;stats.playTime+=dur;saveStats();
-}
-function gameOver(){
-  if(G.state==='over')return;
-  G.state='over';G.cur=null;music.stop();sfx.over();vib([80,60,80]);
-  const dur=Math.round((performance.now()-G.startTs)/1000);
-  finishGameCommon(dur);
-  let kind,rec=false;
-  const h={mode:G.mode,score:G.score,lines:G.lines,level:G.level,dur};
-  if(G.mode==='sprint'){kind='sprintfail';h.time=G.elapsed;h.failed=true;}
-  else if(G.mode==='ultra'){kind='ultra';rec=G.score>best.ultra;if(rec){best.ultra=G.score;saveBest();}
-    stats.ultraBest=Math.max(stats.ultraBest,best.ultra);saveStats();if(G.score>=50000)award('ultra50k');}
-  else{kind='classic';rec=G.score>best.classic;if(rec){best.classic=G.score;saveBest();}}
-  addHistory(h);
-  showOver(kind,rec);
-}
-function sprintComplete(){
-  G.state='over';music.stop();sfx.win();vib([40,40,40,40,120]);
-  const t=G.elapsed;
-  const dur=Math.round(t/1000);
-  finishGameCommon(dur);
-  const rec=!best.sprint||t<best.sprint;
-  if(rec){best.sprint=t;saveBest();}
-  stats.bestSprint=best.sprint;saveStats();
-  award('sprint');
-  addHistory({mode:'sprint',score:G.score,time:t,lines:G.lines,level:G.level,dur});
-  showOver('sprint',rec);
-}
-function ultraEnd(){
-  G.state='over';music.stop();sfx.over();
-  const dur=120;
-  finishGameCommon(dur);
-  const rec=G.score>best.ultra;
-  if(rec){best.ultra=G.score;saveBest();}
-  stats.ultraBest=best.ultra;saveStats();
-  if(G.score>=50000)award('ultra50k');
-  addHistory({mode:'ultra',score:G.score,lines:G.lines,level:G.level,dur});
-  showOver('ultra',rec);
+/* «Дзен» не заканчивается сам: сессию завершает игрок (кнопка в паузе), а «Заново» и «В меню» записывают её тихо */
+function endZen(show){
+  if(!E||E.mode!=='zen'||G.recorded)return;
+  E.state='over';E.finish={kind:'over',reason:'end'};E.endTime=E.time;
+  finishGame('over','end',show);
 }
 function togglePause(force){
-  if(G.state==='over'||G.state==='idle')return;
+  if(!E||E.state==='over'||E.state==='won')return;
   G.paused=force!==undefined?force:!G.paused;
+  $('#btnPauseFinish').hidden=E.mode!=='zen';
   $('#pauseOverlay').hidden=!G.paused;
-  if(G.paused){music.stop();keys.left=keys.right=keys.down=false;swipe=null;}else music.start(G.level);
+  if(G.paused){music.stop();E.releaseAll();swipe=null;padReleaseAll();hideTopToast();}else music.start(E.level,E.mode==='zen');
 }
 /* Пауза — общая для классики и Block Blast (у Blast нет таймеров, пауза = меню с «В меню») */
 function pauseOpen(){return !$('#pauseOverlay').hidden;}
 function openPause(){
   if(currentScreen==='classic'){togglePause(true);return;}
-  if(currentScreen==='blast'&&blast.board&&!blast.over){cancelBlastDrag();$('#pauseOverlay').hidden=false;}
+  if(currentScreen==='blast'&&blast.board&&!blast.over){cancelBlastDrag();$('#btnPauseFinish').hidden=true;$('#pauseOverlay').hidden=false;hideTopToast();}
 }
 function resumeGame(){
   if(currentScreen==='classic')togglePause(false);
   else $('#pauseOverlay').hidden=true;
 }
+function restartGame(){
+  if(currentScreen==='blast'){startBlast();return;}
+  if(E&&E.mode==='zen')endZen(false);
+  startClassic(G.mode);
+}
 /* Выход в меню. Раньше «В меню» вызывал togglePause(false) → music.start(): «Коробейники» играли в меню */
 function quitToMenu(){
+  if(currentScreen==='classic'&&E&&E.mode==='zen')endZen(false);
   music.stop();
-  if(G.state!=='over')G.state='idle';
-  G.paused=false;G.cur=null;keys.left=keys.right=keys.down=false;swipe=null;
+  G.paused=false;E=null;swipe=null;padReleaseAll();
   cancelBlastDrag();
   $('#pauseOverlay').hidden=true;hideOver();
   showScreen('menu');refreshMenuStats();
@@ -1328,7 +1915,7 @@ const BSHAPES=[
   {m:[[0,1,1],[1,1,0]],w:2},{m:[[1,1,0],[0,1,1]],w:2},
   {m:[[1,0],[1,1],[0,1]],w:2},{m:[[0,1],[1,1],[1,0]],w:2}
 ];
-const blast={board:null,pieces:[],score:0,lines:0,combo:0,maxCombo:0,over:false,drag:null,particles:[],floaters:[],startTs:0};
+const blast={board:null,pieces:[],score:0,lines:0,combo:0,maxCombo:0,over:false,drag:null,particles:[],floaters:[],startTs:0,playMs:0};
 const BTOT=BSHAPES.reduce((s,x)=>s+x.w,0);
 function pickShape(){let r=Math.random()*BTOT;for(const s of BSHAPES){if((r-=s.w)<0)return s.m.map(row=>row.slice());}return BSHAPES[0].m.map(r2=>r2.slice());}
 function newPieces(){
@@ -1399,7 +1986,10 @@ function drawTray(){
     for(let y=0;y<h;y++)for(let x=0;x<w;x++)if(m[y][x])drawBlock(ctx,ox+x*cs,oy+y*cs,cs,pal[p.ci]);
   });
 }
-function blastUpdate(dt){updateFx(blast,dt);}
+function blastUpdate(dt){
+  updateFx(blast,dt);
+  if(blast.board&&!blast.over&&!pauseOpen())blast.playMs+=dt;   // время партии — без паузы
+}
 function blastDraw(){
   const ctx=bctx,W=blastCv._w,H=blastCv._h;
   const pal=palette();
@@ -1431,7 +2021,7 @@ function blastDraw(){
     ctx.globalAlpha=1-k;
     ctx.font='400 24px "Russo One"';ctx.textAlign='center';ctx.textBaseline='middle';
     ctx.shadowColor=f.color;ctx.shadowBlur=14;ctx.fillStyle=f.color;
-    ctx.fillText(f.text,W/2,H*0.4-k*40);
+    ctx.fillText(f.text,W/2,H*0.4-k*40+(f.row||0)*30);
     ctx.shadowBlur=0;
   }
   ctx.globalAlpha=1;
@@ -1493,46 +2083,63 @@ function updateBlastHUD(){
   if(blast.combo>=2){cw.hidden=false;$('#bCombo').textContent='×'+blast.combo;}else cw.hidden=true;
 }
 function startBlast(){
-  music.stop();
+  music.stop();E=null;
+  lastMode='blast';
   blast.board=Array.from({length:BS},()=>Array(BS).fill(null));
   blast.score=0;blast.lines=0;blast.combo=0;blast.maxCombo=0;blast.over=false;
-  blast.particles=[];blast.floaters=[];blast.drag=null;blast.startTs=performance.now();
+  blast.particles=[];blast.floaters=[];blast.drag=null;blast.startTs=performance.now();blast.playMs=0;
   stats.games++;award('first_game');if(stats.games>=10)award('games10');if(stats.games>=50)award('games50');
   saveStats();
-  $('#pauseOverlay').hidden=true;hideOver();showScreen('blast');
+  $('#pauseOverlay').hidden=true;hideOver();showScreen('blast');sessionAch=[];
   newPieces();updateBlastHUD();
 }
 function endBlast(){
   blast.over=true;sfx.over();vib([80,60,80]);
-  const dur=Math.round((performance.now()-blast.startTs)/1000);
+  const dur=Math.round(blast.playMs/1000);
   stats.score+=blast.score;stats.playTime+=dur;saveStats();
   const rec=blast.score>best.blast;
   if(rec){best.blast=blast.score;saveBest();}
   addHistory({mode:'blast',score:blast.score,lines:blast.lines,combo:blast.maxCombo,dur});
-  showOver('blast',rec);
+  showOver('blast','over','',rec);
 }
 
 /* ==================== ОВЕРЛЕИ ==================== */
 function hideOver(){$('#overOverlay').hidden=true;}
-function showOver(kind,rec){
-  lastMode=kind==='blast'?'blast':(kind==='sprintfail'?'sprint':kind);
-  const titles={classic:'ИГРА ОКОНЧЕНА',sprint:'СПРИНТ ЗАВЕРШЁН! 🏃',sprintfail:'СПРИНТ ПРОВАЛЕН',ultra:'ВРЕМЯ ВЫШЛО! ⏱️',blast:'НЕТ МЕСТА ДЛЯ ФИГУР!'};
-  $('#overTitle').textContent=titles[kind]||'ИГРА ОКОНЧЕНА';
+function showOver(mode,kind,reason,rec){
+  lastMode=mode;
+  const won=kind==='won';
+  let title='ИГРА ОКОНЧЕНА';
+  if(mode==='blast')title='НЕТ МЕСТА ДЛЯ ФИГУР!';
+  else if(mode==='marathon'&&won)title='МАРАФОН ПРОЙДЕН! 🏁';
+  else if(mode==='sprint')title=won?'СПРИНТ ЗАВЕРШЁН! 🏃':'СПРИНТ ПРОВАЛЕН';
+  else if(mode==='dig')title=won?'ПОЛЕ РАСЧИЩЕНО! ⛏️':'КОПАТЕЛЬ ПРОВАЛЕН';
+  else if(mode==='ultra'&&reason==='time')title='ВРЕМЯ ВЫШЛО! ⏱️';   // раньше так называлась и обычная потеря в Ультре
+  else if(mode==='zen')title='СЕССИЯ ЗАВЕРШЕНА 🧘';
+  const h2=$('#overTitle');h2.textContent=title;
+  h2.classList.toggle('win',won||(mode==='ultra'&&reason==='time')||mode==='zen');
+  const rs=$('#overReason');rs.hidden=!REASONS[reason];rs.textContent=REASONS[reason]||'';
   $('#overNewBest').hidden=!rec;
+  const row=(k,v)=>`<div><span>${k}</span><b>${v}</b></div>`;
   let html='';
-  if(kind==='blast'){
-    html=`<div><span>Очки</span><b>${fmt(blast.score)}</b></div><div><span>Линии</span><b>${blast.lines}</b></div><div><span>Макс. комбо</span><b>×${blast.maxCombo}</b></div>`;
-  }else if(kind==='sprint'||kind==='sprintfail'){
-    html=`<div><span>Время (40 линий)</span><b>${fmtTimeMs(G.elapsed)}</b></div><div><span>Лучшее время</span><b>${best.sprint?fmtTimeMs(best.sprint):'—'}</b></div><div><span>Очки</span><b>${fmt(G.score)}</b></div><div><span>Линии</span><b>${G.lines}/40</b></div>`;
-  }else if(kind==='ultra'){
-    html=`<div><span>Очки</span><b>${fmt(G.score)}</b></div><div><span>Линии</span><b>${G.lines}</b></div><div><span>Уровень</span><b>${G.level}</b></div><div><span>Рекорд Ультры</span><b>${fmt(best.ultra)}</b></div>`;
+  if(mode==='blast'){
+    html=row('Очки',fmt(blast.score))+row('Линии',blast.lines)+row('Макс. комбо','×'+blast.maxCombo);
+  }else if(mode==='sprint'){
+    html=row(won?'Время (40 линий)':'Время',fmtTimeMs(won?E.endTime:E.time))+row('Лучшее время',best.sprint?fmtTimeMs(best.sprint):'—')+row('Очки',fmt(E.score))+row('Линии',E.lines+'/40');
+  }else if(mode==='dig'){
+    html=row('Время',fmtTimeMs(won?E.endTime:E.time))+row('Лучшее время',best.dig?fmtTimeMs(best.dig):'—')+row('Мусор убран',(E.garbageRows-E.garbageLeft)+' / '+E.garbageRows)+row('Очки',fmt(E.score));
+  }else if(mode==='ultra'){
+    html=row('Очки',fmt(E.score))+row('Линии',E.lines)+row('Уровень',E.level)+row('Рекорд Ультры',fmt(best.ultra));
+  }else if(mode==='zen'){
+    html=row('Очки',fmt(E.score))+row('Линии',E.lines)+row('Время',fmtTime(E.time))+row('Рекорд Дзена',fmt(best.zen));
   }else{
-    const dur=Math.round((performance.now()-G.startTs)/1000);
-    const mm=Math.floor(dur/60),ss=String(dur%60).padStart(2,'0');
-    html=`<div><span>Очки</span><b>${fmt(G.score)}</b></div><div><span>Уровень</span><b>${G.level}</b></div><div><span>Линии</span><b>${G.lines}</b></div><div><span>Время</span><b>${mm}:${ss}</b></div>`;
+    html=row('Очки',fmt(E.score))+row('Уровень',E.level+(E.startLevel>1&&E.level!==E.startLevel?' (старт '+E.startLevel+')':''))+row('Линии',mode==='marathon'?E.lines+'/150':E.lines)+row('Время',fmtTime(E.time));
+    if(E.tetrises||E.tspins)html+=row('Тетрисы · T-Spin',E.tetrises+' · '+E.tspins);
   }
   $('#overStats').innerHTML=html;
+  const oa=$('#overAch');oa.hidden=!sessionAch.length;
+  oa.textContent=sessionAch.length?(sessionAch.length>1?'🏅 Новые достижения: ':'🏅 Новое достижение: ')+sessionAch.map(x=>x.replace(/^\S+\s/,'')).join(', '):'';
   $('#overOverlay').hidden=false;
+  hideTopToast();   // о достижениях — строкой в окне
 }
 
 /* ==================== ИСТОРИЯ ==================== */
@@ -1547,28 +2154,41 @@ function renderHistory(){
   if(!history.length){list.innerHTML='<p class="empty">Пока нет сохранённых игр. Сыграйте первую! 🎮</p>';return;}
   /* все поля — через num()/esc(): историю можно импортировать из файла, строки не должны попадать в разметку */
   list.innerHTML=history.slice(0,50).map(h=>{
-    h=h&&typeof h==='object'?h:{};
+    h=obj(h);
     const d=new Date(h.date);
     const ds=isNaN(d)?'':d.toLocaleDateString('ru-RU',{day:'2-digit',month:'2-digit',year:'2-digit'})+' '+d.toLocaleTimeString('ru-RU',{hour:'2-digit',minute:'2-digit'});
-    const modes={classic:'🎮 Тетрис',sprint:'🏃 Спринт',ultra:'⏱️ Ультра',blast:'🧩 Blast'};
     const score=fmt(num(h.score)),lines=num(h.lines);
+    const info=MODE_INFO[h.mode];
     let scoreStr,extra;
     if(h.mode==='sprint'){
       if(h.failed){scoreStr=lines+'/40';extra=`не завершён • ${fmtTimeMs(num(h.time))} • ${score} очков`;}
       else{scoreStr=fmtTimeMs(num(h.time));extra=`40 линий • ${score} очков`;}
+    }else if(h.mode==='dig'){
+      if(h.failed){scoreStr='—';extra=`не расчищен • осталось ${num(h.left)} • ${fmtTimeMs(num(h.time))}`;}
+      else{scoreStr=fmtTimeMs(num(h.time));extra=`мусор расчищен • линии ${lines} • ${score} очков`;}
+    }else if(h.mode==='blast'){scoreStr=score;extra=`комбо ×${num(h.combo)} • линии ${lines}`;}
+    else if(h.mode==='zen'){scoreStr=score;extra=`линии ${lines}`;}
+    else{
+      scoreStr=score;extra=`уровень ${num(h.level,1)||1} • линии ${lines}`;
+      if(h.mode==='marathon')extra=(h.won?'пройден • ':'')+extra;
+      if(num(h.start)>1)extra+=` • старт с ${num(h.start)}`;
     }
-    else if(h.mode==='blast'){scoreStr=score;extra=`комбо ×${num(h.combo)} • линии ${lines}`;}
-    else{scoreStr=score;extra=`уровень ${num(h.level,1)||1} • линии ${lines}`;}
-    return `<div class="hist-item"><div class="hist-mode">${esc(modes[h.mode]||h.mode||'—')}</div><div class="hist-score">${esc(scoreStr)}</div><div class="hist-meta">${esc(extra)} • ${num(h.dur)} с${ds?' • '+esc(ds):''}</div></div>`;
+    if(h.field)extra+=' • поле '+h.field;
+    return `<div class="hist-item"><div class="hist-mode">${esc(info?info.hist:(h.mode||'—'))}</div><div class="hist-score">${esc(scoreStr)}</div><div class="hist-meta">${esc(extra)} • ${num(h.dur)} с${ds?' • '+esc(ds):''}</div></div>`;
   }).join('');
 }
 function refreshMenuStats(){
-  $('#menuBestClassic').textContent='Рекорд: '+fmt(best.classic);
+  const v=settings.marathon==='endless'?'classic':'marathon';
+  $('#menuBestMarathon').textContent=(v==='classic'?'Без конца':'150 линий')+' · Рекорд: '+fmt(best[v]);
   $('#menuBestSprint').textContent='Лучшее время: '+(best.sprint?fmtTimeMs(best.sprint):'—');
   $('#menuBestUltra').textContent='Рекорд: '+fmt(best.ultra);
+  $('#menuBestDig').textContent=best.dig?'Лучшее: '+fmtTimeMs(best.dig):'10 линий мусора';
+  $('#menuBestZen').textContent=stats.zenLines?'Линий: '+fmt(stats.zenLines):'Без проигрыша';
   $('#menuBestBlast').textContent='Рекорд: '+fmt(best.blast);
   /* счётчики из stats (как в окне «Статистика»): история хранит только 100 последних игр и упиралась в 100 */
   $('#menuStats').textContent=`Сыграно игр: ${fmt(stats.games)} • Суммарно очков: ${fmt(stats.score)} • Достижений: ${Object.keys(unlocked).length}/${ACHIEVEMENTS.length}`;
+  $$('#segMarathon button').forEach(b=>b.classList.toggle('active',b.dataset.v===settings.marathon));
+  $('#stLevel b').textContent=settings.startLevel;
 }
 
 /* ==================== НАСТРОЙКИ ==================== */
@@ -1582,10 +2202,17 @@ function renderThemes(){
   grid.querySelectorAll('.theme-card').forEach(b=>b.addEventListener('click',()=>{applyTheme(b.dataset.theme);renderThemes();drawHold();drawNext();if(blast.board)drawTray();sfx.click();}));
 }
 function setStepper(id,val){$(id+' b').textContent=val;}
+const msText=f=>Math.round(f*FRAME_MS)+' мс';
+const sdfText=v=>v?'×'+v:'∞';
 function refreshSettingsUI(){
   setStepper('#stW',settings.fieldW);
   setStepper('#stH',settings.fieldH);
   setStepper('#stB',settings.blastSize);
+  setStepper('#stDas',msText(settings.das));
+  setStepper('#stArr',settings.arr?msText(settings.arr):'0 мс');
+  setStepper('#stSdf',sdfText(settings.sdf));
+  $('#opt180').checked=settings.rot180;
+  $('#optPad').checked=settings.pad;
   $('#optScale').value=Math.round(settings.scale*100);
   $('#scaleVal').textContent=Math.round(settings.scale*100)+'%';
   $('#optSound').checked=settings.sound;
@@ -1602,14 +2229,28 @@ function wireStepper(id,key,min,max){
   btns[0].addEventListener('click',()=>{settings[key]=clamp(settings[key]-1,min,max);setStepper(id,settings[key]);onFieldSizeChange();});
   btns[1].addEventListener('click',()=>{settings[key]=clamp(settings[key]+1,min,max);setStepper(id,settings[key]);onFieldSizeChange();});
 }
+/* степпер со своим набором значений (DAS/ARR в кадрах, мягкий сброс — по списку) */
+function wireValueStepper(id,key,values,text,onChange){
+  const btns=$(id).querySelectorAll('button');
+  const step=d=>{
+    let i=values.indexOf(settings[key]);if(i<0)i=values.indexOf(DEF_SETTINGS[key]);
+    i=clamp(i+d,0,values.length-1);settings[key]=values[i];
+    setStepper(id,text(settings[key]));saveSettings();onChange&&onChange();sfx.click();
+  };
+  btns[0].addEventListener('click',()=>step(-1));
+  btns[1].addEventListener('click',()=>step(1));
+}
 /* Размер поля поменялся (настройки, «Полный сброс», импорт): идущую партию начинаем заново,
    но оставляем на паузе — настройки открыты поверх паузы, а раньше новая партия шла под окном настроек */
 function applyFieldSize(){
   const prevC=COLS+'x'+ROWS,prevB=BS;
   applyFieldSizeSettings();
   applyBoardGeometry();
-  if(currentScreen==='classic'&&G.state!=='idle'&&G.state!=='over'&&prevC!==COLS+'x'+ROWS){startClassic(G.mode);togglePause(true);}
-  else if(currentScreen==='blast'&&blast.board&&!blast.over&&prevB!==BS){startBlast();$('#pauseOverlay').hidden=false;}
+  if(currentScreen==='classic'&&E&&E.state!=='over'&&E.state!=='won'&&prevC!==COLS+'x'+ROWS){
+    if(E.mode==='zen')endZen(false);
+    startClassic(G.mode);togglePause(true);
+  }
+  else if(currentScreen==='blast'&&blast.board&&!blast.over&&prevB!==BS){startBlast();$('#btnPauseFinish').hidden=true;$('#pauseOverlay').hidden=false;}
 }
 function onFieldSizeChange(){
   saveSettings();
@@ -1617,10 +2258,10 @@ function onFieldSizeChange(){
 }
 function applyBoardGeometry(){
   const isMobile=isCompact();
-  pctx=setupCanvas(playCv,COLS*CELL,ROWS*CELL,effectiveScale(COLS,ROWS,CELL,'classic'));
-  bctx=setupCanvas(blastCv,BS*BCELL,BS*BCELL,effectiveScale(BS,BS,BCELL,'blast'));
-  setupCanvas(holdCv,isMobile?52:112,isMobile?52:76);
+  hctx=setupCanvas(holdCv,isMobile?52:112,isMobile?52:76);
   sizeNextCanvas();
+  pctx=setupCanvas(playCv,COLS*CELL,ROWS*CELL,classicScale());
+  bctx=setupCanvas(blastCv,BS*BCELL,BS*BCELL,effectiveScale(BS,BS,BCELL));
   drawHold();drawNext();   /* setupCanvas очищает канвас — после поворота экрана HOLD/NEXT были пустыми */
 }
 function storageSize(){
@@ -1631,14 +2272,14 @@ function storageSize(){
   return t;
 }
 function updateStorageInfo(){
-  $('#storageInfo').textContent=`Занято в кэше: ${(storageSize()/1024).toFixed(1)} КБ • Игр: ${history.length} • Достижений: ${Object.keys(unlocked).length}/${ACHIEVEMENTS.length} • Рекорды: Классика ${fmt(best.classic)} / Спринт ${best.sprint?fmtTimeMs(best.sprint):'—'} / Ультра ${fmt(best.ultra)} / Blast ${fmt(best.blast)}`;
+  $('#storageInfo').textContent=`Занято в кэше: ${(storageSize()/1024).toFixed(1)} КБ • Игр: ${history.length} • Достижений: ${Object.keys(unlocked).length}/${ACHIEVEMENTS.length} • Рекорды: Марафон ${fmt(best.marathon)} / Без конца ${fmt(best.classic)} / Спринт ${best.sprint?fmtTimeMs(best.sprint):'—'} / Ультра ${fmt(best.ultra)} / Копатель ${best.dig?fmtTimeMs(best.dig):'—'} / Дзен ${fmt(best.zen)} / Blast ${fmt(best.blast)}`;
 }
 
 /* ==================== ФОН ==================== */
 const bgC=$('#bgFx'); let bgX,bgPieces=[];
 function sizeBg(){bgX=setupCanvas(bgC,window.innerWidth,window.innerHeight);}
 function newBgPiece(){
-  const types=Object.keys(TETRO);
+  const types=TE.TYPES;
   return{type:types[Math.floor(Math.random()*types.length)],x:Math.random()*bgC._w,y:Math.random()*bgC._h,s:14+Math.random()*18,vy:0.015+Math.random()*0.045,a:0.04+Math.random()*0.09};
 }
 function drawOrb(x,y,r,color,a){
@@ -1664,7 +2305,7 @@ function bgDraw(dt,ts){
   for(const p of bgPieces){
     p.y+=p.vy*dt;
     if(p.y>H+130){Object.assign(p,newBgPiece());p.y=-130;}
-    const m=TETRO[p.type];
+    const m=TE.SHAPES[p.type][0];
     bgX.globalAlpha=p.a;bgX.fillStyle=THEME.pieces[p.type];
     for(let yy=0;yy<m.length;yy++)for(let xx=0;xx<m[yy].length;xx++)if(m[yy][xx]){
       roundRect(bgX,p.x+xx*p.s,p.y+yy*p.s,p.s-2,p.s-2,4);bgX.fill();
@@ -1679,7 +2320,7 @@ function loop(ts){
   const dt=Math.max(0,Math.min(50,ts-lastT));lastT=ts;
   isCompact();
   bgDraw(dt,ts);
-  if(currentScreen==='classic'){if(!G.paused)classicUpdate(dt);classicDraw(ts);}
+  if(currentScreen==='classic'){if(!G.paused&&!modalOpen)classicUpdate(dt);classicDraw(ts);}
   else if(currentScreen==='blast'){blastUpdate(dt);blastDraw();drawDragLayer();}
   requestAnimationFrame(loop);
 }
@@ -1692,131 +2333,168 @@ document.addEventListener('keydown',e=>{
     if((e.code==='KeyP'||e.code==='Escape')&&!e.repeat&&!blast.over){pauseOpen()?resumeGame():openPause();}
     return;
   }
-  if(currentScreen!=='classic'||G.state==='over'||G.state==='idle')return;
+  if(currentScreen!=='classic'||!E||E.state==='over'||E.state==='won')return;
   if(['ArrowLeft','ArrowRight','ArrowDown','ArrowUp','Space'].includes(e.code))e.preventDefault();
   /* на паузе — только P/Esc: раньше стрелки, пробел и C двигали/сбрасывали фигуру под оверлеем паузы */
   if(G.paused&&e.code!=='KeyP'&&e.code!=='Escape')return;
   switch(e.code){
-    case 'ArrowLeft':if(!keys.left){keys.left=true;G.dasAcc=0;G.arrAcc=0;tryMove(-1,0,false);}break;
-    case 'ArrowRight':if(!keys.right){keys.right=true;G.dasAcc=0;G.arrAcc=0;tryMove(1,0,false);}break;
-    case 'ArrowDown':if(!keys.down){keys.down=true;G.softAcc=0;softDrop();}break;
-    case 'ArrowUp':case 'KeyX':if(!e.repeat)tryRotate(1);break;
-    case 'KeyZ':if(!e.repeat)tryRotate(-1);break;
-    case 'Space':if(!e.repeat)hardDrop();break;
-    case 'KeyC':case 'ShiftLeft':case 'ShiftRight':if(!e.repeat)doHold();break;
+    case 'ArrowLeft':E.press('left');break;          // повторы keydown движок игнорирует: автоповтор — свой (DAS/ARR)
+    case 'ArrowRight':E.press('right');break;
+    case 'ArrowDown':E.press('soft');break;
+    case 'ArrowUp':case 'KeyX':if(!e.repeat)E.rotate(1);break;
+    case 'KeyZ':case 'ControlLeft':case 'ControlRight':if(!e.repeat){e.preventDefault();E.rotate(-1);}break;
+    case 'KeyA':if(!e.repeat&&settings.rot180)E.rotate(2);break;
+    case 'Space':if(!e.repeat)E.hardDrop();break;
+    case 'KeyC':case 'ShiftLeft':case 'ShiftRight':if(!e.repeat)E.hold();break;
     case 'KeyP':case 'Escape':if(!e.repeat)togglePause();break;
   }
+  handleEvents();
 });
 document.addEventListener('keyup',e=>{
-  if(e.code==='ArrowLeft')keys.left=false;
-  if(e.code==='ArrowRight')keys.right=false;
-  if(e.code==='ArrowDown')keys.down=false;
+  if(!E)return;
+  if(e.code==='ArrowLeft')E.release('left');
+  if(e.code==='ArrowRight')E.release('right');
+  if(e.code==='ArrowDown')E.release('soft');
 });
 /* окно потеряло фокус с зажатой стрелкой — keyup не придёт, фигура «залипала» в движении */
-window.addEventListener('blur',()=>{keys.left=keys.right=keys.down=false;});
+window.addEventListener('blur',()=>{if(E)E.releaseAll();padReleaseAll();});
 
 /* ==================== ВВОД: ЖЕСТЫ И СВАЙПЫ ==================== */
 let swipe=null;
 function initGestureControls(){
   /* пальцем свайпать можно по всей игровой области (поле + боковые панели), мышью — только по полю.
-     У панели HOLD свой обработчик (тап — удержание) */
+     У панели HOLD свой обработчик (тап — удержание). Второй палец — жест «тап двумя пальцами» (↺ или 180°) */
   const boardWrap=$('#classicLayout');
   boardWrap.addEventListener('pointerdown',e=>{
-    if(currentScreen!=='classic'||G.paused||G.state!=='fall')return;
+    if(!canPlay()||E.state!=='fall')return;
     if(e.target.closest('#holdPanel'))return;
+    if(swipe&&e.pointerId!==swipe.id){   // второй палец, пока первый на экране
+      if(e.pointerType==='touch'&&!swipe.moved&&performance.now()-swipe.t0<300){swipe.multi=true;swipe.id2=e.pointerId;
+        try{boardWrap.setPointerCapture(e.pointerId);}catch(err){}}
+      return;
+    }
     if(e.pointerType==='mouse'&&!e.target.closest('#classicBoardWrap'))return;
     const boardWidth=playCv.clientWidth||(COLS*CELL);
     const colStep=Math.max(16,boardWidth/COLS);
-    swipe={
-      id:e.pointerId,
-      x0:e.clientX,
-      y0:e.clientY,
-      px:e.clientX,
-      py:e.clientY,
-      ax:0,
-      ay:0,
-      colStep,
-      moved:false,
-      t0:performance.now()
-    };
+    swipe={id:e.pointerId,x0:e.clientX,y0:e.clientY,px:e.clientX,py:e.clientY,ax:0,ay:0,colStep,moved:false,multi:false,id2:null,t0:performance.now()};
     try{boardWrap.setPointerCapture(e.pointerId);}catch(err){}
   });
 
   boardWrap.addEventListener('pointermove',e=>{
-    if(!swipe||e.pointerId!==swipe.id||G.state!=='fall')return;
+    if(!swipe||e.pointerId!==swipe.id||!E||E.state!=='fall')return;
+    if(Math.abs(e.clientX-swipe.x0)>(swipe.multi?14:8)||Math.abs(e.clientY-swipe.y0)>(swipe.multi?14:8))swipe.moved=true;
+    if(swipe.multi)return;   // двумя пальцами фигуру не двигаем — ждём, тап это или нет
     const dx=e.clientX-swipe.px;
     const dy=e.clientY-swipe.py;
     swipe.ax+=dx;
     swipe.ay+=dy;
-
-    if(Math.abs(e.clientX-swipe.x0)>8||Math.abs(e.clientY-swipe.y0)>8){
-      swipe.moved=true;
-    }
-
-    while(swipe.ax>swipe.colStep){
-      tryMove(1,0,false);
-      swipe.ax-=swipe.colStep;
-    }
-    while(swipe.ax<-swipe.colStep){
-      tryMove(-1,0,false);
-      swipe.ax+=swipe.colStep;
-    }
-    while(swipe.ay>swipe.colStep*0.85){
-      softDrop();
-      swipe.ay-=swipe.colStep*0.85;
-    }
-
+    while(swipe.ax>swipe.colStep){E.shift(1);swipe.ax-=swipe.colStep;}
+    while(swipe.ax<-swipe.colStep){E.shift(-1);swipe.ax+=swipe.colStep;}
+    while(swipe.ay>swipe.colStep*0.85){E.softStep();swipe.ay-=swipe.colStep*0.85;}
     swipe.px=e.clientX;
     swipe.py=e.clientY;
+    handleEvents();
   });
 
   const endGesture=(e)=>{
-    if(!swipe||e.pointerId!==swipe.id)return;
-    const dt=performance.now()-swipe.t0;
-    const tx=e.clientX-swipe.x0;
-    const ty=e.clientY-swipe.y0;
-    const dist=Math.hypot(tx,ty);
-
-    if(G.state==='fall'){
-      if(dist<15 && dt<250){
-        tryRotate(1);
-        vib(5);
-      }
-      else if(ty<-35 && dt<300 && Math.abs(ty)>Math.abs(tx)){
-        doHold();   /* свайп вверх — удержание, как обещает подсказка в меню (раньше был второй жёсткий сброс) */
-      }
-      else if(ty>60 && dt<220 && Math.abs(ty)>Math.abs(tx)){
-        hardDrop();
-      }
+    if(!swipe||(e.pointerId!==swipe.id&&e.pointerId!==swipe.id2))return;
+    const s=swipe;swipe=null;
+    if(!E||E.state!=='fall'||!canPlay())return;
+    const dt=performance.now()-s.t0;
+    if(s.multi){   // тап двумя пальцами
+      if(dt<400&&!s.moved)E.rotate(settings.rot180?2:-1);
+      handleEvents();return;
     }
-    swipe=null;
+    const tx=e.clientX-s.x0;
+    const ty=e.clientY-s.y0;
+    const dist=Math.hypot(tx,ty);
+    if(dist<15&&dt<250)E.rotate(1);
+    else if(ty<-35&&dt<300&&Math.abs(ty)>Math.abs(tx))E.hold();   /* свайп вверх — удержание */
+    else if(ty>60&&dt<220&&Math.abs(ty)>Math.abs(tx))E.hardDrop();
+    handleEvents();
   };
 
   boardWrap.addEventListener('pointerup',endGesture);
   boardWrap.addEventListener('pointercancel',()=>swipe=null);
 
-  $('#holdPanel').addEventListener('pointerdown',e=>{
-    if(currentScreen==='classic'&&!G.paused&&G.state==='fall'){
-      doHold();
-    }
+  $('#holdPanel').addEventListener('pointerdown',()=>{
+    if(canPlay()&&E.state==='fall'){E.hold();handleEvents();}
   });
 }
 initGestureControls();
+
+/* ==================== ВВОД: ЭКРАННЫЕ КНОПКИ ==================== */
+function padShown(){return settings.pad&&currentScreen==='classic';}
+function padHeight(){return $('#touchPad').offsetHeight||0;}
+function padClusterW(){return $('#touchPad .tp-left').offsetWidth||174;}
+function updatePadVisibility(){
+  const on=settings.pad;
+  $('#touchPad').hidden=!on;
+  $('#screen-classic').classList.toggle('pad-on',on);
+  $('#touchPad .tp-180').hidden=!settings.rot180;
+  $('#key180').hidden=!settings.rot180;
+  applyBoardGeometry();
+}
+const PAD_HOLD=['left','right','soft'];   // кнопки с удержанием (автоповтор движка); остальные — по нажатию
+function padReleaseAll(){
+  $$('#touchPad .tp-btn.pressed').forEach(b=>b.classList.remove('pressed'));
+  if(E)PAD_HOLD.forEach(k=>E.release(k));
+}
+$$('#touchPad .tp-btn').forEach(b=>{
+  const act=b.dataset.act;
+  b.addEventListener('pointerdown',e=>{
+    e.preventDefault();
+    if(!canPlay())return;
+    try{b.setPointerCapture(e.pointerId);}catch(err){}
+    b.classList.add('pressed');
+    switch(act){
+      case 'left':case 'right':case 'soft':E.press(act);break;
+      case 'cw':E.rotate(1);break;
+      case 'ccw':E.rotate(-1);break;
+      case 'r180':E.rotate(2);break;
+      case 'hard':E.hardDrop();break;
+      case 'hold':E.hold();break;
+    }
+    vib(6);handleEvents();
+  });
+  const up=()=>{b.classList.remove('pressed');if(E&&PAD_HOLD.includes(act))E.release(act);};
+  b.addEventListener('pointerup',up);
+  b.addEventListener('pointercancel',up);
+  b.addEventListener('lostpointercapture',up);
+});
+$('#touchPad').addEventListener('contextmenu',e=>e.preventDefault());
+
 document.addEventListener('contextmenu',e=>{if(e.target.closest('button,canvas,.tray-slot'))e.preventDefault();});
+/* выход кнопкой «←» платформы (iframe выгружается): сессию «Дзена» записываем — у неё нет конца партии */
+window.addEventListener('pagehide',()=>{if(currentScreen==='classic'&&E&&E.mode==='zen')endZen(false);});
 document.addEventListener('visibilitychange',()=>{
-  if(document.hidden&&currentScreen==='classic'&&!G.paused&&G.state!=='over'&&G.state!=='idle')togglePause(true);
+  if(document.hidden&&currentScreen==='classic'&&!G.paused&&E&&E.state!=='over'&&E.state!=='won')togglePause(true);
+  if(document.hidden&&currentScreen==='blast')openPause();
 });
 
 /* ==================== КНОПКИ ==================== */
-$('#btnPlayClassic').addEventListener('click',()=>{sfx.click();startClassic('classic');});
+$('#btnPlayMarathon').addEventListener('click',()=>{sfx.click();startClassic(settings.marathon==='endless'?'classic':'marathon');});
 $('#btnPlaySprint').addEventListener('click',()=>{sfx.click();startClassic('sprint');});
 $('#btnPlayUltra').addEventListener('click',()=>{sfx.click();startClassic('ultra');});
+$('#btnPlayDig').addEventListener('click',()=>{sfx.click();startClassic('dig');});
+$('#btnPlayZen').addEventListener('click',()=>{sfx.click();startClassic('zen');});
 $('#btnPlayBlast').addEventListener('click',()=>{sfx.click();startBlast();});
+$$('#segMarathon button').forEach(b=>b.addEventListener('click',()=>{
+  settings.marathon=b.dataset.v==='endless'?'endless':'150';saveSettings();refreshMenuStats();sfx.click();
+}));
+(function(){
+  const btns=$$('#stLevel button');
+  const step=d=>{settings.startLevel=clamp(settings.startLevel+d,1,15);saveSettings();refreshMenuStats();sfx.click();};
+  btns[0].addEventListener('click',()=>step(-1));
+  btns[1].addEventListener('click',()=>step(1));
+})();
 /* кнопок «←» в шапке больше нет: слева поверх игры висит «←» платформы. «В меню» — в паузе и в окне конца игры */
 $('#btnClassicPause').addEventListener('click',()=>{sfx.click();togglePause();});
 $('#btnBlastPause').addEventListener('click',()=>{sfx.click();openPause();});
 $('#btnResume').addEventListener('click',()=>{sfx.click();resumeGame();});
-$('#btnPauseRestart').addEventListener('click',()=>{sfx.click();if(currentScreen==='blast')startBlast();else startClassic(G.mode);});
+$('#btnPauseRestart').addEventListener('click',()=>{sfx.click();restartGame();});
+$('#btnPauseFinish').addEventListener('click',()=>{sfx.click();$('#pauseOverlay').hidden=true;G.paused=false;endZen(true);});
+$('#btnPauseRules').addEventListener('click',()=>{sfx.click();openModal('#rulesModal');});
 $('#btnPauseSettings').addEventListener('click',()=>{sfx.click();openSettings();});
 $('#btnPauseMenu').addEventListener('click',()=>{sfx.click();quitToMenu();});
 $('#btnBlastRestart').addEventListener('click',()=>{sfx.click();startBlast();});
@@ -1826,11 +2504,12 @@ $('#btnAgain').addEventListener('click',()=>{
 });
 $('#btnOverMenu').addEventListener('click',()=>{sfx.click();quitToMenu();});
 
-function openModal(id){$(id).classList.add('open');modalOpen=true;}
+function openModal(id){$(id).classList.add('open');modalOpen=true;if(E)E.releaseAll();padReleaseAll();hideTopToast();}
 function closeAllModals(){$$('.modal-backdrop').forEach(m=>m.classList.remove('open'));modalOpen=false;}
 $$('.modal-backdrop').forEach(mb=>mb.addEventListener('click',e=>{if(e.target===mb)closeAllModals();}));
 $$('.modal-close').forEach(b=>b.addEventListener('click',()=>{sfx.click();closeAllModals();}));
 
+$('#btnRules').addEventListener('click',()=>{sfx.click();openModal('#rulesModal');});
 $('#btnHistory').addEventListener('click',()=>{sfx.click();renderHistory();openModal('#historyModal');});
 $('#btnAch').addEventListener('click',()=>{sfx.click();renderAch();openModal('#achModal');});
 $('#btnStats').addEventListener('click',()=>{sfx.click();renderStatsModal();openModal('#statsModal');});
@@ -1841,7 +2520,8 @@ $('#btnSettings').addEventListener('click',()=>{sfx.click();openSettings();});
 $('#optSound').addEventListener('change',e=>{settings.sound=e.target.checked;saveSettings();applyVolumes();if(settings.sound)sfx.click();});
 $('#optMusic').addEventListener('change',e=>{
   settings.music=e.target.checked;saveSettings();applyVolumes();
-  if(settings.music&&currentScreen==='classic'&&!G.paused&&G.state!=='over'&&G.state!=='idle')music.start(G.level);
+  /* под окном настроек игра на паузе — музыка включится при продолжении */
+  if(settings.music&&currentScreen==='classic'&&E&&!G.paused&&!modalOpen&&E.state!=='over'&&E.state!=='won')music.start(E.level,E.mode==='zen');
   if(!settings.music)music.stop();
 });
 $('#optMusicVol').addEventListener('input',e=>{
@@ -1856,6 +2536,11 @@ $('#optSfxVol').addEventListener('input',e=>{
 });
 $('#optVibro').addEventListener('change',e=>{settings.vibration=e.target.checked;saveSettings();if(settings.vibration)vib(30);});
 $('#optGhost').addEventListener('change',e=>{settings.ghost=e.target.checked;saveSettings();});
+$('#opt180').addEventListener('change',e=>{settings.rot180=e.target.checked;saveSettings();applyHandling();updatePadVisibility();});
+$('#optPad').addEventListener('change',e=>{settings.pad=e.target.checked;saveSettings();updatePadVisibility();});
+$('#btnHandlingReset').addEventListener('click',()=>{
+  Object.assign(settings,DEF_HANDLING);saveSettings();applyHandling();refreshSettingsUI();sfx.click();toast('Управление — по умолчанию (Guideline)');
+});
 $('#optScale').addEventListener('input',e=>{
   settings.scale=clamp((+e.target.value)/100,0.6,1.4);
   $('#scaleVal').textContent=Math.round(settings.scale*100)+'%';
@@ -1886,7 +2571,7 @@ $('#btnWipe').addEventListener('click',()=>askConfirm('Полный сброс?'
   settings=Object.assign({},DEF_SETTINGS);
   best=Object.assign({},DEF_BEST);
   history=[];unlocked={};stats=Object.assign({},DEF_STATS);
-  applyTheme('neon');applyFieldSize();applyVolumes();
+  applyTheme('neon');applyFieldSize();applyVolumes();applyHandling();updatePadVisibility();
   renderThemes();refreshSettingsUI();refreshMenuStats();updateStorageInfo();
   toast('Все данные удалены');
 }));
@@ -1905,16 +2590,14 @@ $('#importFile').addEventListener('change',e=>{
     try{
       const d=JSON.parse(rd.result);
       if(!d||typeof d!=='object')throw new Error('bad file');
-      if(d.settings&&typeof d.settings==='object')settings=sanitizeSettings(Object.assign({},DEF_SETTINGS,d.settings));
+      if(d.settings&&typeof d.settings==='object')settings=sanitizeSettings(Object.assign({},DEF_SETTINGS,obj(d.settings)));
       if(!THEMES[settings.theme])settings.theme='neon';
-      if(d.best&&typeof d.best==='object')best=sanitizeNums(Object.assign({},DEF_BEST,d.best),DEF_BEST);
+      if(d.best&&typeof d.best==='object')best=sanitizeNums(Object.assign({},DEF_BEST,obj(d.best)),DEF_BEST);
       if(Array.isArray(d.history))history=d.history.filter(h=>h&&typeof h==='object').slice(0,100);
-      if(d.unlocked&&typeof d.unlocked==='object'){
-        unlocked={};ACHIEVEMENTS.forEach(a=>{if(d.unlocked[a.id])unlocked[a.id]=num(d.unlocked[a.id])||Date.now();});
-      }
-      if(d.stats&&typeof d.stats==='object')stats=sanitizeNums(Object.assign({},DEF_STATS,d.stats),DEF_STATS);
+      if(d.unlocked&&typeof d.unlocked==='object')unlocked=cleanAch(d.unlocked);
+      if(d.stats&&typeof d.stats==='object')stats=sanitizeNums(Object.assign({},DEF_STATS,obj(d.stats)),DEF_STATS);
       saveSettings();saveBest();store.set('t_history',history);store.set('t_ach',unlocked);saveStats();
-      applyTheme(settings.theme);applyFieldSize();applyVolumes();
+      applyTheme(settings.theme);applyFieldSize();applyVolumes();applyHandling();updatePadVisibility();
       renderThemes();refreshSettingsUI();refreshMenuStats();updateStorageInfo();
       toast('Данные импортированы ✅');
     }catch(err){toast('Ошибка импорта ❌');}
@@ -1927,13 +2610,15 @@ function initAll(){
   buildLoop();
   applyTheme(settings.theme);
   applyFieldSizeSettings();
-  applyBoardGeometry();
   sizeBg();bgPieces=Array.from({length:16},()=>newBgPiece());
   dctx=setupCanvas(dragCv,window.innerWidth,window.innerHeight);
-  sizeNextCanvas();
   wireStepper('#stW','fieldW',6,12);
   wireStepper('#stH','fieldH',12,24);
   wireStepper('#stB','blastSize',6,10);
+  wireValueStepper('#stDas','das',[3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20],msText,applyHandling);
+  wireValueStepper('#stArr','arr',[0,1,2,3,4,5,6],v=>v?msText(v):'0 мс',applyHandling);
+  wireValueStepper('#stSdf','sdf',SDF_STEPS,sdfText,applyHandling);
+  updatePadVisibility();   // + applyBoardGeometry()
   refreshMenuStats();
   showScreen('menu');
   requestAnimationFrame(loop);

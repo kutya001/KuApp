@@ -3,27 +3,64 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
-<title>Neon Snake — Кампания и Бесконечный режим</title>
+<title>Neon Snake — Змейка</title>
 <link rel="stylesheet" href="ku-arcade.css">
 <script src="ku-arcade.js"></script>
 <style>
   html,body{height:100%;overflow:hidden}
+
+  /* ═══ МЕНЮ ═══ */
+  #screen-menu .ku-menu-row .ku-btn{padding:10px 16px}
+
+  /* ═══ ИГРА ═══ */
   /* свайпы — по всему экрану игры; меню при этом прокручивается как обычно */
   #screen-game,#screen-game *{touch-action:none}
-  #screen-game .ku-hud{margin-bottom:8px}
-  #pbar{width:min(340px,88vw);flex:none;margin:0 0 10px}
-  #stage{flex:1;min-height:0;width:100%;display:flex;align-items:center;justify-content:center}
+  #screen-game{padding-left:10px;padding-right:10px}
+  #g-body{flex:1 1 auto;min-height:0;width:100%;display:flex;flex-direction:column;align-items:center}
+  #g-side{flex:none;display:flex;flex-direction:column;align-items:center;width:100%}
+  #hud{margin:0 0 8px;flex-wrap:nowrap;gap:6px}
+  #hud .ku-stat{min-width:60px;padding:5px 10px}
+  #hud .ku-stat b{min-width:2ch;text-align:center}
+  #hud .ku-stat.warn b{color:var(--bad);animation:kuPulse .8s infinite}
+  #pbar{width:min(340px,88vw);margin:0 0 8px}
+  #stage{flex:1 1 auto;min-height:0;min-width:0;width:100%;display:flex;align-items:center;justify-content:center}
   #board{line-height:0}
-  #screen-game .ku-hint{margin-top:8px;flex:none}
-  @media (max-height:560px){#screen-game .ku-hint{display:none}}
+  #board.fx-slow{box-shadow:0 14px 60px rgba(0,0,0,.6),0 0 42px rgba(91,140,255,.55),inset 0 1px 0 rgba(255,255,255,.1)}
+  #board.fx-ghost{box-shadow:0 14px 60px rgba(0,0,0,.6),0 0 42px rgba(199,125,255,.55),inset 0 1px 0 rgba(255,255,255,.1)}
+  /* экранная крестовина: в портрете — компактно «◀ ▲▼ ▶» под полем */
+  #pad-wrap{flex:none;display:flex;justify-content:center;padding:10px 0 0}
+  #pad{grid-template-columns:repeat(3,74px);grid-template-rows:repeat(2,50px);gap:6px}
+  #pad button{width:100%;height:100%;font-size:20px;user-select:none;-webkit-user-select:none}
+  #pad .left{grid-area:1/1/3/2} #pad .up{grid-area:1/2} #pad .down{grid-area:2/2} #pad .right{grid-area:1/3/3/4}
+  #g-hint{margin-top:6px;flex:none}
+  @media (max-height:700px){#g-hint{display:none}}
+  /* альбомная ориентация телефона: показатели — колонкой слева, крестовина — справа, поле не перекрыто */
+  @media (orientation:landscape) and (max-height:560px){
+    #screen-game{padding-bottom:max(8px,env(safe-area-inset-bottom,0px))}
+    #screen-game .ku-top{margin-bottom:4px}
+    #g-body{flex-direction:row;align-items:center;gap:10px}
+    #g-side{width:auto;max-width:118px;align-self:stretch;justify-content:center}
+    #hud{flex-direction:column;margin:0;gap:6px}
+    #hud .ku-stat{min-width:92px;padding:4px 8px}
+    #pbar{width:100%;margin:8px 0 0}
+    #stage{align-self:stretch}
+    #pad-wrap{padding:0;align-self:center}
+    #pad{grid-template-columns:repeat(3,54px);grid-template-rows:repeat(3,54px)}
+    #pad .left{grid-area:2/1} #pad .up{grid-area:1/2} #pad .down{grid-area:3/2} #pad .right{grid-area:2/3}
+  }
 
-  /* ── Выбор уровня ── */
-  .lv-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px;margin:2px 0 6px}
-  .lv{aspect-ratio:1;min-width:0;border-radius:12px;border:1px solid rgba(255,255,255,.08);background:rgba(255,255,255,.045);
+  /* ═══ ОКНА ═══ */
+  .ku-card .ku-label{margin-top:2px}
+  .ku-card .ku-seg{width:100%}
+  .sn-sum{font-size:12.5px;color:var(--muted);margin-top:-4px}
+  .sn-sum b{color:var(--gold);font-family:var(--font-display);font-weight:400}
+  /* выбор уровня */
+  .lv-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:7px;margin:2px 0 4px}
+  .lv{height:64px;min-width:0;border-radius:12px;border:1px solid rgba(255,255,255,.08);background:rgba(255,255,255,.045);
     color:var(--text);font-family:var(--font-body);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;
     padding:4px 2px;cursor:pointer;box-shadow:inset 0 1px 0 rgba(255,255,255,.06);transition:transform .15s,border-color .2s,box-shadow .2s}
-  .lv .n{font-family:var(--font-display);font-size:20px;line-height:1}
-  .lv small{font-size:8.5px;letter-spacing:.6px;text-transform:uppercase;color:var(--muted);max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .lv .n{font-family:var(--font-display);font-size:19px;line-height:1}
+  .lv small{font-size:8.5px;letter-spacing:.5px;text-transform:uppercase;color:var(--muted);max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
   .lv .st{font-size:10px;letter-spacing:1px;line-height:1;color:rgba(255,255,255,.16)}
   .lv .st i{font-style:normal;color:var(--gold);text-shadow:0 0 6px rgba(255,214,10,.55)}
   .lv.done{border-color:rgba(81,245,139,.4);background:rgba(81,245,139,.07)}
@@ -31,16 +68,78 @@
   .lv.next{border-color:var(--accent);background:rgba(0,229,255,.1);box-shadow:0 0 16px rgba(0,229,255,.35)}
   .lv.next .n{color:var(--accent);text-shadow:0 0 12px rgba(0,229,255,.6)}
   .lv:disabled{opacity:.35;cursor:default}
+  .lv:focus-visible,.mz:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
   .lv:not(:disabled):active{transform:scale(.94)}
   @media (hover:hover){.lv:not(:disabled):hover{border-color:var(--accent);transform:translateY(-2px)}}
-
-  /* ── Звёзды за уровень ── */
+  /* классика: скорость и лабиринт */
+  #cl-speed button{padding:8px 0;font-family:var(--font-display);font-weight:400;font-size:14px}
+  .mz-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:7px}
+  @media (orientation:landscape) and (max-height:560px){.mz-grid{gap:5px} .mz{font-size:10px;padding:5px 2px;gap:3px} .mz canvas{width:30px;height:46px}}
+  .mz{border-radius:12px;border:1px solid rgba(255,255,255,.08);background:rgba(255,255,255,.04);color:var(--muted);cursor:pointer;
+    display:flex;flex-direction:column;align-items:center;gap:5px;padding:7px 4px 6px;font:600 11px var(--font-body);transition:.2s}
+  .mz canvas{display:block;width:40px;height:61px;border-radius:5px}
+  .mz.active{border-color:rgba(0,229,255,.6);color:var(--text);background:rgba(0,229,255,.1);box-shadow:0 0 12px rgba(0,229,255,.25)}
+  /* звёзды за уровень */
   .stars{display:flex;justify-content:center;gap:10px;font-size:34px;line-height:1;margin:2px 0}
   .stars span{display:inline-block;color:rgba(255,255,255,.12)}
   .stars span.lit{color:var(--gold);text-shadow:0 0 16px rgba(255,214,10,.6);animation:snStar .4s ease}
   @keyframes snStar{0%{transform:scale(0)}60%{transform:scale(1.3)}100%{transform:scale(1)}}
-  /* цветные пометки в правилах (в наборе .ku-rules b перебивает утилиты .ku-gold и т.п.) */
-  .ku-rules .ku-gold{color:var(--gold)} .ku-rules .sn-slow{color:var(--blue)}
+  .ku-over-stats{max-width:300px;width:100%;align-self:center}
+  .ku-over-stats .aw b{color:var(--gold)}
+  .vs-score{font-family:var(--font-display);font-size:34px;line-height:1.1}
+  .vs-score .me{color:var(--green);text-shadow:0 0 16px rgba(81,245,139,.45)} .vs-score .ai{color:var(--accent2);text-shadow:0 0 16px rgba(255,77,210,.45)}
+  .vs-score .sep{color:var(--muted);margin:0 8px}
+  /* модальные окна */
+  .stats-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(96px,1fr));gap:8px}
+  .st-card{background:var(--glass-panel);border:1px solid var(--panel-border);border-radius:14px;padding:10px 6px;text-align:center}
+  .st-card .sv{font-family:var(--font-display);font-size:17px;color:var(--accent);margin-top:2px;white-space:nowrap}
+  .st-card .sl{font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:.8px;margin-top:3px}
+  .st-tabs{margin-bottom:12px;flex-wrap:wrap;width:100%}
+  .st-tabs button{flex:1 1 30%;font-size:12px}
+  .vs-rows{margin-top:10px;display:flex;flex-direction:column;gap:6px}
+  .vs-rows div{display:flex;justify-content:space-between;gap:10px;font-size:13px;padding:7px 10px;border-radius:10px;background:var(--panel);border:1px solid var(--panel-border)}
+  .vs-rows b{font-family:var(--font-display);font-weight:400}
+  .list{display:flex;flex-direction:column;gap:8px}
+  .ach-item,.h-item{display:flex;align-items:center;gap:12px;padding:10px 12px;border-radius:14px;background:var(--panel);border:1px solid var(--panel-border)}
+  .ach-item.unlocked{border-color:rgba(255,214,10,.45);background:rgba(255,214,10,.07)}
+  .ach-item.unlocked h4{color:var(--gold)}
+  .ach-item:not(.unlocked) .ach-icon{filter:grayscale(1);opacity:.45}
+  .ach-icon,.h-icon{font-size:22px;width:40px;height:40px;flex:none;display:flex;align-items:center;justify-content:center;background:rgba(255,255,255,.05);border-radius:12px}
+  .ach-info,.h-info{min-width:0;flex:1}
+  .ach-info h4,.h-info h4{margin:0 0 2px;font-family:var(--font-display);font-weight:400;font-size:13px;letter-spacing:.5px}
+  .ach-info p,.h-info p{margin:0;font-size:11.5px;color:var(--muted);line-height:1.4}
+  .h-score{text-align:right;flex:none}
+  .h-score b{display:block;font-family:var(--font-display);font-weight:400;font-size:16px;color:var(--accent)}
+  .h-score span{font-size:10.5px;letter-spacing:.6px;text-transform:uppercase}
+  .r-win{color:var(--good)} .r-lose{color:var(--bad)} .r-draw,.r-quit{color:var(--muted)} .r-time,.r-done{color:var(--gold)}
+  .empty{text-align:center;color:var(--muted);padding:20px}
+  .set-note{font-size:11.5px;color:var(--muted);margin:2px 0 6px}
+  .ku-modal .ku-field{width:100%;align-items:stretch;margin-top:6px}
+  .ku-modal .ku-seg{width:100%}
+  /* окна в две колонки в альбомной ориентации; в портрете обёртки «прозрачны» (display:contents) */
+  .two > .col-a,.two > .col-b{display:contents}
+  @media (max-width:380px){ .ku-menu-duo .ku-btn.duo{font-size:14.5px;padding-left:4px;padding-right:4px} }
+  @media (orientation:landscape) and (max-height:560px){
+    .ku-overlay .ku-card{padding:16px 20px;gap:8px}
+    .ku-overlay .ku-card h2{font-size:20px}
+    .ku-overlay .ku-card .ku-btn{padding:10px 16px}
+    .two{width:min(680px,96vw);display:grid;grid-template-columns:minmax(0,1.1fr) minmax(0,1fr);gap:22px;align-items:center}
+    .two > .col-a,.two > .col-b{display:flex;flex-direction:column;gap:8px;min-width:0}
+    .ku-big-score,.vs-score{font-size:28px}
+    .stars{font-size:28px}
+    .ku-over-stats{gap:2px;margin:0}
+    .ku-over-stats div{font-size:12.5px}
+    .ku-over-stats b{font-size:13.5px}
+    /* настройка режима: «Играть» и «Назад» — в одну строку */
+    #ov-classic .col-b,#ov-vs .col-b{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+    #ov-classic .col-b > :not(.ku-btn),#ov-vs .col-b > :not(.ku-btn){grid-column:1/-1}
+    #ov-levels .ku-card{width:min(680px,96vw)}
+    .lv-grid{grid-template-columns:repeat(8,minmax(0,1fr));margin:0}
+    .lv{height:49px;gap:1px;padding:2px} .lv .n{font-size:17px} .lv small{font-size:8px;line-height:1.1}
+  }
+  /* цветные пометки в правилах */
+  .ku-rules .c-gold{color:var(--gold)} .ku-rules .c-blue{color:var(--blue)} .ku-rules .c-orange{color:var(--orange)}
+  .ku-rules .c-purple{color:var(--purple)} .ku-rules .c-green{color:var(--green)} .ku-rules .c-pink{color:var(--accent2)}
 </style>
 </head>
 <body class="ku">
@@ -49,15 +148,28 @@
   <!-- ═══ МЕНЮ ═══ -->
   <section id="screen-menu" class="ku-screen menu active">
     <h1 class="ku-logo">NEON SNAKE</h1>
-    <p class="ku-tagline">Змейка • 12 уровней • Рекорды</p>
-    <div class="ku-pills"><span>🍎 Ешь и расти</span><span>★ Золото ×3</span><span>⏳ Замедление</span><span>🧱 Стены</span><span>🌀 Сквозные края</span><span>👆 Свайпы</span></div>
+    <p class="ku-tagline">Змейка • 5 режимов • 24 лабиринта</p>
+    <div class="ku-pills"><span>🧱 24 уровня</span><span>📟 Как на Nokia</span><span>🤖 Против ИИ</span><span>⏱️ На время</span><span>🍎 5 видов еды</span><span>🏅 Достижения</span></div>
     <div class="ku-menu-btns">
-      <button class="ku-btn big primary" id="btn-campaign">🎮 Кампания<span class="best" id="best-campaign">12 уровней</span></button>
-      <button class="ku-btn big accent2" id="btn-endless">♾️ Бесконечный<span class="best" id="best-endless">Рекорд: 0</span></button>
+      <button class="ku-btn big primary" id="btn-campaign">🎮 Кампания<span class="best" id="best-campaign">24 уровня</span></button>
+      <div class="ku-menu-duo">
+        <button class="ku-btn duo gold" id="btn-classic">📟 Классика<span class="best" id="best-classic">Рекорд: 0</span></button>
+        <button class="ku-btn duo accent2" id="btn-endless">♾️ Бесконечный<span class="best" id="best-endless">Рекорд: 0</span></button>
+      </div>
+      <div class="ku-menu-duo">
+        <button class="ku-btn duo green" id="btn-timed">⏱️ На время<span class="best" id="best-timed">Рекорд: 0</span></button>
+        <button class="ku-btn duo red" id="btn-vs">🤖 Против ИИ<span class="best" id="best-vs">Побед: 0</span></button>
+      </div>
     </div>
-    <div class="ku-menu-row"><button class="ku-btn ghost" id="btn-rules">📖 Правила</button></div>
-    <div class="ku-menu-stats" id="menu-stats"></div>
-    <div class="ku-menu-hint">Клавиши: стрелки / WASD — поворот · P / Esc — пауза<br>На телефоне: свайп в любом месте экрана</div>
+    <div class="ku-menu-row">
+      <button class="ku-btn ghost" id="btn-rules">📖 Правила</button>
+      <button class="ku-btn ghost" id="btn-stats">📊 Статистика</button>
+      <button class="ku-btn ghost" id="btn-ach">🏅 Достижения</button>
+      <button class="ku-btn ghost" id="btn-history">📜 История</button>
+      <button class="ku-btn ghost" id="btn-settings">⚙️ Настройки</button>
+    </div>
+    <div class="ku-menu-stats" id="menu-stats">Сыграно игр: 0</div>
+    <div class="ku-menu-hint">Клавиши: стрелки / WASD / 8-4-6-2 — поворот · P / Esc — пауза<br>На телефоне: свайп в любом месте экрана или крестовина (в настройках)</div>
   </section>
 
   <!-- ═══ ИГРА ═══ -->
@@ -66,273 +178,1266 @@
       <div class="ku-top-left"></div>
       <div class="ku-top-title"><div class="t" id="g-title">КАМПАНИЯ · УР. 1</div><div class="s" id="g-sub">ОБУЧЕНИЕ</div></div>
       <div class="ku-top-actions">
-        <button class="ku-btn icon" id="btn-pause" aria-label="Пауза"><svg viewBox="0 0 24 24"><line x1="9" y1="5" x2="9" y2="19"/><line x1="15" y1="5" x2="15" y2="19"/></svg></button>
+        <button class="ku-btn icon" id="btn-pause" aria-label="Пауза (P)" title="Пауза (P)"><svg viewBox="0 0 24 24"><line x1="9" y1="5" x2="9" y2="19"/><line x1="15" y1="5" x2="15" y2="19"/></svg></button>
       </div>
     </header>
-    <div class="ku-hud">
-      <div class="ku-stat"><span>Счёт</span><b id="score-val">0</b></div>
-      <div class="ku-stat c2" id="target-box"><span>Цель</span><b id="target-val">5</b></div>
-      <div class="ku-stat gold" id="best-box" hidden><span>Рекорд</span><b id="best-val">0</b></div>
-      <div class="ku-stat good"><span>Длина</span><b id="len-val">3</b></div>
+    <div id="g-body">
+      <div id="g-side">
+        <div class="ku-hud" id="hud">
+          <div class="ku-stat" id="h1"><span>Счёт</span><b>0</b></div>
+          <div class="ku-stat" id="h2"><span>Цель</span><b>0</b></div>
+          <div class="ku-stat" id="h3"><span>Длина</span><b>3</b></div>
+          <div class="ku-stat" id="h4"><span>Рекорд</span><b>0</b></div>
+        </div>
+        <div class="ku-pbar" id="pbar"><i id="pfill"></i></div>
+      </div>
+      <div id="stage"><div class="ku-board" id="board"><canvas id="c" aria-label="Игровое поле"></canvas></div></div>
+      <div id="pad-wrap" hidden>
+        <div class="ku-pad" id="pad">
+          <button class="up" data-d="0" aria-label="Вверх">▲</button>
+          <button class="left" data-d="3" aria-label="Влево">◀</button>
+          <button class="right" data-d="1" aria-label="Вправо">▶</button>
+          <button class="down" data-d="2" aria-label="Вниз">▼</button>
+        </div>
+      </div>
     </div>
-    <div class="ku-pbar" id="pbar"><i id="progress-fill"></i></div>
-    <div id="stage"><div class="ku-board" id="board"><canvas id="c"></canvas></div></div>
-    <p class="ku-hint">Свайп / стрелки / WASD — поворот · P — пауза</p>
+    <p class="ku-hint" id="g-hint">Свайп / стрелки / WASD — поворот · P — пауза</p>
   </section>
 </main>
 
 <!-- ═══ ВЫБОР УРОВНЯ ═══ -->
-<div class="ku-overlay" id="menu-levels"><div class="ku-card">
-  <h2>ВЫБЕРИ УРОВЕНЬ</h2>
-  <p>Пройди уровень — откроется следующий</p>
+<div class="ku-overlay" id="ov-levels"><div class="ku-card">
+  <h2>КАМПАНИЯ</h2>
+  <p class="sn-sum" id="lv-sum">Пройди уровень — откроется следующий</p>
   <div class="lv-grid" id="level-grid"></div>
-  <button class="ku-btn ghost" id="btn-levels-back">Назад</button>
+  <button class="ku-btn ghost" data-back>Назад</button>
+</div></div>
+
+<!-- ═══ КЛАССИКА: НАСТРОЙКА ═══ -->
+<div class="ku-overlay" id="ov-classic"><div class="ku-card two">
+  <div class="col-a">
+    <h2>КЛАССИКА</h2>
+    <p>Как на Nokia: стены по краю, еда даёт столько очков, какая скорость; после каждой 5-й еды — жучок 🐞 на время.</p>
+    <div class="ku-label">Скорость</div>
+    <div class="ku-seg" id="cl-speed"></div>
+    <p class="sn-sum" id="cl-best">Рекорд: 0</p>
+  </div>
+  <div class="col-b">
+    <div class="ku-label">Лабиринт</div>
+    <div class="mz-grid" id="cl-mazes"></div>
+    <button class="ku-btn primary" id="cl-play">▶ Играть</button>
+    <button class="ku-btn ghost" data-back>Назад</button>
+  </div>
+</div></div>
+
+<!-- ═══ ПРОТИВ ИИ: НАСТРОЙКА ═══ -->
+<div class="ku-overlay" id="ov-vs"><div class="ku-card two">
+  <div class="col-a">
+    <h2>ПРОТИВ ИИ</h2>
+    <p>Твоя змейка <b class="ku-good">зелёная</b>, змейка компьютера — <b class="ku-accent2">розовая</b>. Кто первым наберёт цель — победил; врезался в стену, себя или соперника — проиграл.</p>
+    <p class="sn-sum" id="vs-rec">Побед: 0</p>
+  </div>
+  <div class="col-b">
+    <div class="ku-label">Сложность</div>
+    <div class="ku-seg" id="vs-diff"><button data-v="easy">😊 Легко</button><button data-v="normal">😐 Средне</button><button data-v="hard">😈 Сложно</button></div>
+    <div class="ku-label">Играем до</div>
+    <div class="ku-seg" id="vs-target"><button data-v="10">10 очков</button><button data-v="20">20 очков</button><button data-v="30">30 очков</button></div>
+    <button class="ku-btn primary" id="vs-play">▶ В бой</button>
+    <button class="ku-btn ghost" data-back>Назад</button>
+  </div>
 </div></div>
 
 <!-- ═══ ПАУЗА ═══ -->
-<div class="ku-overlay" id="menu-pause"><div class="ku-card">
-  <h2>⏸ ПАУЗА</h2>
-  <button class="ku-btn primary" id="btn-resume">Продолжить</button>
-  <button class="ku-btn" id="btn-restart-pause">Заново</button>
-  <button class="ku-btn" id="btn-rules2">📖 Правила</button>
-  <button class="ku-btn ghost" id="btn-quit">В меню</button>
+<div class="ku-overlay" id="ov-pause"><div class="ku-card two">
+  <div class="col-a">
+    <h2>⏸ ПАУЗА</h2>
+    <p id="pause-info">—</p>
+  </div>
+  <div class="col-b">
+    <button class="ku-btn primary" id="p-resume">Продолжить</button>
+    <button class="ku-btn" id="p-restart">🔄 Заново</button>
+    <button class="ku-btn" id="p-rules">📖 Правила</button>
+    <button class="ku-btn" id="p-settings">⚙️ Настройки</button>
+    <button class="ku-btn ghost" id="p-menu">В меню</button>
+  </div>
 </div></div>
 
 <!-- ═══ УРОВЕНЬ ПРОЙДЕН ═══ -->
-<div class="ku-overlay" id="menu-level-up"><div class="ku-card">
-  <h2 class="win" id="lu-title">УРОВЕНЬ ПРОЙДЕН!</h2>
-  <div class="stars" id="stars-container"><span id="star-1">★</span><span id="star-2">★</span><span id="star-3">★</span></div>
-  <p id="lvl-stats">Отличная работа!</p>
-  <div class="ku-over-stats" id="lu-stats"></div>
-  <button class="ku-btn primary" id="btn-next-level">Следующий уровень →</button>
-  <button class="ku-btn" id="btn-replay-level">🔄 Повторить</button>
-  <button class="ku-btn ghost" id="btn-lu-menu">В меню</button>
+<div class="ku-overlay" id="ov-levelup"><div class="ku-card two">
+  <div class="col-a">
+    <h2 class="win" id="lu-title">УРОВЕНЬ ПРОЙДЕН!</h2>
+    <div class="stars" id="lu-stars"><span>★</span><span>★</span><span>★</span></div>
+    <p id="lu-text">Отличная работа!</p>
+    <div class="ku-over-stats" id="lu-stats"></div>
+  </div>
+  <div class="col-b">
+    <button class="ku-btn primary" id="lu-next">Следующий уровень →</button>
+    <button class="ku-btn" id="lu-replay">🔄 Повторить</button>
+    <button class="ku-btn" id="lu-levels">🗺️ Уровни</button>
+    <button class="ku-btn ghost" id="lu-menu">В меню</button>
+  </div>
 </div></div>
 
-<!-- ═══ КОНЕЦ ИГРЫ ═══ -->
-<div class="ku-overlay" id="menu-game-over"><div class="ku-card">
-  <h2 class="lose" id="go-title">ВЫ ПОГИБЛИ</h2>
-  <div class="ku-new-best" id="go-best" hidden>🏆 НОВЫЙ РЕКОРД!</div>
-  <div class="ku-big-score" id="go-score">0</div>
-  <p id="go-desc">Змейка врезалась.</p>
-  <div class="ku-over-stats" id="go-stats"></div>
-  <button class="ku-btn primary" id="btn-restart">🔄 Повторить</button>
-  <button class="ku-btn ghost" id="btn-go-menu">В меню</button>
+<!-- ═══ КОНЕЦ ПАРТИИ ═══ -->
+<div class="ku-overlay" id="ov-over"><div class="ku-card two">
+  <div class="col-a">
+    <h2 class="lose" id="go-title">ИГРА ОКОНЧЕНА</h2>
+    <div class="ku-new-best" id="go-best" hidden>🏆 НОВЫЙ РЕКОРД!</div>
+    <div class="ku-big-score" id="go-score">0</div>
+    <p id="go-desc">—</p>
+    <div class="ku-over-stats" id="go-stats"></div>
+  </div>
+  <div class="col-b">
+    <button class="ku-btn primary" id="go-again">🔄 Ещё раз</button>
+    <button class="ku-btn" id="go-setup">⚙️ Настроить</button>
+    <button class="ku-btn ghost" id="go-menu">В меню</button>
+  </div>
 </div></div>
 
 <!-- ═══ ПРАВИЛА ═══ -->
-<div class="ku-overlay" id="menu-rules"><div class="ku-modal">
-  <header><h2>📖 Правила</h2><button class="ku-btn icon" id="btn-rules-x" aria-label="Закрыть">✕</button></header>
+<div class="ku-overlay" id="ov-rules"><div class="ku-modal">
+  <header><h2>📖 Правила</h2><button class="ku-btn icon" data-close aria-label="Закрыть">✕</button></header>
   <div class="ku-body">
     <h3>Цель</h3>
     <ul class="ku-rules">
-      <li><b>Ешь еду</b> — змейка растёт, счёт +1.</li>
-      <li><b>Кампания:</b> 12 уровней с разными стенами. Набери нужный счёт — откроется следующий уровень.</li>
-      <li><b>Бесконечный:</b> поле без стен, скорость растёт с каждой едой. Продержись как можно дольше.</li>
+      <li><b>Ешь еду</b> — змейка растёт, растёт и счёт. Нельзя врезаться в <b>стены</b>, в <b>себя</b> и в <b>соперника</b>.</li>
+      <li>Края поля <b>сквозные</b>, если на краю нет стены (такие проходы подсвечены пунктиром): ушла за правый край — появилась слева.</li>
     </ul>
-    <h3>Опасности</h3>
+    <h3>Режимы</h3>
     <ul class="ku-rules">
-      <li>Нельзя врезаться в <b>себя</b> и в <b>стены</b>.</li>
-      <li>Края поля <b>сквозные</b>: ушёл за правый край — появился слева.</li>
+      <li><b>🎮 Кампания</b> — 24 уровня-лабиринта от простого к сложному. Набери счёт-цель — уровень пройден и откроется следующий. Звёзды (до 3) — за короткий путь к еде: чем меньше лишних шагов, тем больше звёзд.</li>
+      <li><b>📟 Классика</b> — как на Nokia: стены по всему краю, скорость 1–9 и лабиринт на выбор. Еда даёт столько очков, какая скорость. После каждой 5-й еды на несколько секунд появляется <b class="c-green">жучок 🐞</b>: его цена — скорость × (10…1), она падает со временем (таймер — кольцо вокруг жучка и окошко «Жучок»). Жучок змейку не удлиняет.</li>
+      <li><b>♾️ Бесконечный</b> — поле без стен, края сквозные, скорость растёт с каждой едой. Продержись как можно дольше.</li>
+      <li><b>⏱️ На время</b> — 2 минуты. Ешь без пауз — растёт множитель очков (до ×5); не успел к следующей еде — множитель сбрасывается. Врезалась — <b>−10 секунд</b>, и змейка начинает заново (очки сохраняются).</li>
+      <li><b>🤖 Против ИИ</b> — твоя змейка (зелёная) и змейка компьютера (розовая) на одном поле. Побеждает тот, кто первым наберёт цель (10/20/30) или останется жив. Врезался в стену, себя или соперника — проиграл; столкнулись лбами — выбывают оба, победа по очкам. ИИ ищет кратчайший путь и следит, чтобы не загнать себя в тупик; на «Легко» часто ошибается.</li>
     </ul>
-    <h3>Бонусы</h3>
+    <h3>Еда</h3>
     <ul class="ku-rules">
-      <li><b class="ku-gold">★ Золотая еда</b> — +3 очка.</li>
-      <li><b class="sn-slow">⏳ Синяя еда</b> — на время замедляет змейку.</li>
-      <li>Бонусы есть не на всех уровнях и через некоторое время исчезают.</li>
+      <li><b>● Обычная</b> — +1 очко и +1 к длине.</li>
+      <li><b class="c-gold">★ Золотая</b> — сразу +3 очка (×3).</li>
+      <li><b class="c-blue">⏳ Синяя</b> — на 6 секунд замедляет змейку (рамка поля светится синим).</li>
+      <li><b class="c-orange">◆ −3 Оранжевая</b> — укорачивает змейку на 3 (но не короче 3).</li>
+      <li><b class="c-purple">👻 Фиолетовая</b> — 5 секунд можно проходить сквозь своё тело (не сквозь стены). В конце змейка мигает.</li>
+      <li>Бонусы исчезают через некоторое время — кольцо вокруг показывает остаток. Еда никогда не появляется на змейке, в стене и вплотную к голове.</li>
     </ul>
-    <h3>Звёзды</h3>
-    <ul class="ku-rules"><li>Чем короче путь к еде, тем больше звёзд за уровень (до трёх).</li></ul>
     <h3>Управление</h3>
     <ul class="ku-rules">
-      <li><b>Стрелки / WASD</b> — поворот, <b>P / Esc</b> — пауза.</li>
-      <li>На телефоне — <b>свайп</b> в любом месте экрана; можно вести палец дальше и поворачивать снова.</li>
+      <li><b>Свайп</b> в любом месте экрана; можно вести палец дальше и поворачивать снова. <b>Крестовина</b> на экране включается в настройках.</li>
+      <li><b>Стрелки / WASD / 8-4-6-2</b> — поворот, <b>P / Esc</b> — пауза.</li>
+      <li>Повороты можно нажимать заранее — до трёх «в запас»; развернуться назад на 180° за один ход нельзя.</li>
+      <li>Игра встаёт на паузу, если свернуть вкладку или приложение.</li>
+    </ul>
+    <h3>Очки и рекорды</h3>
+    <ul class="ku-rules">
+      <li>Рекорды ведутся отдельно для классики, бесконечного режима и режима «На время», для кампании — лучший счёт и звёзды каждого уровня.</li>
+      <li>В общий рейтинг платформы идут только улучшения: за уровень — прирост к лучшему результату (счёт + 10 за звезду), в классике, бесконечном и «На время» — прирост к рекорду, против ИИ — за победу (очки × сложность: 1/2/3), тоже только прирост к лучшей победе. Повтором пройденного или сбросом прогресса очки не набрать.</li>
     </ul>
   </div>
-  <footer><button class="ku-btn primary" id="btn-rules-close">Понятно</button></footer>
+  <footer><button class="ku-btn primary" data-close>Понятно</button></footer>
+</div></div>
+
+<!-- ═══ НАСТРОЙКИ ═══ -->
+<div class="ku-overlay" id="ov-settings"><div class="ku-modal">
+  <header><h2>⚙️ Настройки</h2><button class="ku-btn icon" data-close aria-label="Закрыть">✕</button></header>
+  <div class="ku-body">
+    <h3>Поле</h3>
+    <div class="ku-field"><div class="ku-label">Размер поля</div>
+      <div class="ku-seg" id="set-size"><button data-v="S">S · 15×23</button><button data-v="M">M · 19×29</button><button data-v="L">L · 23×35</button></div></div>
+    <p class="set-note" id="size-note">Размер меняется со следующей партии.</p>
+    <label class="ku-switch-row">Сетка на поле<input type="checkbox" data-opt="grid"><span class="ku-switch"></span></label>
+    <label class="ku-switch-row">Плавное движение змейки<input type="checkbox" data-opt="smooth"><span class="ku-switch"></span></label>
+    <h3>Управление</h3>
+    <label class="ku-switch-row">Экранная крестовина<input type="checkbox" data-opt="pad"><span class="ku-switch"></span></label>
+    <p class="set-note">Свайпы и клавиатура работают всегда.</p>
+    <h3>Звук и вибрация</h3>
+    <label class="ku-switch-row">Звуки<input type="checkbox" data-opt="sound"><span class="ku-switch"></span></label>
+    <label class="ku-switch-row">Вибрация<input type="checkbox" data-opt="vib"><span class="ku-switch"></span></label>
+    <h3>Данные</h3>
+    <button class="ku-btn sm danger" id="btn-reset">💣 Сбросить прогресс и рекорды</button>
+  </div>
+  <footer><button class="ku-btn primary" data-close>Готово</button></footer>
+</div></div>
+
+<!-- ═══ СТАТИСТИКА ═══ -->
+<div class="ku-overlay" id="ov-stats"><div class="ku-modal">
+  <header><h2>📊 Статистика</h2><button class="ku-btn icon" data-close aria-label="Закрыть">✕</button></header>
+  <div class="ku-body">
+    <div class="ku-seg st-tabs" id="st-tabs">
+      <button data-k="campaign">Кампания</button><button data-k="classic">Классика</button><button data-k="endless">Бесконечный</button>
+      <button data-k="timed">На время</button><button data-k="vs">Против ИИ</button>
+    </div>
+    <div class="stats-grid" id="st-grid"></div>
+    <div class="vs-rows" id="st-extra"></div>
+    <h3>Всего</h3>
+    <div class="stats-grid" id="st-total"></div>
+  </div>
+  <footer><button class="ku-btn primary" data-close>Готово</button></footer>
+</div></div>
+
+<!-- ═══ ДОСТИЖЕНИЯ ═══ -->
+<div class="ku-overlay" id="ov-ach"><div class="ku-modal">
+  <header><h2>🏅 Достижения <span class="ku-muted" id="ach-count"></span></h2><button class="ku-btn icon" data-close aria-label="Закрыть">✕</button></header>
+  <div class="ku-body"><div class="list" id="ach-list"></div></div>
+</div></div>
+
+<!-- ═══ ИСТОРИЯ ═══ -->
+<div class="ku-overlay" id="ov-history"><div class="ku-modal">
+  <header><h2>📜 История партий</h2><button class="ku-btn icon" data-close aria-label="Закрыть">✕</button></header>
+  <div class="ku-body"><div class="list" id="history-list"></div></div>
 </div></div>
 
 <div class="ku-toast" id="toast"></div>
-
 <script>
 'use strict';
-const $ = id => document.getElementById(id);
 
-/* Хранилище: localStorage может быть недоступен (песочница, приватный режим) или испорчен */
+/* ═══ engine.js ═══ */
+/* ═══════════════════════════════════════════════════════════════
+ * ЗМЕЙКА — движок: поле, лабиринты, уровни, шаг логики, еда, ИИ.
+ * Поле всегда «тор» (края сквозные); сплошной край — это просто стены
+ * по периметру. Клетка — индекс i = y * W + x. Направления: 0 вверх,
+ * 1 вправо, 2 вниз, 3 влево. Логика идёт фиксированными шагами
+ * (advance накапливает время), от частоты кадров не зависит.
+ * ═════════════════════════════════════════════════════════════ */
+const SE = (function () {
+  'use strict';
+
+  /* ── Случайные числа с зерном (mulberry32) ── */
+  function rng(seed) {
+    let a = seed >>> 0;
+    return function () {
+      a = (a + 0x6D2B79F5) >>> 0;
+      let t = a;
+      t = Math.imul(t ^ (t >>> 15), t | 1);
+      t ^= t + Math.imul(t ^ (t >>> 7), t | 61);
+      return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+    };
+  }
+
+  const DX = [0, 1, 0, -1], DY = [-1, 0, 1, 0];
+  const OPP = d => (d + 2) & 3;
+  const TR = [3, 2, 1, 0];          // направление после транспонирования поля (альбомная ориентация)
+  const BIG = 1 << 29;
+  const MAX_QUEUE = 3;              // поворотов «про запас»
+  // размеры поля в портретной ориентации (ширина × высота); в альбомной поле транспонируется
+  const SIZES = { S: [15, 23], M: [19, 29], L: [23, 35] };
+
+  /* ── Еда ── */
+  const FOOD = {
+    apple:  { pts: 1, grow: true },
+    gold:   { pts: 3, grow: true },    // ×3 очка
+    slow:   { pts: 1, grow: true },    // замедление
+    shrink: { pts: 1, grow: false },   // −3 длины
+    ghost:  { pts: 1, grow: true },    // 5 с сквозь себя
+    bug:    { pts: 0, grow: false }    // «жучок» классики: очки по таймеру, без роста
+  };
+  const SLOW_MS = 6000, SLOW_K = 1.5, GHOST_MS = 5000, SHRINK = 3, MIN_LEN = 3;
+  const TIMED_MS = 120000, TIMED_PENALTY = 10000, COMBO_MAX = 5;
+
+  /* ═══ Лабиринты ═══
+   * Каждый лабиринт — функция-рисовалка на построителе D (портрет W×H, W и H нечётные).
+   * Координаты задаются долями ширины/высоты (fx/fy), поэтому один и тот же рисунок
+   * подходит к размерам S/M/L; симметрия (D.sym) дорисовывает отражения. */
+  function stairPts(x1, y1, x2, y2) {     // 4-связная «лесенка» — без диагональных щелей
+    const pts = [[x1, y1]], dx = Math.abs(x2 - x1), dy = Math.abs(y2 - y1), sx = Math.sign(x2 - x1), sy = Math.sign(y2 - y1);
+    let x = x1, y = y1;
+    while (x !== x2 || y !== y2) {
+      const tx = dx ? (Math.abs(x - x1) + 0.5) / dx : Infinity, ty = dy ? (Math.abs(y - y1) + 0.5) / dy : Infinity;
+      if (tx <= ty && x !== x2) x += sx; else y += sy;
+      pts.push([x, y]);
+    }
+    return pts;
+  }
+
+  function mk(W, H) {
+    const g = new Uint8Array(W * H);
+    const D = {
+      W, H, g, sym: 1, cx: (W - 1) >> 1, cy: (H - 1) >> 1,
+      fx: f => Math.round(f * (W - 1)), fy: f => Math.round(f * (H - 1)),
+      put(x, y, val) {
+        const v = val === undefined ? 1 : val, s = D.sym, p = [x, y];
+        if (s === 'x' || s === 4) p.push(W - 1 - x, y);
+        if (s === 'y' || s === 4) p.push(x, H - 1 - y);
+        if (s === 4 || s === 2) p.push(W - 1 - x, H - 1 - y);
+        for (let k = 0; k < p.length; k += 2) {
+          const a = p[k], b = p[k + 1];
+          if (a >= 0 && b >= 0 && a < W && b < H) g[b * W + a] = v;
+        }
+      },
+      h(x1, x2, y, v) { for (let x = Math.min(x1, x2); x <= Math.max(x1, x2); x++) D.put(x, y, v); },
+      v(x, y1, y2, v) { for (let y = Math.min(y1, y2); y <= Math.max(y1, y2); y++) D.put(x, y, v); },
+      rect(x1, y1, x2, y2, v) { for (let y = Math.min(y1, y2); y <= Math.max(y1, y2); y++) D.h(x1, x2, y, v); },
+      frame(x1, y1, x2, y2) { D.h(x1, x2, y1); D.h(x1, x2, y2); D.v(x1, y1, y2); D.v(x2, y1, y2); },
+      gapH(xc, y, w) { const a = xc - ((w - 1) >> 1); D.h(a, a + w - 1, y, 0); },     // проём в горизонтальной стене
+      gapV(x, yc, w) { const a = yc - ((w - 1) >> 1); D.v(x, a, a + w - 1, 0); },
+      border() { const s = D.sym; D.sym = 1; D.frame(0, 0, W - 1, H - 1); D.sym = s; },
+      stair(x1, y1, x2, y2, skipA, skipB) {
+        const p = stairPts(x1, y1, x2, y2);
+        p.slice(skipA || 0, p.length - (skipB || 0)).forEach(([x, y]) => D.put(x, y));
+      },
+      // n линий, симметрично делящих отрезок [0, len-1]
+      lines(n, len) {
+        const out = [];
+        for (let i = 1; i <= n; i++) {
+          const j = Math.min(i, n + 1 - i), p = Math.round(j * (len - 1) / (n + 1));
+          out.push(i <= (n + 1) / 2 ? p : len - 1 - p);
+        }
+        return out;
+      },
+      // сетка комнат nx×ny с дверями шириной door посередине каждой внутренней стенки
+      rooms(nx, ny, door) {
+        const s = D.sym; D.sym = 1;
+        const X = [0, ...D.lines(nx - 1, W), W - 1], Y = [0, ...D.lines(ny - 1, H), H - 1];
+        X.forEach(x => D.v(x, 0, H - 1)); Y.forEach(y => D.h(0, W - 1, y));
+        const cut = (a, b, fn) => {                     // дверь по центру отрезка [a, b]
+          const L = b - a + 1;
+          let dw = Math.max(1, Math.min(door, L - 2));
+          if ((L - dw) % 2) dw += dw + 1 <= L - 2 ? 1 : -1;   // чётность — чтобы дверь стояла ровно по центру
+          if (dw < 1) dw = 1;
+          const st = a + ((L - dw) >> 1);
+          for (let k = st; k < st + dw; k++) fn(k);
+        };
+        for (let i = 1; i < X.length - 1; i++) for (let j = 0; j < Y.length - 1; j++) cut(Y[j] + 1, Y[j + 1] - 1, y => D.put(X[i], y, 0));
+        for (let j = 1; j < Y.length - 1; j++) for (let i = 0; i < X.length - 1; i++) cut(X[i] + 1, X[i + 1] - 1, x => D.put(x, Y[j], 0));
+        D.sym = s;
+      }
+    };
+    return D;
+  }
+  const oddAbout = v => 2 * Math.max(0, Math.round((v - 1) / 2)) + 1;   // ближайшее нечётное ≥ 1
+
+  const MAZES = {
+    empty() {},
+    pillars(D) { D.sym = 4; const x = D.fx(.24), y = D.fy(.24); D.rect(x - 1, y - 1, x, y); },
+    bar(D) { D.sym = 'x'; D.h(D.fx(.22), D.cx, D.cy); },
+    box(D) { D.border(); },
+    cross(D) { D.sym = 4; D.h(D.fx(.2), D.cx, D.cy); D.v(D.cx, D.fy(.24), D.cy); },
+    corners(D) {
+      D.sym = 4; const x = D.fx(.1), y = D.fy(.08);
+      D.h(x, x + D.fx(.24), y); D.v(x, y, y + D.fy(.16));
+      D.sym = 1; D.rect(D.cx - 1, D.cy - 1, D.cx + 1, D.cy + 1);
+    },
+    tunnel(D) {           // рамка с проходами посередине сторон + две стенки центрального тоннеля
+      D.border(); D.sym = 4;
+      D.gapH(D.cx, 0, 3); D.gapV(0, D.cy, 3);
+      D.v(D.fx(.32), D.fy(.16), D.cy);
+    },
+    rails(D) {            // рельсы: длинные (проходы у краёв) чередуются с половинками (проход в центре)
+      const ys = D.lines(oddAbout(D.H / 6), D.H);
+      ys.forEach((y, i) => { D.sym = 'x'; if (i % 2 === 0) D.h(2, D.cx, y); else D.h(0, D.cx - 2, y); });
+    },
+    mill(D) {             // мельница-пропеллер: четыре прямые лопасти, смещённые от оси
+      D.sym = 2; const { cx, cy } = D;
+      D.v(cx + 1, D.fy(.1), cy - 2);
+      D.h(cx + 2, D.W - 1 - D.fx(.06), cy + 1);
+    },
+    frame(D) {            // рамка внутри поля с проходами посередине сторон
+      D.border(); D.sym = 4;
+      const x = D.fx(.26), y = D.fy(.26);
+      D.h(x, D.cx, y); D.v(x, y, D.cy);
+      D.gapH(D.cx, y, 3); D.gapV(x, D.cy, 3);
+    },
+    apartments(D) { D.rooms(2, 3, 3); },
+    grid(D) {             // решётка столбиков через 3 клетки
+      for (let y = D.cy % 3; y < D.H; y += 3) for (let x = D.cx % 3; x < D.W; x += 3)
+        if (x >= 2 && y >= 2 && x <= D.W - 3 && y <= D.H - 3) D.put(x, y);
+    },
+    zigzag(D) {           // три ломаные стены поперёк поля
+      const wave = x => { const t = Math.abs(x - D.cx) % 6; return t < 3 ? t : 6 - t; };   // 0 1 2 3 2 1 0 …
+      const line = (yc, flip) => {
+        let py = null;
+        for (let x = 1; x <= D.W - 2; x++) {
+          const y = yc + (flip ? -1 : 1) * (wave(x) - 1);
+          D.put(x, y); if (py !== null && py !== y) D.put(x, py);
+          py = y;
+        }
+      };
+      D.sym = 1; line(D.fy(.22), false); line(D.cy, true); line(D.H - 1 - D.fy(.22), false);
+    },
+    rings(D) {            // два кольца: двери у внешнего — сверху/снизу, у внутреннего — слева/справа
+      D.border(); D.sym = 4;
+      let x = D.fx(.17), y = D.fy(.12);
+      D.h(x, D.cx, y); D.v(x, y, D.cy); D.gapH(D.cx, y, 3);
+      x = D.fx(.34); y = D.fy(.3);
+      D.h(x, D.cx, y); D.v(x, y, D.cy); D.gapV(x, D.cy, 3);
+    },
+    diamond(D) {          // ромб с проходами в вершинах, рамка с проходами посередине сторон
+      D.border(); D.sym = 4;
+      D.gapH(D.cx, 0, 3); D.gapV(0, D.cy, 3);
+      const rx = D.fx(.32), ry = D.fy(.3);
+      D.stair(D.cx, D.cy - ry, D.cx + rx, D.cy, 4, 3);
+      D.sym = 1; D.h(D.cx - 1, D.cx + 1, D.cy); D.v(D.cx, D.cy - 1, D.cy + 1);
+    },
+    islands(D) {          // острова-тетрамино (поворот на 180°)
+      D.sym = 2;
+      const P = (x, y, c) => c.forEach(([a, b]) => D.put(x + a, y + b));
+      P(D.fx(.16), D.fy(.1), [[0, 0], [1, 0], [2, 0], [1, 1]]);
+      P(D.fx(.6), D.fy(.17), [[0, 0], [0, 1], [0, 2], [1, 2]]);
+      P(D.fx(.22), D.fy(.38), [[0, 0], [1, 0], [0, 1], [1, 1]]);
+      P(D.fx(.56), D.fy(.42), [[0, 0], [1, 0], [2, 0], [3, 0]]);
+      P(D.fx(.08), D.fy(.75), [[0, 0], [0, 1], [1, 1]]);
+    },
+    gates(D) {            // поперечные стены во всю ширину с воротами (чередуются: по бокам / в центре)
+      const ys = D.lines(oddAbout((D.H - 1) / 7), D.H);
+      ys.forEach((y, i) => {
+        D.sym = 1; D.h(0, D.W - 1, y);
+        if (i % 2) D.gapH(D.cx, y, 3); else { D.sym = 'x'; D.gapH(D.fx(.2), y, 3); }
+      });
+    },
+    bastions(D) {         // зубцы от рамки внутрь + четыре блока в центре
+      D.border(); D.sym = 4;
+      for (let x = 4; x <= D.cx - 2; x += 4) D.v(x, 1, 2);
+      for (let y = 4; y <= D.cy - 2; y += 4) D.h(1, 2, y);
+      D.rect(D.cx - 3, D.cy - 3, D.cx - 2, D.cy - 2);
+    },
+    serpentine(D) {       // змеевик: стенки попеременно от левого и правого края
+      D.border(); D.sym = 1;
+      const ys = D.lines(oddAbout(D.H / 6), D.H);
+      ys.forEach((y, i) => { if (i % 2) D.h(4, D.W - 2, y); else D.h(1, D.W - 5, y); });
+    },
+    vortex(D) {           // вихрь: двойная спираль (поворот на 180°)
+      D.sym = 2; const { cx, cy } = D, y1 = D.fy(.16), x1 = D.fx(.16);
+      D.v(cx + 1, y1, cy - 1); D.h(x1, cx + 1, y1); D.v(x1, y1, D.fy(.46));
+      const x2 = D.W - 1 - D.fx(.08), y2 = D.fy(.06);
+      D.h(D.fx(.4), x2, y2); D.v(x2, y2, D.fy(.3));
+    },
+    cells(D) { D.rooms(Math.round((D.W - 1) / 4.5), Math.round((D.H - 1) / 4.5), 2); },
+    labyrinth(D) {        // настоящий лабиринт: коридоры шириной 2, без тупиков (braid)
+      const W = D.W, H = D.H, cw = Math.floor((W - 1) / 3), ch = Math.floor((H - 1) / 3);
+      const ox = (W - (cw * 3 + 1)) >> 1, oy = (H - (ch * 3 + 1)) >> 1;
+      const R = rng(7919 + W * 131 + H);
+      D.sym = 1; D.rect(0, 0, W - 1, H - 1);
+      const X = i => ox + 1 + 3 * i, Y = j => oy + 1 + 3 * j;
+      for (let j = 0; j < ch; j++) for (let i = 0; i < cw; i++) D.rect(X(i), Y(j), X(i) + 1, Y(j) + 1, 0);
+      const link = new Set(), key = (a, b) => a < b ? a + ',' + b : b + ',' + a;
+      const nb = c => { const i = c % cw, j = (c / cw) | 0, r = []; if (i > 0) r.push(c - 1); if (i < cw - 1) r.push(c + 1); if (j > 0) r.push(c - cw); if (j < ch - 1) r.push(c + cw); return r; };
+      const open = (a, b) => {
+        link.add(key(a, b));
+        const ai = a % cw, aj = (a / cw) | 0, bi = b % cw, bj = (b / cw) | 0;
+        if (aj === bj) { const x = X(Math.min(ai, bi)) + 2; D.v(x, Y(aj), Y(aj) + 1, 0); }
+        else { const y = Y(Math.min(aj, bj)) + 2; D.h(X(ai), X(ai) + 1, y, 0); }
+      };
+      const seen = new Uint8Array(cw * ch), st = [0]; seen[0] = 1;
+      while (st.length) {          // обход в глубину — «идеальный» лабиринт
+        const c = st[st.length - 1], fr = nb(c).filter(n => !seen[n]);
+        if (!fr.length) { st.pop(); continue; }
+        const n = fr[Math.floor(R() * fr.length)];
+        open(c, n); seen[n] = 1; st.push(n);
+      }
+      const deg = c => nb(c).filter(n => link.has(key(c, n))).length;
+      for (let c = 0; c < cw * ch; c++) if (deg(c) < 2) {   // убираем тупики: пробиваем ещё одну стену
+        const fr = nb(c).filter(n => !link.has(key(c, n)));
+        const pref = fr.filter(n => deg(n) < 2), pool = pref.length ? pref : fr;
+        if (pool.length) open(c, pool[Math.floor(R() * pool.length)]);
+      }
+    },
+    fortress(D) {         // крепость: рамка с проходами, центральная крепость с воротами, угловые башни
+      D.border(); D.sym = 4;
+      D.gapH(D.cx, 0, 3); D.gapV(0, D.cy, 3);
+      const x = D.fx(.3), y = D.fy(.32);
+      D.h(x, D.cx, y); D.v(x, y, D.cy); D.gapH(D.cx, y, 3); D.gapV(x, D.cy, 3);
+      const tx = D.fx(.13), ty = D.fy(.12);
+      D.rect(tx, ty, tx + 1, ty + 1);
+      D.h(tx + 3, tx + 4, ty + 3);
+    },
+    final(D) {            // финал: рамка с проходами, кольцо с воротами, мельница внутри
+      D.border(); D.sym = 4;
+      D.gapH(D.cx, 0, 3); D.gapV(0, D.cy, 3);
+      const x = D.fx(.18), y = D.fy(.14);
+      D.h(x, D.cx, y); D.v(x, y, D.cy);
+      D.gapH(D.fx(.36), y, 2); D.gapV(x, D.fy(.34), 2);
+      D.sym = 2; const { cx, cy } = D;
+      D.v(cx + 1, D.fy(.26), cy - 2);
+      D.h(cx + 2, D.W - 1 - D.fx(.3), cy + 1);
+    }
+  };
+
+  /* ── Кампания: 24 уровня ──
+   * bonus: шанс бонуса после обычной еды и веса видов [золото, замедление, укорочение, призрак] */
+  const B = (chance, gold, slow, shrink, ghost) => ({ chance, w: { gold: gold || 0, slow: slow || 0, shrink: shrink || 0, ghost: ghost || 0 } });
+  const LV = (id, name, maze, speed, target, theme, bonus, tip) => ({ id, name, maze, speed, target, theme, bonus, tip });
+  const LEVELS = [
+    LV(1, 'Обучение', 'empty', 165, 6, 'classic', null, 'Свайп или стрелки — поворот. Края поля сквозные'),
+    LV(2, 'Столбы', 'pillars', 160, 8, 'ice', B(.25, 1), 'Золотая еда ★ — сразу +3 очка'),
+    LV(3, 'Барьер', 'bar', 155, 10, 'cyber', B(.25, 1), 'Стены смертельны — обходи их'),
+    LV(4, 'Коробка', 'box', 150, 11, 'fire', B(.25, 1), 'Края закрыты стеной — сквозь них не пройти'),
+    LV(5, 'Крест', 'cross', 146, 12, 'neon', B(.3, 2, 1), 'Синяя еда ⏳ на 6 секунд замедляет змейку'),
+    LV(6, 'Углы', 'corners', 142, 13, 'ice', B(.3, 2, 1), 'Повороты можно нажимать заранее — до трёх'),
+    LV(7, 'Тоннель', 'tunnel', 138, 14, 'cyber', B(.3, 2, 1), 'Проходы в рамке ведут на другую сторону поля'),
+    LV(8, 'Рельсы', 'rails', 134, 15, 'fire', B(.3, 2, 1, 1), 'Оранжевая еда ✂ укорачивает змейку на 3'),
+    LV(9, 'Мельница', 'mill', 130, 16, 'neon', B(.3, 2, 1, 1), 'Лопасти мельницы — обходи по кругу'),
+    LV(10, 'Рамка', 'frame', 126, 17, 'void', B(.3, 2, 1, 1), 'В рамку ведут четыре прохода'),
+    LV(11, 'Квартиры', 'apartments', 122, 18, 'ice', B(.32, 2, 1, 1, 1), 'Фиолетовая еда 👻 — 5 секунд сквозь себя'),
+    LV(12, 'Решётка', 'grid', 118, 19, 'cyber', B(.32, 2, 1, 1, 1), 'Между столбиками — коридоры в две клетки'),
+    LV(13, 'Зигзаг', 'zigzag', 115, 20, 'fire', B(.32, 2, 1, 1, 1), 'Ломаные стены — края поля сквозные'),
+    LV(14, 'Кольца', 'rings', 112, 21, 'neon', B(.32, 2, 1, 1, 1), 'Двери колец смотрят в разные стороны'),
+    LV(15, 'Ромб', 'diamond', 109, 22, 'void', B(.32, 2, 1, 1, 1), 'В ромб — через вершины'),
+    LV(16, 'Острова', 'islands', 106, 23, 'ice', B(.34, 2, 1, 1, 1), 'Петляй между островами'),
+    LV(17, 'Ворота', 'gates', 103, 24, 'cyber', B(.34, 2, 1, 1, 1), 'Ворота чередуются: по бокам и в центре'),
+    LV(18, 'Бастионы', 'bastions', 100, 25, 'fire', B(.34, 2, 1, 1, 1), 'Не заезжай в карманы между зубцами длинной змейкой'),
+    LV(19, 'Змеевик', 'serpentine', 97, 26, 'neon', B(.34, 2, 1, 2, 1), 'Один длинный коридор — разворачивайся в широких местах'),
+    LV(20, 'Вихрь', 'vortex', 94, 27, 'void', B(.34, 2, 1, 1, 1), 'Лопасти закручены по часовой стрелке'),
+    LV(21, 'Соты', 'cells', 91, 28, 'ice', B(.36, 2, 1, 2, 1), 'Маленькие комнаты — узкие двери'),
+    LV(22, 'Лабиринт', 'labyrinth', 88, 29, 'cyber', B(.36, 2, 1, 2, 1), 'Коридоры в две клетки, тупиков нет'),
+    LV(23, 'Крепость', 'fortress', 85, 31, 'fire', B(.36, 2, 1, 2, 1), 'Ворота крепости — с четырёх сторон'),
+    LV(24, 'Финал', 'final', 82, 34, 'void', B(.36, 2, 1, 2, 1), 'Финальное испытание!')
+  ];
+
+  /* ── Классика (как на Nokia): сплошные стены по краю, скорость 1–9, лабиринт на выбор ── */
+  const CLASSIC_MAZES = [
+    { id: 'none', name: 'Без лабиринта' }, { id: 'tunnel', name: 'Тоннель' }, { id: 'mill', name: 'Мельница' },
+    { id: 'rails', name: 'Рельсы' }, { id: 'apartments', name: 'Квартиры' }, { id: 'rings', name: 'Кольца' }
+  ];
+  const CLASSIC_SPEED = [0, 260, 220, 185, 155, 130, 110, 92, 77, 64];   // мс на шаг для скоростей 1–9
+  const BUG_EVERY = 5;                       // жучок — после каждой 5-й еды
+
+  /* ── Против ИИ ── */
+  const AI = {
+    easy:   { rand: 0.3,  safe: false, avoid: false, smart: false },   // часто ошибается, не думает наперёд, может влететь в лоб
+    normal: { rand: 0.1,  safe: true,  avoid: true,  smart: false },   // путь + проверка безопасности, держится выбранной еды, иногда «зевает»
+    hard:   { rand: 0,    safe: true,  avoid: true,  smart: true }     // + каждый ход выбирает еду, до которой успеет раньше соперника
+  };
+  const VS_SPEED = 120, VS_TARGETS = [10, 20, 30];
+
+  /* ── Поле ── */
+  function buildMaze(id, W, H, border) {
+    const D = mk(W, H);
+    (MAZES[id] || MAZES.empty)(D);
+    if (border) { D.sym = 1; D.border(); }
+    return D.g;
+  }
+  function transpose(g, W, H) {       // портрет W×H → альбом H×W
+    const t = new Uint8Array(W * H);
+    for (let y = 0; y < H; y++) for (let x = 0; x < W; x++) t[x * H + y] = g[y * W + x];
+    return t;
+  }
+  function neighbors(W, H) {          // таблица соседей на торе: nb[i*4+d]
+    const nb = new Int32Array(W * H * 4);
+    for (let y = 0; y < H; y++) for (let x = 0; x < W; x++) for (let d = 0; d < 4; d++)
+      nb[(y * W + x) * 4 + d] = ((y + DY[d] + H) % H) * W + (x + DX[d] + W) % W;
+    return nb;
+  }
+  // разбор лабиринта: связность свободных клеток, тупики (≥3 стены вокруг), доля стен
+  function analyze(walls, W, H) {
+    const N = W * H, nb = neighbors(W, H), comp = new Int32Array(N).fill(-1);
+    let comps = 0, free = 0, dead = [];
+    for (let i = 0; i < N; i++) {
+      if (walls[i]) continue;
+      free++;
+      let w = 0; for (let d = 0; d < 4; d++) w += walls[nb[i * 4 + d]] ? 1 : 0;
+      if (w >= 3) dead.push(i);
+      if (comp[i] >= 0) continue;
+      const q = [i]; comp[i] = comps;
+      while (q.length) { const c = q.pop(); for (let d = 0; d < 4; d++) { const n = nb[c * 4 + d]; if (!walls[n] && comp[n] < 0) { comp[n] = comps; q.push(n); } } }
+      comps++;
+    }
+    return { comps, free, deadEnds: dead, wallFrac: 1 - free / N };
+  }
+
+  /* ═══ Партия ═══ */
+  function newGame(o) {
+    o = o || {};
+    const mode = ['campaign', 'classic', 'endless', 'timed', 'vs'].includes(o.mode) ? o.mode : 'campaign';
+    const size = SIZES[o.size] ? o.size : 'M';
+    const [pw, ph] = SIZES[size];
+    const seed = (o.seed === undefined ? (Date.now() ^ (Math.random() * 1e9)) : o.seed) >>> 0;
+    let maze = 'empty', border = false, base = 150, lvl = null, speed = 0, diff = null, target = Infinity;
+    if (mode === 'campaign') {
+      lvl = LEVELS[Math.max(0, Math.min(LEVELS.length - 1, o.level | 0))];
+      maze = lvl.maze; base = lvl.speed; target = lvl.target;
+    } else if (mode === 'classic') {
+      speed = Math.max(1, Math.min(9, o.speed | 0 || 5));
+      maze = CLASSIC_MAZES.some(m => m.id === o.maze) ? o.maze : 'none';
+      border = true; base = CLASSIC_SPEED[speed];
+    } else if (mode === 'endless') base = 160;
+    else if (mode === 'timed') base = 115;
+    else {
+      diff = AI[o.diff] ? o.diff : 'normal';
+      target = VS_TARGETS.includes(o.target) ? o.target : 20;
+      border = true; base = VS_SPEED;
+    }
+    let walls = buildMaze(mode === 'classic' && maze === 'none' ? 'empty' : maze, pw, ph, border);
+    const land = !!o.land;
+    let W = pw, H = ph;
+    if (land) { walls = transpose(walls, pw, ph); W = ph; H = pw; }
+    const N = W * H, nb = neighbors(W, H);
+    const deadEnd = new Uint8Array(N);
+    for (let i = 0; i < N; i++) if (!walls[i]) { let w = 0; for (let d = 0; d < 4; d++) w += walls[nb[i * 4 + d]] ? 1 : 0; if (w >= 3) deadEnd[i] = 1; }
+    const G = {
+      mode, size, land, W, H, N, walls, nb, deadEnd, seed, rng: rng(seed),
+      lvl, maze, speed, diff, target, base, slowMs: 0,
+      snakes: [], foods: [], ev: [],
+      stepN: 0, time: 0, acc: 0, over: null, crash: false,
+      apples: 0,                      // съедено обычной еды (всеми)
+      parSum: 0,                      // кампания: сумма кратчайших путей к съеденной еде (для звёзд)
+      bugs: 0, bugBest: 0,            // классика: съедено жучков, лучший множитель
+      timeLeft: mode === 'timed' ? TIMED_MS : 0, combo: 1, maxCombo: 1, lastEat: -1e9, crashes: 0,
+      comboWin: Math.round((W + H) * 0.6)
+    };
+    // стартовые позиции: в портрете — снизу по центру, головой вверх (в альбоме — транспонированно)
+    const anchor = (fx, fy, dir) => {
+      const x = Math.round(fx * (pw - 1)), y = Math.round(fy * (ph - 1));
+      return land ? [y, x, TR[dir]] : [x, y, dir];
+    };
+    const need = Math.max(5, Math.ceil(1000 / base));
+    if (mode === 'vs') {
+      const a = anchor(.28, .78, 0), b = anchor(.72, .22, 2);
+      G.snakes.push(makeSnake(G, a, need, null));
+      G.snakes.push(makeSnake(G, b, need, diff));
+      spawn(G, 'apple'); spawn(G, 'apple');
+    } else {
+      G.snakes.push(makeSnake(G, anchor(.5, .7, 0), need, null));
+      spawn(G, 'apple');
+    }
+    return G;
+  }
+
+  function makeSnake(G, a, need, ai) {
+    const p = placeSnake(G, a[0], a[1], a[2], need) || { body: [((G.H >> 1) * G.W) + (G.W >> 1)], dir: 0 };
+    return { body: p.body, dir: p.dir, queue: [], alive: true, ai, score: 0, eaten: 0, maxLen: p.body.length,
+      ghostMs: 0, prevHead: -1, tailGone: -1, cause: null, passes: 0 };
+  }
+
+  // занято ли: стена, змейка, еда
+  function occupancy(G) {
+    const occ = new Uint8Array(G.N);
+    for (let i = 0; i < G.N; i++) if (G.walls[i]) occ[i] = 1;
+    for (const s of G.snakes) if (s.alive) for (const c of s.body) occ[c] = 2;
+    for (const f of G.foods) occ[f.c] = 3;
+    return occ;
+  }
+
+  // Старт: свободный отрезок (тело 3 клетки + запас хода need клеток впереди) как можно ближе к якорю
+  function placeSnake(G, ax, ay, pref, need, len) {
+    len = len || 3;
+    const W = G.W, H = G.H, occ = occupancy(G);
+    for (let nd = need; nd >= 2; nd--) {
+      let best = null, bestScore = Infinity;
+      for (let y = 0; y < H; y++) for (let x = 0; x < W; x++) for (let d = 0; d < 4; d++) {
+        const score = Math.abs(x - ax) + Math.abs(y - ay) + (d === pref ? 0 : 8);
+        if (score >= bestScore) continue;
+        let ok = true;
+        for (let k = -(len - 1); k <= nd && ok; k++) {
+          const cx = (x + DX[d] * k + W * 4) % W, cy = (y + DY[d] * k + H * 4) % H;
+          if (occ[cy * W + cx]) ok = false;
+        }
+        if (ok) { best = { x, y, d }; bestScore = score; }
+      }
+      if (best) {
+        const body = [];
+        for (let k = 0; k < len; k++) body.push(((best.y - DY[best.d] * k + H * 4) % H) * W + (best.x - DX[best.d] * k + W * 4) % W);
+        return { body, dir: best.d };
+      }
+    }
+    return null;
+  }
+
+  // Честное появление еды: не на стене/змейке/еде, не вплотную к голове (8 соседей), не в тупике
+  function spawn(G, type, life) {
+    const occ = occupancy(G), W = G.W, H = G.H, N = G.N, near = new Uint8Array(N);
+    for (const s of G.snakes) if (s.alive) {
+      const hx = s.body[0] % W, hy = (s.body[0] / W) | 0;
+      for (let dy = -1; dy <= 1; dy++) for (let dx = -1; dx <= 1; dx++) near[((hy + dy + H) % H) * W + (hx + dx + W) % W] = 1;
+    }
+    const pick = rule => { const c = []; for (let i = 0; i < N; i++) if (rule(i)) c.push(i); return c; };
+    let cand = pick(i => !occ[i] && !near[i] && !G.deadEnd[i]);
+    if (!cand.length) cand = pick(i => !occ[i] && !G.deadEnd[i]);    // совсем тесно — можно и рядом с головой
+    if (!cand.length) cand = pick(i => !occ[i]);
+    if (!cand.length) return null;
+    const c = cand[Math.floor(G.rng() * cand.length)];
+    const f = { c, type, life: life || 0, max: life || 0, par: 0, born: G.stepN };
+    if (G.mode === 'campaign') f.par = wallDist(G, G.snakes[0].body[0], c);
+    G.foods.push(f);
+    return f;
+  }
+
+  // кратчайший путь по полю без учёта тела (для звёзд кампании)
+  function wallDist(G, a, b) {
+    if (a === b) return 0;
+    const dist = new Int32Array(G.N).fill(-1), q = new Int32Array(G.N);
+    let qh = 0, qt = 0; q[qt++] = a; dist[a] = 0;
+    while (qh < qt) {
+      const c = q[qh++];
+      for (let d = 0; d < 4; d++) {
+        const n = G.nb[c * 4 + d];
+        if (dist[n] >= 0 || G.walls[n]) continue;
+        dist[n] = dist[c] + 1;
+        if (n === b) return dist[n];
+        q[qt++] = n;
+      }
+    }
+    return G.W + G.H;
+  }
+
+  const interval = G => G.base * (G.slowMs > 0 ? SLOW_K : 1);
+  const bonusLife = G => Math.round((G.W + G.H) * 1.2);   // шагов
+  const bugLife = G => Math.round((G.W + G.H) * 0.75);
+  // цена жучка: скорость × (10 … 1) — чем быстрее съеден, тем дороже
+  const bugMult = f => Math.max(1, Math.ceil(10 * f.life / Math.max(1, f.max)));
+
+  function pickBonus(G, w) {
+    const types = ['gold', 'slow', 'shrink', 'ghost'].filter(t => w[t] > 0);
+    const sum = types.reduce((a, t) => a + w[t], 0);
+    let r = G.rng() * sum;
+    for (const t of types) { r -= w[t]; if (r < 0) return t; }
+    return types[types.length - 1];
+  }
+  // какие бонусы бывают в режиме: шанс после обычной еды и веса видов
+  function bonusCfg(G) {
+    if (G.mode === 'campaign') return G.lvl.bonus;
+    if (G.mode === 'endless') return { chance: 0.3, w: { gold: 4, slow: 2, shrink: 2, ghost: 2 } };
+    if (G.mode === 'timed') return { chance: 0.3, w: { gold: 5, slow: 0, shrink: 2, ghost: 2 } };
+    if (G.mode === 'vs') return { chance: 0.2, w: { gold: 1 } };
+    return null;
+  }
+
+  /* ── Ввод: очередь поворотов без разворота на 180° ── */
+  function turn(G, d, si) {
+    const s = G.snakes[si || 0];
+    if (!s || !s.alive || s.ai || G.over || !(d >= 0 && d < 4)) return false;
+    const q = s.queue, last = q.length ? q[q.length - 1] : s.dir;
+    if (q.length >= MAX_QUEUE || d === last || d === OPP(last)) return false;
+    q.push(d);
+    return true;
+  }
+
+  /* ── Шаг логики ── */
+  function step(G) {
+    const S = G.snakes, live = S.filter(s => s.alive), dt = interval(G);
+    G.stepN++;
+    for (const s of live) {
+      if (s.ai) s.dir = aiChoose(G, s);
+      else if (s.queue.length) s.dir = s.queue.shift();
+    }
+    for (const s of live) {
+      s.nh = G.nb[s.body[0] * 4 + s.dir];
+      s.nf = G.foods.find(f => f.c === s.nh) || null;
+      s.cause = null; s.passed = false;
+    }
+    // столкновения: кончик хвоста, который в этот ход уходит, не мешает
+    for (const s of live) {
+      if (G.walls[s.nh]) { s.cause = 'wall'; continue; }
+      for (const t of live) {
+        const lim = t.body.length - (t.nf && FOOD[t.nf.type].grow ? 0 : 1);
+        for (let i = 0; i < lim; i++) {
+          if (t.body[i] !== s.nh) continue;
+          if (t === s && s.ghostMs > 0) { s.passed = true; continue; }   // призрак проходит сквозь себя
+          s.cause = t === s ? 'self' : 'enemy'; break;
+        }
+        if (s.cause) break;
+        if (t !== s && t.nh === s.nh) { s.cause = 'head'; break; }      // лоб в лоб
+      }
+    }
+    for (const s of live) {
+      if (s.cause) continue;
+      s.prevHead = s.body[0];
+      s.body.unshift(s.nh);
+      s.tailGone = s.nf && FOOD[s.nf.type].grow ? -1 : s.body.pop();
+      if (s.passed) { s.passes++; G.ev.push({ t: 'ghostPass', s: S.indexOf(s) }); }
+    }
+    const dead = live.filter(s => s.cause);
+    for (const s of dead) { s.alive = false; s.queue = []; G.ev.push({ t: 'die', s: S.indexOf(s), cause: s.cause }); }
+    // эффекты идут по игровому времени шага
+    if (G.slowMs > 0) G.slowMs = Math.max(0, G.slowMs - dt);
+    for (const s of live) if (s.ghostMs > 0) { s.ghostMs = Math.max(0, s.ghostMs - dt); if (!s.ghostMs) G.ev.push({ t: 'ghostEnd', s: S.indexOf(s) }); }
+    for (const s of live) if (!s.cause && s.nf && G.foods.includes(s.nf)) eat(G, s, s.nf);
+    // бонусы живут ограниченное число шагов
+    for (let i = G.foods.length - 1; i >= 0; i--) {
+      const f = G.foods[i];
+      if (f.max && f.born < G.stepN && --f.life <= 0) { G.foods.splice(i, 1); G.ev.push({ t: 'gone', type: f.type, c: f.c }); }
+    }
+    if (G.mode === 'timed' && G.combo > 1 && G.stepN - G.lastEat > G.comboWin) { G.combo = 1; G.ev.push({ t: 'combo', v: 1 }); }
+    checkEnd(G, dead);
+  }
+
+  function eat(G, s, f) {
+    G.foods.splice(G.foods.indexOf(f), 1);
+    const si = G.snakes.indexOf(s);
+    let pts = FOOD[f.type].pts, mult = 1;
+    if (G.mode === 'classic') {
+      if (f.type === 'apple') pts = G.speed;
+      else if (f.type === 'bug') { mult = bugMult(f); pts = G.speed * mult; G.bugs++; G.bugBest = Math.max(G.bugBest, mult); }
+    }
+    if (G.mode === 'timed') {
+      G.combo = G.stepN - G.lastEat <= G.comboWin ? Math.min(COMBO_MAX, G.combo + 1) : 1;
+      G.lastEat = G.stepN; G.maxCombo = Math.max(G.maxCombo, G.combo);
+      pts *= G.combo; mult = G.combo;
+    }
+    if (f.type === 'slow') G.slowMs = SLOW_MS;
+    if (f.type === 'ghost') s.ghostMs = GHOST_MS;
+    if (f.type === 'shrink') { for (let k = 0; k < SHRINK && s.body.length > MIN_LEN; k++) s.body.pop(); s.tailGone = -1; }
+    s.score += pts; s.eaten++;
+    s.maxLen = Math.max(s.maxLen, s.body.length);
+    if (!s.ai && G.mode === 'campaign') G.parSum += f.par;
+    G.ev.push({ t: 'eat', s: si, type: f.type, c: f.c, pts, mult });
+    if (f.type !== 'apple') return;
+    // обычная еда: новая еда, ускорение, бонусы
+    G.apples++;
+    if (G.mode === 'endless') G.base = Math.max(50, G.base - 1.5);
+    if (G.mode === 'timed') G.base = Math.max(80, 115 - 0.5 * G.apples);
+    if (G.mode === 'campaign' && s.score >= G.target) return;      // уровень пройден — новая еда не нужна
+    if (G.mode === 'vs' && s.score >= G.target) return;
+    if (!spawn(G, 'apple') && !G.foods.some(x => x.type === 'apple')) G.full = true;
+    const hasBonus = G.foods.some(x => x.max);
+    if (G.mode === 'classic') {
+      if (G.apples % BUG_EVERY === 0 && !hasBonus) { const b = bugLife(G); if (spawn(G, 'bug', b)) G.ev.push({ t: 'bug' }); }
+      return;
+    }
+    const bc = bonusCfg(G);
+    if (bc && !hasBonus && G.rng() < bc.chance) { const t = pickBonus(G, bc.w); if (spawn(G, t, bonusLife(G))) G.ev.push({ t: 'bonus', type: t }); }
+  }
+
+  function checkEnd(G, dead) {
+    const P = G.snakes[0];
+    if (G.mode === 'vs') {
+      const A = G.snakes[1], cmp = P.score > A.score ? 'win' : P.score < A.score ? 'lose' : 'draw';
+      if (dead.length) {
+        if (!P.alive && !A.alive) G.over = { r: cmp, why: 'both' };
+        else G.over = { r: P.alive ? 'win' : 'lose', why: P.alive ? 'ai' : P.cause };
+      } else if (P.score >= G.target || A.score >= G.target) G.over = { r: cmp, why: 'target' };
+      return;
+    }
+    if (dead.length) {
+      if (G.mode === 'timed') { G.crash = true; G.crashes++; return; }   // −10 с и новая змейка (respawn)
+      G.over = { r: 'lose', why: P.cause };
+      return;
+    }
+    if (G.mode === 'campaign' && P.score >= G.target) G.over = { r: 'win', why: 'target' };
+    else if (G.full) G.over = { r: 'win', why: 'full' };
+  }
+
+  // накопление времени: шаги фиксированной длины, остаток переносится на следующий кадр
+  function advance(G, dt) {
+    if (G.over || G.crash) return 0;
+    G.time += dt;
+    if (G.mode === 'timed') {
+      G.timeLeft -= dt;
+      if (G.timeLeft <= 0) { G.timeLeft = 0; G.over = { r: 'time', why: 'time' }; return 0; }
+    }
+    G.acc += dt;
+    let n = 0;
+    while (!G.over && !G.crash && G.acc >= interval(G)) {
+      G.acc -= interval(G); step(G);
+      if (++n >= 6) { G.acc = 0; break; }       // очень длинный кадр — не догоняем бесконечно
+    }
+    return n;
+  }
+
+  // «На время»: после аварии — штраф и новая змейка (очки сохраняются)
+  function respawn(G) {
+    const s = G.snakes[0];
+    s.alive = false; s.body = [];
+    const [pw, ph] = SIZES[G.size];
+    const ax = Math.round(.5 * (pw - 1)), ay = Math.round(.6 * (ph - 1));
+    const p = placeSnake(G, G.land ? ay : ax, G.land ? ax : ay, G.land ? TR[0] : 0, 6) || placeSnake(G, 0, 0, 0, 2);
+    if (!p) { G.crash = false; G.over = { r: 'time', why: 'full' }; return; }    // места не осталось вовсе
+    Object.assign(s, { body: p.body, dir: p.dir, queue: [], alive: true, ghostMs: 0, prevHead: -1, tailGone: -1, cause: null });
+    G.slowMs = 0; G.combo = 1; G.acc = 0; G.crash = false;
+    G.timeLeft = Math.max(0, G.timeLeft - TIMED_PENALTY);
+    if (G.timeLeft <= 0) G.over = { r: 'time', why: 'time' };
+  }
+
+  /* ═══ ИИ соперника ═══
+   * Поиск в ширину «по времени»: клетка тела освободится через (длина − номер сегмента) ходов,
+   * поэтому путь может пройти там, где сейчас хвост. Перед тем как идти к еде, ИИ проверяет,
+   * что после неё сможет добраться до своего хвоста (не загонит себя в тупик); иначе — режим
+   * выживания: ход с наибольшим свободным пространством, где хвост достижим. */
+  function freeMap(G, skip) {
+    const fa = new Int32Array(G.N);
+    for (let i = 0; i < G.N; i++) if (G.walls[i]) fa[i] = BIG;
+    for (const s of G.snakes) if (s.alive && s !== skip) {
+      const L = s.body.length;
+      for (let k = 0; k < L; k++) { const c = s.body[k], t = L - k; if (fa[c] < t) fa[c] = t; }
+    }
+    return fa;
+  }
+  function bfsTime(G, from, fa, block) {
+    const N = G.N, dist = new Int32Array(N).fill(-1), prev = new Int32Array(N).fill(-1), q = new Int32Array(N);
+    let qh = 0, qt = 0; q[qt++] = from; dist[from] = 0;
+    while (qh < qt) {
+      const c = q[qh++], d = dist[c];
+      for (let k = 0; k < 4; k++) {
+        const n = G.nb[c * 4 + k];
+        if (dist[n] >= 0 || fa[n] > d + 1) continue;
+        if (block && d === 0 && block[n]) continue;
+        dist[n] = d + 1; prev[n] = c; q[qt++] = n;
+      }
+    }
+    return { dist, prev, count: qt };
+  }
+  // карта препятствий для «виртуального» тела (после k шагов других змей)
+  function virtFa(G, body, me, k) {
+    const fa = new Int32Array(G.N);
+    for (let i = 0; i < G.N; i++) if (G.walls[i]) fa[i] = BIG;
+    for (const s of G.snakes) if (s.alive && s !== me) {
+      const L = s.body.length;
+      for (let j = 0; j < L; j++) { const c = s.body[j], t = L - j - k; if (t > 0 && fa[c] < t) fa[c] = t; }
+    }
+    const L = body.length;
+    for (let j = 0; j < L; j++) { const c = body[j], t = L - j; if (fa[c] < t) fa[c] = t; }
+    return fa;
+  }
+  // безопасно ли тело: из головы достижим хвост или много места
+  function roomy(G, body, me, k) {
+    const fa = virtFa(G, body, me, k), tail = body[body.length - 1];
+    fa[body[0]] = BIG;
+    const r = bfsTime(G, body[0], fa);
+    return { tail: r.dist[tail] >= 0, area: r.count, safe: r.dist[tail] >= 0 || r.count >= body.length * 2 + 4 };
+  }
+  function aiChoose(G, s) {
+    const cfg = AI[s.ai] || AI.normal, R = G.rng, head = s.body[0], L = s.body.length;
+    const others = G.snakes.filter(t => t !== s && t.alive);
+    const fa = freeMap(G);
+    // чужой хвост может не уйти, если соперник сейчас съест еду рядом с головой
+    for (const t of others) {
+      const th = t.body[0];
+      for (let k = 0; k < 4; k++) if (G.foods.some(f => f.c === G.nb[th * 4 + k])) { fa[t.body[t.body.length - 1]] = Math.max(fa[t.body[t.body.length - 1]], 2); break; }
+    }
+    const risky = new Uint8Array(G.N);        // куда соперник может шагнуть — лобовое столкновение
+    for (const t of others) for (let k = 0; k < 4; k++) risky[G.nb[t.body[0] * 4 + k]] = 1;
+    const moves = [];
+    for (let d = 0; d < 4; d++) {
+      if (d === OPP(s.dir)) continue;
+      const n = G.nb[head * 4 + d];
+      const food = G.foods.some(f => f.c === n);
+      let deadly = fa[n] > 1;
+      if (!deadly && fa[n] === 1 && n === s.body[L - 1] && food) deadly = true;   // свой хвост не уйдёт, если растём
+      moves.push({ d, n, deadly, risky: !!risky[n], food });
+    }
+    let ok = moves.filter(m => !m.deadly);
+    if (!ok.length) return s.dir;                                        // выхода нет
+    if (cfg.avoid && ok.some(m => !m.risky)) ok = ok.filter(m => !m.risky);
+    const step1 = m => {                                                 // тело после одного хода
+      const b = [m.n].concat(s.body);
+      if (!m.food) b.pop();
+      return roomy(G, b, s, 1);
+    };
+    // «ошибка»: случайный ход (средний — только среди безопасных)
+    if (cfg.rand && R() < cfg.rand) {
+      const pool = cfg.safe ? ok.filter(m => step1(m).safe) : ok;
+      if (pool.length) return pool[Math.floor(R() * pool.length)].d;
+    }
+    // путь к еде
+    let block = null;
+    if (cfg.avoid && others.length) { block = new Uint8Array(G.N); for (const m of moves) if (m.risky && ok.some(o => !o.risky)) block[m.n] = 1; }
+    const me = bfsTime(G, head, fa, block);
+    let foods = G.foods.filter(f => me.dist[f.c] > 0);
+    if (cfg.smart && others.length && foods.length > 1) {
+      const op = bfsTime(G, others[0].body[0], freeMap(G));
+      const mine = foods.filter(f => op.dist[f.c] < 0 || me.dist[f.c] < op.dist[f.c]);
+      if (mine.length) foods = mine;
+    }
+    const val = f => me.dist[f.c] - (f.type === 'gold' ? 4 : 0) + (f.type === 'shrink' && L < 12 ? 6 : 0);
+    foods.sort((a, b) => val(a) - val(b));
+    // средний ИИ держится выбранной еды, пока она есть (ближайшую соседнюю может «проморгать»)
+    if (!cfg.smart && s.ai !== 'easy') {
+      const keep = foods.find(f => f.c === s.tgt);
+      if (keep) foods = [keep].concat(foods.filter(f => f !== keep));
+      s.tgt = foods.length ? foods[0].c : -1;
+    }
+    for (const f of foods.slice(0, 2)) {
+      const path = [];
+      for (let c = f.c; c !== head && c >= 0; c = me.prev[c]) path.push(c);   // путь от еды к голове
+      const first = path[path.length - 1], m = ok.find(x => x.n === first);
+      if (!m) continue;
+      if (!cfg.safe) return m.d;
+      // тело после того, как дойдём до еды и съедим её
+      const body = path.concat(s.body).slice(0, L + 1);
+      if (roomy(G, body, s, path.length).safe) return m.d;
+    }
+    // выживание: ход, после которого хвост достижим и места больше всего
+    let best = null, bs = -Infinity;
+    for (const m of ok) {
+      const r = step1(m);
+      const sc = (r.tail ? 1e6 : 0) + r.area * 10 + (m.risky ? -5e5 : 0) + (m.d === s.dir ? 1 : 0);
+      if (sc > bs) { bs = sc; best = m; }
+    }
+    return best.d;
+  }
+
+  return {
+    rng, DX, DY, OPP, SIZES, FOOD, LEVELS, CLASSIC_MAZES, CLASSIC_SPEED, AI, VS_TARGETS, MAZES,
+    SLOW_MS, GHOST_MS, TIMED_MS, TIMED_PENALTY, COMBO_MAX, BUG_EVERY, MAX_QUEUE,
+    mk, buildMaze, transpose, neighbors, analyze, newGame, placeSnake, spawn, occupancy, turn, step, advance, respawn,
+    interval, bugMult, bonusLife, bugLife, aiChoose, freeMap, bfsTime, roomy, wallDist,
+    stars(G) { const r = G.stepN / Math.max(1, G.parSum); return r <= 1.35 ? 3 : r <= 2 ? 2 : 1; }
+  };
+})();
+
+/* ═══ data.js ═══ */
+/* ═══════════════════════════════════════════════════════════════
+ * ЗМЕЙКА — данные игрока: проверка/перенос хранилища, очки в рейтинг
+ * (только прирост — без «фарма»), статистика по режимам, достижения, история.
+ * Только чистые функции — localStorage читает и пишет ui.js.
+ * Ключи: snake_completed (уровень → звёзды; старые сохранения — true),
+ *        snake_best (уровень → лучший счёт; endless/classic/timed — рекорды; vs_<сложность> — лучшая победа),
+ *        snake_settings, snake_stats, snake_ach, snake_history,
+ *        snake_awarded — сколько уже начислено в рейтинг (его не трогает «Сбросить прогресс»,
+ *        поэтому сбросом нельзя набрать те же очки повторно).
+ * ═════════════════════════════════════════════════════════════ */
+const SD = (function () {
+  'use strict';
+  const MODES = ['campaign', 'classic', 'endless', 'timed', 'vs'];
+  const DIFFS = ['easy', 'normal', 'hard'];
+  const SIZES = ['S', 'M', 'L'];
+  const num = v => (typeof v === 'number' && isFinite(v) && v > 0) ? Math.floor(v) : 0;
+  const obj = v => (v && typeof v === 'object' && !Array.isArray(v)) ? v : {};
+
+  // прогресс кампании: { id: 1…3 }; старое значение true — «пройден» (1 звезда)
+  function normCompleted(raw, nLevels) {
+    const o = obj(raw), out = {};
+    for (const k of Object.keys(o)) {
+      const id = Number(k), v = o[k];
+      if (!Number.isInteger(id) || id < 1 || id > nLevels) continue;
+      if (v === true) out[id] = 1;
+      else if (typeof v === 'number' && isFinite(v) && v >= 1) out[id] = Math.min(3, Math.floor(v));
+    }
+    return out;
+  }
+  // рекорды: только положительные целые числа
+  function normBest(raw) {
+    const o = obj(raw), out = {};
+    for (const k of Object.keys(o)) { const v = num(o[k]); if (v > 0 && k.length < 24) out[k] = v; }
+    return out;
+  }
+
+  const DEF_SETTINGS = { sound: true, vib: true, pad: false, size: 'M', grid: true, smooth: true,
+    cSpeed: 5, cMaze: 'none', vsDiff: 'normal', vsTarget: 20 };
+  function normSettings(raw, mazeIds, targets) {
+    const o = obj(raw), s = Object.assign({}, DEF_SETTINGS);
+    for (const k of ['sound', 'vib', 'pad', 'grid', 'smooth']) if (typeof o[k] === 'boolean') s[k] = o[k];
+    if (SIZES.includes(o.size)) s.size = o.size;
+    if (Number.isInteger(o.cSpeed) && o.cSpeed >= 1 && o.cSpeed <= 9) s.cSpeed = o.cSpeed;
+    if ((mazeIds || []).includes(o.cMaze)) s.cMaze = o.cMaze;
+    if (DIFFS.includes(o.vsDiff)) s.vsDiff = o.vsDiff;
+    if ((targets || []).includes(o.vsTarget)) s.vsTarget = o.vsTarget;
+    return s;
+  }
+
+  /* ── Статистика: g игр, best лучший счёт, len длиннейшая змейка, eat съедено, t секунд в игре ── */
+  function emptyStats() {
+    const m = {};
+    for (const k of MODES) m[k] = { g: 0, best: 0, len: 0, eat: 0, t: 0 };
+    m.classic.bugs = 0;
+    m.timed.combo = 0; m.timed.crash = 0;
+    m.vs.w = { easy: 0, normal: 0, hard: 0 }; m.vs.l = { easy: 0, normal: 0, hard: 0 }; m.vs.d = { easy: 0, normal: 0, hard: 0 };
+    return { v: 1, m, passes: 0 };
+  }
+  function normStats(raw) {
+    const s = emptyStats(), o = obj(raw), m = obj(o.m);
+    for (const k of MODES) {
+      const src = obj(m[k]), dst = s.m[k];
+      for (const f of Object.keys(dst)) {
+        if (typeof dst[f] === 'number') dst[f] = num(src[f]);
+        else { const so = obj(src[f]); for (const d of DIFFS) dst[f][d] = num(so[d]); }
+      }
+    }
+    s.passes = num(o.passes);
+    return s;
+  }
+  // итог партии в статистику: r = { mode, score, len, eaten, time, bugs, combo, crashes, diff, result, passes }
+  function addGame(stats, r) {
+    const m = stats.m[r.mode];
+    if (!m) return stats;
+    m.g++;
+    m.eat += num(r.eaten); m.len = Math.max(m.len, num(r.len)); m.t += Math.round(num(r.time) / 1000);
+    m.best = Math.max(m.best, num(r.score));
+    if (r.mode === 'classic') m.bugs += num(r.bugs);
+    if (r.mode === 'timed') { m.combo = Math.max(m.combo, num(r.combo)); m.crash += num(r.crashes); }
+    if (r.mode === 'vs' && DIFFS.includes(r.diff)) {
+      const key = r.result === 'win' ? 'w' : r.result === 'lose' ? 'l' : r.result === 'draw' ? 'd' : null;
+      if (key) m[key][r.diff]++;
+    }
+    stats.passes += num(r.passes);
+    return stats;
+  }
+  const totalGames = stats => MODES.reduce((a, k) => a + stats.m[k].g, 0);
+  const longest = stats => Math.max(...MODES.map(k => stats.m[k].len));
+
+  /* ── Очки в общий рейтинг платформы — только прирост, «нафармить» повтором нельзя ──
+   * paid — сколько уже начислено раньше (журнал snake_awarded): база = max(рекорд, начисленное). */
+  const lvlPts = (score, stars) => score + 10 * stars;          // уровень: счёт + 10 за звезду
+  function awardCampaign(prevScore, prevStars, score, stars, paid) {
+    const before = Math.max(num(paid), prevStars > 0 ? lvlPts(num(prevScore), prevStars) : 0);
+    const after = lvlPts(Math.max(num(prevScore), num(score)), Math.max(prevStars | 0, stars | 0));
+    return Math.max(0, after - before);
+  }
+  const awardRecord = (prevBest, score, paid) => Math.max(0, num(score) - Math.max(num(prevBest), num(paid)));   // прирост к рекорду режима
+  const VS_MULT = { easy: 1, normal: 2, hard: 3 };
+  // против ИИ: только за победу — очки × сложность, и только прирост к лучшей победе на этой сложности
+  function vsValue(score, diff) { return num(score) * (VS_MULT[diff] || 1); }
+  function awardVs(prevBest, score, diff, result, paid) { return result === 'win' ? Math.max(0, vsValue(score, diff) - Math.max(num(prevBest), num(paid))) : 0; }
+  // журнал начисленного: { lv: { id: очки уровня }, classic, endless, timed, vs_easy, vs_normal, vs_hard }
+  function normAwarded(raw) {
+    const o = obj(raw), out = { lv: {} }, lv = obj(o.lv);
+    for (const k of Object.keys(lv)) { const id = Number(k), v = num(lv[k]); if (Number.isInteger(id) && id >= 1 && id <= 99 && v) out.lv[id] = v; }
+    for (const k of ['classic', 'endless', 'timed', 'vs_easy', 'vs_normal', 'vs_hard']) { const v = num(o[k]); if (v) out[k] = v; }
+    return out;
+  }
+  const xpFor = award => Math.max(1, Math.round(award / 10));
+
+  /* ── Достижения: test(c) — c собирает текущую партию и общий прогресс ── */
+  const ACH = [
+    { id: 'first', icon: '🍎', name: 'Первый укус', desc: 'Съешьте первую еду', test: c => c.eaten >= 1 },
+    { id: 'len30', icon: '🐍', name: 'Удав', desc: 'Вырастите змейку до длины 30', test: c => c.len >= 30 },
+    { id: 'len60', icon: '🐉', name: 'Анаконда', desc: 'Вырастите змейку до длины 60', test: c => c.len >= 60 },
+    { id: 'camp1', icon: '🎓', name: 'Первые шаги', desc: 'Пройдите первый уровень кампании', test: c => c.done >= 1 },
+    { id: 'camp12', icon: '🗺️', name: 'Полпути', desc: 'Пройдите 12 уровней кампании', test: c => c.done >= 12 },
+    { id: 'camp24', icon: '👑', name: 'Повелитель лабиринтов', desc: 'Пройдите все 24 уровня кампании', test: c => c.done >= 24 },
+    { id: 'stars50', icon: '⭐', name: 'Звездочёт', desc: 'Соберите 50 звёзд в кампании', test: c => c.stars >= 50 },
+    { id: 'nokia', icon: '📟', name: 'Тот самый Nokia', desc: 'Наберите 500 очков в «Классике»', test: c => c.mode === 'classic' && c.score >= 500 },
+    { id: 'speed9', icon: '⚡', name: 'Девятка', desc: 'Наберите 100 очков в «Классике» на скорости 9', test: c => c.mode === 'classic' && c.speed === 9 && c.score >= 100 },
+    { id: 'bugs10', icon: '🐞', name: 'Ловец жучков', desc: 'Съешьте 10 жучков в «Классике»', test: c => c.bugs >= 10 },
+    { id: 'endless50', icon: '♾️', name: 'Марафонец', desc: 'Наберите 50 очков в «Бесконечном»', test: c => c.mode === 'endless' && c.score >= 50 },
+    { id: 'blitz', icon: '⏱️', name: 'Блиц', desc: 'Наберите 150 очков в режиме «На время»', test: c => c.mode === 'timed' && c.score >= 150 },
+    { id: 'combo5', icon: '🔥', name: 'Комбо ×5', desc: 'Разгоните множитель до ×5 в режиме «На время»', test: c => c.combo >= 5 },
+    { id: 'ai', icon: '🤖', name: 'Человек против машины', desc: 'Победите ИИ', test: c => c.vsWins >= 1 },
+    { id: 'aihard', icon: '🧠', name: 'Гроссмейстер', desc: 'Победите ИИ на сложности «Сложно»', test: c => c.vsHard >= 1 },
+    { id: 'ghost', icon: '👻', name: 'Сквозь себя', desc: 'В облике призрака пройдите сквозь своё тело', test: c => c.passes >= 1 }
+  ];
+  function normAch(raw) {
+    const o = obj(raw), out = {};
+    for (const a of ACH) if (num(o[a.id])) out[a.id] = num(o[a.id]);
+    return out;
+  }
+  // новые достижения (ещё не полученные), которые выполнены в контексте c
+  function newAch(got, c) { return ACH.filter(a => !got[a.id] && a.test(c)); }
+
+  /* ── История партий (последние 40) ── */
+  const HIST_MAX = 40;
+  function normHistory(raw) {
+    if (!Array.isArray(raw)) return [];
+    return raw.filter(h => h && typeof h === 'object' && MODES.includes(h.m) && num(h.t)).slice(0, HIST_MAX).map(h => ({
+      t: num(h.t), m: h.m, d: typeof h.d === 'string' ? h.d.slice(0, 60) : '', s: num(h.s), l: num(h.l), dur: num(h.dur),
+      r: ['win', 'lose', 'draw', 'time', 'quit', 'done'].includes(h.r) ? h.r : 'done'
+    }));
+  }
+  function addHistory(list, h) { list.unshift(h); if (list.length > HIST_MAX) list.length = HIST_MAX; return list; }
+
+  return { MODES, DIFFS, DEF_SETTINGS, VS_MULT, ACH, HIST_MAX, num,
+    normCompleted, normBest, normSettings, emptyStats, normStats, addGame, totalGames, longest,
+    lvlPts, awardCampaign, awardRecord, vsValue, awardVs, normAwarded, xpFor, normAch, newAch, normHistory, addHistory };
+})();
+
+/* ═══ ui.js ═══ */
+/* ═══════════════════════════════════════════════════════════════
+ * ЗМЕЙКА — интерфейс: экраны и окна, отрисовка поля, ввод,
+ * звук, сохранение, статистика, достижения, отправка очков.
+ * Логика игры — в SE (движок), данные игрока — в SD.
+ * ═════════════════════════════════════════════════════════════ */
+const $ = id => document.getElementById(id);
+const LEVELS = SE.LEVELS;
+const MODE_NAMES = { campaign: 'Кампания', classic: 'Классика', endless: 'Бесконечный', timed: 'На время', vs: 'Против ИИ' };
+const MODE_ICONS = { campaign: '🎮', classic: '📟', endless: '♾️', timed: '⏱️', vs: '🤖' };
+const DIFF_NAMES = { easy: 'Легко', normal: 'Средне', hard: 'Сложно' };
+const CAUSES = { wall: 'Змейка врезалась в стену', self: 'Змейка врезалась в себя', enemy: 'Врезалась в змейку соперника', head: 'Лобовое столкновение' };
+const HIT = { wall: 'врезалась в стену', self: 'врезалась в себя', enemy: 'врезалась в соперника', head: 'столкнулась лбом' };
+const fmtTime = ms => { const s = Math.max(0, Math.floor(ms / 1000)); return Math.floor(s / 60) + ':' + String(s % 60).padStart(2, '0'); };
+const fmtClock = ms => { const s = Math.max(0, Math.ceil(ms / 1000)); return Math.floor(s / 60) + ':' + String(s % 60).padStart(2, '0'); };
+const mazeName = id => (SE.CLASSIC_MAZES.find(m => m.id === id) || SE.CLASSIC_MAZES[0]).name;
+
+/* ── Хранилище: localStorage может быть недоступен (песочница, приватный режим) или испорчен ── */
 const store = {
-  get(k) {
-    try { const v = JSON.parse(localStorage.getItem(k) || '{}'); return v && typeof v === 'object' && !Array.isArray(v) ? v : {}; }
-    catch (e) { return {}; }
-  },
+  get(k) { try { const v = localStorage.getItem(k); return v == null ? null : JSON.parse(v); } catch (e) { return null; } },
   set(k, v) { try { localStorage.setItem(k, JSON.stringify(v)); } catch (e) {} }
 };
+const P = {
+  completed: SD.normCompleted(store.get('snake_completed'), LEVELS.length),
+  best: SD.normBest(store.get('snake_best')),
+  settings: SD.normSettings(store.get('snake_settings'), SE.CLASSIC_MAZES.map(m => m.id), SE.VS_TARGETS),
+  stats: SD.normStats(store.get('snake_stats')),
+  ach: SD.normAch(store.get('snake_ach')),
+  hist: SD.normHistory(store.get('snake_history')),
+  paid: SD.normAwarded(store.get('snake_awarded')),     // уже начислено в рейтинг (сброс прогресса его не трогает)
+  saveProgress() { store.set('snake_completed', this.completed); store.set('snake_best', this.best); },
+  saveSettings() { store.set('snake_settings', this.settings); },
+  saveStats() { store.set('snake_stats', this.stats); store.set('snake_history', this.hist); store.set('snake_ach', this.ach); }
+};
+const doneCount = () => LEVELS.filter(l => P.completed[l.id]).length;
+const starsTotal = () => LEVELS.reduce((a, l) => a + (P.completed[l.id] || 0), 0);
+const isUnlocked = i => i === 0 || !!P.completed[LEVELS[i - 1].id];
+const vsWins = () => SD.DIFFS.reduce((a, d) => a + P.stats.m.vs.w[d], 0);
 
-/**
- * AUDIO SYSTEM — Web Audio API
- */
-const AudioSys = {
+/* ── Звук (Web Audio; ноты планируются по часам аудио — без setTimeout) ── */
+const Sound = {
   ctx: null,
   init() {
+    if (!P.settings.sound) return;
     try {
       if (!this.ctx) this.ctx = new (window.AudioContext || window.webkitAudioContext)();
       if (this.ctx.state === 'suspended') this.ctx.resume();
     } catch (e) {}
   },
-  playTone(freq, type, duration, vol=0.5, slideFreq=null) {
-    if(!this.ctx) return;
-    const osc = this.ctx.createOscillator(), gain = this.ctx.createGain();
-    osc.type = type; osc.connect(gain); gain.connect(this.ctx.destination);
-    const now = this.ctx.currentTime;
-    osc.frequency.setValueAtTime(freq, now);
-    if (slideFreq) osc.frequency.exponentialRampToValueAtTime(slideFreq, now + duration);
-    gain.gain.setValueAtTime(vol, now);
-    gain.gain.exponentialRampToValueAtTime(0.01, now + duration);
-    osc.start(now); osc.stop(now + duration);
+  tone(f, type, dur, vol, slide, delay) {
+    const c = this.ctx;
+    if (!c || !P.settings.sound) return;
+    try {
+      const t = c.currentTime + (delay || 0), o = c.createOscillator(), g = c.createGain();
+      o.type = type; o.frequency.setValueAtTime(f, t);
+      if (slide) o.frequency.exponentialRampToValueAtTime(slide, t + dur);
+      g.gain.setValueAtTime(vol, t); g.gain.exponentialRampToValueAtTime(0.001, t + dur);
+      o.connect(g); g.connect(c.destination); o.start(t); o.stop(t + dur + 0.02);
+    } catch (e) {}
   },
-  playNoise(duration, vol=0.5) {
-    if(!this.ctx) return;
-    const bufferSize = Math.floor(this.ctx.sampleRate * duration), buffer = this.ctx.createBuffer(1, bufferSize, this.ctx.sampleRate);
-    const data = buffer.getChannelData(0);
-    for (let i = 0; i < bufferSize; i++) data[i] = Math.random() * 2 - 1;
-    const noise = this.ctx.createBufferSource(); noise.buffer = buffer;
-    const filter = this.ctx.createBiquadFilter(); filter.type = 'lowpass'; filter.frequency.value = 800;
-    const gain = this.ctx.createGain();
-    gain.gain.setValueAtTime(vol, this.ctx.currentTime);
-    gain.gain.exponentialRampToValueAtTime(0.01, this.ctx.currentTime + duration);
-    noise.connect(filter); filter.connect(gain); gain.connect(this.ctx.destination);
-    noise.start();
+  noise(dur, vol) {
+    const c = this.ctx;
+    if (!c || !P.settings.sound) return;
+    try {
+      const n = Math.floor(c.sampleRate * dur), buf = c.createBuffer(1, n, c.sampleRate), d = buf.getChannelData(0);
+      for (let i = 0; i < n; i++) d[i] = Math.random() * 2 - 1;
+      const src = c.createBufferSource(), f = c.createBiquadFilter(), g = c.createGain();
+      src.buffer = buf; f.type = 'lowpass'; f.frequency.value = 800;
+      g.gain.setValueAtTime(vol, c.currentTime); g.gain.exponentialRampToValueAtTime(0.001, c.currentTime + dur);
+      src.connect(f); f.connect(g); g.connect(c.destination); src.start();
+    } catch (e) {}
   },
-  sfx: {
-    eat: () => { AudioSys.playTone(520, 'sine', 0.08, 0.35, 1040); },
-    gold: () => { AudioSys.playTone(700, 'sine', 0.1, 0.4, 1400); setTimeout(()=>AudioSys.playTone(1050, 'sine', 0.15, 0.3), 80); },
-    speed: () => { AudioSys.playTone(400, 'triangle', 0.15, 0.3, 800); },
-    turn: () => AudioSys.playTone(280, 'triangle', 0.04, 0.08),
-    die: () => { AudioSys.playNoise(0.6, 0.5); AudioSys.playTone(120, 'sawtooth', 0.6, 0.5, 40); },
-    win: () => { [523, 659, 784, 1047].forEach((f, i) => setTimeout(() => AudioSys.playTone(f, 'square', 0.2, 0.25), i*120)); },
-    wall: () => AudioSys.playTone(200, 'square', 0.1, 0.2, 100),
-  }
+  eat() { this.tone(520, 'sine', .08, .3, 1040); },
+  gold() { this.tone(700, 'sine', .1, .35, 1400); this.tone(1050, 'sine', .15, .25, 0, .08); },
+  slow() { this.tone(620, 'triangle', .35, .25, 200); },
+  shrink() { this.tone(520, 'square', .1, .12, 260); this.tone(380, 'square', .12, .1, 190, .1); },
+  ghost() { this.tone(280, 'sine', .45, .25, 900); },
+  bug(m) { this.tone(820 + m * 60, 'square', .06, .14); this.tone(1240 + m * 60, 'square', .08, .12, 0, .06); },
+  bonus() { this.tone(1200, 'sine', .06, .1); this.tone(1600, 'sine', .06, .08, 0, .07); },
+  turn() { this.tone(280, 'triangle', .04, .06); },
+  tick() { this.tone(440, 'square', .07, .1); },
+  go() { this.tone(880, 'square', .14, .13); },
+  die() { this.noise(.6, .45); this.tone(120, 'sawtooth', .6, .4, 40); },
+  crash() { this.noise(.35, .35); this.tone(160, 'sawtooth', .35, .3, 60); },
+  win() { [523, 659, 784, 1047].forEach((f, i) => this.tone(f, 'square', .2, .2, 0, i * .12)); },
+  lose() { [392, 330, 262].forEach((f, i) => this.tone(f, 'triangle', .25, .22, 0, i * .16)); },
+  combo(m) { this.tone(440 + m * 110, 'sine', .09, .2); }
 };
-const vibrate = ms => { try { if (navigator.vibrate) navigator.vibrate(ms); } catch (e) {} };
+const buzz = p => { if (!P.settings.vib) return; try { if (navigator.vibrate) navigator.vibrate(p); } catch (e) {} };
 
-/**
- * LEVEL DEFINITIONS — 12 уникальных уровней
- */
-const Levels = [
-  {
-    id: 1, name: "УР 1", desc: "Обучение",
-    target: 5, speed: 170, theme: 'classic',
-    walls: [], special: null,
-    tip: "Свайпай или используй WASD"
-  },
-  {
-    id: 2, name: "УР 2", desc: "Разминка",
-    target: 8, speed: 155, theme: 'classic',
-    walls: [], special: null,
-    tip: "Змейка проходит сквозь стены"
-  },
-  {
-    id: 3, name: "УР 3", desc: "Барьер",
-    target: 12, speed: 145, theme: 'ice',
-    walls: [{x: 'center', y: 'center', w: 5, h: 1}],
-    special: null,
-    tip: "Обходи препятствия"
-  },
-  {
-    id: 4, name: "УР 4", desc: "Коридор",
-    target: 15, speed: 135, theme: 'cyber',
-    walls: [{x: 2, y: 'center', w: 1, h: 8}, {x: -3, y: 'center', w: 1, h: 8}],
-    special: { type: 'gold', chance: 0.25 },
-    tip: "Золотая еда = ×3 очков!"
-  },
-  {
-    id: 5, name: "УР 5", desc: "Крест",
-    target: 18, speed: 125, theme: 'fire',
-    walls: [{x: 'center', y: 'center', w: 7, h: 1}, {x: 'center', y: 'center', w: 1, h: 7}],
-    special: null,
-    tip: "Аккуратно между стенами"
-  },
-  {
-    id: 6, name: "УР 6", desc: "Углы",
-    target: 22, speed: 115, theme: 'neon',
-    walls: [{x:0,y:0,w:4,h:1},{x:0,y:0,w:1,h:4},{x:-4,y:-1,w:4,h:1},{x:-1,y:-4,w:1,h:4}],
-    special: { type: 'speed', chance: 0.2 },
-    tip: "Синяя еда замедляет время!"
-  },
-  {
-    id: 7, name: "УР 7", desc: "Лабиринт",
-    target: 25, speed: 105, theme: 'ice',
-    walls: [{x:3,y:6,w:8,h:1},{x:-11,y:12,w:8,h:1},{x:3,y:3,w:1,h:4}],
-    special: null,
-    tip: "Найди путь через лабиринт"
-  },
-  {
-    id: 8, name: "УР 8", desc: "Куб",
-    target: 28, speed: 95, theme: 'cyber',
-    walls: [{x:'center',y:'center',w:4,h:4}],
-    special: { type: 'gold', chance: 0.3 },
-    tip: "Вокруг куба — золото повсюду!"
-  },
-  {
-    id: 9, name: "УР 9", desc: "Коробка",
-    target: 32, speed: 88, theme: 'fire',
-    walls: [{x:2,y:2,w:1,h:14},{x:-3,y:2,w:1,h:14},{x:2,y:2,w:10,h:1},{x:2,y:-3,w:10,h:1}],
-    special: null,
-    tip: "Один вход — один выход"
-  },
-  {
-    id: 10, name: "УР 10", desc: "Спираль",
-    target: 35, speed: 82, theme: 'neon',
-    walls: [
-      {x:2,y:2,w:1,h:14},{x:2,y:-3,w:14,h:1},{x:-12,y:-3,w:1,h:12},
-      {x:-12,y:8,w:12,h:1},{x:-1,y:8,w:1,h:6}
-    ],
-    special: { type: 'speed', chance: 0.15 },
-    tip: "Следуй по спирали!"
-  },
-  {
-    id: 11, name: "УР 11", desc: "Хаос",
-    target: 38, speed: 75, theme: 'fire',
-    walls: [
-      {x:4,y:5,w:6,h:1},{x:-10,y:10,w:6,h:1},{x:6,y:0,w:1,h:5},
-      {x:-7,y:8,w:1,h:6},{x:'center',y:'center',w:3,h:3}
-    ],
-    special: { type: 'gold', chance: 0.2 },
-    tip: "Много стен — много золота"
-  },
-  {
-    id: 12, name: "УР 12", desc: "ФИНАЛ",
-    target: 45, speed: 68, theme: 'void',
-    walls: [
-      {x:'center',y:'center',w:6,h:6},
-      {x:4,y:'center',w:1,h:10},{x:-5,y:'center',w:1,h:10},
-      {x:'center',y:4,w:10,h:1},{x:'center',y:-5,w:10,h:1}
-    ],
-    special: { type: 'gold', chance: 0.3 },
-    tip: "Финальное испытание!"
-  }
-];
+/* ── Очки на платформу: только прирост (см. SD.award*), одно место — конец партии/уровня ── */
+function submitScore(award) {
+  if (!(award > 0)) return;
+  try {
+    const api = window.parent && window.parent !== window && window.parent.PlatformAPI;
+    if (api && api.gameplay) Promise.resolve(api.gameplay.submitScore('snake', award, SD.xpFor(award))).catch(() => {});
+  } catch (e) {}
+}
 
-/**
- * Палитры уровней — цвета из набора ku-arcade (палитра Тетриса).
- * В каждой теме стены, змейка и еда разного цвета, чтобы поле читалось с первого взгляда.
- */
-const Themes = {
-  classic: { tint: 'rgba(4,6,22,.55)', wall: '#5b8cff', snake: '#51f58b', food: '#ff9f43' },
-  ice:     { tint: 'rgba(2,12,32,.6)', wall: '#00e5ff', snake: '#5b8cff', food: '#ff4dd2' },
-  cyber:   { tint: 'rgba(12,4,30,.6)', wall: '#c77dff', snake: '#00e5ff', food: '#ff4dd2' },
-  fire:    { tint: 'rgba(26,6,14,.6)', wall: '#ff5d7d', snake: '#ff9f43', food: '#51f58b' },
-  neon:    { tint: 'rgba(16,4,28,.6)', wall: '#ff4dd2', snake: '#ffd60a', food: '#51f58b' },
-  void:    { tint: 'rgba(0,0,8,.72)',  wall: '#ff5d7d', snake: '#eef2ff', food: '#00e5ff' },
+/* ═══ Палитры и рисование ═══
+ * Цвета — из набора ku-arcade. Цвет змейки в темах не совпадает с цветами бонусов
+ * (жёлтый, синий, оранжевый, фиолетовый), чтобы бонус не терялся рядом с телом. */
+const THEMES = {
+  classic: { tint: 'rgba(4,6,22,.55)', wall: '#5b8cff', snake: '#51f58b', food: '#ff5d7d' },
+  ice:     { tint: 'rgba(2,12,32,.6)',  wall: '#00e5ff', snake: '#eef2ff', food: '#ff4dd2' },
+  cyber:   { tint: 'rgba(12,4,30,.6)',  wall: '#c77dff', snake: '#00e5ff', food: '#ff4dd2' },
+  fire:    { tint: 'rgba(26,6,14,.6)',  wall: '#ff5d7d', snake: '#51f58b', food: '#00e5ff' },
+  neon:    { tint: 'rgba(16,4,28,.6)',  wall: '#ff4dd2', snake: '#00e5ff', food: '#51f58b' },
+  void:    { tint: 'rgba(0,0,8,.72)',   wall: '#ff5d7d', snake: '#eef2ff', food: '#00e5ff' },
+  vs:      { tint: 'rgba(4,6,22,.55)', wall: '#5b8cff', snake: '#51f58b', food: '#00e5ff', ai: '#ff4dd2' }
 };
-const GOLD = '#ffd60a', SLOW = '#5b8cff';
+const MODE_THEME = { classic: 'classic', endless: 'cyber', timed: 'neon', vs: 'vs' };
+const BONUS = { gold: '#ffd60a', slow: '#5b8cff', shrink: '#ff9f43', ghost: '#c77dff', bug: '#ffd60a' };
 const BOARD_RGB = [7, 11, 36];   // --bg1: в него «остывает» хвост змейки
 
-/* ── Цвет и фигуры ── */
 function hexRgb(h) { const n = parseInt(h.slice(1), 16); return [n >> 16 & 255, n >> 8 & 255, n & 255]; }
 function rgba(h, a) { return `rgba(${hexRgb(h).join(',')},${a})`; }
 function mixRgb(a, b, t) { return [0, 1, 2].map(i => Math.round(a[i] + (b[i] - a[i]) * t)); }
 function shade(h, p) { const t = p < 0 ? 0 : 255, q = Math.abs(p); return `rgb(${hexRgb(h).map(v => Math.round((t - v) * q + v)).join(',')})`; }
-function rrPath(g, x, y, w, h, r) {   // скруглённый прямоугольник (без ctx.roundRect — его нет в старых Safari/Chrome)
+function rrPath(g, x, y, w, h, r) {   // скруглённый прямоугольник (без ctx.roundRect — его нет в старых Safari)
   r = Math.max(0, Math.min(r, w / 2, h / 2));
   g.moveTo(x + r, y); g.arcTo(x + w, y, x + w, y + h, r); g.arcTo(x + w, y + h, x, y + h, r);
   g.arcTo(x, y + h, x, y, r); g.arcTo(x, y, x + w, y, r); g.closePath();
@@ -342,7 +1447,7 @@ function rr(g, x, y, w, h, r) { g.beginPath(); rrPath(g, x, y, w, h, r); }
 function drawBlock(g, x, y, s, color) {
   const r = s * .2;
   g.save();
-  g.shadowColor = color; g.shadowBlur = Math.min(12, s * .6);
+  g.shadowColor = color; g.shadowBlur = Math.min(10, s * .5);
   const gr = g.createLinearGradient(x, y, x, y + s);
   gr.addColorStop(0, shade(color, .35)); gr.addColorStop(.5, color); gr.addColorStop(1, shade(color, -.35));
   g.fillStyle = gr; rr(g, x + 1, y + 1, s - 2, s - 2, r); g.fill();
@@ -351,115 +1456,1004 @@ function drawBlock(g, x, y, s, color) {
   g.strokeStyle = 'rgba(255,255,255,.16)'; g.lineWidth = 1; rr(g, x + 1.5, y + 1.5, s - 3, s - 3, r); g.stroke();
   g.restore();
 }
-const fmtTime = ms => { const s = Math.floor(ms / 1000); return Math.floor(s / 60) + ':' + String(s % 60).padStart(2, '0'); };
+function starPath(g, cx, cy, r) {
+  g.beginPath();
+  for (let i = 0; i < 10; i++) { const a = -Math.PI / 2 + i * Math.PI / 5, q = i % 2 ? r * .46 : r; g.lineTo(cx + Math.cos(a) * q, cy + Math.sin(a) * q); }
+  g.closePath();
+}
+function ghostPath(g, cx, cy, r) {
+  const w = r * .78, top = cy - r * .12, bot = cy + r * .86, step = 2 * w / 3;
+  g.beginPath();
+  g.arc(cx, top, w, Math.PI, 0);
+  g.lineTo(cx + w, bot);
+  for (let i = 0; i < 3; i++) { const x0 = cx + w - i * step; g.quadraticCurveTo(x0 - step / 2, bot - r * .34, x0 - step, bot); }
+  g.closePath();
+}
 
-/**
- * ENTITIES
- */
+/* ── Частицы (движение по времени, а не по кадрам) ── */
 class Particle {
-  constructor(x, y, color, speed=3) {
+  constructor(x, y, color, speed) {
     this.x = x; this.y = y; this.color = color;
     const a = Math.random() * Math.PI * 2, s = Math.random() * speed + 0.5;
     this.vx = Math.cos(a) * s; this.vy = Math.sin(a) * s;
-    this.life = 1;
-    this.decay = Math.random() * 0.03 + 0.015;
-    this.size = Math.random() * 4 + 2;
+    this.life = 1; this.decay = Math.random() * 0.03 + 0.015; this.size = Math.random() * 4 + 2;
   }
-  // k — сколько «кадров 60 Гц» прошло: движение зависит от времени, а не от частоты экрана
-  update(k) {
+  update(k) {                       // k — сколько «кадров 60 Гц» прошло
     this.x += this.vx * k; this.y += this.vy * k;
     const f = Math.pow(0.97, k); this.vx *= f; this.vy *= f;
     this.life -= this.decay * k;
   }
-  draw(ctx) {
+  draw(g) {
     const a = Math.max(0, this.life);
-    ctx.globalAlpha = a;
-    ctx.fillStyle = this.color;
-    ctx.beginPath(); ctx.arc(this.x, this.y, this.size * a, 0, Math.PI*2); ctx.fill();
-    ctx.globalAlpha = 1;
+    g.globalAlpha = a; g.fillStyle = this.color;
+    g.beginPath(); g.arc(this.x, this.y, this.size * a, 0, Math.PI * 2); g.fill();
+    g.globalAlpha = 1;
   }
 }
 
-/**
- * GAME ENGINE
- */
-const CELL_BASE = 18;   // базовая клетка: от неё считается размер поля (как в исходной версии)
-const MAX_QUEUE = 3;    // сколько поворотов можно нажать «вперёд» за один шаг
-const KEYS = {
-  ArrowUp: [0, -1], KeyW: [0, -1], ArrowDown: [0, 1], KeyS: [0, 1],
-  ArrowLeft: [-1, 0], KeyA: [-1, 0], ArrowRight: [1, 0], KeyD: [1, 0]
-};
-
-const Game = {
-  canvas: $('c'),
-  ctx: null,
-  bg: document.createElement('canvas'), bgDirty: true,   // статичный слой: клетки + стены
-  ui: {},
-
-  state: 'MENU', mode: 'CAMPAIGN', levelIdx: 0,
-  cell: CELL_BASE, cols: 0, rows: 0, dpr: 1,
-
-  snake: [], dir: {x:1, y:0}, inputQueue: [],
-  food: null, bonusFood: null,
-  walls: [], wallGrid: new Uint8Array(0), particles: [], floaters: [],
-  score: 0, target: 0, speed: 150, baseSpeed: 150, slowTimer: 0,
-  acc: 0, lastFrame: 0, anim: 0, shakeAmt: 0,
-  steps: 0, eaten: 0, playTime: 0, timers: [], recordToast: false, rulesFromPause: false,
-
-  // Прогресс: snake_completed[id] — уровень пройден (число = лучшие звёзды; старые сохранения — true),
-  // snake_best[id] — лучший счёт уровня, snake_best.endless — рекорд бесконечного режима.
-  completedLevels: store.get('snake_completed'),
-  bestScores: store.get('snake_best'),
-
-  get cfg() { return Levels[Math.min(this.levelIdx, Levels.length - 1)]; },
-  get theme() { return Themes[this.cfg.theme] || Themes.classic; },
-  isDone(id) { return !!this.completedLevels[id]; },
-  starsOf(id) { return Math.min(3, this.completedLevels[id] | 0); },
-  isUnlocked(i) { return i === 0 || this.isDone(Levels[i - 1].id); },
-
-  /* ── Размеры ──
-   * Размер поля в клетках выбирается при старте уровня по свободному месту (клетка ~18px, как раньше)
-   * и до конца уровня не меняется: при ресайзе/повороте меняется только размер клетки в пикселях.
-   * (Раньше cols/rows пересчитывались на лету — змейка, еда и стены оказывались за краем поля.) */
-  measure() {
-    const st = this.ui.stage;   // 16 = рамка .ku-board (padding 7 + border 1)
-    return { w: Math.max(0, st.clientWidth - 16), h: Math.max(0, st.clientHeight - 16) };
-  },
-  chooseGrid() {
-    const { w, h } = this.measure();
-    this.cols = Math.max(12, Math.min(30, Math.floor(Math.min(w, 540) / CELL_BASE) || 18));
-    this.rows = Math.max(12, Math.min(44, Math.floor(h / CELL_BASE) || 24));
-  },
-  resize(redraw = true) {
-    if (!this.cols) return;
-    const { w, h } = this.measure();
-    if (!w || !h) return;                       // экран игры скрыт
-    const cell = Math.max(8, Math.floor(Math.min(w / this.cols, h / this.rows)));
+/* ═══ Отрисовка поля ═══ */
+const R = {
+  cv: $('c'), ctx: $('c').getContext('2d'), bg: document.createElement('canvas'), tmp: document.createElement('canvas'), bgDirty: true,
+  cell: 16, dpr: 1, Wpx: 0, Hpx: 0, theme: THEMES.classic,
+  parts: [], floats: [], shake: 0, anim: 0,
+  reset() { this.parts = []; this.floats = []; this.shake = 0; this.bgDirty = true; },
+  // Размер поля в клетках фиксирован на всю партию; при ресайзе/повороте меняется только размер клетки
+  resize() {
+    const G = UI.G;
+    if (!G) return;
+    const st = $('stage'), w = st.clientWidth - 16, h = st.clientHeight - 16;   // 16 = рамка .ku-board
+    if (w <= 0 || h <= 0) return;
+    const cell = Math.max(6, Math.min(34, Math.floor(Math.min(w / G.W, h / G.H))));
     const dpr = Math.min(2, window.devicePixelRatio || 1);
-    const W = this.cols * cell, H = this.rows * cell;
-    this.cell = cell; this.dpr = dpr;
-    this.canvas.style.width = W + 'px'; this.canvas.style.height = H + 'px';
-    this.canvas.width = Math.round(W * dpr); this.canvas.height = Math.round(H * dpr);
+    const W = G.W * cell, H = G.H * cell;
+    if (cell === this.cell && dpr === this.dpr && W === this.Wpx && this.cv.width === Math.round(W * dpr)) return;
+    this.cell = cell; this.dpr = dpr; this.Wpx = W; this.Hpx = H;
+    this.cv.style.width = W + 'px'; this.cv.style.height = H + 'px';
+    this.cv.width = Math.round(W * dpr); this.cv.height = Math.round(H * dpr);
     this.ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
     this.bgDirty = true;
-    if (redraw) this.draw();
+  },
+  xy(c) { const W = UI.G.W; return [c % W, (c / W) | 0]; },
+  // точка между соседними клетками from → to (доля a), с учётом перехода через край
+  lerp(from, to, a) {
+    const [fx, fy] = this.xy(from), [tx, ty] = this.xy(to);
+    let dx = tx - fx, dy = ty - fy;
+    if (dx > 1) dx = -1; else if (dx < -1) dx = 1;
+    if (dy > 1) dy = -1; else if (dy < -1) dy = 1;
+    return [fx + dx * a, fy + dy * a];
+  },
+  // нарисовать в клетке (x, y) и, если она частично за краем, — её «сквозную» копию с другой стороны
+  at(x, y, fn) {
+    const G = UI.G;
+    fn(x, y);
+    if (x < 0) fn(x + G.W, y); else if (x > G.W - 1) fn(x - G.W, y);
+    if (y < 0) fn(x, y + G.H); else if (y > G.H - 1) fn(x, y - G.H);
+  },
+  burst(c, color, n, speed) {
+    const C = this.cell, [x, y] = this.xy(c), k = C / 18;
+    for (let i = 0; i < n && this.parts.length < 500; i++) this.parts.push(new Particle(x * C + C / 2, y * C + C / 2, color, speed * k));
+  },
+  float(c, text, color) { const C = this.cell, [x, y] = this.xy(c); this.floats.push({ x: x * C + C / 2, y: y * C, text, color, t: 0 }); },
+  update(dt) {
+    const k = dt / 16.667;
+    this.anim += dt;
+    if (this.shake > 0) { this.shake *= Math.pow(0.92, k); if (this.shake < 0.3) this.shake = 0; }
+    if (this.parts.length) { this.parts.forEach(p => p.update(k)); this.parts = this.parts.filter(p => p.life > 0); }
+    if (this.floats.length) { this.floats.forEach(f => { f.t += dt; }); this.floats = this.floats.filter(f => f.t < 900); }
+  },
+  busy() { return this.parts.length || this.floats.length || this.shake; },
+
+  renderBg() {
+    const G = UI.G, C = this.cell, W = this.Wpx, H = this.Hpx, b = this.bg, t = this.theme;
+    b.width = this.cv.width; b.height = this.cv.height;
+    const g = b.getContext('2d');
+    g.setTransform(this.dpr, 0, 0, this.dpr, 0, 0);
+    g.fillStyle = t.tint; g.fillRect(0, 0, W, H);
+    if (P.settings.grid) {            // пустые клетки — как в Тетрисе (шахматка из полупрозрачных клеток)
+      const r = Math.max(2, C * .2);
+      for (const odd of [0, 1]) {
+        g.fillStyle = odd ? 'rgba(255,255,255,.035)' : 'rgba(255,255,255,.015)';
+        g.beginPath();
+        for (let y = 0; y < G.H; y++) for (let x = 0; x < G.W; x++) if ((x + y) % 2 === odd && !G.walls[y * G.W + x]) rrPath(g, x * C + 1, y * C + 1, C - 2, C - 2, r);
+        g.fill();
+      }
+    }
+    for (let i = 0; i < G.N; i++) if (G.walls[i]) drawBlock(g, (i % G.W) * C, ((i / G.W) | 0) * C, C, t.wall);
+    // сквозные края — пунктир там, где можно пройти на другую сторону
+    g.strokeStyle = 'rgba(0,229,255,.42)'; g.lineWidth = Math.max(1.5, C * .1); g.lineCap = 'round';
+    g.beginPath();
+    const seg = (x1, y1, x2, y2) => { g.moveTo(x1, y1); g.lineTo(x2, y2); };
+    const e = Math.max(1, C * .06);
+    for (let x = 0; x < G.W; x++) if (!G.walls[x] && !G.walls[(G.H - 1) * G.W + x]) {
+      seg(x * C + C * .3, e, x * C + C * .7, e); seg(x * C + C * .3, H - e, x * C + C * .7, H - e);
+    }
+    for (let y = 0; y < G.H; y++) if (!G.walls[y * G.W] && !G.walls[y * G.W + G.W - 1]) {
+      seg(e, y * C + C * .3, e, y * C + C * .7); seg(W - e, y * C + C * .3, W - e, y * C + C * .7);
+    }
+    g.stroke();
+    this.bgDirty = false;
   },
 
-  init() {
-    this.ctx = this.canvas.getContext('2d');
-    this.ui = {
-      stage: $('stage'),
-      scoreVal: $('score-val'), targetVal: $('target-val'), targetBox: $('target-box'),
-      bestVal: $('best-val'), bestBox: $('best-box'), lenVal: $('len-val'),
-      title: $('g-title'), sub: $('g-sub'), pbar: $('pbar'), progressFill: $('progress-fill'),
-      menus: {
-        levels: $('menu-levels'), pause: $('menu-pause'), levelUp: $('menu-level-up'),
-        gameOver: $('menu-game-over'), rules: $('menu-rules')
+  draw() {
+    const G = UI.G, ctx = this.ctx;
+    if (!G || !this.Wpx) return;
+    const C = this.cell, W = this.Wpx, H = this.Hpx;
+    if (this.bgDirty) this.renderBg();
+    ctx.clearRect(0, 0, W, H);
+    ctx.save();
+    if (this.shake > 0.5) ctx.translate((Math.random() - .5) * this.shake, (Math.random() - .5) * this.shake);
+    ctx.drawImage(this.bg, 0, 0, W, H);
+    for (const f of G.foods) this.drawFood(f);
+    // плавное движение: голова и хвост «доезжают» между клетками за время шага
+    const a = UI.state === 'PLAYING' && P.settings.smooth ? Math.max(0, Math.min(1, G.acc / SE.interval(G))) : 1;
+    for (let i = G.snakes.length - 1; i >= 0; i--) this.drawSnake(G.snakes[i], i, a);
+    ctx.restore();
+    this.parts.forEach(p => p.draw(ctx));
+    for (const f of this.floats) {
+      const k = f.t / 900;
+      ctx.globalAlpha = Math.max(0, 1 - k);
+      ctx.font = `${Math.round(Math.max(11, C * (0.75 + 0.35 * k)))}px 'Russo One', sans-serif`;
+      ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+      const half = ctx.measureText(f.text).width / 2 + 4, x = Math.min(W - half, Math.max(half, f.x));
+      ctx.shadowColor = f.color; ctx.shadowBlur = 12; ctx.fillStyle = f.color;
+      ctx.fillText(f.text, x, Math.max(C * .7, f.y - k * 48));
+      ctx.shadowBlur = 0;
+    }
+    ctx.globalAlpha = 1;
+    this.drawEffects();
+    if (UI.state === 'READY') this.drawCountdown();
+  },
+
+  drawFood(f) {
+    const ctx = this.ctx, C = this.cell, [x, y] = this.xy(f.c), cx = x * C + C / 2, cy = y * C + C / 2, a = this.anim;
+    if (f.type === 'apple') {
+      const col = this.theme.food, fr = Math.max(2, C / 2 - C * .17 + Math.sin(a * .0048) * C * .09);
+      ctx.strokeStyle = col; ctx.lineWidth = Math.max(1, C * .08);
+      ctx.globalAlpha = 0.3 + Math.sin(a * .0072) * 0.15;
+      ctx.beginPath(); ctx.arc(cx, cy, fr + C * .2, 0, Math.PI * 2); ctx.stroke();
+      ctx.globalAlpha = 1;
+      ctx.shadowBlur = 14; ctx.shadowColor = col; ctx.fillStyle = col;
+      ctx.beginPath(); ctx.arc(cx, cy, fr, 0, Math.PI * 2); ctx.fill();
+      ctx.shadowBlur = 0;
+      ctx.fillStyle = 'rgba(255,255,255,0.45)';
+      ctx.beginPath(); ctx.arc(cx - fr * .3, cy - fr * .3, fr * 0.35, 0, Math.PI * 2); ctx.fill();
+      return;
+    }
+    const col = BONUS[f.type], frac = f.max ? Math.max(0, f.life / f.max) : 1, r = C * .42;
+    ctx.save();
+    if (frac < .25) ctx.globalAlpha = .45 + .55 * Math.abs(Math.sin(a * .012));   // скоро исчезнет — мигает
+    // кольцо-таймер
+    ctx.strokeStyle = rgba(col, .25); ctx.lineWidth = Math.max(1.5, C * .08);
+    ctx.beginPath(); ctx.arc(cx, cy, C * .5, 0, Math.PI * 2); ctx.stroke();
+    ctx.strokeStyle = col;
+    ctx.beginPath(); ctx.arc(cx, cy, C * .5, -Math.PI / 2, -Math.PI / 2 + Math.PI * 2 * frac); ctx.stroke();
+    ctx.shadowColor = col; ctx.shadowBlur = 14; ctx.fillStyle = col;
+    const pulse = 1 + Math.sin(a * .009) * .07;
+    if (f.type === 'gold') { starPath(ctx, cx, cy + C * .02, r * pulse); ctx.fill(); }
+    else if (f.type === 'slow') {           // песочные часы
+      const w = r * .72, h = r * .9;
+      ctx.beginPath(); ctx.moveTo(cx - w, cy - h); ctx.lineTo(cx + w, cy - h); ctx.lineTo(cx + w * .12, cy);
+      ctx.lineTo(cx + w, cy + h); ctx.lineTo(cx - w, cy + h); ctx.lineTo(cx - w * .12, cy); ctx.closePath(); ctx.fill();
+      ctx.shadowBlur = 0; ctx.fillStyle = 'rgba(255,255,255,.75)';
+      ctx.fillRect(cx - w - 1, cy - h - 1.5, w * 2 + 2, Math.max(1.5, C * .08)); ctx.fillRect(cx - w - 1, cy + h - .5, w * 2 + 2, Math.max(1.5, C * .08));
+    } else if (f.type === 'shrink') {       // ромб «−3»
+      ctx.beginPath(); ctx.moveTo(cx, cy - r * pulse); ctx.lineTo(cx + r * pulse, cy); ctx.lineTo(cx, cy + r * pulse); ctx.lineTo(cx - r * pulse, cy); ctx.closePath(); ctx.fill();
+      ctx.shadowBlur = 0; ctx.fillStyle = '#241000';
+      ctx.font = `${Math.max(7, Math.round(C * .34))}px 'Russo One', sans-serif`; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+      ctx.fillText('−3', cx, cy + .5);
+    } else if (f.type === 'ghost') {
+      ghostPath(ctx, cx, cy - r * .08, r * pulse); ctx.fill();
+      ctx.shadowBlur = 0; ctx.fillStyle = '#fff';
+      for (const s of [-1, 1]) { ctx.beginPath(); ctx.arc(cx + s * r * .3, cy - r * .2, r * .2, 0, Math.PI * 2); ctx.fill(); }
+      ctx.fillStyle = '#1a0830';
+      for (const s of [-1, 1]) { ctx.beginPath(); ctx.arc(cx + s * r * .3, cy - r * .16, r * .1, 0, Math.PI * 2); ctx.fill(); }
+    } else if (f.type === 'bug') {          // жучок: лапки шевелятся
+      ctx.shadowBlur = 8; ctx.strokeStyle = col; ctx.lineWidth = Math.max(1, C * .07); ctx.lineCap = 'round';
+      const wig = Math.sin(a * .025) * r * .12;
+      ctx.beginPath();
+      for (const s of [-1, 1]) for (let k = -1; k <= 1; k++) {
+        const ly = cy + k * r * .36;
+        ctx.moveTo(cx + s * r * .3, ly); ctx.lineTo(cx + s * r * .82, ly + k * r * .22 + (k ? wig * s : -wig * s));
       }
+      ctx.moveTo(cx - r * .12, cy - r * .62); ctx.lineTo(cx - r * .38, cy - r * .95);
+      ctx.moveTo(cx + r * .12, cy - r * .62); ctx.lineTo(cx + r * .38, cy - r * .95);
+      ctx.stroke();
+      ctx.beginPath(); ctx.ellipse(cx, cy + r * .12, r * .46, r * .58, 0, 0, Math.PI * 2); ctx.fill();
+      ctx.beginPath(); ctx.arc(cx, cy - r * .55, r * .24, 0, Math.PI * 2); ctx.fill();
+      ctx.shadowBlur = 0; ctx.strokeStyle = 'rgba(36,21,0,.8)'; ctx.lineWidth = Math.max(1, C * .06);
+      ctx.beginPath(); ctx.moveTo(cx, cy - r * .4); ctx.lineTo(cx, cy + r * .68); ctx.stroke();
+      ctx.fillStyle = 'rgba(36,21,0,.75)';
+      for (const [dx, dy] of [[-.22, 0], [.22, 0], [-.18, .34], [.18, .34]]) { ctx.beginPath(); ctx.arc(cx + dx * r, cy + dy * r, r * .09, 0, Math.PI * 2); ctx.fill(); }
+    }
+    ctx.restore();
+  },
+
+  // Змейка — неоновые сегменты с переходом цвета от головы к хвосту, соединённые перемычками.
+  // Призрак и погибшая змейка — полупрозрачный силуэт одной заливкой (без двойного наложения перемычек).
+  drawSnake(s, idx, a) {
+    if (!s.body.length) return;
+    const fade = !s.alive ? .3 : s.ghostMs > 0 ? (s.ghostMs < 1500 && Math.floor(this.anim / 110) % 2 ? .85 : .45) : 1;
+    if (fade >= 1 || s.body.length < 160) { this.paintSnake(this.ctx, s, a, fade); return; }
+    // очень длинный полупрозрачный силуэт — через промежуточный слой (одна большая заливка медленнее)
+    const t = this.tmp;
+    if (t.width !== this.cv.width || t.height !== this.cv.height) { t.width = this.cv.width; t.height = this.cv.height; }
+    const g = t.getContext('2d');
+    g.setTransform(1, 0, 0, 1, 0, 0); g.clearRect(0, 0, t.width, t.height); g.setTransform(this.dpr, 0, 0, this.dpr, 0, 0);
+    this.paintSnake(g, s, a, 1, true);
+    const ctx = this.ctx;
+    ctx.save(); ctx.globalAlpha = fade; ctx.drawImage(t, 0, 0, this.Wpx, this.Hpx); ctx.restore();
+  },
+  paintSnake(g, s, a, fade, flat) {
+    const G = UI.G, C = this.cell, body = s.body, n = body.length, Wp = this.Wpx, Hp = this.Hpx;
+    const color = s.ai ? (this.theme.ai || '#ff4dd2') : this.theme.snake;
+    const headRgb = hexRgb(color), tailRgb = mixRgb(headRgb, BOARD_RGB, .55);
+    const pad = Math.max(1, C * .085), rad = C * .24, sz = C - pad * 2, bw = sz * .62;
+    // центры сегментов (в клетках): голова и хвост при плавном движении — между клетками
+    const live = s.alive && a < 1;
+    const pts = [live && s.prevHead >= 0 ? this.lerp(s.prevHead, body[0], a) : this.xy(body[0])];
+    for (let i = 1; i < n; i++) pts.push(this.xy(body[i]));
+    if (live && s.tailGone >= 0 && n > 1) pts.push(this.lerp(s.tailGone, body[n - 1], a));
+    const m = pts.length;
+    // фигура частично за краем поля — рисуем и её «сквозную» копию с другой стороны
+    const wrap = (x0, y0, x1, y1, fn) => {
+      fn(0, 0);
+      const ox = x0 < 0 ? Wp : x1 > Wp ? -Wp : 0, oy = y0 < 0 ? Hp : y1 > Hp ? -Hp : 0;
+      if (ox) fn(ox, 0);
+      if (oy) fn(0, oy);
+      if (ox && oy) fn(ox, oy);
     };
-    window.addEventListener('resize', () => this.resize());
-    // Вкладка/приложение ушло в фон — пауза (раньше змейка продолжала ползти «вслепую»)
-    document.addEventListener('visibilitychange', () => { if (document.hidden) this.pause(); });
+    const segPath = p => { const x = p[0] * C + pad, y = p[1] * C + pad; wrap(x, y, x + sz, y + sz, (ox, oy) => rrPath(g, x + ox, y + oy, sz, sz, rad)); };
+    const bridgePath = (p, q) => {          // перемычка между центрами соседних сегментов
+      let dx = q[0] - p[0], dy = q[1] - p[1];
+      if (dx > 1.5) dx -= G.W; else if (dx < -1.5) dx += G.W;
+      if (dy > 1.5) dy -= G.H; else if (dy < -1.5) dy += G.H;
+      if (Math.abs(dx) + Math.abs(dy) < 1e-6) return;
+      const cx = (p[0] + .5) * C, cy = (p[1] + .5) * C;
+      let x, y, w, h;
+      if (Math.abs(dy) < 1e-6) { x = Math.min(cx, cx + dx * C); y = cy - bw / 2; w = Math.abs(dx) * C; h = bw; }
+      else { x = cx - bw / 2; y = Math.min(cy, cy + dy * C); w = bw; h = Math.abs(dy) * C; }
+      wrap(x, y, x + w, y + h, (ox, oy) => g.rect(x + ox, y + oy, w, h));
+    };
+    const headAt = () => { const hx = pts[0][0] * C, hy = pts[0][1] * C; wrap(hx, hy, hx + C, hy + C, (ox, oy) => this.drawHead(g, hx + ox, hy + oy, s, color)); };
+    g.save();
+    if (fade < 1) {                          // призрак / погибшая змейка
+      g.globalAlpha = fade;
+      g.fillStyle = `rgb(${mixRgb(headRgb, tailRgb, .3).join(',')})`;
+      g.beginPath();
+      for (let k = 1; k < m; k++) segPath(pts[k]);
+      for (let k = 0; k < m - 1; k++) bridgePath(pts[k], pts[k + 1]);
+      g.fill();
+      headAt();
+      g.restore();
+      return;
+    }
+    // свечение — у головной части (размытие тени по всему длинному телу дорого)
+    const gn = flat ? 0 : Math.min(m, 24);
+    g.shadowColor = rgba(color, .5); g.shadowBlur = Math.min(14, C * .7);
+    g.fillStyle = `rgb(${mixRgb(headRgb, tailRgb, .5).join(',')})`;
+    g.beginPath();
+    for (let k = 1; k < gn; k++) segPath(pts[k]);
+    for (let k = 0; k < gn - 1; k++) bridgePath(pts[k], pts[k + 1]);
+    g.fill();
+    g.shadowBlur = 0;
+    // тело — полосами одного оттенка (до 16), от хвоста к голове: по одной заливке на полосу
+    const bands = Math.min(16, m - 1);
+    for (let b = bands - 1; b >= 0; b--) {
+      const k0 = 1 + Math.floor(b * (m - 1) / bands), k1 = 1 + Math.floor((b + 1) * (m - 1) / bands);
+      const t = m > 2 ? ((k0 + k1 - 1) / 2) / (m - 1) : 1;
+      g.fillStyle = `rgb(${mixRgb(headRgb, tailRgb, t).join(',')})`;
+      g.beginPath();
+      for (let k = k0; k < k1; k++) { bridgePath(pts[k - 1], pts[k]); segPath(pts[k]); }
+      g.fill();
+      g.fillStyle = `rgba(255,255,255,${(0.2 * (1 - t)).toFixed(3)})`;   // блики сверху
+      g.beginPath();
+      for (let k = k0; k < k1; k++) {
+        const x = pts[k][0] * C + pad, y = pts[k][1] * C + pad;
+        wrap(x, y, x + sz, y + sz, (ox, oy) => rrPath(g, x + ox + C * .1, y + oy + C * .08, sz - C * .2, sz * .36, rad * .6));
+      }
+      g.fill();
+    }
+    g.restore();
+    headAt();
+  },
+  drawHead(ctx, hx, hy, s, color) {
+    const C = this.cell, hp = Math.max(.5, C * .03);
+    ctx.save();
+    ctx.shadowBlur = Math.min(20, C); ctx.shadowColor = color; ctx.fillStyle = color;
+    rr(ctx, hx + hp, hy + hp, C - hp * 2, C - hp * 2, C * .3); ctx.fill();
+    ctx.restore();
+    // глаза смотрят по ходу движения
+    const d = s.dir, dx = SE.DX[d], dy = SE.DY[d], cx = hx + C / 2, cy = hy + C / 2;
+    const fwd = C * .12, side = C * .22, er = C * .17, pr = C * .1;
+    for (const sg of [-1, 1]) {
+      const ex = cx + dx * fwd - dy * side * sg, ey = cy + dy * fwd + dx * side * sg;
+      ctx.fillStyle = '#fff';
+      ctx.beginPath(); ctx.arc(ex, ey, er, 0, Math.PI * 2); ctx.fill();
+      ctx.strokeStyle = 'rgba(4,8,30,.45)'; ctx.lineWidth = 1; ctx.stroke();
+      ctx.fillStyle = s.ai ? '#d4005f' : '#0b1030';
+      ctx.beginPath(); ctx.arc(ex + dx * C * .06, ey + dy * C * .06, pr, 0, Math.PI * 2); ctx.fill();
+    }
+    if (s.ai) {                       // сердитые брови у змейки компьютера: внутренний край ниже наружного
+      const P = (f, l) => [cx + dx * f - dy * l, cy + dy * f + dx * l];   // f — вперёд по ходу, l — вбок
+      ctx.strokeStyle = 'rgba(30,4,20,.9)'; ctx.lineWidth = Math.max(1, C * .08); ctx.lineCap = 'round';
+      ctx.beginPath();
+      for (const sg of [-1, 1]) {
+        const a = P(fwd + er * .75, sg * (side - er * .95)), b = P(fwd + er * 1.75, sg * (side + er * .85));
+        ctx.moveTo(a[0], a[1]); ctx.lineTo(b[0], b[1]);
+      }
+      ctx.stroke();
+    }
+  },
+  // таймеры эффектов — плашки в правом верхнем углу поля (бледнеют, если голова рядом)
+  drawEffects() {
+    const G = UI.G, s = G.snakes[0], ctx = this.ctx, C = this.cell, W = this.Wpx;
+    if (!s.body.length) return;
+    const items = [];
+    if (G.slowMs > 0) items.push(['slow', G.slowMs]);
+    if (s.ghostMs > 0 && s.alive) items.push(['ghost', s.ghostMs]);
+    if (!items.length) return;
+    const fs = Math.max(10, Math.min(15, Math.round(C * .6))), h = fs + 10, w = fs * 3.9;
+    const [hx, hy] = this.xy(s.body[0]);
+    let y = 6;
+    ctx.save();
+    ctx.font = `${fs}px 'Russo One', sans-serif`; ctx.textBaseline = 'middle'; ctx.textAlign = 'right';
+    for (const [t, ms] of items) {
+      const x = W - w - 6, col = BONUS[t];
+      const near = hx * C > x - C * 2 && hy * C < y + h + C * 2;
+      ctx.globalAlpha = near ? .3 : .92;
+      ctx.fillStyle = 'rgba(4,6,22,.78)'; rr(ctx, x, y, w, h, h / 2); ctx.fill();
+      ctx.strokeStyle = col; ctx.lineWidth = 1.5; ctx.stroke();
+      ctx.fillStyle = col; ctx.shadowColor = col; ctx.shadowBlur = 8;
+      const ix = x + h * .55, iy = y + h / 2, ir = h * .32;
+      if (t === 'ghost') { ghostPath(ctx, ix, iy - ir * .1, ir); ctx.fill(); }
+      else { ctx.beginPath(); ctx.moveTo(ix - ir * .7, iy - ir); ctx.lineTo(ix + ir * .7, iy - ir); ctx.lineTo(ix, iy); ctx.lineTo(ix + ir * .7, iy + ir); ctx.lineTo(ix - ir * .7, iy + ir); ctx.lineTo(ix, iy); ctx.closePath(); ctx.fill(); }
+      ctx.shadowBlur = 0;
+      ctx.fillText((ms / 1000).toFixed(1), x + w - 8, iy + 1);
+      y += h + 5;
+    }
+    ctx.restore();
+  },
+  // отсчёт перед стартом/после паузы; блок «цифра + подсказка» — в той половине поля, где нет головы змейки
+  drawCountdown() {
+    const ctx = this.ctx, W = this.Wpx, H = this.Hpx, C = this.cell, n = Math.max(1, Math.ceil(UI.ready / UI.readyStep));
+    const k = 1 - (UI.ready % UI.readyStep) / UI.readyStep;
+    const head = UI.G.snakes[0].body[0], hy = head === undefined ? H : (((head / UI.G.W) | 0) + .5) * C;
+    ctx.save();
+    ctx.fillStyle = 'rgba(3,5,16,.35)'; ctx.fillRect(0, 0, W, H);
+    const fs = Math.round(Math.min(W, H) * .22 * (1.15 - .25 * k));
+    let lines = [], fs2 = 0, lh = 0, bw = 0;
+    if (UI.tip) {                            // подсказка уровня/режима — перенос по словам
+      fs2 = Math.max(12, Math.min(16, Math.round(W / 22)));
+      ctx.font = `500 ${fs2}px 'Rubik', sans-serif`;
+      let line = '';
+      for (const w of UI.tip.split(' ')) { const t = line ? line + ' ' + w : w; if (ctx.measureText(t).width > W - 48 && line) { lines.push(line); line = w; } else line = t; }
+      if (line) lines.push(line);
+      lh = fs2 * 1.35; bw = Math.min(W - 16, Math.max(...lines.map(l => ctx.measureText(l).width)) + 28);
+    }
+    const tipH = lines.length ? lines.length * lh + 16 : 0, blockH = fs + (tipH ? tipH + 10 : 0);
+    const half = hy > H / 2 ? 0 : H / 2;     // голова внизу — рисуем в верхней половине, и наоборот
+    const top = half + Math.max(4, (H / 2 - blockH) / 2);
+    ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+    ctx.font = `${fs}px 'Russo One', sans-serif`;
+    ctx.globalAlpha = 1 - k * .5;
+    ctx.shadowColor = '#00e5ff'; ctx.shadowBlur = 26; ctx.fillStyle = '#eef2ff';
+    ctx.fillText(String(n), W / 2, top + fs / 2);
+    if (lines.length) {
+      ctx.globalAlpha = 1; ctx.shadowBlur = 0;
+      const by = top + fs + 10;
+      ctx.fillStyle = 'rgba(4,6,22,.84)'; rr(ctx, (W - bw) / 2, by, bw, tipH, 12); ctx.fill();
+      ctx.strokeStyle = 'rgba(0,229,255,.35)'; ctx.lineWidth = 1; ctx.stroke();
+      ctx.font = `500 ${fs2}px 'Rubik', sans-serif`; ctx.fillStyle = '#eef2ff';
+      lines.forEach((l, i) => ctx.fillText(l, W / 2, by + 8 + lh * (i + .5)));
+    }
+    ctx.restore();
+  }
+};
+
+/* ═══ Управление партией и экранами ═══ */
+const KEYS = {
+  ArrowUp: 0, KeyW: 0, Numpad8: 0, Digit8: 0, ArrowRight: 1, KeyD: 1, Numpad6: 1, Digit6: 1,
+  ArrowDown: 2, KeyS: 2, Numpad2: 2, Digit2: 2, ArrowLeft: 3, KeyA: 3, Numpad4: 3, Digit4: 3
+};
+const KEY_CHARS = { w: 0, ц: 0, d: 1, в: 1, s: 2, ы: 2, a: 3, ф: 3 };   // запасной вариант, если нет e.code
+const MODALS = ['ov-rules', 'ov-settings', 'ov-stats', 'ov-ach', 'ov-history'];
+const SETUPS = ['ov-levels', 'ov-classic', 'ov-vs'];
+
+const UI = {
+  state: 'MENU', G: null, cfg: null, ready: 0, readyStep: 500, lastBeep: 0, tip: '',
+  timers: [], lastTs: 0, modalBack: null, saved: false, recPrev: 0, recToast: false, hudCache: {},
+  toastQ: [], toastTimer: 0, statTab: 'campaign',
+
+  /* ── Таймеры партии (взрыв, окно итогов, звёзды) — снимаются при рестарте и выходе в меню ── */
+  later(fn, ms) { const id = setTimeout(() => { this.timers = this.timers.filter(t => t !== id); fn(); }, ms); this.timers.push(id); },
+  clearTimers() { this.timers.forEach(clearTimeout); this.timers = []; },
+
+  /* ── Тосты по очереди, чтобы достижения не затирали друг друга ── */
+  toast(msg, kind, ms) {
+    this.toastQ.push([msg, kind, ms || 1900]);
+    if (!this.toastTimer) this.nextToast();
+  },
+  nextToast() {
+    const t = this.toastQ.shift();
+    if (!t) { this.toastTimer = 0; return; }
+    const inGame = $('screen-game').classList.contains('active');
+    const roomBelow = innerHeight > innerWidth && $('pad-wrap').hidden;
+    KuArcade.toast(t[0], (t[1] || '') + (inGame && !roomBelow ? ' top' : ''), t[2]);
+    this.toastTimer = setTimeout(() => this.nextToast(), t[2] + 150);
+  },
+
+  /* ── Экраны и окна ── */
+  showScreen(name) {
+    $('screen-menu').classList.toggle('active', name === 'menu');
+    $('screen-game').classList.toggle('active', name === 'game');
+  },
+  isOpen(id) { return $(id).classList.contains('open'); },
+  open(id) {
+    $(id).classList.add('open');
+    const b = $(id).querySelector('.ku-btn.primary');
+    if (b) try { b.focus({ preventScroll: true }); } catch (e) {}
+  },
+  close(id) { $(id).classList.remove('open'); },
+  closeAll() { document.querySelectorAll('.ku-overlay.open:not(.ku-dialog)').forEach(o => o.classList.remove('open')); },
+  // модальное окно поверх другого (правила/настройки из паузы) — по закрытию вернуть прежнее
+  openModal(id) {
+    const cur = [...document.querySelectorAll('.ku-overlay.open:not(.ku-dialog)')].map(o => o.id).find(x => !MODALS.includes(x));
+    this.modalBack = cur || null;
+    if (cur) this.close(cur);
+    if (id === 'ov-settings') this.fillSettings();
+    if (id === 'ov-stats') this.renderStats();
+    if (id === 'ov-ach') this.renderAch();
+    if (id === 'ov-history') this.renderHistory();
+    this.open(id);
+  },
+  closeModal() {
+    MODALS.forEach(m => this.close(m));
+    if (this.modalBack) { const b = this.modalBack; this.modalBack = null; this.open(b); }
+    if (this.state === 'MENU') this.refreshMenu();
+  },
+
+  /* ── Меню ── */
+  refreshMenu() {
+    const done = doneCount(), stars = starsTotal(), g = SD.totalGames(P.stats);
+    $('best-campaign').textContent = done ? `Пройдено ${done} из ${LEVELS.length} · ⭐ ${stars}` : `${LEVELS.length} уровней-лабиринтов`;
+    $('best-classic').textContent = 'Рекорд: ' + (P.best.classic || 0);
+    $('best-endless').textContent = 'Рекорд: ' + (P.best.endless || 0);
+    $('best-timed').textContent = 'Рекорд: ' + (P.best.timed || 0);
+    $('best-vs').textContent = vsWins() ? 'Побед: ' + vsWins() : '3 уровня сложности';
+    const achN = Object.keys(P.ach).length;
+    $('menu-stats').textContent = g
+      ? `Сыграно игр: ${g} • Длиннейшая змейка: ${SD.longest(P.stats)} • 🏅 ${achN} из ${SD.ACH.length}`
+      : (done ? `⭐ Звёзд: ${stars} из ${LEVELS.length * 3}` : 'Начните кампанию с первого уровня');
+  },
+  buildLevels() {
+    const grid = $('level-grid');
+    grid.innerHTML = '';
+    let nextMarked = false;
+    LEVELS.forEach((lvl, i) => {
+      const unlocked = isUnlocked(i), st = P.completed[lvl.id] || 0;
+      const b = document.createElement('button');
+      b.type = 'button';
+      b.className = 'lv' + (st ? ' done' : '');
+      if (unlocked && !st && !nextMarked) { b.classList.add('next'); nextMarked = true; }
+      b.disabled = !unlocked;
+      const stars = !unlocked ? '🔒' : '<i>★</i>'.repeat(st) + '★'.repeat(3 - st);
+      b.innerHTML = `<span class="n">${lvl.id}</span><small>${lvl.name}</small><span class="st">${stars}</span>`;
+      b.setAttribute('aria-label', `Уровень ${lvl.id}: ${lvl.name}` + (unlocked ? (st ? `, звёзд ${st}` : '') : ' (закрыт)'));
+      if (unlocked) b.onclick = () => this.start({ mode: 'campaign', level: i });
+      grid.appendChild(b);
+    });
+    const done = doneCount();
+    $('lv-sum').innerHTML = done ? `Пройдено <b>${done}</b> из ${LEVELS.length} · звёзд <b>${starsTotal()}</b> из ${LEVELS.length * 3}` : 'Пройди уровень — откроется следующий';
+  },
+  openLevels() {
+    this.toMenu(); this.buildLevels(); this.open('ov-levels');
+    const next = $('level-grid').querySelector('.lv.next');
+    if (next) try { next.focus({ preventScroll: true }); next.scrollIntoView({ block: 'nearest' }); } catch (e) {}
+  },
+  openClassic() {
+    this.toMenu();
+    const sp = $('cl-speed');
+    if (!sp.children.length) {
+      for (let v = 1; v <= 9; v++) { const b = document.createElement('button'); b.textContent = v; b.dataset.v = v; b.setAttribute('aria-label', 'Скорость ' + v); sp.appendChild(b); }
+      sp.onclick = e => { const b = e.target.closest('button'); if (!b) return; P.settings.cSpeed = +b.dataset.v; P.saveSettings(); this.syncClassic(); };
+      const mz = $('cl-mazes');
+      for (const m of SE.CLASSIC_MAZES) {
+        const b = document.createElement('button'); b.type = 'button'; b.className = 'mz'; b.dataset.v = m.id;
+        const cv = document.createElement('canvas'); this.mazePreview(cv, m.id);
+        b.appendChild(cv); b.appendChild(document.createTextNode(m.name));
+        b.onclick = () => { P.settings.cMaze = m.id; P.saveSettings(); this.syncClassic(); };
+        mz.appendChild(b);
+      }
+    }
+    this.syncClassic();
+    this.open('ov-classic');
+  },
+  syncClassic() {
+    const s = P.settings;
+    [...$('cl-speed').children].forEach(b => b.classList.toggle('active', +b.dataset.v === s.cSpeed));
+    [...$('cl-mazes').children].forEach(b => b.classList.toggle('active', b.dataset.v === s.cMaze));
+    $('cl-best').innerHTML = `Рекорд: <b>${P.best.classic || 0}</b> · еда = <b>${s.cSpeed}</b> ${s.cSpeed === 1 ? 'очко' : s.cSpeed < 5 ? 'очка' : 'очков'}, жучок — до <b>${s.cSpeed * 10}</b>`;
+  },
+  mazePreview(cv, id) {
+    const [W, H] = SE.SIZES.M, k = 4, g = SE.buildMaze(id === 'none' ? 'empty' : id, W, H, true);
+    cv.width = W * k; cv.height = H * k;
+    const c = cv.getContext('2d');
+    c.fillStyle = '#0a0f2c'; c.fillRect(0, 0, cv.width, cv.height);
+    c.fillStyle = '#5b8cff';
+    for (let i = 0; i < W * H; i++) if (g[i]) c.fillRect((i % W) * k, ((i / W) | 0) * k, k, k);
+  },
+  openVs() {
+    this.toMenu();
+    this.syncVs();
+    this.open('ov-vs');
+  },
+  syncVs() {
+    const s = P.settings, m = P.stats.m.vs;
+    [...$('vs-diff').children].forEach(b => b.classList.toggle('active', b.dataset.v === s.vsDiff));
+    [...$('vs-target').children].forEach(b => b.classList.toggle('active', +b.dataset.v === s.vsTarget));
+    const d = s.vsDiff;
+    $('vs-rec').innerHTML = `${DIFF_NAMES[d]}: побед <b>${m.w[d]}</b> · поражений <b>${m.l[d]}</b>` + (m.d[d] ? ` · ничьих <b>${m.d[d]}</b>` : '');
+  },
+
+  /* ── Партия ── */
+  start(cfg) {
+    this.clearTimers();
+    this.cfg = Object.assign({}, cfg);
+    Sound.init();
+    this.closeAll();
+    this.showScreen('game');
+    this.setupHud(cfg.mode);
+    $('pad-wrap').hidden = !P.settings.pad;
+    // ориентация поля — по форме свободного места (на широком экране поле «лёжа»)
+    const st = $('stage'), land = st.clientWidth > st.clientHeight * 1.12;
+    this.G = SE.newGame({ mode: cfg.mode, level: cfg.level, speed: cfg.speed, maze: cfg.maze, diff: cfg.diff, target: cfg.target, size: P.settings.size, land });
+    const G = this.G;
+    R.theme = THEMES[cfg.mode === 'campaign' ? G.lvl.theme : MODE_THEME[cfg.mode]] || THEMES.classic;
+    R.reset(); R.Wpx = 0; R.resize();
+    this.saved = false; this.hudCache = {};
+    this.recPrev = this.recordOf(G); this.recToast = false;
+    this.setTitles();
+    this.updateHud(false);
+    this.state = 'READY'; this.ready = 1500; this.readyStep = 500; this.lastBeep = 0;
+    $('board').className = 'ku-board';
+    const tip = G.mode === 'campaign' ? `Ур. ${G.lvl.id}: ${G.lvl.tip}`
+      : G.mode === 'classic' ? `Скорость ${G.speed} · еда = ${G.speed} оч. · жучок после каждой 5-й`
+      : G.mode === 'endless' ? '♾️ Скорость растёт с каждой едой'
+      : G.mode === 'timed' ? '⏱️ 2 минуты! Ешь без пауз — растёт множитель'
+      : `🤖 Кто первым наберёт ${G.target} — победил`;
+    this.toastQ = []; clearTimeout(this.toastTimer); this.toastTimer = 0;
+    this.tip = tip;
+  },
+  recordOf(G) { return G.mode === 'classic' || G.mode === 'endless' || G.mode === 'timed' ? (P.best[G.mode] || 0) : 0; },
+  setTitles() {
+    const G = this.G;
+    const t = { campaign: `КАМПАНИЯ · УР. ${G.lvl && G.lvl.id}`, classic: `КЛАССИКА · СКОРОСТЬ ${G.speed}`, endless: 'БЕСКОНЕЧНЫЙ', timed: 'НА ВРЕМЯ', vs: `ПРОТИВ ИИ · ${(DIFF_NAMES[G.diff] || '').toUpperCase()}` }[G.mode];
+    const s = { campaign: G.lvl && G.lvl.name.toUpperCase(), classic: mazeName(G.maze).toUpperCase(), endless: 'ВЫЖИВАНИЕ', timed: '2 МИНУТЫ', vs: `ДО ${G.target} ОЧКОВ` }[G.mode];
+    $('g-title').textContent = t; $('g-sub').textContent = s;
+    $('g-hint').textContent = (P.settings.pad ? 'Крестовина / свайп' : 'Свайп') + ' / стрелки / WASD — поворот · P — пауза';
+  },
+  setupHud(mode) {
+    const H = (id, label, cls, hide) => { const el = $(id); el.className = 'ku-stat' + (cls ? ' ' + cls : ''); el.hidden = !!hide; el.firstElementChild.textContent = label; };
+    if (mode === 'campaign') { H('h1', 'Счёт', ''); H('h2', 'Цель', 'c2'); H('h3', 'Длина', 'good'); H('h4', '', '', true); }
+    else if (mode === 'classic') { H('h1', 'Счёт', ''); H('h2', 'Рекорд', 'gold'); H('h3', 'Длина', 'good'); H('h4', 'Жучок', 'c2'); }
+    else if (mode === 'endless') { H('h1', 'Счёт', ''); H('h2', 'Рекорд', 'gold'); H('h3', 'Длина', 'good'); H('h4', '', '', true); }
+    else if (mode === 'timed') { H('h1', 'Время', 'c2'); H('h2', 'Счёт', ''); H('h3', 'Комбо', 'good'); H('h4', 'Рекорд', 'gold'); }
+    else { H('h1', 'Ты', 'good'); H('h2', 'ИИ', 'c2'); H('h3', 'Цель', 'gold'); H('h4', '', '', true); }
+    $('pbar').hidden = mode !== 'campaign';
+  },
+  setStat(id, v, pop) {
+    if (this.hudCache[id] === v) return;
+    this.hudCache[id] = v;
+    const b = $(id).lastElementChild;
+    b.textContent = v;
+    if (pop) { b.classList.remove('pop'); void b.offsetWidth; b.classList.add('pop'); }
+  },
+  updateHud(anim) {
+    const G = this.G, s = G.snakes[0], pop = anim !== false;
+    const best = Math.max(this.recPrev, s.score);
+    if (G.mode === 'campaign') {
+      this.setStat('h1', s.score, pop); this.setStat('h2', G.target); this.setStat('h3', s.body.length);
+      $('pfill').style.width = Math.min(100, s.score / G.target * 100) + '%';
+    } else if (G.mode === 'classic') {
+      this.setStat('h1', s.score, pop); this.setStat('h2', best); this.setStat('h3', s.body.length);
+      const bug = G.foods.find(f => f.type === 'bug');
+      this.setStat('h4', bug ? G.speed * SE.bugMult(bug) : '—');
+    } else if (G.mode === 'endless') {
+      this.setStat('h1', s.score, pop); this.setStat('h2', best); this.setStat('h3', s.body.length);
+    } else if (G.mode === 'timed') {
+      this.setStat('h1', fmtClock(G.timeLeft)); this.setStat('h2', s.score, pop); this.setStat('h3', '×' + G.combo, pop); this.setStat('h4', best);
+      $('h1').classList.toggle('warn', G.timeLeft < 10000 && this.state !== 'OVER');
+    } else {
+      this.setStat('h1', s.score, pop); this.setStat('h2', G.snakes[1].score, pop); this.setStat('h3', G.target);
+    }
+    const bd = $('board');
+    bd.classList.toggle('fx-slow', G.slowMs > 0);
+    bd.classList.toggle('fx-ghost', s.ghostMs > 0 && s.alive);
+  },
+  turn(d) {
+    if (!this.G || (this.state !== 'PLAYING' && this.state !== 'READY')) return;
+    if (SE.turn(this.G, d)) Sound.turn();
+  },
+
+  loop(ts) {
+    requestAnimationFrame(this.loopFn);
+    const dt = this.lastTs ? Math.min(100, Math.max(0, ts - this.lastTs)) : 16.7;
+    this.lastTs = ts;
+    const G = this.G;
+    if (this.state === 'MENU' || !G) return;
+    if (this.state === 'PAUSED' || this.state === 'OVER') {
+      if (!R.busy()) return;               // поле под окном застыло — не перерисовываем зря
+    }
+    R.update(dt);
+    if (this.state === 'READY') {
+      this.ready -= dt;
+      const n = Math.ceil(this.ready / this.readyStep);
+      if (n > 0 && n !== this.lastBeep) { this.lastBeep = n; Sound.tick(); }
+      if (this.ready <= 0) { this.state = 'PLAYING'; G.acc = 0; Sound.go(); }
+    } else if (this.state === 'PLAYING') {
+      SE.advance(G, dt);
+      this.handleEvents();
+      if (G.crash) this.onCrash();
+      else if (G.over) this.onOver();
+      this.updateHud();
+    }
+    R.draw();
+  },
+
+  handleEvents() {
+    const G = this.G, ev = G.ev;
+    if (!ev.length) return;
+    G.ev = [];
+    let ach = false;
+    for (const e of ev) {
+      if (e.t === 'eat') { this.onEat(e); if (e.s === 0) ach = true; }
+      else if (e.t === 'die') this.onDie(e);
+      else if (e.t === 'bonus' || e.t === 'bug') Sound.bonus();
+      else if (e.t === 'gone') R.burst(e.c, BONUS[e.type] || '#fff', 8, 2);
+      else if (e.t === 'ghostPass') ach = true;
+      else if (e.t === 'ghostEnd') Sound.tone(500, 'sine', .2, .15, 250);
+      else if (e.t === 'combo' && e.v === 1 && G.snakes[0].alive) R.float(G.snakes[0].body[0], 'КОМБО СБРОШЕНО', '#8f9ac2');
+    }
+    if (ach) this.checkAch();
+  },
+  onEat(e) {
+    const G = this.G, me = e.s === 0, s = G.snakes[e.s];
+    const col = e.type === 'apple' ? (s.ai ? R.theme.ai : R.theme.food) : BONUS[e.type];
+    R.burst(e.c, col, e.type === 'apple' ? 18 : 28, e.type === 'apple' ? 4 : 5);
+    // на канвасе — только текст шрифтом игры (эмодзи на канвасе рисуются не везде)
+    const txt = { apple: '+' + e.pts, gold: '+' + e.pts, slow: 'МЕДЛЕННО', shrink: '−3 ДЛИНЫ', ghost: 'ПРИЗРАК 5 С', bug: '+' + e.pts }[e.type];
+    R.float(e.c, G.mode === 'timed' && e.mult > 1 && (e.type === 'apple' || e.type === 'gold') ? `+${e.pts} ×${e.mult}` : txt, s.ai ? R.theme.ai : col);
+    if (e.type === 'gold') Sound.gold(); else if (e.type === 'slow') Sound.slow(); else if (e.type === 'shrink') Sound.shrink();
+    else if (e.type === 'ghost') Sound.ghost(); else if (e.type === 'bug') Sound.bug(e.mult); else if (G.mode === 'timed' && e.mult > 1) Sound.combo(e.mult); else Sound.eat();
+    if (!me) return;
+    buzz(e.type === 'apple' ? 15 : 25);
+    R.shake = Math.max(R.shake, 3);
+    // новый рекорд прямо в игре
+    if (this.recPrev > 0 && !this.recToast && s.score > this.recPrev) { this.recToast = true; this.toast('🏆 Новый рекорд!', 'gold', 1800); }
+  },
+  onDie(e) {
+    const G = this.G, s = G.snakes[e.s], col = s.ai ? R.theme.ai : R.theme.snake;
+    if (G.mode === 'timed') Sound.crash(); else if (e.s === 0) Sound.die(); else Sound.crash();
+    buzz([50, 50, 50]);
+    R.shake = 18;
+    // каждый сегмент взрывается по очереди (таймеры снимаются при рестарте — частицы не прилетят в новую партию)
+    s.body.slice(0, 45).forEach((c, i) => this.later(() => R.burst(c, col, 5, 3), i * 20));
+  },
+  // «На время»: авария — −10 с и новая змейка после короткой анимации
+  onCrash() {
+    this.state = 'DYING';
+    this.later(() => {
+      if (!this.G) return;
+      SE.respawn(this.G);
+      if (this.G.over) { this.onOver(); return; }
+      this.hudCache = {}; this.updateHud(false);
+      this.tip = '−10 секунд! Змейка начинает заново';
+      this.state = 'READY'; this.ready = 900; this.readyStep = 300; this.lastBeep = 0;
+    }, 850);
+  },
+  onOver() {
+    const G = this.G, r = G.over.r;
+    const res = this.saveResult('end');
+    const died = r === 'lose' || (G.mode === 'vs' && G.over.why !== 'target');
+    this.state = 'DYING';
+    if (r === 'win') Sound.win(); else if (r === 'lose' && G.mode === 'vs') Sound.lose(); else if (r === 'time' || r === 'draw') Sound.win();
+    this.later(() => {
+      this.state = 'OVER';
+      if (G.mode === 'campaign' && r === 'win') this.showLevelUp(res); else this.showOver(res);
+    }, died ? 950 : 450);
+  },
+
+  /* ── Итоги партии: рекорды, звёзды, статистика, история, очки в рейтинг ── */
+  saveResult(kind) {
+    const G = this.G, s = G.snakes[0], mode = G.mode;
+    if (this.saved) return null;
+    this.saved = true;
+    const quit = kind === 'quit';
+    const result = quit ? 'quit' : G.over.r;
+    const out = { mode, result, score: s.score, award: 0, newBest: false, stars: 0, prevStars: 0 };
+    if (mode === 'campaign') {
+      const id = G.lvl.id, prevStars = P.completed[id] || 0, prevBest = P.best[id] || 0;
+      out.prevStars = prevStars;
+      if (result === 'win') {
+        const st = SE.stars(G), paid = P.paid.lv[id] || 0;
+        out.stars = st;
+        out.award = SD.awardCampaign(prevBest, prevStars, s.score, st, paid);
+        P.paid.lv[id] = Math.max(paid, SD.lvlPts(Math.max(prevBest, s.score), Math.max(prevStars, st)));
+        P.completed[id] = Math.max(prevStars, st);
+        if (s.score > prevBest) P.best[id] = s.score;
+        P.saveProgress();
+      }
+    } else if (mode === 'vs') {
+      const key = 'vs_' + G.diff, prev = P.best[key] || 0;
+      out.award = quit ? 0 : SD.awardVs(prev, s.score, G.diff, result, P.paid[key]);
+      if (!quit && result === 'win') {
+        const v = SD.vsValue(s.score, G.diff);
+        P.paid[key] = Math.max(P.paid[key] || 0, v);
+        if (v > prev) { P.best[key] = v; P.saveProgress(); }
+      }
+    } else {
+      const prev = P.best[mode] || 0;
+      out.award = SD.awardRecord(prev, s.score, P.paid[mode]);
+      P.paid[mode] = Math.max(P.paid[mode] || 0, s.score);
+      if (s.score > prev) { P.best[mode] = s.score; out.newBest = prev > 0 || s.score > 0; P.saveProgress(); }
+    }
+    if (G.stepN > 0) {
+      SD.addGame(P.stats, { mode, score: s.score, len: s.maxLen, eaten: s.eaten, time: G.time, bugs: G.bugs, combo: G.maxCombo, crashes: G.crashes, diff: G.diff, result, passes: s.passes });
+      const d = mode === 'campaign' ? `Ур. ${G.lvl.id} · ${G.lvl.name}` : mode === 'classic' ? `Скорость ${G.speed} · ${mazeName(G.maze)}`
+        : mode === 'vs' ? `${DIFF_NAMES[G.diff]} · до ${G.target} · ${s.score}:${G.snakes[1].score}` : mode === 'timed' ? `Комбо до ×${G.maxCombo}` : '';
+      SD.addHistory(P.hist, { t: Date.now(), m: mode, d, s: s.score, l: s.maxLen, dur: Math.round(G.time), r: result });
+    }
+    this.checkAch(true);
+    P.saveStats();
+    store.set('snake_awarded', P.paid);
+    submitScore(out.award);
+    return out;
+  },
+  achCtx() {
+    const G = this.G, s = G && G.snakes[0], live = G && !this.saved;
+    return {
+      mode: G ? G.mode : null, eaten: s ? s.eaten : 0, len: s ? s.maxLen : 0, score: s ? s.score : 0, speed: G ? G.speed : 0,
+      combo: G && G.mode === 'timed' ? G.maxCombo : 0, done: doneCount(), stars: starsTotal(),
+      bugs: P.stats.m.classic.bugs + (live ? G.bugs : 0),
+      vsWins: vsWins(), vsHard: P.stats.m.vs.w.hard, passes: P.stats.passes + (live && s ? s.passes : 0)
+    };
+  },
+  checkAch(noSave) {
+    const list = SD.newAch(P.ach, this.achCtx());
+    if (!list.length) return;
+    for (const a of list) { P.ach[a.id] = Date.now(); this.toast(`🏅 Достижение: ${a.name}`, 'gold', 2200); }
+    if (!noSave) store.set('snake_ach', P.ach);
+  },
+  // выход из идущей партии (пауза → «Заново» / «В меню»): результат засчитывается как прерванный
+  quitGame() {
+    if (this.G && !this.saved && ['READY', 'PLAYING', 'PAUSED'].includes(this.state) && this.G.stepN > 0) this.saveResult('quit');
+  },
+
+  showLevelUp(res) {
+    const G = this.G, s = G.snakes[0], last = G.lvl.id === LEVELS[LEVELS.length - 1].id;
+    $('lu-title').textContent = last ? 'КАМПАНИЯ ПРОЙДЕНА!' : 'УРОВЕНЬ ПРОЙДЕН!';
+    const spans = $('lu-stars').children;
+    for (let i = 0; i < 3; i++) {
+      spans[i].classList.remove('lit');
+      if (i < res.stars) this.later(() => spans[i].classList.add('lit'), 250 + i * 220);
+    }
+    const word = res.stars === 3 ? 'Идеально!' : res.stars === 2 ? 'Отлично!' : 'Хорошо!';
+    $('lu-text').textContent = `Счёт: ${s.score}. ${word}` + (res.stars < 3 ? ' Короче путь к еде — больше звёзд.' : '');
+    const rows = [['Уровень', `${G.lvl.id} · ${G.lvl.name}`], ['Время', fmtTime(G.time)],
+      ['Шагов на еду', (G.stepN / Math.max(1, s.eaten)).toFixed(1)], ['Лучшие звёзды', '★'.repeat(Math.max(res.stars, res.prevStars))]];
+    rows.push(res.award > 0 ? ['В рейтинг', '+' + res.award] : ['В рейтинг', res.prevStars ? 'повтор — без прироста' : '—']);
+    $('lu-stats').innerHTML = rows.map(([k, v], i) => `<div${i === rows.length - 1 ? ' class="aw"' : ''}>${k}<b>${v}</b></div>`).join('');
+    $('lu-next').hidden = last;
+    this.open('ov-levelup');
+  },
+  showOver(res) {
+    const G = this.G, s = G.snakes[0], mode = G.mode, r = res.result;
+    const title = $('go-title'), big = $('go-score');
+    big.className = 'ku-big-score';
+    let t = 'ИГРА ОКОНЧЕНА', cls = 'lose', desc = CAUSES[G.over.why] || '';
+    const rows = [];
+    if (mode === 'campaign') {
+      t = 'ВЫ ПОГИБЛИ';
+      big.textContent = `${s.score} / ${G.target}`;
+      rows.push(['Уровень', `${G.lvl.id} · ${G.lvl.name}`], ['Длина', s.body.length], ['Время', fmtTime(G.time)]);
+    } else if (mode === 'vs') {
+      const A = G.snakes[1];
+      t = r === 'win' ? 'ПОБЕДА!' : r === 'lose' ? 'ПОРАЖЕНИЕ' : 'НИЧЬЯ';
+      cls = r === 'win' ? 'win' : r === 'lose' ? 'lose' : '';
+      big.className = 'vs-score';
+      big.innerHTML = `<span class="me">${s.score}</span><span class="sep">:</span><span class="ai">${A.score}</span>`;
+      const why = G.over.why;
+      desc = why === 'target' ? (r === 'win' ? `Твоя змейка первой набрала ${G.target} очков!` : r === 'lose' ? `Змейка ИИ первой набрала ${G.target} очков` : 'Цель набрана одновременно')
+        : why === 'ai' ? 'Змейка ИИ ' + (HIT[A.cause] || 'врезалась')
+        : why === 'both' ? 'Обе змейки выбыли — победа по очкам'
+        : 'Твоя змейка ' + (HIT[why] || 'врезалась');
+      rows.push(['Сложность', DIFF_NAMES[G.diff]], ['Цель', G.target + ' очков'], ['Твоя длина', s.maxLen], ['Время', fmtTime(G.time)]);
+    } else {
+      big.textContent = s.score;
+      if (mode === 'timed') { t = 'ВРЕМЯ ВЫШЛО!'; cls = res.newBest ? 'win' : ''; desc = `Аварий: ${G.crashes}` + (G.crashes ? ` (−${G.crashes * 10} с)` : ' — чистая игра!'); }
+      if (G.over.why === 'full') { t = 'ПОЛЕ ЗАПОЛНЕНО!'; cls = 'win'; desc = 'Места для еды не осталось — идеальная игра!'; }
+      const best = P.best[mode] || 0;
+      if (mode === 'classic') rows.push(['Скорость', G.speed], ['Лабиринт', mazeName(G.maze)], ['Жучков', G.bugs]);
+      if (mode === 'timed') rows.push(['Съедено', s.eaten], ['Макс. комбо', '×' + G.maxCombo]);
+      rows.push(['Рекорд', best], ['Длина', s.maxLen], ['Время', fmtTime(G.time)]);
+    }
+    if (mode !== 'campaign') rows.push(['В рейтинг', res.award > 0 ? '+' + res.award : (mode === 'vs' && r !== 'win' ? 'только за победу' : 'без прироста')]);
+    title.textContent = t; title.className = cls;
+    $('go-best').hidden = !res.newBest;
+    $('go-desc').textContent = desc;
+    $('go-stats').innerHTML = rows.map(([k, v], i) => `<div${k === 'В рейтинг' ? ' class="aw"' : ''}>${k}<b>${v}</b></div>`).join('');
+    $('go-again').textContent = mode === 'vs' ? '🔄 Реванш' : mode === 'campaign' ? '🔄 Повторить' : '🔄 Ещё раз';
+    const setup = $('go-setup');
+    setup.hidden = mode === 'endless' || mode === 'timed';
+    setup.textContent = mode === 'campaign' ? '🗺️ Уровни' : '⚙️ Настроить';
+    this.open('ov-over');
+  },
+
+  pause() {
+    if (this.state !== 'PLAYING' && this.state !== 'READY') return;
+    this.state = 'PAUSED';
+    const G = this.G, s = G.snakes[0];
+    s.queue = [];
+    const info = G.mode === 'campaign' ? `Уровень ${G.lvl.id} · счёт ${s.score} из ${G.target}` : G.mode === 'vs' ? `Счёт ${s.score} : ${G.snakes[1].score} · до ${G.target}`
+      : G.mode === 'timed' ? `Счёт ${s.score} · осталось ${fmtClock(G.timeLeft)}` : `Счёт ${s.score} · длина ${s.body.length}`;
+    $('pause-info').textContent = info;
+    this.open('ov-pause');
+    R.draw();
+  },
+  // после паузы — короткий отсчёт, чтобы не врезаться сразу
+  resume() {
+    if (this.state !== 'PAUSED') return;
+    this.closeAll();
+    for (const s of this.G.snakes) { s.prevHead = -1; s.tailGone = -1; }   // без «отката» головы на клетку назад
+    this.tip = '';
+    this.state = 'READY'; this.ready = 900; this.readyStep = 300; this.lastBeep = 0;
+  },
+  toMenu() {
+    this.clearTimers();
+    this.state = 'MENU';
+    this.closeAll();
+    this.showScreen('menu');
+    this.refreshMenu();
+    $('board').classList.remove('fx-slow', 'fx-ghost');
+  },
+  goSetup(mode) {
+    if (mode === 'campaign') this.openLevels(); else if (mode === 'classic') this.openClassic(); else if (mode === 'vs') this.openVs(); else this.toMenu();
+  },
+  startMode(mode) {
+    Sound.init();
+    const s = P.settings;
+    if (mode === 'classic') this.start({ mode, speed: s.cSpeed, maze: s.cMaze });
+    else if (mode === 'vs') this.start({ mode, diff: s.vsDiff, target: s.vsTarget });
+    else this.start({ mode });
+  },
+
+  /* ── Esc / P: закрыть окно, пауза, продолжить ── */
+  onEsc(isP) {
+    const modal = MODALS.find(m => this.isOpen(m));
+    if (modal) { if (!isP) this.closeModal(); return; }
+    const setup = SETUPS.find(m => this.isOpen(m));
+    if (setup) { if (!isP) this.close(setup); return; }
+    if (this.state === 'PLAYING' || this.state === 'READY') this.pause();
+    else if (this.state === 'PAUSED') this.resume();
+  },
+
+  /* ── Окна: настройки, статистика, достижения, история ── */
+  fillSettings() {
+    const s = P.settings;
+    document.querySelectorAll('#ov-settings [data-opt]').forEach(i => { i.checked = !!s[i.dataset.opt]; });
+    [...$('set-size').children].forEach(b => b.classList.toggle('active', b.dataset.v === s.size));
+    $('size-note').textContent = this.G && this.state !== 'MENU' && this.G.size !== s.size ? 'Новый размер — со следующей партии.' : 'Размер поля меняется со следующей партии.';
+  },
+  renderStats() {
+    const m = P.stats.m, k = this.statTab, c = m[k];
+    [...$('st-tabs').children].forEach(b => b.classList.toggle('active', b.dataset.k === k));
+    const card = (v, l) => `<div class="st-card"><div class="sv">${v}</div><div class="sl">${l}</div></div>`;
+    const time = sec => sec >= 3600 ? Math.floor(sec / 3600) + ' ч ' + Math.floor(sec % 3600 / 60) + ' мин' : fmtTime(sec * 1000);
+    let cards = [], extra = '';
+    if (k === 'campaign') cards = [card(`${doneCount()}/${LEVELS.length}`, 'Пройдено'), card(`${starsTotal()}/${LEVELS.length * 3}`, 'Звёзд'), card(c.g, 'Попыток'), card(c.len, 'Длиннейшая'), card(c.eat, 'Съедено'), card(time(c.t), 'В игре')];
+    else if (k === 'classic') cards = [card(c.g, 'Игр'), card(P.best.classic || 0, 'Рекорд'), card(c.len, 'Длиннейшая'), card(c.eat, 'Съедено'), card(c.bugs, 'Жучков'), card(time(c.t), 'В игре')];
+    else if (k === 'endless') cards = [card(c.g, 'Игр'), card(P.best.endless || 0, 'Рекорд'), card(c.len, 'Длиннейшая'), card(c.eat, 'Съедено'), card(time(c.t), 'В игре')];
+    else if (k === 'timed') cards = [card(c.g, 'Игр'), card(P.best.timed || 0, 'Рекорд'), card('×' + (c.combo || 1), 'Лучшее комбо'), card(c.crash, 'Аварий'), card(c.eat, 'Съедено'), card(time(c.t), 'В игре')];
+    else {
+      const sum = o => SD.DIFFS.reduce((a, d) => a + o[d], 0);
+      cards = [card(c.g, 'Матчей'), card(sum(c.w), 'Побед'), card(sum(c.l), 'Поражений'), card(sum(c.d), 'Ничьих'), card(c.best, 'Лучший счёт'), card(time(c.t), 'В игре')];
+      extra = SD.DIFFS.map(d => `<div><span>${DIFF_NAMES[d]}</span><b><span class="ku-good">${c.w[d]}</span> – <span class="ku-bad">${c.l[d]}</span> – <span class="ku-muted">${c.d[d]}</span></b></div>`).join('');
+    }
+    $('st-grid').innerHTML = cards.join('');
+    $('st-extra').innerHTML = extra;
+    const tot = SD.MODES.reduce((a, x) => ({ g: a.g + m[x].g, eat: a.eat + m[x].eat, t: a.t + m[x].t }), { g: 0, eat: 0, t: 0 });
+    $('st-total').innerHTML = [card(tot.g, 'Партий'), card(tot.eat, 'Съедено'), card(SD.longest(P.stats), 'Длиннейшая'), card(time(tot.t), 'В игре'), card(`${Object.keys(P.ach).length}/${SD.ACH.length}`, 'Достижений')].join('');
+  },
+  renderAch() {
+    const n = Object.keys(P.ach).length;
+    $('ach-count').textContent = `${n}/${SD.ACH.length}`;
+    $('ach-list').innerHTML = SD.ACH.map(a => {
+      const t = P.ach[a.id];
+      return `<div class="ach-item${t ? ' unlocked' : ''}"><div class="ach-icon">${a.icon}</div><div class="ach-info"><h4>${a.name}</h4><p>${a.desc}${t ? ' · ' + new Date(t).toLocaleDateString('ru-RU') : ''}</p></div></div>`;
+    }).join('');
+  },
+  renderHistory() {
+    const L = P.hist;
+    if (!L.length) { $('history-list').innerHTML = '<div class="empty">Пока пусто — сыграйте партию 🐍</div>'; return; }
+    const R_ = { win: 'победа', lose: 'проигрыш', draw: 'ничья', time: 'время', quit: 'прервана', done: 'готово' };
+    const now = new Date(), day = d => new Date(d.getFullYear(), d.getMonth(), d.getDate()).getTime();
+    const when = t => {
+      const d = new Date(t), diff = (day(now) - day(d)) / 864e5, hm = d.toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' });
+      return diff === 0 ? 'сегодня ' + hm : diff === 1 ? 'вчера ' + hm : d.toLocaleDateString('ru-RU', { day: '2-digit', month: '2-digit' }) + ' ' + hm;
+    };
+    const tag = h => (h.r === 'lose' && (h.m === 'classic' || h.m === 'endless')) ? ['done', 'конец'] : [h.r, R_[h.r]];
+    $('history-list').innerHTML = L.map(h => `<div class="h-item"><div class="h-icon">${MODE_ICONS[h.m]}</div>
+      <div class="h-info"><h4>${MODE_NAMES[h.m]}</h4><p>${h.d ? h.d + ' · ' : ''}длина ${h.l} · ${fmtTime(h.dur)} · ${when(h.t)}</p></div>
+      <div class="h-score"><b>${h.s}</b><span class="r-${tag(h)[0]}">${tag(h)[1]}</span></div></div>`).join('');
+  },
+  async resetAll() {
+    const ok = await KuArcade.confirm('Сбросить прогресс кампании, рекорды, статистику, историю и достижения? Настройки останутся. Очки, уже начисленные в рейтинг, повторно не начисляются.', { title: 'СБРОС', ok: 'Сбросить', danger: true });
+    if (!ok) return;
+    P.completed = {}; P.best = {}; P.stats = SD.emptyStats(); P.ach = {}; P.hist = [];
+    P.saveProgress(); P.saveStats();
+    this.toast('Прогресс сброшен', 'bad');
+    this.refreshMenu();
+  },
+
+  /* ── Подключение кнопок и ввода ── */
+  init() {
+    const on = (id, fn) => { $(id).onclick = fn; };
+    on('btn-campaign', () => { Sound.init(); this.openLevels(); });
+    on('btn-classic', () => { Sound.init(); this.openClassic(); });
+    on('btn-endless', () => this.startMode('endless'));
+    on('btn-timed', () => this.startMode('timed'));
+    on('btn-vs', () => { Sound.init(); this.openVs(); });
+    on('btn-rules', () => this.openModal('ov-rules'));
+    on('btn-stats', () => this.openModal('ov-stats'));
+    on('btn-ach', () => this.openModal('ov-ach'));
+    on('btn-history', () => this.openModal('ov-history'));
+    on('btn-settings', () => this.openModal('ov-settings'));
+    on('cl-play', () => this.startMode('classic'));
+    on('vs-play', () => this.startMode('vs'));
+    $('vs-diff').onclick = e => { const b = e.target.closest('button'); if (!b) return; P.settings.vsDiff = b.dataset.v; P.saveSettings(); this.syncVs(); };
+    $('vs-target').onclick = e => { const b = e.target.closest('button'); if (!b) return; P.settings.vsTarget = +b.dataset.v; P.saveSettings(); this.syncVs(); };
+    document.querySelectorAll('[data-back]').forEach(b => { b.onclick = () => this.close(b.closest('.ku-overlay').id); });
+    document.querySelectorAll('[data-close]').forEach(b => { b.onclick = () => this.closeModal(); });
+    // тап по подложке окна-модалки закрывает его
+    MODALS.forEach(id => $(id).addEventListener('pointerdown', e => { if (e.target.id === id) this.closeModal(); }));
+    on('btn-pause', () => this.pause());
+    on('p-resume', () => this.resume());
+    on('p-restart', () => { this.quitGame(); this.start(this.cfg); });
+    on('p-rules', () => this.openModal('ov-rules'));
+    on('p-settings', () => this.openModal('ov-settings'));
+    on('p-menu', () => { this.quitGame(); this.toMenu(); });
+    on('lu-next', () => { const i = LEVELS.findIndex(l => l.id === this.G.lvl.id); if (i < LEVELS.length - 1) this.start({ mode: 'campaign', level: i + 1 }); else this.toMenu(); });
+    on('lu-replay', () => this.start(this.cfg));
+    on('lu-levels', () => this.openLevels());
+    on('lu-menu', () => this.toMenu());
+    on('go-again', () => this.start(this.cfg));
+    on('go-setup', () => this.goSetup(this.cfg.mode));
+    on('go-menu', () => this.toMenu());
+    on('btn-reset', () => this.resetAll());
+    $('st-tabs').onclick = e => { const b = e.target.closest('button'); if (!b) return; this.statTab = b.dataset.k; this.renderStats(); };
+    $('set-size').onclick = e => { const b = e.target.closest('button'); if (!b) return; P.settings.size = b.dataset.v; P.saveSettings(); this.fillSettings(); };
+    document.querySelectorAll('#ov-settings [data-opt]').forEach(i => i.addEventListener('change', () => {
+      const k = i.dataset.opt;
+      P.settings[k] = i.checked; P.saveSettings();
+      if (k === 'sound' && i.checked) Sound.init();
+      if (k === 'grid') { R.bgDirty = true; if (this.G) R.draw(); }
+      if (k === 'pad' && this.G && this.state !== 'MENU') { $('pad-wrap').hidden = !i.checked; this.setTitles(); R.resize(); R.draw(); }
+    }));
+
+    // Клавиатура: e.code — физическая клавиша, WASD работает и в русской раскладке
+    document.addEventListener('keydown', e => {
+      if (document.querySelector('.ku-dialog')) return;        // открыт диалог KuArcade — он сам ловит клавиши
+      if (e.code === 'Escape' || e.key === 'Escape' || e.code === 'KeyP' || e.key === 'p' || e.key === 'з') {
+        if (e.code === 'KeyP' || e.key === 'p' || e.key === 'з') { if (this.state === 'MENU') return; }
+        e.preventDefault(); this.onEsc(e.code === 'KeyP' || e.key === 'p' || e.key === 'з'); return;
+      }
+      let d = KEYS[e.code];
+      if (d === undefined && e.key) d = KEYS[e.key] !== undefined ? KEYS[e.key] : KEY_CHARS[e.key.toLowerCase()];
+      if (d === undefined || !this.G || (this.state !== 'PLAYING' && this.state !== 'READY')) return;
+      if (MODALS.some(m => this.isOpen(m))) return;
+      e.preventDefault();
+      this.turn(d);
+    });
 
     // Свайпы — по всему экрану игры (мышью тоже). Направление срабатывает уже во время движения
     // пальца, после чего точка отсчёта переносится — можно вести палец дальше и поворачивать снова.
@@ -468,583 +2462,45 @@ const Game = {
     scr.addEventListener('pointerdown', e => {
       if (e.target.closest('button')) return;
       sw = { id: e.pointerId, x: e.clientX, y: e.clientY };
+      Sound.init();
     });
     scr.addEventListener('pointermove', e => {
-      if (!sw || e.pointerId !== sw.id || this.state !== 'PLAYING') return;
+      if (!sw || e.pointerId !== sw.id) return;
       const dx = e.clientX - sw.x, dy = e.clientY - sw.y;
-      if (Math.max(Math.abs(dx), Math.abs(dy)) < 24) return;
-      this.queueInput(Math.abs(dx) > Math.abs(dy) ? {x: Math.sign(dx), y: 0} : {x: 0, y: Math.sign(dy)});
+      if (Math.max(Math.abs(dx), Math.abs(dy)) < 22) return;
+      this.turn(Math.abs(dx) > Math.abs(dy) ? (dx > 0 ? 1 : 3) : (dy > 0 ? 2 : 0));
       sw.x = e.clientX; sw.y = e.clientY;
     });
     const swEnd = () => { sw = null; };
     scr.addEventListener('pointerup', swEnd);
     scr.addEventListener('pointercancel', swEnd);
 
-    // Клавиатура: e.code — физическая клавиша, WASD работает и в русской раскладке
-    document.addEventListener('keydown', e => {
-      if (e.code === 'Escape' || e.code === 'KeyP' || e.key === 'Escape') {
-        if (this.isOpen('rules')) this.closeRules();
-        else if (this.isOpen('levels')) this.showMenu('main');
-        else if (this.state === 'PLAYING') this.pause();
-        else if (this.state === 'PAUSED') this.resume();
-        return;
-      }
-      const d = KEYS[e.code] || KEYS[e.key && e.key.length === 1 ? 'Key' + e.key.toUpperCase() : e.key];
-      if (!d || this.state !== 'PLAYING') return;
-      e.preventDefault();
-      this.queueInput({x: d[0], y: d[1]});
+    // Экранная крестовина: поворот — сразу при нажатии
+    $('pad').querySelectorAll('button').forEach(b => {
+      b.addEventListener('pointerdown', e => {
+        e.preventDefault();
+        b.classList.add('pressed');
+        this.turn(+b.dataset.d);
+        buzz(6);
+      });
+      const up = () => b.classList.remove('pressed');
+      b.addEventListener('pointerup', up); b.addEventListener('pointercancel', up); b.addEventListener('pointerleave', up);
+      b.addEventListener('click', e => e.preventDefault());
     });
 
-    // Buttons
-    $('btn-campaign').onclick = () => { AudioSys.init(); this.showMenu('levels'); };
-    $('btn-endless').onclick = () => { AudioSys.init(); this.mode = 'ENDLESS'; this.levelIdx = 0; this.startLevel(); };
-    $('btn-levels-back').onclick = () => this.showMenu('main');
-    $('btn-pause').onclick = () => this.pause();
-    $('btn-resume').onclick = () => this.resume();
-    // «Заново» из паузы в бесконечном режиме: сначала сохраняем рекорд прерванной партии (как при выходе в меню)
-    $('btn-restart-pause').onclick = () => { if (this.mode === 'ENDLESS' && this.state === 'PAUSED') this.saveEndless(); this.startLevel(); };
-    $('btn-quit').onclick = () => this.toMenu();
-    $('btn-go-menu').onclick = () => this.toMenu();
-    $('btn-lu-menu').onclick = () => this.toMenu();
-    $('btn-restart').onclick = () => this.startLevel();
-    $('btn-replay-level').onclick = () => this.startLevel();
-    $('btn-next-level').onclick = () => {
-      if (this.levelIdx >= Levels.length - 1) { this.toMenu(); return; }
-      this.levelIdx++; this.startLevel();
-    };
-    $('btn-rules').onclick = () => this.openRules(false);
-    $('btn-rules2').onclick = () => this.openRules(true);
-    $('btn-rules-close').onclick = $('btn-rules-x').onclick = () => this.closeRules();
+    // вкладка/приложение ушло в фон — пауза
+    document.addEventListener('visibilitychange', () => { if (document.hidden) this.pause(); });
+    window.addEventListener('pagehide', () => this.pause());
+    window.addEventListener('resize', () => { if (this.G && this.state !== 'MENU') { R.resize(); R.draw(); } });
 
     this.refreshMenu();
     this.loopFn = t => this.loop(t);
     requestAnimationFrame(this.loopFn);
-  },
-
-  /* ── Экраны и окна ── */
-  isOpen(id) { return this.ui.menus[id].classList.contains('open'); },
-  closeOverlays() { Object.values(this.ui.menus).forEach(m => m.classList.remove('open')); },
-  showScreen(name) {
-    $('screen-menu').classList.toggle('active', name === 'menu');
-    $('screen-game').classList.toggle('active', name === 'game');
-  },
-  // 'main' и 'levels' — экран меню, остальные — окна поверх поля
-  showMenu(id) {
-    this.closeOverlays();
-    if (id === 'main' || id === 'levels') { this.showScreen('menu'); this.refreshMenu(); }
-    if (id === 'levels') this.buildLevelGrid();
-    if (id !== 'main') this.ui.menus[id].classList.add('open');
-  },
-  hideMenus() { this.closeOverlays(); this.showScreen('game'); },
-
-  pause() {
-    if (this.state !== 'PLAYING') return;
-    this.state = 'PAUSED'; this.inputQueue = [];
-    this.showMenu('pause');
-  },
-  resume() {
-    if (this.state !== 'PAUSED') return;
-    this.closeOverlays(); this.state = 'PLAYING';
-  },
-  openRules(fromPause) {
-    this.rulesFromPause = fromPause;
-    this.closeOverlays(); this.ui.menus.rules.classList.add('open');
-  },
-  closeRules() {
-    this.ui.menus.rules.classList.remove('open');
-    if (this.rulesFromPause && this.state === 'PAUSED') this.ui.menus.pause.classList.add('open');
-  },
-  toMenu() {
-    this.clearTimers();
-    if (this.mode === 'ENDLESS' && (this.state === 'PLAYING' || this.state === 'PAUSED')) this.saveEndless();
-    this.state = 'MENU'; this.inputQueue = [];
-    this.showMenu('main');
-  },
-
-  // Таймауты партии (взрыв змейки, окно итогов, звёзды) — снимаются при рестарте и выходе в меню
-  later(fn, ms) {
-    const id = setTimeout(() => { this.timers = this.timers.filter(t => t !== id); fn(); }, ms);
-    this.timers.push(id);
-  },
-  clearTimers() { this.timers.forEach(clearTimeout); this.timers = []; },
-
-  refreshMenu() {
-    const done = Levels.filter(l => this.isDone(l.id)).length;
-    const stars = Levels.reduce((s, l) => s + this.starsOf(l.id), 0);
-    $('best-campaign').textContent = done ? `Пройдено: ${done} из ${Levels.length}` : `${Levels.length} уровней`;
-    $('best-endless').textContent = 'Рекорд: ' + (this.bestScores.endless | 0);
-    $('menu-stats').textContent = done
-      ? `⭐ Звёзд: ${stars} из ${Levels.length * 3}` + (done === Levels.length ? ' • Кампания пройдена!' : '')
-      : 'Начните кампанию с первого уровня';
-  },
-
-  // Раньше экран выбора уровня был недостижим: «Кампания» всегда начинала с 1-го уровня,
-  // а «открытие» следующего уровня ставило ему отметку «пройден».
-  buildLevelGrid() {
-    const grid = $('level-grid');
-    grid.innerHTML = '';
-    let nextMarked = false;
-    Levels.forEach((lvl, i) => {
-      const unlocked = this.isUnlocked(i), done = this.isDone(lvl.id), st = this.starsOf(lvl.id);
-      const cell = document.createElement('button');
-      cell.type = 'button';
-      cell.className = 'lv' + (done ? ' done' : '');
-      if (unlocked && !done && !nextMarked) { cell.classList.add('next'); nextMarked = true; }
-      cell.disabled = !unlocked;
-      const starsHtml = !unlocked ? '🔒' : '<i>★</i>'.repeat(st) + '★'.repeat(3 - st);
-      cell.innerHTML = `<span class="n">${lvl.id}</span><small>${lvl.desc}</small><span class="st">${starsHtml}</span>`;
-      cell.setAttribute('aria-label', `Уровень ${lvl.id}: ${lvl.desc}` + (unlocked ? '' : ' (закрыт)'));
-      if (unlocked) cell.onclick = () => { this.levelIdx = i; this.mode = 'CAMPAIGN'; this.startLevel(); };
-      grid.appendChild(cell);
-    });
-  },
-
-  queueInput(newDir) {
-    if (this.state !== 'PLAYING') return;
-    const q = this.inputQueue, lastDir = q.length > 0 ? q[q.length - 1] : this.dir;
-    if (q.length >= MAX_QUEUE) return;
-    // проверяем против последнего ЗАПЛАНИРОВАННОГО направления — две быстрые клавиши за один шаг
-    // не развернут змейку на 180° в саму себя
-    if (newDir.x === -lastDir.x && newDir.y === -lastDir.y) return;
-    if (newDir.x === lastDir.x && newDir.y === lastDir.y) return;
-    q.push(newDir);
-    AudioSys.sfx.turn();
-  },
-
-  startLevel() {
-    this.clearTimers();
-    this.hideMenus();
-    const cfg = this.cfg, endless = this.mode === 'ENDLESS';
-    // шапка и HUD — до измерения поля: от них зависит свободное место
-    this.ui.title.textContent = endless ? 'БЕСКОНЕЧНЫЙ' : `КАМПАНИЯ · УР. ${cfg.id}`;
-    this.ui.sub.textContent = endless ? 'ВЫЖИВАНИЕ' : cfg.desc.toUpperCase();
-    this.ui.targetBox.hidden = endless;
-    this.ui.bestBox.hidden = !endless;
-    this.ui.pbar.hidden = endless;
-    this.chooseGrid();
-    this.resize(false);
-
-    this.score = 0; this.inputQueue = []; this.particles = []; this.floaters = []; this.shakeAmt = 0;
-    this.bonusFood = null; this.slowTimer = 0; this.acc = 0;
-    this.steps = 0; this.eaten = 0; this.playTime = 0; this.recordToast = false;
-    this.target = endless ? Infinity : cfg.target;
-    this.baseSpeed = cfg.speed;
-    this.speed = cfg.speed;
-
-    this.buildWalls(cfg.walls);
-    this.placeSnake();
-    this.food = null;
-    this.spawnFood();
-    this.ui.targetVal.textContent = endless ? '∞' : cfg.target;
-    this.ui.bestVal.textContent = this.bestScores.endless | 0;
-    this.updateHUD(false);
-    this.updateProgress();
-    this.bgDirty = true;
-
-    this.state = 'PLAYING';
-    KuArcade.toast(endless ? '♾️ Скорость растёт с каждой едой' : `Ур. ${cfg.id}: ${cfg.tip}`, null, 2200);
-  },
-
-  buildWalls(wallsCfg) {
-    const C = this.cols, R = this.rows;
-    this.walls = [];
-    this.wallGrid = new Uint8Array(C * R);
-    if (this.mode === 'ENDLESS') return;
-    wallsCfg.forEach(w => {
-      const wx = w.x === 'center' ? Math.floor(C/2) - Math.floor(w.w/2) : (w.x < 0 ? C + w.x : w.x);
-      const wy = w.y === 'center' ? Math.floor(R/2) - Math.floor(w.h/2) : (w.y < 0 ? R + w.y : w.y);
-      for (let i = 0; i < w.w; i++) for (let j = 0; j < w.h; j++) {
-        const x = wx + i, y = wy + j;
-        if (x < 0 || y < 0 || x >= C || y >= R) continue;          // за краем поля стены нет
-        if (!this.wallGrid[y * C + x]) { this.wallGrid[y * C + x] = 1; this.walls.push({x, y}); }
-      }
-    });
-  },
-
-  // Старт — свободный отрезок (3 клетки тела + запас впереди) как можно ближе к центру.
-  // Раньше змейка всегда ставилась в центр, а на уровнях 3, 5, 8, 11, 12 там стена:
-  // змейка появлялась в стене и погибала на первом же шаге.
-  // Запас впереди — примерно секунда хода (на быстрых уровнях больше клеток), минимум 5.
-  placeSnake() {
-    const C = this.cols, R = this.rows, cx = Math.floor(C / 2), cy = Math.floor(R / 2);
-    const wrap = v => ((v % C) + C) % C;
-    const free = (x, y) => !this.wallGrid[y * C + wrap(x)];
-    const want = Math.min(C - 3, Math.max(5, Math.ceil(1000 / this.speed)));
-    let best = null;
-    for (let need = want; need >= 5 && !best; need--) {
-      let bestScore = Infinity;
-      for (let y = 0; y < R; y++) for (let x = 0; x < C; x++) {
-        const score = Math.abs(y - cy) * 3 + Math.abs(x - cx);
-        if (score >= bestScore) continue;
-        let ok = true;
-        for (let i = -2; i <= need && ok; i++) ok = free(x + i, y);
-        if (ok) { best = {x, y}; bestScore = score; }
-      }
-    }
-    if (!best) {   // поле сплошь в стенах (не бывает на текущих уровнях) — расчищаем центр
-      best = {x: cx, y: cy};
-      for (let i = -2; i <= 5; i++) this.wallGrid[cy * C + wrap(cx + i)] = 0;
-      this.walls = this.walls.filter(w => this.wallGrid[w.y * C + w.x]);
-    }
-    this.snake = [{x: best.x, y: best.y}, {x: wrap(best.x - 1), y: best.y}, {x: wrap(best.x - 2), y: best.y}];
-    this.dir = {x: 1, y: 0};
-  },
-
-  // Случайная клетка без стены, змейки и еды. Если места нет — null (раньше был бесконечный цикл).
-  randomFree() {
-    const C = this.cols, occ = this.wallGrid.slice();
-    for (const s of this.snake) occ[s.y * C + s.x] = 1;
-    if (this.food) occ[this.food.y * C + this.food.x] = 1;
-    if (this.bonusFood) occ[this.bonusFood.y * C + this.bonusFood.x] = 1;
-    const free = [];
-    for (let k = 0; k < occ.length; k++) if (!occ[k]) free.push(k);
-    if (!free.length) return null;
-    const k = free[Math.floor(Math.random() * free.length)];
-    return { x: k % C, y: Math.floor(k / C) };
-  },
-
-  spawnFood() {
-    this.food = null;
-    this.food = this.randomFree();
-  },
-
-  spawnBonusFood() {
-    const cfg = this.cfg;
-    if (!cfg.special) return;
-    const pos = this.randomFree();
-    if (pos) this.bonusFood = { ...pos, type: cfg.special.type, timer: 300 }; // 300 ходов
-  },
-
-  spawnParticles(x, y, color, count=15, speed=3) {
-    const C = this.cell, px = x * C + C / 2, py = y * C + C / 2, k = C / CELL_BASE;
-    for (let i = 0; i < count && this.particles.length < 500; i++) this.particles.push(new Particle(px, py, color, speed * k));
-  },
-
-  floatText(x, y, text, color) {
-    this.floaters.push({ x: x * this.cell + this.cell / 2, y: y * this.cell, text, color, t: 0 });
-  },
-
-  pop(el) { el.classList.remove('pop'); void el.offsetWidth; el.classList.add('pop'); },
-
-  updateHUD(anim = true) {
-    this.ui.scoreVal.textContent = this.score;
-    this.ui.lenVal.textContent = this.snake.length;
-    if (this.mode === 'ENDLESS') this.ui.bestVal.textContent = Math.max(this.bestScores.endless | 0, this.score);
-    if (anim) this.pop(this.ui.scoreVal);
-  },
-
-  updateProgress() {
-    const pct = this.target === Infinity ? 0 : Math.min(100, (this.score / this.target) * 100);
-    this.ui.progressFill.style.width = pct + '%';
-  },
-
-  tick() {
-    if (this.inputQueue.length > 0) this.dir = this.inputQueue.shift();
-
-    // Замедление (синяя еда): 60 ходов в полтора раза медленнее
-    if (this.slowTimer > 0) this.slowTimer--;
-    this.speed = this.slowTimer > 0 ? this.baseSpeed * 1.5 : this.baseSpeed;
-
-    // Края поля сквозные
-    const C = this.cols, R = this.rows;
-    const head = { x: (this.snake[0].x + this.dir.x + C) % C, y: (this.snake[0].y + this.dir.y + R) % R };
-
-    const onFood = !!this.food && head.x === this.food.x && head.y === this.food.y;
-    const onBonus = !onFood && !!this.bonusFood && head.x === this.bonusFood.x && head.y === this.bonusFood.y;
-
-    // Столкновения. Кончик хвоста в этот ход уходит (если змейка не растёт) — в его клетку въезжать можно.
-    if (this.wallGrid[head.y * C + head.x]) { this.die('wall'); return; }
-    const body = this.snake.length - (onFood || onBonus ? 0 : 1);
-    for (let i = 0; i < body; i++) {
-      if (this.snake[i].x === head.x && this.snake[i].y === head.y) { this.die('self'); return; }
-    }
-
-    this.snake.unshift(head);
-    this.steps++;
-
-    if (onFood) {
-      this.score++; this.eaten++;
-      this.spawnParticles(this.food.x, this.food.y, this.theme.food, 20, 4);
-      AudioSys.sfx.eat(); vibrate(15); this.shakeAmt = 4;
-
-      if (this.mode === 'ENDLESS') {
-        // Ускорение: раньше менялась только baseSpeed, а шаг шёл по this.speed — скорость не росла
-        this.baseSpeed = Math.max(45, this.baseSpeed - 1.5);
-        this.speed = this.slowTimer > 0 ? this.baseSpeed * 1.5 : this.baseSpeed;
-        this.checkRecord();
-      }
-      this.updateHUD(); this.updateProgress();
-
-      if (this.mode === 'CAMPAIGN' && this.score >= this.target) { this.levelComplete(); return; }
-      this.spawnFood();
-
-      // Chance to spawn bonus food
-      const cfg = this.cfg;
-      if (cfg.special && Math.random() < cfg.special.chance && !this.bonusFood) this.spawnBonusFood();
-    }
-    else if (onBonus) {
-      const b = this.bonusFood;
-      if (b.type === 'gold') {
-        this.score += 3;
-        AudioSys.sfx.gold();
-        this.spawnParticles(b.x, b.y, GOLD, 30, 5);
-        this.floatText(b.x, b.y, '+3 ★', GOLD);
-      } else if (b.type === 'speed') {
-        this.slowTimer = 60; // ~6 sec of slow-mo
-        AudioSys.sfx.speed();
-        this.spawnParticles(b.x, b.y, SLOW, 25, 4);
-        this.floatText(b.x, b.y, '⏳ ЗАМЕДЛЕНИЕ', SLOW);
-      }
-      this.bonusFood = null; this.eaten++;
-      this.updateHUD(); this.updateProgress();
-      vibrate(20);
-      if (this.mode === 'CAMPAIGN' && this.score >= this.target) { this.levelComplete(); return; }
-    }
-    else {
-      this.snake.pop();
-    }
-
-    // Bonus food timer
-    if (this.bonusFood && --this.bonusFood.timer <= 0) this.bonusFood = null;
-  },
-
-  checkRecord() {
-    const best = this.bestScores.endless | 0;
-    if (!this.recordToast && best > 0 && this.score > best) {
-      this.recordToast = true;
-      KuArcade.toast('🏆 Новый рекорд!', 'gold', 1800);
-    }
-  },
-
-  saveEndless() {
-    const prev = this.bestScores.endless | 0;
-    if (this.score <= prev) return false;
-    this.bestScores.endless = this.score;
-    store.set('snake_best', this.bestScores);
-    return true;
-  },
-
-  die(cause) {
-    this.state = 'DYING'; this.inputQueue = [];
-    AudioSys.sfx.die(); vibrate([50,50,50]);
-    this.shakeAmt = 18;
-    // Explode each segment (таймеры снимаются при рестарте — частицы не прилетают в новую партию)
-    const col = this.theme.snake;
-    this.snake.slice(0, 45).forEach((s, i) => this.later(() => this.spawnParticles(s.x, s.y, col, 5, 3), i * 20));
-    this.later(() => this.gameOver(cause), 900);
-  },
-
-  gameOver(cause) {
-    this.state = 'OVER';
-    const endless = this.mode === 'ENDLESS', cfg = this.cfg;
-    const newBest = endless && this.saveEndless();
-    $('go-desc').textContent = cause === 'wall' ? 'Змейка врезалась в стену' : 'Змейка врезалась в себя';
-    $('go-score').textContent = this.score;
-    $('go-best').hidden = !newBest;
-    const rows = endless
-      ? [['Рекорд', this.bestScores.endless | 0], ['Длина', this.snake.length], ['Время', fmtTime(this.playTime)]]
-      : [['Уровень', `${cfg.id} · ${cfg.desc}`], ['Цель', `${this.score} / ${this.target}`], ['Время', fmtTime(this.playTime)]];
-    $('go-stats').innerHTML = rows.map(([k, v]) => `<div>${k}<b>${v}</b></div>`).join('');
-    this.showMenu('gameOver');
-  },
-
-  // Звёзды — за «чистоту» прохождения: сколько шагов ушло на каждую съеденную еду по сравнению
-  // со средним расстоянием до случайной клетки на поле со сквозными краями ((cols+rows)/4).
-  // Раньше звёзды считались как счёт/цель, а уровень заканчивается ровно на цели — всегда 1 звезда.
-  calcStars() {
-    const par = Math.max(1, this.eaten) * ((this.cols + this.rows) / 4 + 2);
-    const r = this.steps / par;
-    return r <= 1.25 ? 3 : r <= 1.9 ? 2 : 1;
-  },
-
-  levelComplete() {
-    this.state = 'LEVELUP'; this.inputQueue = [];
-    AudioSys.sfx.win(); vibrate(30);
-    const cfg = this.cfg, last = this.levelIdx >= Levels.length - 1;
-    const stars = this.calcStars(), prevStars = this.starsOf(cfg.id);
-
-    // Save progress: в snake_completed — лучшие звёзды уровня; следующий уровень открывается
-    // сам (по пройденному предыдущему), отдельная отметка «пройден» ему больше не ставится
-    if (!this.isDone(cfg.id) || stars > prevStars) this.completedLevels[cfg.id] = Math.max(stars, prevStars);
-    if (!(this.bestScores[cfg.id] >= this.score)) this.bestScores[cfg.id] = this.score;
-    store.set('snake_completed', this.completedLevels);
-    store.set('snake_best', this.bestScores);
-
-    $('lu-title').textContent = last ? 'КАМПАНИЯ ПРОЙДЕНА!' : 'УРОВЕНЬ ПРОЙДЕН!';
-    for (let i = 1; i <= 3; i++) {
-      const el = $('star-' + i);
-      el.classList.remove('lit');
-      this.later(() => el.classList.toggle('lit', i <= stars), i * 200);
-    }
-    $('lvl-stats').textContent = `Счёт: ${this.score}. ${stars === 3 ? 'Идеально!' : stars === 2 ? 'Отлично!' : 'Хорошо!'}`;
-    $('lu-stats').innerHTML = [['Уровень', `${cfg.id} · ${cfg.desc}`], ['Время', fmtTime(this.playTime)],
-      ['Шагов на еду', (this.steps / Math.max(1, this.eaten)).toFixed(1)]]
-      .map(([k, v]) => `<div>${k}<b>${v}</b></div>`).join('');
-    $('btn-next-level').hidden = last;
-    this.showMenu('levelUp');
-  },
-
-  loop(ts) {
-    requestAnimationFrame(this.loopFn);
-    const dt = this.lastFrame ? Math.min(100, Math.max(0, ts - this.lastFrame)) : 16.7;
-    this.lastFrame = ts;
-    if (this.state === 'MENU' || this.state === 'PAUSED') return;
-
-    // Всё считается от времени, а не от кадров: на 60/120/144 Гц игра идёт с одной скоростью
-    const k = dt / 16.667;
-    this.anim += dt;
-    if (this.shakeAmt > 0) { this.shakeAmt *= Math.pow(0.92, k); if (this.shakeAmt < 0.3) this.shakeAmt = 0; }
-    if (this.particles.length) { this.particles.forEach(p => p.update(k)); this.particles = this.particles.filter(p => p.life > 0); }
-    if (this.floaters.length) { this.floaters.forEach(f => { f.t += dt; }); this.floaters = this.floaters.filter(f => f.t < 800); }
-
-    if (this.state === 'PLAYING') {
-      this.playTime += dt;
-      // Шаги с накоплением времени: раньше остаток терялся (lastTick = ts), и скорость
-      // зависела от частоты кадров (на 60 Гц шаг 68 мс превращался в 83 мс)
-      this.acc += dt;
-      let n = 0;
-      while (this.state === 'PLAYING' && this.acc >= this.speed && n++ < 4) { this.acc -= this.speed; this.tick(); }
-      if (this.acc >= this.speed) this.acc = 0;
-    } else if (!this.particles.length && !this.floaters.length && !this.shakeAmt && !this.timers.length) {
-      return;   // поле под окном итогов застыло — не перерисовываем зря
-    }
-    this.draw();
-  },
-
-  renderBg() {
-    const C = this.cell, W = this.cols * C, H = this.rows * C, t = this.theme, b = this.bg;
-    b.width = this.canvas.width; b.height = this.canvas.height;
-    const g = b.getContext('2d');
-    g.setTransform(this.dpr, 0, 0, this.dpr, 0, 0);
-    g.fillStyle = t.tint; g.fillRect(0, 0, W, H);
-    // пустые клетки — как в Тетрисе (шахматка из полупрозрачных скруглённых клеток)
-    const r = Math.max(2, C * .2);
-    for (const odd of [0, 1]) {
-      g.fillStyle = odd ? 'rgba(255,255,255,.035)' : 'rgba(255,255,255,.015)';
-      g.beginPath();
-      for (let y = 0; y < this.rows; y++) for (let x = 0; x < this.cols; x++)
-        if ((x + y) % 2 === odd) rrPath(g, x * C + 1, y * C + 1, C - 2, C - 2, r);
-      g.fill();
-    }
-    for (const w of this.walls) drawBlock(g, w.x * C, w.y * C, C, t.wall);
-    this.bgDirty = false;
-  },
-
-  draw() {
-    const ctx = this.ctx;
-    if (!ctx || !this.cols) return;
-    const C = this.cell, W = this.cols * C, H = this.rows * C, t = this.theme, a = this.anim;
-    if (this.bgDirty) this.renderBg();
-    ctx.clearRect(0, 0, W, H);
-    ctx.save();
-
-    // Screen shake
-    if (this.shakeAmt > 0.5) ctx.translate((Math.random()-0.5)*this.shakeAmt, (Math.random()-0.5)*this.shakeAmt);
-    ctx.drawImage(this.bg, 0, 0, W, H);
-
-    // Food
-    if (this.food) {
-      const fx = this.food.x * C + C / 2, fy = this.food.y * C + C / 2;
-      const fr = Math.max(2, C / 2 - C * .17 + Math.sin(a * .0048) * C * .11);
-      ctx.strokeStyle = t.food; ctx.lineWidth = Math.max(1, C * .08);
-      ctx.globalAlpha = 0.3 + Math.sin(a * .0072) * 0.15;
-      ctx.beginPath(); ctx.arc(fx, fy, fr + C * .22, 0, Math.PI*2); ctx.stroke();
-      ctx.globalAlpha = 1;
-      ctx.shadowBlur = 16; ctx.shadowColor = t.food; ctx.fillStyle = t.food;
-      ctx.beginPath(); ctx.arc(fx, fy, fr, 0, Math.PI*2); ctx.fill();
-      ctx.shadowBlur = 0;
-      ctx.fillStyle = 'rgba(255,255,255,0.45)';
-      ctx.beginPath(); ctx.arc(fx - fr * .3, fy - fr * .3, fr * 0.35, 0, Math.PI*2); ctx.fill();
-    }
-
-    // Bonus food
-    if (this.bonusFood) {
-      const b = this.bonusFood, bx = b.x * C + C / 2, by = b.y * C + C / 2;
-      const br = Math.max(3, C / 2 - C * .11 + Math.sin(a * .0096) * C * .17);
-      const bColor = b.type === 'gold' ? GOLD : SLOW;
-      ctx.globalAlpha = b.timer < 60 ? b.timer / 60 : 1; // Fade out
-      ctx.shadowBlur = 22; ctx.shadowColor = bColor; ctx.fillStyle = bColor;
-      ctx.beginPath(); ctx.arc(bx, by, br, 0, Math.PI*2); ctx.fill();
-      ctx.shadowBlur = 0;
-      ctx.fillStyle = 'rgba(255,255,255,0.5)';
-      ctx.beginPath();
-      ctx.moveTo(bx, by - br*0.6); ctx.lineTo(bx + br*0.5, by); ctx.lineTo(bx, by + br*0.6); ctx.lineTo(bx - br*0.5, by);
-      ctx.closePath(); ctx.fill();
-      ctx.fillStyle = '#041018';
-      ctx.font = `${Math.round(C * .5)}px 'Russo One', sans-serif`;
-      ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
-      ctx.fillText(b.type === 'gold' ? '★' : '⏳', bx, by + 1);
-      ctx.globalAlpha = 1;
-    }
-
-    this.drawSnake(ctx, C, t);
-
-    // Slow-mo indicator
-    if (this.slowTimer > 0 && this.state === 'PLAYING') {
-      ctx.strokeStyle = SLOW; ctx.lineWidth = 2; ctx.shadowColor = SLOW; ctx.shadowBlur = 10;
-      ctx.globalAlpha = 0.45 + Math.sin(a * .0096) * 0.2;
-      rr(ctx, 1, 1, W - 2, H - 2, 10); ctx.stroke();
-      ctx.globalAlpha = 1; ctx.shadowBlur = 0;
-    }
-    ctx.restore();
-
-    // Particles и всплывающий текст
-    this.particles.forEach(p => p.draw(ctx));
-    for (const f of this.floaters) {
-      const k = f.t / 800;
-      ctx.globalAlpha = Math.max(0, 1 - k);
-      ctx.font = `${Math.round(C * (0.8 + 0.4 * k))}px 'Russo One', sans-serif`;
-      ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
-      const half = ctx.measureText(f.text).width / 2 + 4;
-      const x = Math.min(W - half, Math.max(half, f.x));
-      ctx.shadowColor = f.color; ctx.shadowBlur = 12; ctx.fillStyle = f.color;
-      ctx.fillText(f.text, x, Math.max(C * .6, f.y - k * 50));
-      ctx.shadowBlur = 0;
-    }
-    ctx.globalAlpha = 1;
-  },
-
-  // Змейка — неоновые сегменты с переходом цвета от головы к хвосту
-  drawSnake(ctx, C, t) {
-    const s = this.snake, len = s.length;
-    if (!len) return;
-    const headRgb = hexRgb(t.snake), tailRgb = mixRgb(headRgb, BOARD_RGB, .55);
-    const pad = Math.max(1, C * .085), rad = C * .22, sz = C - pad * 2;
-    // общее свечение тела — одним проходом (а не blur на каждом сегменте)
-    ctx.save();
-    ctx.shadowColor = rgba(t.snake, .55); ctx.shadowBlur = Math.min(14, C * .7);
-    ctx.fillStyle = `rgb(${tailRgb.join(',')})`;
-    ctx.beginPath();
-    for (let i = 1; i < len; i++) rrPath(ctx, s[i].x * C + pad, s[i].y * C + pad, sz, sz, rad);
-    ctx.fill();
-    ctx.restore();
-    for (let i = len - 1; i >= 1; i--) {
-      const k = len > 1 ? i / (len - 1) : 0, x = s[i].x * C + pad, y = s[i].y * C + pad;
-      ctx.fillStyle = `rgb(${mixRgb(headRgb, tailRgb, k).join(',')})`;
-      rr(ctx, x, y, sz, sz, rad); ctx.fill();
-      ctx.fillStyle = `rgba(255,255,255,${(0.22 * (1 - k)).toFixed(3)})`;   // блик сверху
-      rr(ctx, x + C * .1, y + C * .08, sz - C * .2, sz * .38, rad * .6); ctx.fill();
-    }
-    // голова
-    const h = s[0], hx = h.x * C, hy = h.y * C, hp = Math.max(.5, C * .03);
-    ctx.save();
-    ctx.shadowBlur = Math.min(20, C); ctx.shadowColor = t.snake; ctx.fillStyle = t.snake;
-    rr(ctx, hx + hp, hy + hp, C - hp * 2, C - hp * 2, C * .3); ctx.fill();
-    ctx.restore();
-    // глаза смотрят по ходу движения
-    const d = this.dir, cx = hx + C / 2, cy = hy + C / 2, fwd = C * .12, side = C * .22, er = C * .17, pr = C * .1;
-    for (const sg of [-1, 1]) {
-      const ex = cx + d.x * fwd - d.y * side * sg, ey = cy + d.y * fwd + d.x * side * sg;
-      ctx.fillStyle = '#fff';
-      ctx.beginPath(); ctx.arc(ex, ey, er, 0, Math.PI*2); ctx.fill();
-      ctx.strokeStyle = 'rgba(4,8,30,.45)'; ctx.lineWidth = 1; ctx.stroke();
-      ctx.fillStyle = '#0b1030';
-      ctx.beginPath(); ctx.arc(ex + d.x * C * .06, ey + d.y * C * .06, pr, 0, Math.PI*2); ctx.fill();
-    }
   }
 };
 
-Game.init();
+UI.init();
+
 </script>
 </body>
 </html>

@@ -2,51 +2,193 @@
 <html lang="ru">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
 <title>Найди пару</title>
 <link rel="stylesheet" href="ku-arcade.css">
 <script src="ku-arcade.js"></script>
 <style>
   html,body{height:100%;overflow:hidden}
+  .mem-sr{position:absolute;width:1px;height:1px;margin:-1px;padding:0;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap;border:0}
 
-  /* ── Поле карточек ── */
-  #stage{flex:1;min-height:0;width:100%;display:flex;align-items:center;justify-content:center}
-  #grid{display:grid;gap:var(--gap,8px);grid-template-columns:repeat(var(--cols,3),var(--cs,80px))}
-  .card{position:relative;width:var(--cs,80px);height:var(--cs,80px);padding:0;margin:0;border:0;border-radius:12px;background:none;
-    color:inherit;font:inherit;cursor:pointer;perspective:800px;touch-action:manipulation;-webkit-tap-highlight-color:transparent}
-  .card .in{position:absolute;inset:0;transform-style:preserve-3d;transition:transform .36s cubic-bezier(.3,.7,.35,1.12)}
+  /* ═══ МЕНЮ ═══ */
+  #btn-continue{margin-top:22px}
+  #btn-continue .best{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:100%}
+  .mem-two button{display:flex;flex-direction:column;align-items:center;gap:1px;padding:6px 2px;line-height:1.1}
+  .mem-two b{font-family:var(--font-display);font-weight:400;font-size:15px;letter-spacing:.5px}
+  .mem-two small{font-size:10px;font-weight:500;color:var(--muted)}
+  .mem-two button.active small{color:var(--text);opacity:.8}
+  #set-delay b{font-family:var(--font-body);font-weight:600;font-size:13px;letter-spacing:0}
+  .mem-sets button{font-size:21px;line-height:1;padding:7px 0}
+  .mem-sets button:not(.active){filter:saturate(.55);opacity:.75}
+  .mem-set-info{font-size:12px;color:var(--muted);text-align:center;min-height:17px;line-height:1.4;max-width:100%}
+  .mem-set-info b{color:var(--text);font-weight:600}
+  .mem-set-info .hard{color:var(--orange);font-weight:600}
+  .ku-btn.duo{font-size:15px}
+  /* узкий телефон: набор сужает «дуэт» до 140px — «Испытание дня» не влезает; две кнопки по ~161px помещаются */
+  @media (max-width:370px){ #screen-menu .ku-btn.duo{width:min(163px,calc((100vw - 38px) / 2));padding-left:6px;padding-right:6px} }
+  #menu-stats b{color:var(--text);font-weight:600}
+  #screen-menu .ku-menu-row{gap:8px;max-width:400px}
+  #screen-menu .ku-menu-row .ku-btn{min-height:40px}
+
+  /* ═══ ИГРА ═══ */
+  #screen-game{padding-left:8px;padding-right:8px}
+  .ku-top-title .s{overflow:hidden;text-overflow:ellipsis;max-width:100%}
+  .ku-top-title .s.p1{color:var(--gold)} .ku-top-title .s.p2{color:var(--accent2)}
+  /* поле и показатели: на телефоне стоя — показатели строкой сверху; в альбоме — колонками по бокам поля */
+  #play{flex:1 1 auto;min-height:0;width:100%;display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);grid-template-rows:auto minmax(0,1fr);
+    grid-template-areas:"l r" "s s";column-gap:8px}
+  .mem-hud{margin:2px 0 10px;flex-wrap:nowrap}
+  #hud-l{grid-area:l;justify-content:flex-end} #hud-r{grid-area:r;justify-content:flex-start}
+  .mem-hud .ku-stat{position:relative;overflow:hidden;min-width:70px}
+  .mem-hud .ku-stat b{transition:color .2s}
+  .ku-stat .mbar{display:none;position:absolute;left:0;right:0;bottom:0;height:3px;transform-origin:left center;
+    transform:scaleX(var(--v,1));transition:transform .3s linear;background:linear-gradient(90deg,var(--accent),var(--accent2))}
+  .ku-stat.bar .mbar{display:block}
+  .ku-stat.low b{color:var(--bad);animation:kuPulse .8s ease-in-out infinite}
+  .ku-stat.low .mbar{background:var(--bad)}
+  .ku-stat.gold.on{border-color:var(--gold);box-shadow:0 0 16px rgba(255,214,10,.35)}
+  .ku-stat.c2.on{border-color:var(--accent2);box-shadow:0 0 16px rgba(255,77,210,.35)}
+  #stage{grid-area:s;min-height:0;min-width:0;display:flex;align-items:center;justify-content:center}
+  #board{transition:box-shadow .3s}
+  #board.turn1{box-shadow:0 14px 60px rgba(0,0,0,.6),0 0 40px rgba(255,214,10,.16),inset 0 1px 0 rgba(255,255,255,.1)}
+  #game-hint{flex:none;margin-top:8px}
+  @media (max-height:700px){ #game-hint{display:none} }
+  @media (max-width:370px){ .mem-hud .ku-stat{min-width:64px;padding:6px 8px} #play{column-gap:6px} .mem-hud{gap:6px} }
+  @media (orientation:landscape) and (max-height:560px){
+    #play{grid-template-columns:auto minmax(0,1fr) auto;grid-template-rows:minmax(0,1fr);grid-template-areas:"l s r";column-gap:12px}
+    .mem-hud{flex-direction:column;justify-content:center;margin:0}
+    #hud-l,#hud-r{justify-content:center}
+    .mem-hud .ku-stat{min-width:96px}
+    #game-hint{display:none}
+  }
+
+  /* ═══ КАРТЫ ═══ */
+  #grid{display:grid;gap:var(--gap,7px);grid-template-columns:repeat(var(--cols,4),var(--cw,70px));grid-auto-rows:var(--ch,70px)}
+  .card{--mc:0,229,255;position:relative;width:var(--cw,70px);height:var(--ch,70px);padding:0;margin:0;border:0;border-radius:var(--r,12px);
+    background:none;color:inherit;font:inherit;cursor:pointer;perspective:700px;touch-action:manipulation;
+    -webkit-tap-highlight-color:transparent;-webkit-touch-callout:none}
+  .card .in{position:absolute;inset:0;border-radius:inherit;transform-style:preserve-3d;transition:transform .34s cubic-bezier(.3,.7,.35,1.12)}
   .card.open .in{transform:rotateY(180deg)}
-  .card .side{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;border-radius:12px;
+  .card .side{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;border-radius:inherit;
     backface-visibility:hidden;-webkit-backface-visibility:hidden}
   /* рубашка — как пустая клетка Тетриса, с неоновым ромбом */
   .card .back{background:rgba(255,255,255,.045);border:1px solid rgba(255,255,255,.08);
     box-shadow:inset 0 1px 0 rgba(255,255,255,.06);transition:border-color .2s,box-shadow .2s}
-  .card .back::before{content:'';width:30%;height:30%;border-radius:24%;transform:rotate(45deg);
-    border:2px solid color-mix(in srgb,var(--accent) 32%,transparent);box-shadow:0 0 10px color-mix(in srgb,var(--accent) 20%,transparent)}
-  /* лицо: открытая карточка — бирюзовое свечение, пара — зелёное, промах — красное */
-  .card .face{transform:rotateY(180deg);font-size:calc(var(--cs,80px)*.5);line-height:1;
-    background:linear-gradient(160deg,color-mix(in srgb,var(--accent) 20%,transparent),rgba(255,255,255,.035));
-    border:1px solid color-mix(in srgb,var(--accent) 60%,transparent);
-    box-shadow:0 0 12px color-mix(in srgb,var(--accent) 40%,transparent),inset 0 1px 0 rgba(255,255,255,.25)}
-  .card.matched{cursor:default}
-  .card.matched .in{animation:memMatch .42s ease .3s}
-  .card.matched .face{background:linear-gradient(160deg,color-mix(in srgb,var(--good) 24%,transparent),rgba(255,255,255,.035));
-    border-color:color-mix(in srgb,var(--good) 72%,transparent);
-    box-shadow:0 0 14px color-mix(in srgb,var(--good) 45%,transparent),inset 0 1px 0 rgba(255,255,255,.25)}
-  .card.miss .face{background:linear-gradient(160deg,color-mix(in srgb,var(--bad) 24%,transparent),rgba(255,255,255,.035));
-    border-color:color-mix(in srgb,var(--bad) 72%,transparent);
-    box-shadow:0 0 14px color-mix(in srgb,var(--bad) 45%,transparent),inset 0 1px 0 rgba(255,255,255,.25)}
-  .card.miss{animation:kuShakeX .4s ease .3s}
-  @keyframes memMatch{0%,100%{transform:rotateY(180deg)}50%{transform:rotateY(180deg) scale(1.08)}}
+  .card .back::before{content:'';width:30%;height:30%;max-width:34px;max-height:34px;border-radius:24%;transform:rotate(45deg);
+    border:2px solid rgba(0,229,255,.32);box-shadow:0 0 10px rgba(0,229,255,.2)}
+  /* лицо: открытая — бирюзовое свечение; найдена — зелёное (вдвоём — цвет игрока); промах — красное */
+  .card .face{transform:rotateY(180deg);font-size:var(--fs,38px);line-height:1;
+    background:linear-gradient(160deg,rgba(var(--mc),.2),rgba(255,255,255,.035));border:1px solid rgba(var(--mc),.6);
+    box-shadow:0 0 12px rgba(var(--mc),.4),inset 0 1px 0 rgba(255,255,255,.25)}
+  .card.matched{--mc:81,245,139;cursor:default}
+  #grid.duo .card.matched{--mc:255,214,10}
+  #grid.duo .card.matched.p2{--mc:255,77,210}
+  .card.miss{--mc:255,93,125;animation:kuShakeX .4s ease .3s}
+  .card.fading{--mc:255,93,125}
+  .card.matched .face{background:linear-gradient(160deg,rgba(var(--mc),.26),rgba(255,255,255,.035));border-color:rgba(var(--mc),.75);
+    box-shadow:0 0 14px rgba(var(--mc),.45),inset 0 1px 0 rgba(255,255,255,.25)}
+  .card.hit .in{animation:memHit .5s ease .22s}
+  .card.hit .face{animation:memGlow .7s ease .22s}
+  .card.reveal{cursor:default}
+  .card.reveal .in{transition-delay:calc(var(--k,0) * 16ms)}
+  .card.reveal .face{--mc:143,154,194;opacity:.6}
+  .card.win .in{animation:memWin .6s ease both;animation-delay:calc(var(--k,0) * 26ms)}
+  .card.win .face{animation:memGlow .6s ease both;animation-delay:calc(var(--k,0) * 26ms)}
+  @keyframes memHit{0%,100%{transform:rotateY(180deg)}45%{transform:rotateY(180deg) scale(1.1)}}
+  @keyframes memWin{0%,100%{transform:rotateY(180deg)}45%{transform:rotateY(180deg) scale(1.12)}}
+  @keyframes memGlow{45%{box-shadow:0 0 28px rgba(var(--mc),.9),inset 0 1px 0 rgba(255,255,255,.35)}}
+  .mem-float{position:fixed;z-index:20;pointer-events:none;font:400 16px/1 var(--font-display);color:var(--gold);white-space:nowrap;
+    text-shadow:0 0 12px rgba(255,214,10,.65),0 2px 6px rgba(0,0,0,.6);transform:translate(-50%,-50%);animation:memFloat .95s ease-out forwards}
+  @keyframes memFloat{0%{opacity:0;transform:translate(-50%,-20%) scale(.7)}20%{opacity:1;transform:translate(-50%,-70%) scale(1.08)}100%{opacity:0;transform:translate(-50%,-170%) scale(1)}}
+  /* пауза и вопросы: все карты рубашкой вверх */
+  #grid.veil .card .in{transform:none;transition-delay:0s}
+  #grid.veil .card .face{visibility:hidden}
   @media (hover:hover){
-    .card:not(.open):hover .back{border-color:color-mix(in srgb,var(--accent) 45%,transparent);
-      box-shadow:0 0 12px color-mix(in srgb,var(--accent) 25%,transparent)}
+    .card:not(.open):hover .back{border-color:rgba(0,229,255,.45);box-shadow:0 0 12px rgba(0,229,255,.25)}
   }
-  .card:focus-visible{outline:2px solid var(--accent);outline-offset:3px}
-  @media (prefers-reduced-motion:reduce){.card .in{transition:none}.card.matched .in,.card.miss{animation:none}}
+  .card:focus{outline:none}
+  .card:focus-visible{outline:2px solid var(--accent);outline-offset:2px;z-index:1}
+  @media (prefers-reduced-motion:reduce){
+    .card .in{transition:none}
+    .card.miss,.card.hit .in,.card.hit .face,.card.win .in,.card.win .face{animation:none}
+    .mem-float{animation:kuFade .2s ease reverse forwards .7s}
+  }
 
-  #big-sub{margin-top:-8px}
-  #menu-stats b{color:var(--text);font-weight:600}
+  /* ═══ ОКНА ═══ */
+  #big-sub{margin-top:-6px}
+  #over-best{font-size:15px}
+  .mem-ach{font-size:13px;line-height:1.4;color:#ffe38a;padding:7px 10px;border-radius:12px;border:1px solid rgba(255,214,10,.4);background:rgba(255,214,10,.08)}
+  .mem-ach b{color:var(--gold);font-weight:600}
+  .mem-btns{display:flex;flex-direction:column;gap:12px}
+  .stats-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(96px,1fr));gap:8px}
+  .st-card{background:var(--glass-panel);border:1px solid var(--panel-border);border-radius:14px;padding:10px 6px;text-align:center}
+  .st-card .sv{font-family:var(--font-display);font-size:17px;color:var(--accent);margin-top:2px}
+  .st-card .sl{font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:.8px;margin-top:3px}
+  .mem-table{width:100%;border-collapse:separate;border-spacing:0 6px;font-size:13px}
+  .mem-table th{font-size:10px;font-weight:500;color:var(--muted);text-transform:uppercase;letter-spacing:.8px;text-align:center;padding:0 4px}
+  .mem-table th:first-child{text-align:left}
+  .mem-table td{background:var(--panel);padding:8px 6px;text-align:center;font-family:var(--font-display);color:var(--gold)}
+  .mem-table td:first-child{text-align:left;border-radius:10px 0 0 10px;font-family:var(--font-body);color:var(--text);font-weight:600}
+  .mem-table td:last-child{border-radius:0 10px 10px 0;color:var(--accent)}
+  .mem-table td small{font-family:var(--font-body);color:var(--muted);font-weight:400;font-size:11px}
+  .mem-table .none{color:var(--muted)}
+  .mem-rows{display:flex;flex-direction:column;gap:6px}
+  .mem-rows div{display:flex;justify-content:space-between;gap:10px;font-size:13px;padding:8px 10px;border-radius:10px;background:var(--panel);border:1px solid var(--panel-border)}
+  .mem-rows span{color:var(--muted)}
+  .mem-rows b{font-weight:600;text-align:right}
+  .list{display:flex;flex-direction:column;gap:8px}
+  .ach-item{display:flex;align-items:center;gap:12px;padding:10px 12px;border-radius:14px;background:var(--panel);border:1px solid var(--panel-border)}
+  .ach-item:not(.unlocked) .ach-icon{filter:grayscale(1);opacity:.45}
+  .ach-item.unlocked{border-color:rgba(255,214,10,.45);background:rgba(255,214,10,.07)}
+  .ach-item.unlocked h4{color:var(--gold)}
+  .ach-icon{font-size:22px;width:40px;height:40px;flex:none;display:flex;align-items:center;justify-content:center;background:rgba(255,255,255,.05);border-radius:12px}
+  .ach-info{min-width:0}
+  .ach-info h4{margin:0 0 2px;font-family:var(--font-display);font-weight:400;font-size:13px;letter-spacing:.5px}
+  .ach-info p{margin:0;font-size:11.5px;color:var(--muted);line-height:1.4}
+  .hist-item{display:flex;align-items:center;gap:10px;padding:9px 12px;border-radius:14px;background:var(--panel);border:1px solid var(--panel-border)}
+  .hist-item .hi{font-size:20px;width:30px;text-align:center;flex:none}
+  .hist-item .hm{flex:1;min-width:0}
+  .hist-item .ht{font-weight:600;font-size:13px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .hist-item .hs{font-size:11.5px;color:var(--muted);margin-top:2px}
+  .hist-item .hr{font-family:var(--font-display);font-size:14px;text-align:right;flex:none;color:var(--gold)}
+  .hist-item .hs .win{color:var(--good)} .hist-item .hs .lose{color:var(--bad)} .hist-item .hs .quit{color:var(--text)} .hist-item .hs .duo{color:var(--gold)}
+  .empty{text-align:center;color:var(--muted);padding:20px}
+  .set-btns{display:flex;gap:8px;flex-wrap:wrap}
+  #set-delay{width:100%}
+  /* невысокий телефон стоя: окно итогов плотнее */
+  @media (max-height:700px) and (orientation:portrait){
+    #ov-over .ku-card{padding:18px 20px;gap:8px}
+    #ov-over .ku-card h2{font-size:21px}
+    #ov-over .ku-big-score{font-size:30px}
+    #ov-over .ku-over-stats{gap:4px;margin:2px 0}
+    #ov-over .ku-over-stats div{font-size:13px}
+    #ov-over .mem-btns{gap:8px}
+    #ov-over .ku-btn{padding-top:9px;padding-bottom:9px}
+  }
+  @media (max-height:560px){
+    .ku-overlay .ku-card{padding:14px 18px;gap:6px}
+    .ku-overlay .ku-card h2{font-size:20px;margin:0}
+    .ku-overlay .ku-big-score{font-size:28px}
+    .ku-overlay .ku-over-stats{display:grid;grid-template-columns:1fr 1fr;column-gap:16px;row-gap:4px;margin:2px 0}
+    .ku-overlay .ku-over-stats div{gap:10px;font-size:13px}
+    .ku-overlay .ku-card .ku-btn{min-height:36px;padding-top:7px;padding-bottom:7px}
+    #ov-over .ku-card,#ov-pause .ku-card{width:min(520px,94vw)}
+    #ov-pause .ku-card{display:grid;grid-template-columns:1fr 1fr}
+    #ov-pause .ku-card h2,#ov-pause .ku-card p,#ov-pause .ku-card .ku-btn.ghost{grid-column:1 / -1}
+    /* альбом: кнопки окна итогов — в один ряд, чтобы всё помещалось без прокрутки */
+    .mem-btns{display:grid;grid-auto-flow:column;grid-auto-columns:minmax(0,1fr);gap:8px}
+    .mem-btns .ku-btn{font-size:14px;padding-left:8px;padding-right:8px}
+    .mem-ach{padding:4px 10px;font-size:12px}
+  }
+  @media (max-height:400px){
+    #ov-over .ku-card{padding:10px 16px;gap:4px}
+    #ov-over .ku-card h2{font-size:18px}
+    #ov-over .ku-big-score{font-size:24px}
+    #ov-over #big-sub{display:none}
+    #ov-over .ku-new-best{font-size:13px}
+    #ov-over .ku-over-stats div{font-size:12px}
+    #ov-over .ku-over-stats b{font-size:13px}
+  }
 </style>
 </head>
 <body class="ku">
@@ -55,310 +197,1481 @@
   <!-- ═══ МЕНЮ ═══ -->
   <section id="screen-menu" class="ku-screen menu active">
     <h1 class="ku-logo">НАЙДИ ПАРУ</h1>
-    <p class="ku-tagline">Тренировка памяти • 3 поля • Рекорды</p>
-    <div class="ku-pills"><span>🧠 Память</span><span>🏋️ Спорт-эмодзи</span><span>⏱ На время</span></div>
+    <p class="ku-tagline">Тренировка памяти • 5 режимов</p>
+    <div class="ku-pills"><span>📐 5 полей</span><span id="pill-sets">🃏 7 наборов</span><span>👥 Вдвоём</span><span>📅 Испытание дня</span></div>
+
+    <button class="ku-btn big on" id="btn-continue" hidden>▶ Продолжить<span class="best" id="continue-sub">—</span></button>
 
     <div class="ku-field">
-      <div class="ku-label">Размер поля</div>
-      <div class="ku-seg" id="size-seg">
-        <button data-p="6">3×4 · 6 пар</button>
-        <button data-p="8">4×4 · 8 пар</button>
-        <button data-p="10">4×5 · 10 пар</button>
-      </div>
+      <div class="ku-label" id="lbl-size">Размер поля</div>
+      <div class="ku-seg mem-two" id="size-seg" role="radiogroup" aria-labelledby="lbl-size"></div>
+    </div>
+    <div class="ku-field">
+      <div class="ku-label" id="lbl-set">Карты</div>
+      <div class="ku-seg mem-sets" id="set-seg" role="radiogroup" aria-labelledby="lbl-set"></div>
+      <div class="mem-set-info" id="set-info"></div>
     </div>
 
     <div class="ku-menu-btns">
-      <button class="ku-btn big primary" id="btn-play">🎮 Играть<span class="best" id="best-line">Рекорд: —</span></button>
+      <button class="ku-btn big primary" id="btn-classic">🎮 Классика<span class="best" id="best-classic">—</span></button>
+      <div class="ku-menu-duo">
+        <button class="ku-btn duo gold" id="btn-timed">⏱ На время<span class="best" id="best-timed">—</span></button>
+        <button class="ku-btn duo green" id="btn-limited">🧮 Лимит ходов<span class="best" id="best-limited">—</span></button>
+      </div>
+      <div class="ku-menu-duo">
+        <button class="ku-btn duo accent2" id="btn-duo">👥 Вдвоём<span class="best" id="best-duo">—</span></button>
+        <button class="ku-btn duo blue" id="btn-daily">📅 Испытание дня<span class="best" id="best-daily">—</span></button>
+      </div>
     </div>
-    <div class="ku-menu-row"><button class="ku-btn ghost" id="btn-rules">📖 Правила</button></div>
-    <div class="ku-menu-stats" id="menu-stats"></div>
-    <div class="ku-menu-hint">Тап по карточке — открыть · P / Esc — пауза<br>Меньше попыток — выше рекорд</div>
+    <div class="ku-menu-row">
+      <button class="ku-btn ghost sm" id="btn-rules">📖 Правила</button>
+      <button class="ku-btn ghost sm" id="btn-stats">📊 Статистика</button>
+      <button class="ku-btn ghost sm" id="btn-ach">🏅 Достижения</button>
+      <button class="ku-btn ghost sm" id="btn-history">📜 История</button>
+      <button class="ku-btn ghost sm" id="btn-settings">⚙️ Настройки</button>
+    </div>
+    <div class="ku-menu-stats" id="menu-stats">Сыграйте первую партию</div>
+    <div class="ku-menu-hint">Тап — открыть карту · стрелки + Enter / пробел · P / Esc — пауза · R — заново</div>
   </section>
 
   <!-- ═══ ИГРА ═══ -->
   <section id="screen-game" class="ku-screen fit">
     <header class="ku-top">
       <div class="ku-top-left"></div>
-      <div class="ku-top-title"><div class="t">НАЙДИ ПАРУ</div><div class="s" id="g-sub">ПОЛЕ 3×4</div></div>
+      <div class="ku-top-title"><div class="t" id="g-title">КЛАССИКА</div><div class="s" id="g-sub">4×4</div></div>
       <div class="ku-top-actions">
-        <button class="ku-btn icon" id="btn-restart" aria-label="Заново"><svg viewBox="0 0 24 24"><path d="M20 12a8 8 0 1 1-2.34-5.66"/><polyline points="20 4 20 9 15 9"/></svg></button>
-        <button class="ku-btn icon" id="btn-pause" aria-label="Пауза"><svg viewBox="0 0 24 24"><line x1="9" y1="5" x2="9" y2="19"/><line x1="15" y1="5" x2="15" y2="19"/></svg></button>
+        <button class="ku-btn icon" id="btn-restart" aria-label="Заново (R)" title="Заново (R)"><svg viewBox="0 0 24 24"><path d="M20 12a8 8 0 1 1-2.34-5.66"/><polyline points="20 4 20 9 15 9"/></svg></button>
+        <button class="ku-btn icon" id="btn-pause" aria-label="Пауза (P)" title="Пауза (P)"><svg viewBox="0 0 24 24"><line x1="9" y1="5" x2="9" y2="19"/><line x1="15" y1="5" x2="15" y2="19"/></svg></button>
       </div>
     </header>
-    <div class="ku-hud">
-      <div class="ku-stat"><span>Попытки</span><b id="h-tries">0</b></div>
-      <div class="ku-stat c2"><span>Пары</span><b id="h-pairs">0/6</b></div>
-      <div class="ku-stat"><span>Время</span><b id="h-time">0:00</b></div>
-      <div class="ku-stat gold"><span>Рекорд</span><b id="h-best">—</b></div>
+    <div id="play">
+      <div class="ku-hud mem-hud" id="hud-l">
+        <div class="ku-stat" id="st1"><span>Ходы</span><b>0</b><i class="mbar"></i></div>
+        <div class="ku-stat c2" id="st2"><span>Пары</span><b>0/8</b><i class="mbar"></i></div>
+      </div>
+      <div id="stage"><div class="ku-board" id="board"><div id="grid" role="group" aria-label="Поле"></div></div></div>
+      <div class="ku-hud mem-hud" id="hud-r">
+        <div class="ku-stat" id="st3"><span>Время</span><b>0:00</b><i class="mbar"></i></div>
+        <div class="ku-stat gold" id="st4"><span>Рекорд</span><b>—</b><i class="mbar"></i></div>
+      </div>
     </div>
-    <div id="stage"><div class="ku-board" id="board"><div id="grid"></div></div></div>
-    <p class="ku-hint">Найди все пары за наименьшее число попыток</p>
+    <p class="ku-hint" id="game-hint">Открой две карты: совпали — остаются открытыми</p>
+    <div class="mem-sr" id="live" aria-live="polite" aria-atomic="true"></div>
   </section>
 </main>
 
-<!-- ═══ ПРАВИЛА ═══ -->
-<div class="ku-overlay" id="rules">
-  <div class="ku-modal">
-    <header><h2>📖 Правила</h2><button class="ku-btn icon" id="btn-rules-x" aria-label="Закрыть">✕</button></header>
-    <div class="ku-body">
-      <h3>Цель</h3>
-      <ul class="ku-rules">
-        <li>Открыть <b>все пары</b> одинаковых карточек за наименьшее число попыток.</li>
-      </ul>
-      <h3>Как играть</h3>
-      <ul class="ku-rules">
-        <li><b>Тап</b> по карточке открывает её. Затем открой вторую.</li>
-        <li>Картинки <b>совпали</b> — пара остаётся открытой. <b>Нет</b> — обе карточки закроются через секунду: запомни, где что лежит.</li>
-        <li><b>Попытка</b> — каждые две открытые карточки. Точность = пары ÷ попытки (100% — без единой ошибки).</li>
-      </ul>
-      <h3>Рекорды</h3>
-      <ul class="ku-rules">
-        <li>Для каждого поля сохраняются лучшие <b>попытки</b> и лучшее <b>время</b>.</li>
-        <li>Время идёт с первой открытой карточки и стоит на паузе. P / Esc — пауза.</li>
-      </ul>
-    </div>
-    <footer><button class="ku-btn primary" id="btn-rules-ok">Понятно</button></footer>
-  </div>
-</div>
-
 <!-- ═══ ПАУЗА ═══ -->
-<div class="ku-overlay" id="pause">
-  <div class="ku-card">
-    <h2>⏸ ПАУЗА</h2>
-    <button class="ku-btn primary" id="btn-resume">Продолжить</button>
-    <button class="ku-btn" id="btn-pause-restart">Заново</button>
-    <button class="ku-btn" id="btn-pause-rules">📖 Правила</button>
-    <button class="ku-btn ghost" id="btn-pause-menu">В меню</button>
-  </div>
-</div>
+<div class="ku-overlay" id="ov-pause"><div class="ku-card" role="dialog" aria-modal="true" aria-labelledby="pause-h">
+  <h2 id="pause-h">⏸ ПАУЗА</h2>
+  <p id="pause-info">—</p>
+  <button class="ku-btn primary" id="p-resume">Продолжить</button>
+  <button class="ku-btn" id="p-restart">🔄 Заново</button>
+  <button class="ku-btn" id="p-rules">📖 Правила</button>
+  <button class="ku-btn" id="p-settings">⚙️ Настройки</button>
+  <button class="ku-btn ghost" id="p-menu">В меню</button>
+</div></div>
 
-<!-- ═══ ПОБЕДА ═══ -->
-<div class="ku-overlay" id="over">
-  <div class="ku-card">
-    <h2 class="win">ПОБЕДА!</h2>
-    <div class="ku-new-best" id="new-best">🏆 НОВЫЙ РЕКОРД!</div>
-    <div class="ku-big-score" id="big">0</div>
-    <p id="big-sub"></p>
-    <div class="ku-over-stats" id="over-stats"></div>
-    <button class="ku-btn primary" id="btn-again">Играть снова</button>
-    <button class="ku-btn ghost" id="btn-over-menu">В меню</button>
+<!-- ═══ КОНЕЦ ПАРТИИ ═══ -->
+<div class="ku-overlay" id="ov-over"><div class="ku-card" role="dialog" aria-modal="true" aria-labelledby="over-title">
+  <h2 id="over-title" class="win">ПОБЕДА!</h2>
+  <div class="ku-new-best" id="over-best" hidden>🏆 НОВЫЙ РЕКОРД!</div>
+  <div class="ku-big-score" id="big">0</div>
+  <p id="big-sub"></p>
+  <div class="ku-over-stats" id="over-stats"></div>
+  <div class="mem-ach" id="over-ach" hidden></div>
+  <div class="mem-btns">
+    <button class="ku-btn primary" id="o-again">🔄 Играть снова</button>
+    <button class="ku-btn" id="o-copy" hidden>📋 Скопировать результат</button>
+    <button class="ku-btn ghost" id="o-menu">В меню</button>
   </div>
-</div>
+</div></div>
+
+<!-- ═══ ПРАВИЛА ═══ -->
+<div class="ku-overlay" id="ov-rules"><div class="ku-modal" role="dialog" aria-modal="true" aria-labelledby="rules-h">
+  <header><h2 id="rules-h">📖 Правила</h2><button class="ku-btn icon" data-close aria-label="Закрыть">✕</button></header>
+  <div class="ku-body">
+    <h3>Цель</h3>
+    <ul class="ku-rules">
+      <li>Карты лежат рубашкой вверх, каждая картинка — ровно на <b>двух</b> картах. Найдите все пары.</li>
+    </ul>
+    <h3>Ход</h3>
+    <ul class="ku-rules">
+      <li><b>Ход</b> — открыть две карты. Совпали — пара остаётся открытой. Нет — обе закроются через короткую паузу (её длина — в настройках): запомните, где что лежит.</li>
+      <li>Не хотите ждать — сразу открывайте следующую карту: несовпавшая пара закроется мгновенно. Повторное нажатие на уже открытую карту ничего не делает.</li>
+      <li><b>Время</b> идёт с первой открытой карты и стоит на паузе. На паузе карты скрыты.</li>
+      <li><b>Промах по памяти</b> — пара первой карты уже открывалась раньше, а вторую вы открыли не ту. <b>Точность</b> — пары ÷ ходы (100 % — ни одного лишнего хода).</li>
+    </ul>
+    <h3>Поля и карты</h3>
+    <ul class="ku-rules">
+      <li><b>4×3</b> — 6 пар, <b>4×4</b> — 8, <b>5×4</b> — 10, <b>6×5</b> — 15, <b>6×6</b> — 18. На узком экране поле поворачивается (ряды ↔ столбцы), карты становятся крупнее.</li>
+      <li>Наборы: спорт, животные, еда, транспорт, флаги (если устройство их показывает), символы и <b>смайлы</b> — сложный набор из похожих картинок.</li>
+    </ul>
+    <h3>Режимы</h3>
+    <ul class="ku-rules">
+      <li><b>🎮 Классика</b> — без ограничений, рекорды ходов и времени.</li>
+      <li><b>⏱ На время</b> — успеть до конца отсчёта: 4×3 — 35 с, 4×4 — 45 с, 5×4 — 60 с, 6×5 — 100 с, 6×6 — 130 с.</li>
+      <li><b>🧮 Лимит ходов</b> (ограниченные ходы) — найти все пары не больше чем за 4×3 — 11 ходов, 4×4 — 16, 5×4 — 21, 6×5 — 36, 6×6 — 46.</li>
+      <li><b>👥 Вдвоём</b> — по очереди на одном устройстве. Нашли пару — ходите ещё раз, нет — ход переходит. Побеждает тот, у кого больше пар; поровну — ничья. Первый ход в следующей партии — у другого игрока.</li>
+      <li><b>📅 Испытание дня</b> — одна раскладка на день, одинаковая у всех: размер поля зависит от дня недели, набор карт — от даты. Засчитывается первая попытка (серия дней); повторы — тренировка. Незаконченную попытку можно продолжить.</li>
+    </ul>
+    <h3>Рекорды</h3>
+    <ul class="ku-rules">
+      <li>Для каждого размера поля — отдельно <b>меньше всего ходов</b> и <b>лучшее время</b> (могут быть из разных партий). Засчитываются победы в классике, на время, с лимитом ходов и первая попытка испытания дня.</li>
+      <li>Незаконченная партия сохраняется — «Продолжить» в меню. Новая партия поверх неё засчитывается как прерванная.</li>
+    </ul>
+    <h3>Клавиши</h3>
+    <ul class="ku-rules">
+      <li>Стрелки / WASD — выбрать карту, Enter / пробел — открыть, P / Esc — пауза, R — заново.</li>
+    </ul>
+  </div>
+  <footer><button class="ku-btn primary" data-close>Понятно</button></footer>
+</div></div>
+
+<!-- ═══ СТАТИСТИКА ═══ -->
+<div class="ku-overlay" id="ov-stats"><div class="ku-modal" role="dialog" aria-modal="true" aria-labelledby="stats-h">
+  <header><h2 id="stats-h">📊 Статистика</h2><button class="ku-btn icon" data-close aria-label="Закрыть">✕</button></header>
+  <div class="ku-body">
+    <div class="stats-grid" id="st-grid"></div>
+    <h3>Рекорды по полям</h3>
+    <table class="mem-table" id="st-rec"></table>
+    <h3>Режимы</h3>
+    <div class="mem-rows" id="st-modes"></div>
+  </div>
+  <footer><button class="ku-btn primary" data-close>Готово</button></footer>
+</div></div>
+
+<!-- ═══ ДОСТИЖЕНИЯ ═══ -->
+<div class="ku-overlay" id="ov-ach"><div class="ku-modal" role="dialog" aria-modal="true" aria-labelledby="ach-h">
+  <header><h2 id="ach-h">🏅 Достижения <span class="ku-muted" id="ach-count"></span></h2><button class="ku-btn icon" data-close aria-label="Закрыть">✕</button></header>
+  <div class="ku-body"><div class="list" id="ach-list"></div></div>
+  <footer><button class="ku-btn primary" data-close>Готово</button></footer>
+</div></div>
+
+<!-- ═══ ИСТОРИЯ ═══ -->
+<div class="ku-overlay" id="ov-history"><div class="ku-modal" role="dialog" aria-modal="true" aria-labelledby="hist-h">
+  <header><h2 id="hist-h">📜 История</h2><button class="ku-btn icon" data-close aria-label="Закрыть">✕</button></header>
+  <div class="ku-body"><div class="list" id="history-list"></div></div>
+  <footer><button class="ku-btn primary" data-close>Готово</button></footer>
+</div></div>
+
+<!-- ═══ НАСТРОЙКИ ═══ -->
+<div class="ku-overlay" id="ov-settings"><div class="ku-modal" role="dialog" aria-modal="true" aria-labelledby="set-h">
+  <header><h2 id="set-h">⚙️ Настройки</h2><button class="ku-btn icon" data-close aria-label="Закрыть">✕</button></header>
+  <div class="ku-body">
+    <h3>Несовпавшие карты закрываются</h3>
+    <div class="ku-seg mem-two" id="set-delay"><button data-v="fast"><b>Быстро</b><small>0,6 с</small></button><button data-v="normal"><b>Обычно</b><small>0,9 с</small></button><button data-v="slow"><b>Долго</b><small>1,4 с</small></button></div>
+    <h3>Звук и вибрация</h3>
+    <label class="ku-switch-row">Звуки<input type="checkbox" data-opt="sound"><span class="ku-switch"></span></label>
+    <label class="ku-switch-row">Вибрация<input type="checkbox" data-opt="vibro"><span class="ku-switch"></span></label>
+    <div id="set-data">
+      <h3>Данные</h3>
+      <div class="set-btns"><button class="ku-btn sm danger" id="btn-reset">🗑 Сбросить прогресс</button></div>
+    </div>
+  </div>
+  <footer><button class="ku-btn primary" data-close>Готово</button></footer>
+</div></div>
 
 <script>
 'use strict';
-const $ = id => document.getElementById(id);
 
-// Спорт-эмодзи (KuApp — фитнес-платформа): в каждой партии случайный набор из 20
-const EMOJI = ['🏋️', '🧘', '🚴', '🏊', '🤸', '🏃', '⛹️', '🤼', '🥊', '🥋',
-               '💪', '🦵', '🦶', '👊', '🙌', '🤲', '🦾', '🧠', '❤️', '🔥'];
-const SIZES = { 6: [3, 4], 8: [4, 4], 10: [4, 5] };      // пар → [столбцов, строк]
-const LS_BEST = 'memory_best', LS_SIZE = 'memory_size';
-const MISS_MS = 900;                                      // сколько видны несовпавшие карточки
+/* ═══ engine.js ═══ */
+/* ═══════════════════════════════════════════════════════════════
+ * НАЙДИ ПАРУ — движок без DOM: наборы карт, колода, правила хода,
+ * режимы (классика, на время, лимит ходов, вдвоём, испытание дня),
+ * рекорды, достижения, проверка сохранения. Тесты: tests/test_engine.js (Node).
+ * ═════════════════════════════════════════════════════════════ */
+const MemEngine = (() => {
+  // Поля: пар → [столбцы, строки] в «альбомной» раскладке. На узком экране поле
+  // поворачивается (строки ↔ столбцы), соседи карт при этом остаются соседями.
+  const SIZES = { 6: [4, 3], 8: [4, 4], 10: [5, 4], 15: [6, 5], 18: [6, 6] };
+  const SIZE_LIST = [6, 8, 10, 15, 18];
+  const MODES = ['classic', 'timed', 'limited', 'duo', 'daily'];
+  // «Лимит ходов»: сколько ходов (пар открытых карт) можно сделать. Подобрано моделью (tests/test_engine.js):
+  // идеальная память укладывается всегда (худший случай 11/14/18/27/31 хода), «обычный» игрок — примерно в 70 % партий.
+  // «На время»: секунды на всё поле — около 2,7 с на ход при таком числе ходов.
+  const MOVE_LIMIT = { 6: 11, 8: 16, 10: 21, 15: 36, 18: 46 };
+  const TIME_LIMIT = { 6: 35, 8: 45, 10: 60, 15: 100, 18: 130 };
+  const sizeName = p => SIZES[p][0] + '×' + SIZES[p][1];
 
-let pairs = 6, cards = [], openIdx = [], matched = 0, tries = 0, locked = false;
-let missTimer = 0, winTimer = 0;
-// время партии: копится в elapsed, пока идёт — отсчёт от t0 (пауза и фон останавливают)
-let elapsed = 0, t0 = 0, running = false, started = false, paused = false, over = true;
+  // Наборы карт: [эмодзи, название для экранного диктора]
+  const SETS = {
+    sport: { name: 'Спорт', icon: '🏋️', cards: [
+      ['🏋️', 'штанга'], ['🧘', 'йога'], ['🚴', 'велосипедист'], ['🏊', 'пловец'], ['🤸', 'гимнаст'], ['🏃', 'бегун'],
+      ['⛹️', 'баскетболист'], ['🤼', 'борцы'], ['🥊', 'боксёрская перчатка'], ['🥋', 'кимоно'], ['💪', 'бицепс'],
+      ['🦵', 'нога'], ['🦶', 'стопа'], ['👊', 'кулак'], ['🙌', 'руки вверх'], ['🤲', 'ладони'], ['🦾', 'механическая рука'],
+      ['🧠', 'мозг'], ['❤️', 'сердце'], ['🔥', 'огонь']] },
+    animals: { name: 'Животные', icon: '🐼', cards: [
+      ['🐶', 'собака'], ['🐱', 'кошка'], ['🐭', 'мышь'], ['🐹', 'хомяк'], ['🐰', 'кролик'], ['🦊', 'лиса'],
+      ['🐻', 'медведь'], ['🐼', 'панда'], ['🐨', 'коала'], ['🐯', 'тигр'], ['🦁', 'лев'], ['🐮', 'корова'],
+      ['🐷', 'свинья'], ['🐸', 'лягушка'], ['🐵', 'обезьяна'], ['🐔', 'курица'], ['🐧', 'пингвин'], ['🦉', 'сова'],
+      ['🐴', 'лошадь'], ['🦄', 'единорог'], ['🐝', 'пчела'], ['🐢', 'черепаха'], ['🐙', 'осьминог'], ['🐬', 'дельфин']] },
+    food: { name: 'Еда', icon: '🍕', cards: [
+      ['🍎', 'яблоко'], ['🍐', 'груша'], ['🍊', 'апельсин'], ['🍋', 'лимон'], ['🍌', 'банан'], ['🍉', 'арбуз'],
+      ['🍇', 'виноград'], ['🍓', 'клубника'], ['🍒', 'вишня'], ['🍑', 'персик'], ['🍍', 'ананас'], ['🥝', 'киви'],
+      ['🥑', 'авокадо'], ['🍅', 'помидор'], ['🥕', 'морковь'], ['🌽', 'кукуруза'], ['🥦', 'брокколи'], ['🍞', 'хлеб'],
+      ['🧀', 'сыр'], ['🍕', 'пицца'], ['🍔', 'бургер'], ['🍟', 'картошка фри'], ['🍩', 'пончик'], ['🍦', 'мороженое']] },
+    transport: { name: 'Транспорт', icon: '🚗', cards: [
+      ['🚗', 'машина'], ['🚕', 'такси'], ['🚌', 'автобус'], ['🚎', 'троллейбус'], ['🏎️', 'гоночная машина'],
+      ['🚓', 'полиция'], ['🚑', 'скорая помощь'], ['🚒', 'пожарная машина'], ['🚚', 'грузовик'], ['🚜', 'трактор'],
+      ['🛵', 'мопед'], ['🏍️', 'мотоцикл'], ['🚲', 'велосипед'], ['🛴', 'самокат'], ['🚂', 'паровоз'], ['🚇', 'метро'],
+      ['✈️', 'самолёт'], ['🚁', 'вертолёт'], ['🚀', 'ракета'], ['⛵', 'парусник'], ['🚢', 'корабль'], ['🛸', 'летающая тарелка']] },
+    flags: { name: 'Флаги', icon: '🇰🇬', cards: [
+      ['🇰🇬', 'Кыргызстан'], ['🇰🇿', 'Казахстан'], ['🇺🇿', 'Узбекистан'], ['🇹🇯', 'Таджикистан'], ['🇷🇺', 'Россия'],
+      ['🇹🇷', 'Турция'], ['🇨🇳', 'Китай'], ['🇯🇵', 'Япония'], ['🇰🇷', 'Южная Корея'], ['🇮🇳', 'Индия'], ['🇺🇸', 'США'],
+      ['🇨🇦', 'Канада'], ['🇧🇷', 'Бразилия'], ['🇬🇧', 'Великобритания'], ['🇩🇪', 'Германия'], ['🇫🇷', 'Франция'],
+      ['🇮🇹', 'Италия'], ['🇪🇸', 'Испания'], ['🇦🇪', 'ОАЭ'], ['🇲🇳', 'Монголия'], ['🇬🇪', 'Грузия'], ['🇸🇪', 'Швеция']] },
+    symbols: { name: 'Символы', icon: '⭐', cards: [
+      ['⭐', 'звезда'], ['🌙', 'луна'], ['☀️', 'солнце'], ['⚡', 'молния'], ['❄️', 'снежинка'], ['💧', 'капля'],
+      ['🍀', 'клевер'], ['🌈', 'радуга'], ['🎵', 'нота'], ['🔔', 'колокольчик'], ['💎', 'алмаз'], ['🎯', 'мишень'],
+      ['🧩', 'пазл'], ['🎲', 'кубик'], ['⚓', 'якорь'], ['🔑', 'ключ'], ['💡', 'лампочка'], ['⏰', 'будильник'],
+      ['🎁', 'подарок'], ['🎈', 'воздушный шарик'], ['🔮', 'хрустальный шар'], ['🌸', 'цветок']] },
+    // сложный набор: похожие смайлы
+    faces: { name: 'Смайлы', icon: '😵', hard: true, cards: [
+      ['😀', 'широкая улыбка'], ['😃', 'улыбка с большими глазами'], ['😄', 'улыбка со смеющимися глазами'],
+      ['😁', 'сияющая улыбка'], ['😆', 'смех зажмурившись'], ['😅', 'улыбка с капелькой пота'], ['😂', 'слёзы радости'],
+      ['🤣', 'катается от смеха'], ['🙂', 'лёгкая улыбка'], ['😊', 'улыбка с румянцем'], ['😇', 'улыбка с нимбом'],
+      ['🙃', 'улыбка вверх ногами'], ['😉', 'подмигивает'], ['😌', 'облегчение'], ['😍', 'влюблённые глаза'],
+      ['😘', 'воздушный поцелуй'], ['😗', 'целует'], ['😋', 'вкусно'], ['😛', 'показывает язык'],
+      ['😜', 'подмигивает с языком'], ['😝', 'язык и зажмуренные глаза'], ['🤪', 'безумная рожица'], ['😎', 'в тёмных очках'],
+      ['🤓', 'в очках-ботаник']] }
+  };
+  const SET_IDS = ['sport', 'animals', 'food', 'transport', 'flags', 'symbols', 'faces'];
+  // испытание дня — только наборы, которые одинаково выглядят на любом устройстве
+  const DAILY_SETS = ['sport', 'animals', 'food', 'transport', 'symbols'];
+  const DAILY_PAIRS = [18, 8, 10, 15, 8, 10, 15];          // по дню недели: вс 6×6, пн 4×4, вт 5×4, ср 6×5, чт 4×4, пт 5×4, сб 6×5
 
-/* ── Утилиты ── */
-function shuffle(a) {                                     // Фишер — Йетс (sort(random) даёт перекос)
-  for (let i = a.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [a[i], a[j]] = [a[j], a[i]]; }
-  return a;
+  /* ── Случайность: FNV-1a + mulberry32 (одинаково на всех устройствах) ── */
+  function hashStr(s) {
+    let h = 2166136261 >>> 0;
+    for (let i = 0; i < s.length; i++) { h ^= s.charCodeAt(i); h = Math.imul(h, 16777619) >>> 0; }
+    return h >>> 0;
+  }
+  function rng(seed) {
+    let a = seed >>> 0;
+    return () => {
+      a = (a + 0x6D2B79F5) >>> 0;
+      let t = a;
+      t = Math.imul(t ^ (t >>> 15), t | 1);
+      t ^= t + Math.imul(t ^ (t >>> 7), t | 61);
+      return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+    };
+  }
+  function shuffle(a, rnd) {                       // Фишер — Йетс (sort(random) даёт перекос)
+    for (let i = a.length - 1; i > 0; i--) { const j = Math.floor(rnd() * (i + 1)); const t = a[i]; a[i] = a[j]; a[j] = t; }
+    return a;
+  }
+
+  // Колода: n разных символов набора, каждый ровно дважды, в случайном порядке
+  function makeDeck(pairs, symbols, rnd) {
+    if (!SIZES[pairs] || !(symbols >= pairs)) throw new Error('makeDeck: ' + pairs + '/' + symbols);
+    const pool = shuffle(Array.from({ length: symbols }, (_, k) => k), rnd).slice(0, pairs);
+    return shuffle(pool.concat(pool), rnd);
+  }
+
+  // Испытание дня: поле по дню недели, набор и раскладка — от зерна даты 'ГГГГ-ММ-ДД'
+  const DATE_RE = /^\d{4}-\d\d-\d\d$/;
+  function dailyConfig(key) {
+    if (!DATE_RE.test(key)) throw new Error('dailyConfig: ' + key);
+    const dow = new Date(Date.UTC(+key.slice(0, 4), +key.slice(5, 7) - 1, +key.slice(8, 10))).getUTCDay();
+    const rnd = rng(hashStr('kuapp-memory-daily-' + key));
+    const pairs = DAILY_PAIRS[dow];
+    const set = DAILY_SETS[Math.floor(rnd() * DAILY_SETS.length)];
+    return { key, pairs, set, deck: makeDeck(pairs, SETS[set].cards.length, rnd) };
+  }
+
+  /* ── Партия ── */
+  function partnerMap(deck) {
+    const first = new Map(), pair = new Array(deck.length);
+    deck.forEach((s, i) => { if (first.has(s)) { const j = first.get(s); pair[i] = j; pair[j] = i; } else first.set(s, i); });
+    return pair;
+  }
+
+  // o: { mode, pairs, set, deck? | rnd?, daily?, practice?, starter? }
+  function newGame(o) {
+    const pairs = o.pairs, mode = o.mode;
+    if (!SIZES[pairs] || MODES.indexOf(mode) < 0 || !SETS[o.set]) throw new Error('newGame: bad options');
+    const deck = o.deck ? o.deck.slice() : makeDeck(pairs, SETS[o.set].cards.length, o.rnd || Math.random);
+    const n2 = pairs * 2, starter = mode === 'duo' ? (o.starter | 0) & 1 : 0;
+    return {
+      mode, pairs, set: o.set, daily: o.daily || '', practice: !!o.practice,
+      deck, pair: partnerMap(deck),
+      matched: new Array(n2).fill(0),        // 0 — не найдена; 1 / 2 — пару нашёл игрок 1 / 2 (в одиночной всегда 1)
+      seen: new Array(n2).fill(0),           // сколько раз карту открывали
+      first: -1,                             // открытая первая карта хода
+      show: null,                            // [a, b] — показываемая несовпавшая пара (до закрытия)
+      moves: 0, flips: 0, found: 0, combo: 0, bestCombo: 0, slips: 0,
+      player: starter, starter, pairsBy: [0, 0], movesBy: [0, 0],
+      moveLimit: mode === 'limited' ? MOVE_LIMIT[pairs] : 0,
+      timeLimit: mode === 'timed' ? TIME_LIMIT[pairs] * 1000 : 0,
+      elapsed: 0, over: false, result: ''
+    };
+  }
+
+  const IGNORE = Object.freeze({ type: 'ignore' });
+  const duoResult = g => g.pairsBy[0] > g.pairsBy[1] ? 'p1' : g.pairsBy[1] > g.pairsBy[0] ? 'p2' : 'draw';
+  function end(g, result) { g.over = true; g.result = result; }
+
+  /* Тап по карте i. Правила:
+   *  • открытая, найденная или несуществующая карта — ничего (двойной тап не считается);
+   *  • пока показывается несовпавшая пара, тап по другой закрытой карте сразу закрывает пару
+   *    и открывает эту карту (closed в событии); тап по самой паре — ничего;
+   *  • вторая карта — это ход: совпали → пара остаётся открытой (во «Вдвоём» — ещё ход того же игрока),
+   *    нет → пара показывается, ход переходит к другому игроку;
+   *  • «промах по памяти» — вторая карта не та, хотя пара первой уже открывалась раньше. */
+  function flip(g, i) {
+    if (g.over || !Number.isInteger(i) || i < 0 || i >= g.deck.length || g.matched[i]) return IGNORE;
+    let closed = null;
+    if (g.show) {
+      if (i === g.show[0] || i === g.show[1]) return IGNORE;
+      closed = g.show; g.show = null;
+    }
+    if (i === g.first) return IGNORE;
+    g.flips++;
+    if (g.first < 0) { g.first = i; g.seen[i]++; return { type: 'first', i, closed }; }
+
+    const a = g.first, knew = g.seen[g.pair[a]] > 0;
+    g.first = -1; g.seen[i]++;
+    g.moves++; g.movesBy[g.player]++;
+    if (g.deck[a] === g.deck[i]) {
+      g.matched[a] = g.matched[i] = g.player + 1;
+      g.found++; g.pairsBy[g.player]++;
+      g.combo++; if (g.combo > g.bestCombo) g.bestCombo = g.combo;
+      const ev = { type: 'match', a, b: i, closed, player: g.player, combo: g.combo };
+      if (g.found === g.pairs) end(g, g.mode === 'duo' ? duoResult(g) : 'win');
+      else if (g.moveLimit && g.moves >= g.moveLimit) end(g, 'lose');
+      ev.over = g.over; ev.result = g.result;
+      return ev;
+    }
+    if (knew) g.slips++;
+    g.combo = 0; g.show = [a, i];
+    const ev = { type: 'miss', a, b: i, closed, player: g.player, slip: knew };
+    if (g.mode === 'duo') g.player = 1 - g.player;
+    ev.next = g.player;
+    if (g.moveLimit && g.moves >= g.moveLimit) end(g, 'lose');
+    ev.over = g.over; ev.result = g.result;
+    return ev;
+  }
+
+  // Закрыть показанную несовпавшую пару (по таймеру). Возвращает [a, b] или null.
+  function hide(g) { if (!g.show) return null; const s = g.show; g.show = null; return s; }
+
+  // «На время»: время вышло
+  function timeUp(g) { if (g.over) return false; end(g, 'lose'); return true; }
+
+  const timeLeft = g => g.timeLimit ? Math.max(0, g.timeLimit - g.elapsed) : 0;
+  const movesLeft = g => g.moveLimit ? Math.max(0, g.moveLimit - g.moves) : 0;
+
+  /* ── Сохранение незаконченной партии ── */
+  function serialize(g) {
+    return {
+      v: 1, mode: g.mode, pairs: g.pairs, set: g.set, daily: g.daily, practice: g.practice,
+      deck: g.deck.slice(), matched: g.matched.slice(), seen: g.seen.slice(), first: g.first,
+      moves: g.moves, combo: g.combo, bestCombo: g.bestCombo, slips: g.slips,
+      player: g.player, starter: g.starter, movesBy: g.movesBy.slice(), elapsed: Math.max(0, Math.round(g.elapsed))
+    };
+  }
+  const isInt = (v, lo, hi) => Number.isInteger(v) && v >= lo && v <= hi;
+  // Проверка сохранения: любое несоответствие → null (партию не продолжаем, игра не ломается)
+  function restore(o) {
+    try {
+      if (!o || typeof o !== 'object' || o.v !== 1) return null;
+      const pairs = o.pairs;
+      if (!SIZES[pairs] || MODES.indexOf(o.mode) < 0 || typeof o.set !== 'string' || !Object.prototype.hasOwnProperty.call(SETS, o.set)) return null;
+      const n2 = pairs * 2, symbols = SETS[o.set].cards.length;
+      if (!Array.isArray(o.deck) || o.deck.length !== n2 || !o.deck.every(s => isInt(s, 0, symbols - 1))) return null;
+      const cnt = {};
+      for (const s of o.deck) cnt[s] = (cnt[s] || 0) + 1;
+      if (Object.keys(cnt).length !== pairs || Object.values(cnt).some(c => c !== 2)) return null;
+      const daily = typeof o.daily === 'string' ? o.daily : '';
+      if (o.mode === 'daily') {
+        if (!DATE_RE.test(daily)) return null;
+        const cfg = dailyConfig(daily);
+        if (cfg.pairs !== pairs || cfg.set !== o.set || cfg.deck.join() !== o.deck.join()) return null;
+      }
+      const g = newGame({ mode: o.mode, pairs, set: o.set, deck: o.deck, daily: o.mode === 'daily' ? daily : '',
+        practice: o.mode === 'daily' && o.practice === true, starter: isInt(o.starter, 0, 1) ? o.starter : 0 });
+      const maxOwner = o.mode === 'duo' ? 2 : 1;
+      if (!Array.isArray(o.matched) || o.matched.length !== n2 || !o.matched.every(m => isInt(m, 0, maxOwner))) return null;
+      if (!Array.isArray(o.seen) || o.seen.length !== n2 || !o.seen.every(s => isInt(s, 0, 1e6))) return null;
+      for (let i = 0; i < n2; i++) {
+        if (o.matched[i] !== o.matched[g.pair[i]]) return null;           // пара найдена целиком или не найдена
+        if (o.matched[i] && o.seen[i] < 1) return null;
+      }
+      g.matched = o.matched.slice(); g.seen = o.seen.slice();
+      g.found = g.matched.filter(m => m).length / 2;
+      g.pairsBy = [g.matched.filter(m => m === 1).length / 2, g.matched.filter(m => m === 2).length / 2];
+      if (g.found >= pairs) return null;                                   // законченная партия — не продолжается
+      if (!isInt(o.first, -1, n2 - 1) || (o.first >= 0 && (g.matched[o.first] || o.seen[o.first] < 1))) return null;
+      g.first = o.first;
+      if (!isInt(o.moves, g.found, 100000)) return null;
+      g.moves = o.moves; g.flips = g.moves * 2 + (g.first >= 0 ? 1 : 0);
+      if (o.mode === 'duo') {
+        if (!Array.isArray(o.movesBy) || o.movesBy.length !== 2 || !o.movesBy.every(m => isInt(m, 0, 100000))) return null;
+        if (o.movesBy[0] + o.movesBy[1] !== g.moves || o.movesBy[0] < g.pairsBy[0] || o.movesBy[1] < g.pairsBy[1]) return null;
+        g.movesBy = o.movesBy.slice();
+        if (!isInt(o.player, 0, 1)) return null;
+        g.player = o.player;
+      } else g.movesBy = [g.moves, 0];
+      if (!isInt(o.combo, 0, g.found) || !isInt(o.bestCombo, o.combo, g.found) || !isInt(o.slips, 0, g.moves)) return null;
+      g.combo = o.combo; g.bestCombo = o.bestCombo; g.slips = o.slips;
+      if (!(Number.isFinite(o.elapsed) && o.elapsed >= 0 && o.elapsed < 864e5)) return null;
+      g.elapsed = Math.round(o.elapsed);
+      if (g.moveLimit && g.moves >= g.moveLimit) return null;
+      if (g.timeLimit && g.elapsed >= g.timeLimit) return null;
+      return g;
+    } catch (e) { return null; }
+  }
+
+  /* ── Рекорды по полю (формат прежней версии, ключ memory_best):
+   *    { "6": { tries — меньше всего ходов, time — лучшее время, мс, wins — побед }, … } ── */
+  function cleanBest(o) {
+    const out = {};
+    if (!o || typeof o !== 'object' || Array.isArray(o)) return out;
+    for (const p of SIZE_LIST) {
+      const r = o[p];
+      if (!r || typeof r !== 'object' || Array.isArray(r)) continue;
+      const rec = { wins: Number.isFinite(r.wins) && r.wins >= 0 ? Math.min(1e6, Math.floor(r.wins)) : 0 };
+      if (Number.isFinite(r.tries) && r.tries >= p && r.tries < 1e5) rec.tries = Math.round(r.tries);   // ходов не меньше, чем пар
+      if (Number.isFinite(r.time) && r.time > 0 && r.time < 864e5) rec.time = Math.round(r.time);
+      if (rec.tries || rec.time || rec.wins) out[p] = rec;
+    }
+    return out;
+  }
+  // Победа на поле: ходы и время — отдельные рекорды (могут прийти из разных партий)
+  function addRecord(best, pairs, moves, ms) {
+    const r = best[pairs] || (best[pairs] = { wins: 0 });
+    const newMoves = !(r.tries > 0) || moves < r.tries, newTime = !(r.time > 0) || ms < r.time;
+    if (newMoves) r.tries = moves;
+    if (newTime) r.time = Math.round(ms);
+    r.wins = (r.wins | 0) + 1;
+    return { newMoves, newTime, rec: r };
+  }
+
+  /* ── Достижения: test(c) — по итогам партии (c — см. achContext в интерфейсе) ── */
+  const ACH = [
+    { id: 'first_win', icon: '🌱', title: 'Первая победа', desc: 'Найдите все пары в одиночной игре', test: c => c.win || c.wins >= 1 },
+    { id: 'big', icon: '🏁', title: 'Большая игра', desc: 'Пройдите поле 6×6', test: c => c.win && c.pairs === 18 },
+    { id: 'all_sizes', icon: '📐', title: 'Все размеры', desc: 'Пройдите все пять полей: 4×3, 4×4, 5×4, 6×5 и 6×6', test: c => c.sizesWon >= 5 },
+    { id: 'photo', icon: '📸', title: 'Фотографическая память', desc: 'Пройдите поле 5×4 или больше без единого промаха по памяти', test: c => c.win && c.pairs >= 10 && c.slips === 0 },
+    { id: 'combo5', icon: '🔥', title: 'Без осечек', desc: 'Найдите 5 пар подряд без промахов', test: c => c.bestCombo >= 5 },
+    { id: 'fast', icon: '⚡', title: 'Молния', desc: 'Пройдите поле 4×4 быстрее 25 секунд', test: c => c.win && c.pairs === 8 && c.ms < 25000 },
+    { id: 'timed', icon: '⏱️', title: 'Наперегонки', desc: 'Победите в режиме «На время»', test: c => c.win && c.mode === 'timed' },
+    { id: 'clutch', icon: '⏳', title: 'На последней секунде', desc: 'Победите «На время», когда осталось меньше 5 секунд', test: c => c.win && c.mode === 'timed' && c.timeLeft < 5000 },
+    { id: 'limited', icon: '🧮', title: 'Экономный', desc: 'Победите в режиме «Лимит ходов» на поле 6×5 или 6×6', test: c => c.win && c.mode === 'limited' && c.pairs >= 15 },
+    { id: 'duo', icon: '👥', title: 'Дружеская партия', desc: 'Доиграйте партию вдвоём', test: c => c.mode === 'duo' && !!c.duo },
+    { id: 'draw', icon: '🤝', title: 'Боевая ничья', desc: 'Закончите партию вдвоём вничью', test: c => c.mode === 'duo' && c.duo === 'draw' },
+    { id: 'daily', icon: '📅', title: 'Испытание дня', desc: 'Пройдите испытание дня', test: c => c.win && c.mode === 'daily' },
+    { id: 'streak7', icon: '📆', title: 'Неделя памяти', desc: 'Проходите испытание дня 7 дней подряд', test: c => c.streak >= 7 },
+    { id: 'sets5', icon: '🗂️', title: 'Коллекционер', desc: 'Победите с пятью разными наборами карт', test: c => c.setsWon >= 5 },
+    { id: 'wins50', icon: '🏆', title: 'Ветеран', desc: 'Одержите 50 побед', test: c => c.wins >= 50 }
+  ];
+  const achievements = c => ACH.filter(a => { try { return !!a.test(c); } catch (e) { return false; } }).map(a => a.id);
+
+  return {
+    SIZES, SIZE_LIST, MODES, TIME_LIMIT, MOVE_LIMIT, SETS, SET_IDS, DAILY_SETS, ACH, DATE_RE,
+    sizeName, hashStr, rng, shuffle, makeDeck, dailyConfig, newGame, flip, hide, timeUp, timeLeft, movesLeft,
+    serialize, restore, cleanBest, addRecord, achievements
+  };
+})();
+
+/* ═══ ui.js ═══ */
+/* ═══════════════════════════════════════════════════════════════
+ * НАЙДИ ПАРУ — интерфейс: меню, партия, ввод (тач, мышь, клавиатура),
+ * раскладка поля под экран, пауза, сохранение, статистика, достижения, история.
+ * ═════════════════════════════════════════════════════════════ */
+const E = MemEngine;
+const $ = s => document.querySelector(s), $$ = s => document.querySelectorAll(s);
+const clamp = (v, a, b) => Math.min(b, Math.max(a, v));
+const fmtT = ms => { const s = Math.floor(Math.max(0, ms || 0) / 1000); return Math.floor(s / 60) + ':' + String(s % 60).padStart(2, '0'); };
+const fmtLeft = ms => fmtT(Math.ceil(Math.max(0, ms) / 1000) * 1000);       // обратный отсчёт: «0:01» до самого конца
+const fmtLong = ms => ms >= 36e5 ? Math.floor(ms / 36e5) + ' ч ' + Math.floor(ms % 36e5 / 6e4) + ' мин' : fmtT(ms);   // время в игре
+const plural = (n, a, b, c) => { const m = Math.abs(n) % 10, h = Math.abs(n) % 100; return m === 1 && h !== 11 ? a : m >= 2 && m <= 4 && (h < 12 || h > 14) ? b : c; };
+const movesW = n => n + ' ' + plural(n, 'ход', 'хода', 'ходов');
+const pairsW = n => n + ' ' + plural(n, 'пара', 'пары', 'пар');
+const dateKey = d => d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');
+const dayNum = s => Math.round(Date.UTC(+s.slice(0, 4), +s.slice(5, 7) - 1, +s.slice(8, 10)) / 864e5);
+const today = () => dateKey(new Date());
+const fmtDay = k => k.slice(8, 10) + '.' + k.slice(5, 7);
+const sizeName = E.sizeName;
+const nonNeg = v => Number.isFinite(v) && v >= 0 ? Math.min(Math.floor(v), 1e9) : 0;
+const MODE_NAME = { classic: 'Классика', timed: 'На время', limited: 'Лимит ходов', duo: 'Вдвоём', daily: 'Испытание дня' };
+const MODE_ICON = { classic: '🎮', timed: '⏱', limited: '🧮', duo: '👥', daily: '📅' };
+const PLAYER = ['Игрок 1', 'Игрок 2'];
+const HINTS = { classic: 'Открой две карты: совпали — остаются открытыми', timed: 'Найди все пары до конца отсчёта',
+  limited: 'Найди все пары, пока не кончились ходы', duo: 'Нашёл пару — ходи ещё раз. У кого больше пар — тот победил',
+  daily: 'Одна раскладка на день — одинаковая у всех' };
+
+/* ═══ Хранилище ═══ */
+const store = {
+  get(k, d) { try { const v = localStorage.getItem(k); if (v === null) return d; const o = JSON.parse(v); return o === null ? d : o; } catch (e) { return d; } },
+  set(k, v) { try { localStorage.setItem(k, JSON.stringify(v)); } catch (e) {} },
+  del(k) { try { localStorage.removeItem(k); } catch (e) {} }
+};
+const asObj = o => (o && typeof o === 'object' && !Array.isArray(o)) ? o : {};
+// memory_best и memory_size — ключи прежней версии (рекорды по полю и выбранный размер), формат сохранён
+const KEYS = { best: 'memory_best', size: 'memory_size', settings: 'memory_settings', stats: 'memory_stats', ach: 'memory_ach',
+  hist: 'memory_history', save: 'memory_save', daily: 'memory_daily' };
+
+/* Флаги-эмодзи на части систем (Windows) рисуются двумя буквами — тогда набор «Флаги» не показываем */
+const FLAGS_OK = (() => {
+  try {
+    const c = document.createElement('canvas'); c.width = c.height = 32;
+    const x = c.getContext('2d', { willReadFrequently: true });
+    if (!x) return true;
+    x.textBaseline = 'top'; x.font = '26px sans-serif'; x.fillStyle = '#000';
+    x.fillText('🇰🇬', 0, 2);
+    const d = x.getImageData(0, 0, 32, 32).data;
+    for (let i = 0; i < d.length; i += 4)
+      if (d[i + 3] > 60 && (Math.abs(d[i] - d[i + 1]) > 50 || Math.abs(d[i + 1] - d[i + 2]) > 50)) return true;   // цветной пиксель — флаг есть
+    return false;
+  } catch (e) { return true; }
+})();
+const setAvailable = id => E.SET_IDS.indexOf(id) >= 0 && (id !== 'flags' || FLAGS_OK);
+const SETS_SHOWN = E.SET_IDS.filter(setAvailable);
+
+/* ── Настройки ── */
+const DELAYS = { fast: 600, normal: 900, slow: 1400 };
+const settings = (() => {
+  const o = asObj(store.get(KEYS.settings, null)), s = { set: 'sport', delay: 'normal', sound: true, vibro: true };
+  if (typeof o.set === 'string' && setAvailable(o.set)) s.set = o.set;
+  if (typeof o.delay === 'string' && Object.prototype.hasOwnProperty.call(DELAYS, o.delay)) s.delay = o.delay;
+  for (const k of ['sound', 'vibro']) if (typeof o[k] === 'boolean') s[k] = o[k];
+  return s;
+})();
+const saveSettings = () => store.set(KEYS.settings, settings);
+let pairsSel = (() => { const p = store.get(KEYS.size, 8); return typeof p === 'number' && E.SIZES[p] ? p : 8; })();
+
+/* ── Рекорды по полю (memory_best): { "8": { tries, time, wins } } ── */
+let best = E.cleanBest(store.get(KEYS.best, null));
+const saveBest = () => store.set(KEYS.best, best);
+
+/* ── Статистика ── */
+const SOLO_MODES = ['classic', 'timed', 'limited', 'daily'];
+const blankStats = () => ({ games: 0, wins: 0, losses: 0, quits: 0, pairs: 0, moves: 0, time: 0, bestCombo: 0, slips: 0,
+  modes: { classic: { g: 0, w: 0 }, timed: { g: 0, w: 0 }, limited: { g: 0, w: 0 }, daily: { g: 0, w: 0 }, duo: { g: 0, p1: 0, p2: 0, d: 0 } },
+  sets: {} });
+let stats = (() => {
+  const raw = store.get(KEYS.stats, null), o = asObj(raw), s = blankStats();
+  for (const k of ['games', 'wins', 'losses', 'quits', 'pairs', 'moves', 'time', 'bestCombo', 'slips']) s[k] = nonNeg(o[k]);
+  const m = asObj(o.modes);
+  for (const k of SOLO_MODES) { const r = asObj(m[k]); s.modes[k].g = nonNeg(r.g); s.modes[k].w = Math.min(nonNeg(r.w), s.modes[k].g); }
+  const d = asObj(m.duo); s.modes.duo = { g: nonNeg(d.g), p1: nonNeg(d.p1), p2: nonNeg(d.p2), d: nonNeg(d.d) };
+  const st = asObj(o.sets);
+  for (const k of E.SET_IDS) if (nonNeg(st[k])) s.sets[k] = nonNeg(st[k]);
+  if (raw === null) {
+    // первая версия хранила только победы по полям (спорт-эмодзи, классика) — переносим в статистику
+    const w = E.SIZE_LIST.reduce((a, p) => a + (best[p] ? best[p].wins : 0), 0);
+    if (w) { s.games = s.wins = s.modes.classic.g = s.modes.classic.w = w; s.sets.sport = w; }
+  }
+  s.wins = Math.min(s.wins, s.games);
+  return s;
+})();
+const saveStats = () => store.set(KEYS.stats, stats);
+
+/* ── Достижения ── */
+let unlocked = (() => {
+  const o = asObj(store.get(KEYS.ach, null)), u = {};
+  for (const a of E.ACH) if (Number.isFinite(o[a.id]) && o[a.id] > 0) u[a.id] = o[a.id];
+  return u;
+})();
+
+/* ── История (последние 50 партий) ── */
+const HIST_MAX = 50, RESULTS = ['win', 'lose', 'quit', 'p1', 'p2', 'draw'];
+let hist = (() => {
+  const h = store.get(KEYS.hist, []);
+  if (!Array.isArray(h)) return [];
+  return h.filter(x => x && typeof x === 'object' && E.MODES.indexOf(x.m) >= 0 && E.SIZES[x.p] && E.SET_IDS.indexOf(x.s) >= 0 &&
+      RESULTS.indexOf(x.r) >= 0 && Number.isFinite(x.t))
+    .slice(0, HIST_MAX)
+    .map(x => ({ t: x.t, m: x.m, p: x.p, s: x.s, r: x.r, mv: nonNeg(x.mv), ms: nonNeg(x.ms), f: nonNeg(x.f), pr: x.pr === 1 ? 1 : 0,
+      sc: Array.isArray(x.sc) && x.sc.length === 2 ? x.sc.map(nonNeg) : null }));
+})();
+
+/* ── Испытание дня: попытки (att), результаты первых попыток (res), серия дней ── */
+const daily = (() => {
+  const o = asObj(store.get(KEYS.daily, null)), d = { att: {}, res: {}, streak: 0, best: 0, last: '' };
+  const att = asObj(o.att), res = asObj(o.res);
+  for (const k in att) if (E.DATE_RE.test(k) && att[k] === 1) d.att[k] = 1;
+  for (const k in res) {
+    const r = asObj(res[k]);
+    if (E.DATE_RE.test(k) && Number.isInteger(r.mv) && r.mv > 0 && Number.isFinite(r.ms) && r.ms > 0) d.res[k] = { mv: r.mv, ms: Math.round(r.ms) };
+  }
+  if (typeof o.last === 'string' && E.DATE_RE.test(o.last)) d.last = o.last;
+  for (const f of ['streak', 'best']) if (Number.isInteger(o[f]) && o[f] >= 0 && o[f] < 1e5) d[f] = o[f];
+  d.best = Math.max(d.best, d.streak);
+  return d;
+})();
+// текущая серия: последний пройденный день — сегодня или вчера
+const dailyStreak = () => daily.last && dayNum(today()) - dayNum(daily.last) <= 1 ? daily.streak : 0;
+function saveDaily() {
+  for (const f of ['att', 'res']) { const ks = Object.keys(daily[f]).sort(); while (ks.length > 120) delete daily[f][ks.shift()]; }
+  store.set(KEYS.daily, daily);
 }
-function plural(n, forms) {
-  const a = n % 10, b = n % 100;
-  return forms[a === 1 && b !== 11 ? 0 : a >= 2 && a <= 4 && (b < 10 || b >= 20) ? 1 : 2];
-}
-const triesWord = n => plural(n, ['попытка', 'попытки', 'попыток']);
-function fmtTime(ms) { const s = Math.floor(Math.max(0, ms) / 1000); return Math.floor(s / 60) + ':' + String(s % 60).padStart(2, '0'); }
-const sizeName = p => SIZES[p][0] + '×' + SIZES[p][1];
-function now() { return elapsed + (running ? performance.now() - t0 : 0); }
-function clock(on) {
-  if (on && !running) { t0 = performance.now(); running = true; }
-  else if (!on && running) { elapsed += performance.now() - t0; running = false; }
-}
-function pop(id) { const b = $(id); b.classList.remove('pop'); void b.offsetWidth; b.classList.add('pop'); }
-const cardEl = i => $('grid').children[i];
 
-/* ── Рекорды: { "6": { tries, time, wins }, … } ── */
-function loadBest() {
-  try { const o = JSON.parse(localStorage.getItem(LS_BEST) || '{}'); return o && typeof o === 'object' ? o : {}; }
-  catch (e) { return {}; }
+/* ═══ Звук и вибрация ═══ */
+let audioCtx = null;
+function tone(f, d, type, v, delay) {
+  if (!settings.sound) return;
+  try {
+    if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+    if (audioCtx.state === 'suspended') audioCtx.resume();
+    const c = audioCtx, o = c.createOscillator(), g = c.createGain(), t0 = c.currentTime + (delay || 0);
+    o.type = type || 'sine'; o.frequency.value = f;
+    g.gain.setValueAtTime(v || 0.04, t0); g.gain.exponentialRampToValueAtTime(0.0001, t0 + d);
+    o.connect(g); g.connect(c.destination); o.start(t0); o.stop(t0 + d + 0.02);
+  } catch (e) {}
 }
-function saveBest(o) { try { localStorage.setItem(LS_BEST, JSON.stringify(o)); } catch (e) {} }
-const bestOf = (all, p) => { const b = all[p]; return b && b.tries > 0 ? b : null; };
+const sfx = {
+  click: () => tone(520, 0.04, 'sine', 0.03),
+  flip: () => tone(700, 0.045, 'triangle', 0.035),
+  match: () => [784, 1175].forEach((f, i) => tone(f, 0.11, 'sine', 0.05, i * 0.07)),
+  miss: () => tone(185, 0.13, 'square', 0.03),
+  turn: () => tone(990, 0.07, 'sine', 0.035, 0.18),
+  tick: () => tone(1250, 0.035, 'square', 0.022),
+  win: () => [523, 659, 784, 1046, 1319].forEach((f, i) => tone(f, 0.14, 'square', 0.04, i * 0.085)),
+  lose: () => [392, 311, 247].forEach((f, i) => tone(f, 0.2, 'sawtooth', 0.035, i * 0.13)),
+  ach: () => [659, 784, 1046].forEach((f, i) => tone(f, 0.12, 'sine', 0.05, i * 0.09))
+};
+const vib = p => { if (settings.vibro && navigator.vibrate) try { navigator.vibrate(p); } catch (e) {} };
+const toast = (m, k, d) => { if (window.KuArcade) KuArcade.toast(m, ((k || '') + (screen === 'game' ? ' top' : '')).trim(), d); };
 
-/* ── Экраны и оверлеи ── */
+/* ═══ Экраны и окна ═══ */
+let screen = 'menu';
+const OVERLAYS = ['ov-pause', 'ov-over', 'ov-rules', 'ov-stats', 'ov-ach', 'ov-history', 'ov-settings'];
+const MODALS = ['ov-rules', 'ov-stats', 'ov-ach', 'ov-history', 'ov-settings'];
+const isOpen = id => $('#' + id).classList.contains('open');
+const dialogOpen = () => !!document.querySelector('.ku-dialog');
+const anyOverlay = () => OVERLAYS.some(isOpen) || dialogOpen();
+function focusFirst(root) {
+  const b = root.querySelector('.ku-btn.primary') || root.querySelector('button');
+  if (b) setTimeout(() => { try { b.focus({ preventScroll: true }); } catch (e) {} }, 0);
+}
+const opener = {};
+function openOv(id) {
+  const a = document.activeElement;
+  if (a && a !== document.body && !a.closest('.ku-overlay')) opener[id] = a;
+  $('#' + id).classList.add('open'); focusFirst($('#' + id));
+}
+// окна, открытые из паузы, возвращают в неё
+let returnTo = null;
+function closeOv(id) {
+  $('#' + id).classList.remove('open');
+  if (returnTo && id !== returnTo && !OVERLAYS.some(o => o !== id && isOpen(o))) {
+    const r = returnTo; returnTo = null;
+    if (screen === 'game' && paused) { openOv(r); return; }
+  }
+  const o = opener[id]; opener[id] = null;
+  if (o && o.offsetParent !== null && !anyOverlay()) try { o.focus({ preventScroll: true }); } catch (e) {}
+}
 function showScreen(name) {
-  $('screen-menu').classList.toggle('active', name === 'menu');
-  $('screen-game').classList.toggle('active', name === 'game');
-  if (name === 'menu') refreshMenu(); else layout();
+  screen = name;
+  $('#screen-menu').classList.toggle('active', name === 'menu');
+  $('#screen-game').classList.toggle('active', name === 'game');
+  document.body.classList.toggle('ku-calm', name === 'game');
+  if (name === 'menu') { OVERLAYS.forEach(id => $('#' + id).classList.remove('open')); returnTo = null; refreshMenu(); }
 }
-const show = id => $(id).classList.add('open');
-const hide = id => $(id).classList.remove('open');
-const inGame = () => $('screen-game').classList.contains('active');
+$$('[data-close]').forEach(b => b.addEventListener('click', () => { sfx.click(); closeOv(b.closest('.ku-overlay').id); }));
+$$('.ku-overlay').forEach(o => o.addEventListener('click', e => { if (e.target === o && o.querySelector('.ku-modal')) closeOv(o.id); }));
 
-function refreshMenu() {
-  document.querySelectorAll('#size-seg button').forEach(b => b.classList.toggle('active', +b.dataset.p === pairs));
-  const all = loadBest(), b = bestOf(all, pairs);
-  $('best-line').textContent = 'Рекорд ' + sizeName(pairs) + ': ' + (b ? b.tries + ' ' + triesWord(b.tries) + ' · ' + fmtTime(b.time) : '—');
-  let wins = 0; const parts = [];
-  for (const p of [6, 8, 10]) {
-    const r = all[p];
-    if (r) wins += r.wins | 0;
-    const rb = bestOf(all, p);
-    if (rb) parts.push(sizeName(p) + ' — <b>' + (rb.tries | 0) + '</b>');
+/* ═══ Партия ═══ */
+let G = null;                  // состояние движка текущей партии
+let paused = false;            // пауза (оверлей)
+let held = false;              // открыт вопрос «Заново?» — время стоит, карты скрыты
+let frozenClock = false;       // шли ли часы до паузы / вопроса
+let cardEls = [];              // кнопки карт по логическому индексу
+let transposed = null;         // поле повёрнуто (узкий экран)
+let focusIdx = 0;              // карта с tabindex=0
+let revealAll = false;         // конец партии: показать все карты
+let duoStarter = 0;            // кто начинает следующую партию вдвоём
+let hideTimer = 0, endTimer = 0, overTimer = 0, sayTimer = 0;
+let lastInfo = null;           // итоги последней партии для окна конца
+let lastTickSec = -1;
+// второй тап двойного нажатия «Играть» / «Продолжить» / «Отмена» не должен открыть карту под пальцем
+let tapGuard = 0;
+const guardTaps = () => { tapGuard = performance.now() + 250; };
+
+// часы партии: накопленное время + текущий отрезок (performance.now, не зависит от частоты кадров)
+const clock = { acc: 0, t0: 0, on: false };
+const clockNow = () => clock.acc + (clock.on ? performance.now() - clock.t0 : 0);
+function clockRun(on) {
+  if (on && !clock.on) { clock.t0 = performance.now(); clock.on = true; }
+  else if (!on && clock.on) { clock.acc += performance.now() - clock.t0; clock.on = false; }
+  if (G) G.elapsed = clockNow();
+}
+function clearTimers() {
+  clearTimeout(hideTimer); clearTimeout(endTimer); clearTimeout(overTimer);
+  hideTimer = endTimer = overTimer = 0;
+}
+
+const cardOf = (g, i) => E.SETS[g.set].cards[g.deck[i]];
+const setName = id => E.SETS[id].name;
+function describe(g) {
+  const sc = g.mode === 'duo' ? ' · ' + g.pairsBy[0] + ' : ' + g.pairsBy[1] : ' · ' + g.found + '/' + g.pairs + ' пар';
+  return MODE_NAME[g.mode] + (g.practice ? ' (тренировка)' : '') + ' · ' + sizeName(g.pairs) + sc + ' · ' + fmtT(g.elapsed);
+}
+// есть что терять: сделан ход (или в испытании дня открыта хоть одна карта)
+const hasProgress = g => !!g && !g.over && (g.moves > 0 || (g.mode === 'daily' && !g.practice && g.flips > 0));
+
+// новая партия режима mode (opts: pairs, set — повтор с теми же; dailyKey)
+function makeGame(mode, opts) {
+  opts = opts || {};
+  if (mode === 'daily') {
+    const key = opts.dailyKey || today(), cfg = E.dailyConfig(key);
+    return E.newGame({ mode, pairs: cfg.pairs, set: cfg.set, deck: cfg.deck, daily: key, practice: !!(daily.att[key] || daily.res[key]) });
   }
-  $('menu-stats').innerHTML = wins
-    ? 'Пройдено полей: <b>' + wins + '</b>' + (parts.length ? '<br>Лучшие попытки: ' + parts.join(' • ') : '')
-    : 'Сыграйте первую партию';
+  const o = { mode, pairs: opts.pairs || pairsSel, set: opts.set || settings.set };
+  if (mode === 'duo') { o.starter = duoStarter; duoStarter = 1 - duoStarter; }
+  return E.newGame(o);
 }
 
-/* ── Размер карточек под экран ── */
-function layout() {
-  if (!inGame()) return;
-  const st = $('stage'), [cols, rows] = SIZES[pairs], gap = 8, FRAME = 16;  // рамка .ku-board: padding 7 + border 1
-  const w = st.clientWidth - FRAME, h = st.clientHeight - FRAME;
-  const cs = Math.floor(Math.max(34, Math.min((w - gap * (cols - 1)) / cols, (h - gap * (rows - 1)) / rows, 118)));
-  const g = $('grid');
-  g.style.setProperty('--cols', cols); g.style.setProperty('--cs', cs + 'px'); g.style.setProperty('--gap', gap + 'px');
+function beginGame(g, resumed) {
+  clearTimers();
+  G = g; paused = false; held = false; revealAll = false; lastInfo = null; lastTickSec = -1;
+  clock.acc = g.elapsed || 0; clock.on = false; clock.t0 = 0;
+  OVERLAYS.forEach(id => $('#' + id).classList.remove('open'));
+  returnTo = null;
+  showScreen('game');
+  $('#grid').classList.remove('veil');
+  buildBoard();
+  updateHeader(); updateHud();
+  layout();                                         // показатели режима могли изменить место под поле
+  guardTaps();
+  if (resumed) toast('Партия продолжается — время пойдёт со следующей карты');
+  else if (g.practice) toast('Испытание дня уже сыграно — это тренировка без зачёта', '', 2600);
+  else if (g.mode === 'duo') toast('Начинает ' + PLAYER[g.player].toLowerCase(), g.player ? '' : 'gold');
+  say(MODE_NAME[g.mode] + ', поле ' + sizeName(g.pairs) + ', ' + pairsW(g.pairs) + '.' + (g.mode === 'duo' ? ' Ходит ' + PLAYER[g.player] + '.' : ''));
 }
-window.addEventListener('resize', layout);
 
-/* ── Партия ── */
-function updateHUD() {
-  $('h-tries').textContent = tries;
-  $('h-pairs').textContent = matched + '/' + pairs;
-  $('h-time').textContent = fmtTime(now());
+// из меню: новая партия режима (поверх незаконченной — с вопросом)
+let asking = false;
+async function launch(mode) {
+  if (asking) return;
+  const sv = loadSave();
+  // испытание дня уже начато — продолжаем ту же попытку
+  if (sv && mode === 'daily' && sv.mode === 'daily' && sv.daily === today()) { beginGame(sv, true); return; }
+  if (hasProgress(sv)) {
+    asking = true;
+    const lostDaily = sv.mode === 'daily' && !sv.practice;
+    // тренировка и «Вдвоём» в статистику прерванных не идут
+    const ok = await KuArcade.confirm('Незаконченная партия «' + describe(sv) + '» будет прервана' +
+      (lostDaily ? ' — попытка испытания дня сгорит, дальше только тренировка.' : sv.practice || sv.mode === 'duo' ? '.' : ' и засчитается как прерванная.'),
+      { title: 'НОВАЯ ПАРТИЯ?', ok: 'Начать новую', cancel: 'Отмена' });
+    asking = false;
+    if (!ok) return;
+    countQuit(sv);
+  }
+  clearSave();
+  sfx.click();
+  beginGame(makeGame(mode), false);
 }
 
-function newGame() {
-  clearTimeout(missTimer); clearTimeout(winTimer);        // таймеры прошлой партии не должны трогать новую
-  const pool = shuffle(EMOJI.slice()).slice(0, pairs);
-  cards = shuffle(pool.concat(pool));
-  openIdx = []; matched = 0; tries = 0; locked = false;
-  elapsed = 0; running = false; started = false; paused = false; over = false;
-  hide('over'); hide('pause'); hide('rules');
+// «Заново» в игре: та же партия (режим, поле, набор) с новой раскладкой
+async function restartAsk() {
+  if (!G || asking || screen !== 'game') return;
+  if (hasProgress(G)) {
+    asking = true;
+    const wasPaused = paused;
+    if (!wasPaused) freeze(true);
+    const lostDaily = G.mode === 'daily' && !G.practice;
+    const ok = await KuArcade.confirm(lostDaily ? 'Попытка испытания дня сгорит: дальше — только тренировка без зачёта.'
+      : G.practice || G.mode === 'duo' ? 'Текущая партия будет прервана.' : 'Текущая партия засчитается как прерванная.',
+      { title: 'НАЧАТЬ ЗАНОВО?', ok: 'Заново', cancel: 'Отмена' });
+    asking = false;
+    if (!G) return;
+    if (!ok) { if (!wasPaused) freeze(false); return; }
+    countQuit(G);
+  }
+  again();
+}
+function again() {
+  if (!G) return;
+  const g = G;
+  clearSave();
+  beginGame(g.mode === 'daily' ? makeGame('daily', { dailyKey: g.daily }) : makeGame(g.mode, { pairs: g.pairs, set: g.set }), false);
+}
 
-  const g = $('grid');
-  g.textContent = '';
-  cards.forEach((em, i) => {
+/* ── Поле: карты-кнопки ── */
+function buildBoard() {
+  const grid = $('#grid');
+  grid.textContent = '';
+  grid.classList.toggle('duo', G.mode === 'duo');
+  grid.setAttribute('aria-label', 'Поле ' + sizeName(G.pairs) + ', ' + setName(G.set));
+  cardEls = G.deck.map((s, i) => {
     const b = document.createElement('button');
-    b.type = 'button'; b.className = 'card'; b.setAttribute('aria-label', 'Карточка ' + (i + 1));
-    b.innerHTML = '<span class="in"><span class="side back"></span><span class="side face"></span></span>';
-    b.querySelector('.face').textContent = em;
-    b.addEventListener('click', () => flip(i));
-    g.appendChild(b);
+    b.type = 'button'; b.className = 'card'; b.tabIndex = -1; b.dataset.i = i;
+    b.innerHTML = '<span class="in" aria-hidden="true"><span class="side back"></span><span class="side face"></span></span>';
+    b.querySelector('.face').textContent = cardOf(G, i)[0];
+    return b;
   });
-  $('g-sub').textContent = 'ПОЛЕ ' + sizeName(pairs);
-  const b = bestOf(loadBest(), pairs);
-  $('h-best').textContent = b ? b.tries : '—';
-  updateHUD();
+  transposed = null; focusIdx = 0;
   layout();
+  if (transposed === null) { transposed = false; orderCards(); }    // экран ещё не измерен — порядок по умолчанию
+  syncAll();
 }
+$('#grid').addEventListener('click', e => {
+  const b = e.target.closest('.card');
+  if (b && performance.now() >= tapGuard) tap(+b.dataset.i);
+});
 
-function flip(i) {
-  if (over || paused || locked) return;                    // 3-я карта во время показа промаха — игнор
-  const el = cardEl(i);
-  if (!el || el.classList.contains('matched') || openIdx.includes(i)) return;   // двойной тап по той же карте
-  if (!started) { started = true; clock(true); }
-  el.classList.add('open');
-  openIdx.push(i);
-  if (openIdx.length < 2) return;
-
-  tries++;
-  const [a, b] = openIdx, ea = cardEl(a), eb = cardEl(b);
-  openIdx = [];
-  if (cards[a] === cards[b]) {
-    ea.classList.add('matched'); eb.classList.add('matched');
-    ea.setAttribute('aria-label', cards[a]); eb.setAttribute('aria-label', cards[b]);
-    matched++;
-    pop('h-pairs');
-    if (matched === pairs) win();
-  } else {
-    locked = true;
-    ea.classList.add('miss'); eb.classList.add('miss');
-    missTimer = setTimeout(() => {
-      ea.classList.remove('open', 'miss'); eb.classList.remove('open', 'miss');
-      locked = false;
-    }, MISS_MS);
+// логический индекс → [ряд, столбец] на экране (поле хранится «альбомным»; на узком экране — повёрнуто)
+const canonCols = () => E.SIZES[G.pairs][0];
+const visCols = () => transposed ? E.SIZES[G.pairs][1] : E.SIZES[G.pairs][0];
+const visRows = () => transposed ? E.SIZES[G.pairs][0] : E.SIZES[G.pairs][1];
+function visPos(i) { const C = canonCols(), r = Math.floor(i / C), c = i % C; return transposed ? [c, r] : [r, c]; }
+function idxAt(vr, vc) { return transposed ? vc * canonCols() + vr : vr * canonCols() + vc; }
+function orderCards() {
+  const grid = $('#grid'), act = document.activeElement, rows = visRows(), cols = visCols();
+  for (let vr = 0; vr < rows; vr++) for (let vc = 0; vc < cols; vc++) {
+    const el = cardEls[idxAt(vr, vc)];
+    el.style.setProperty('--k', vr * cols + vc);
+    grid.appendChild(el);                                 // порядок в DOM = порядок на экране (диктор, Tab)
   }
-  pop('h-tries');
-  updateHUD();
+  cardEls.forEach((el, i) => el.setAttribute('aria-label', label(i)));
+  setRoving(focusIdx);
+  if (act && act.classList && act.classList.contains('card') && document.activeElement !== act) try { act.focus({ preventScroll: true }); } catch (e) {}
 }
 
-function win() {
-  over = true; clock(false);
-  const ms = Math.round(now()), all = loadBest(), b = all[pairs] && typeof all[pairs] === 'object' ? all[pairs] : {};
-  const recTries = !(b.tries > 0) || tries < b.tries, recTime = !(b.time > 0) || ms < b.time;
-  if (recTries) b.tries = tries;
-  if (recTime) b.time = ms;
-  b.wins = (b.wins | 0) + 1;
-  all[pairs] = b; saveBest(all);
+// размер карт под экран: обе ориентации поля, берём ту, где символ крупнее; карты 0,8–1,3 по высоте к ширине
+function layout() {
+  if (screen !== 'game' || !G || !cardEls.length) return;
+  const st = $('#stage'), W = st.clientWidth - 16, H = st.clientHeight - 16;     // рамка .ku-board: padding 7 + border 1
+  if (W < 60 || H < 60) return;
+  const [C, R] = E.SIZES[G.pairs];
+  const fit = (cols, rows) => {
+    const gap = Math.min(W, H) > 520 ? 10 : Math.max(cols, rows) >= 6 ? 5 : 7;
+    let w = Math.min((W - gap * (cols - 1)) / cols, 150), h = Math.min((H - gap * (rows - 1)) / rows, 170);
+    if (h > w * 1.3) h = w * 1.3;
+    if (w > h * 1.25) w = h * 1.25;
+    return { cols, gap, w: Math.floor(w), h: Math.floor(h) };
+  };
+  const a = fit(C, R), b = fit(R, C), score = o => Math.min(o.w, o.h) + o.w * o.h / 1e5;
+  const t = C !== R && score(b) > score(a) + 0.5;
+  const o = t ? b : a, s = $('#grid').style, m = Math.min(o.w, o.h);
+  s.setProperty('--cols', o.cols); s.setProperty('--cw', o.w + 'px'); s.setProperty('--ch', o.h + 'px');
+  s.setProperty('--gap', o.gap + 'px'); s.setProperty('--fs', Math.round(m * 0.56) + 'px');
+  s.setProperty('--r', clamp(Math.round(m * 0.15), 7, 14) + 'px');
+  if (t !== transposed) { transposed = t; orderCards(); }
+}
+let layoutRaf = 0;
+const queueLayout = () => { cancelAnimationFrame(layoutRaf); layoutRaf = requestAnimationFrame(layout); };
+window.addEventListener('resize', queueLayout);
+if (window.ResizeObserver) new ResizeObserver(queueLayout).observe($('#stage'));     // показатели сменили ширину, поворот экрана
 
-  updateHUD();
-  $('h-best').textContent = b.tries;
-  $('new-best').style.display = recTries || recTime ? '' : 'none';
-  $('big').textContent = tries;
-  $('big-sub').textContent = triesWord(tries) + ' · поле ' + sizeName(pairs);
-  const row = (k, v) => '<div>' + k + '<b>' + v + '</b></div>';
-  $('over-stats').innerHTML = row('Время', fmtTime(ms)) + row('Точность', Math.round(pairs / tries * 100) + '%')
-    + row('Рекорд попыток', b.tries) + row('Лучшее время', fmtTime(b.time));
-  winTimer = setTimeout(() => show('over'), 650);          // дать доиграть анимацию последней пары
+const faceUp = i => G.first === i || !!(G.show && (G.show[0] === i || G.show[1] === i));
+function label(i) {
+  const [vr, vc] = visPos(i), pos = 'Ряд ' + (vr + 1) + ', карта ' + (vc + 1) + ': ', m = G.matched[i], name = cardOf(G, i)[1];
+  if (m) return pos + name + (G.mode === 'duo' ? ', пара игрока ' + m : ', пара найдена');
+  if (faceUp(i) || revealAll) return pos + name;
+  return pos + 'закрыта';
+}
+function syncCard(i) {
+  const el = cardEls[i], m = G.matched[i], shown = !!(G.show && (G.show[0] === i || G.show[1] === i));
+  const up = !!m || shown || G.first === i || revealAll;
+  el.classList.toggle('open', up);
+  if (up) el.classList.remove('fading');
+  el.classList.toggle('matched', !!m);
+  el.classList.toggle('p2', m === 2);
+  el.classList.toggle('miss', shown && !revealAll);
+  el.classList.toggle('reveal', revealAll && !m);
+  el.setAttribute('aria-disabled', m || G.over ? 'true' : 'false');
+  el.setAttribute('aria-label', label(i));
+}
+function syncAll() { for (let i = 0; i < cardEls.length; i++) syncCard(i); }
+
+/* ── Ход ── */
+function tap(i) {
+  if (!G || screen !== 'game' || paused || held || G.over || anyOverlay()) return;
+  const ev = E.flip(G, i);
+  if (ev.type === 'ignore') return;
+  if (ev.closed) { clearTimeout(hideTimer); hideTimer = 0; closeCards(ev.closed); }
+  if (!clock.on) clockRun(true);                      // время — с первой карты (после «Продолжить» — со следующей)
+  if (G.mode === 'daily' && !G.practice && !daily.att[G.daily]) { daily.att[G.daily] = 1; saveDaily(); }
+  setRoving(i);
+  const nm = k => cardOf(G, k)[1];
+  if (ev.type === 'first') {
+    syncCard(i); sfx.flip();
+    say(nm(i));
+  } else if (ev.type === 'match') {
+    syncCard(ev.a); syncCard(ev.b);
+    for (const k of [ev.a, ev.b]) {
+      const el = cardEls[k]; el.classList.remove('hit'); void el.offsetWidth; el.classList.add('hit');
+      clearTimeout(el._hit); el._hit = setTimeout(() => el.classList.remove('hit'), 1000);
+    }
+    sfx.match(); vib(18);
+    if (ev.combo >= 2) floatText(ev.b, '🔥 ×' + ev.combo);
+    say('Пара: ' + nm(ev.a) + '! Найдено ' + G.found + ' из ' + G.pairs + '.' + (G.mode === 'duo' && !ev.over ? ' ' + PLAYER[G.player] + ' ходит ещё раз.' : ''));
+  } else {
+    syncCard(ev.a); syncCard(ev.b);
+    sfx.miss(); vib(40);
+    if (!ev.over) hideTimer = setTimeout(hideShown, DELAYS[settings.delay]);
+    if (G.mode === 'duo') { sfx.turn(); updateHeader(); }
+    say(nm(ev.a) + ' и ' + nm(ev.b) + ' — не пара.' + (G.mode === 'duo' ? ' Ход: ' + PLAYER[G.player] + '.' : ''));
+  }
+  updateHud();
+  if (ev.over) onOver(ev); else saveNow();
+}
+function hideShown() {
+  hideTimer = 0;
+  if (!G) return;
+  const s = E.hide(G);
+  if (s) closeCards(s);
+}
+// несовпавшая пара закрывается: красный цвет держится, пока карта переворачивается обратно
+function closeCards(list) {
+  list.forEach(i => {
+    syncCard(i);
+    const el = cardEls[i];
+    if (el.classList.contains('open')) return;
+    el.classList.add('fading');
+    clearTimeout(el._fade); el._fade = setTimeout(() => el.classList.remove('fading'), 420);
+  });
+}
+function hideShownNow() { if (G && G.show) { clearTimeout(hideTimer); hideShown(); } }
+// «🔥 ×3» над картой: серия пар подряд (вместо тоста — не закрывает показатели)
+function floatText(i, text) {
+  const r = cardEls[i].getBoundingClientRect(), f = document.createElement('div');
+  f.className = 'mem-float'; f.textContent = text; f.setAttribute('aria-hidden', 'true');
+  f.style.left = Math.round(r.left + r.width / 2) + 'px'; f.style.top = Math.round(r.top + r.height * 0.3) + 'px';
+  document.body.appendChild(f);
+  setTimeout(() => f.remove(), 1000);
 }
 
-function pauseGame() {
-  if (!inGame() || over || paused) return;
-  paused = true; clock(false); updateHUD();
-  show('pause');
+/* ── Конец партии ── */
+function onOver(ev) {
+  clockRun(false);
+  if (G.mode === 'timed' && G.result === 'lose' && !ev) clock.acc = G.timeLimit;     // время вышло — ровно лимит
+  G.elapsed = Math.round(clockNow());
+  clearTimeout(hideTimer); hideTimer = 0;
+  clearSave();
+  lastInfo = record(G);
+  updateHud(); updateHeader();
+  cardEls.forEach((el, i) => el.setAttribute('aria-disabled', 'true'));
+  if (G.result === 'lose') {
+    sfx.lose(); vib([60, 40, 60]);
+    const wait = ev && ev.type === 'miss' ? DELAYS[settings.delay] : 250;     // дать увидеть последний промах
+    endTimer = setTimeout(() => {
+      hideShownNow();
+      revealAll = true; syncAll();
+      overTimer = setTimeout(showOver, 1300);
+    }, wait);
+  } else {
+    sfx.win(); vib([30, 30, 70]);
+    endTimer = setTimeout(() => {
+      cardEls.forEach(el => { el.classList.remove('hit'); el.classList.add('win'); });
+      overTimer = setTimeout(showOver, 950);
+    }, 420);
+  }
 }
-function resumeGame() {
+
+// время вышло («На время»)
+function timeOut() {
+  if (!G || G.over || !E.timeUp(G)) return;
+  hideShownNow();
+  say('Время вышло!');
+  onOver(null);
+}
+
+function record(g) {
+  const ms = Math.round(g.elapsed), info = { ms, newMoves: false, newTime: false, ach: [] };
+  addHistory(g, g.result, ms);
+  if (g.practice) return info;                         // тренировка — только в истории
+  stats.games++;
+  stats.pairs += g.found; stats.moves += g.moves; stats.time += ms;
+  stats.bestCombo = Math.max(stats.bestCombo, g.bestCombo);
+  if (g.mode === 'duo') {
+    const d = stats.modes.duo; d.g++;
+    if (g.result === 'p1') d.p1++; else if (g.result === 'p2') d.p2++; else d.d++;
+  } else {
+    const m = stats.modes[g.mode]; m.g++;
+    stats.slips += g.slips;
+    if (g.result === 'win') {
+      m.w++; stats.wins++;
+      stats.sets[g.set] = (stats.sets[g.set] || 0) + 1;
+      const r = E.addRecord(best, g.pairs, g.moves, ms);
+      info.newMoves = r.newMoves; info.newTime = r.newTime;
+      saveBest();
+      if (g.mode === 'daily') {
+        daily.res[g.daily] = { mv: g.moves, ms };
+        if (!daily.last || dayNum(g.daily) > dayNum(daily.last)) {
+          daily.streak = daily.last && dayNum(g.daily) - dayNum(daily.last) === 1 ? daily.streak + 1 : 1;
+          daily.last = g.daily; daily.best = Math.max(daily.best, daily.streak);
+        }
+        saveDaily();
+      }
+    } else stats.losses++;
+  }
+  saveStats();
+  info.ach = checkAch(achContext(g, ms));
+  return info;
+}
+
+// прерванная партия (новая поверх незаконченной): засчитывается без победы
+function countQuit(g) {
+  if (!g || g.over || g.practice || g.moves === 0 || g.mode === 'duo') return;
+  stats.games++; stats.quits++; stats.modes[g.mode].g++;
+  stats.pairs += g.found; stats.moves += g.moves; stats.time += Math.round(g.elapsed);
+  saveStats();
+  addHistory(g, 'quit', Math.round(g.elapsed));
+}
+
+function addHistory(g, r, ms) {
+  hist.unshift({ t: Date.now(), m: g.mode, p: g.pairs, s: g.set, r, mv: g.moves, ms, f: g.found, pr: g.practice ? 1 : 0,
+    sc: g.mode === 'duo' ? g.pairsBy.slice() : null });
+  if (hist.length > HIST_MAX) hist.length = HIST_MAX;
+  store.set(KEYS.hist, hist);
+}
+
+/* ── Достижения ── */
+function achContext(g, ms) {
+  return { mode: g.mode, win: g.mode !== 'duo' && g.result === 'win', pairs: g.pairs, moves: g.moves, ms, slips: g.slips,
+    bestCombo: g.bestCombo, timeLeft: g.timeLimit ? g.timeLimit - ms : 0, duo: g.mode === 'duo' ? g.result : '',
+    streak: dailyStreak(), ...profileCtx() };
+}
+// накопительные условия (размеры, наборы, победы) — проверяются и без партии
+const profileCtx = () => ({ sizesWon: E.SIZE_LIST.filter(p => best[p] && best[p].wins > 0).length,
+  setsWon: E.SET_IDS.filter(s => stats.sets[s] > 0).length, wins: stats.wins });
+// новые достижения показываются в окне конца партии (тост закрывал бы его заголовок)
+function checkAch(ctx) {
+  const got = E.achievements(ctx).filter(id => !unlocked[id]);
+  if (!got.length) return got;
+  got.forEach(id => { unlocked[id] = Date.now(); });
+  store.set(KEYS.ach, unlocked);
+  return got;
+}
+
+/* ── Окно конца партии ── */
+function showOver() {
+  overTimer = 0;
+  const g = G, info = lastInfo;
+  if (!g || !info || screen !== 'game') return;
+  const h = $('#over-title'), rows = [], row = (k, v) => rows.push([k, v]);
+  const acc = g.moves ? Math.round(g.found / g.moves * 100) + ' %' : '—';
+  let title, cls = 'win', big, sub = 'Поле ' + sizeName(g.pairs) + ' · ' + setName(g.set);
+  if (g.mode === 'duo') {
+    title = g.result === 'draw' ? 'НИЧЬЯ!' : 'ПОБЕДИЛ ' + PLAYER[g.result === 'p1' ? 0 : 1].toUpperCase() + '!';
+    big = g.pairsBy[0] + ' : ' + g.pairsBy[1];
+    row('🟡 ' + PLAYER[0], pairsW(g.pairsBy[0]) + ' · ' + movesW(g.movesBy[0]));
+    row('🩷 ' + PLAYER[1], pairsW(g.pairsBy[1]) + ' · ' + movesW(g.movesBy[1]));
+    row('Время', fmtT(info.ms));
+    row('Лучшая серия', g.bestCombo);
+  } else if (g.result === 'win') {
+    title = g.mode === 'daily' && !g.practice ? 'ИСПЫТАНИЕ ПРОЙДЕНО!' : 'ПОБЕДА!';
+    big = movesW(g.moves);
+    row('Время', fmtT(info.ms));
+    if (g.mode === 'timed') row('Осталось времени', fmtLeft(g.timeLimit - info.ms));
+    if (g.mode === 'limited') row('Осталось ходов', E.movesLeft(g));
+    row('Точность', acc);
+    row('Промахи по памяти', g.slips);
+    row('Лучшая серия', g.bestCombo);
+    if (g.mode === 'daily' && !g.practice) row('Серия дней', dailyStreak() + ' 🔥');
+    if (!g.practice) { const b = best[g.pairs]; row('Рекорды ' + sizeName(g.pairs), movesW(b.tries) + ' · ' + fmtT(b.time)); }
+    if (g.practice) sub = 'Тренировка · ' + sub;
+  } else {
+    cls = 'lose';
+    title = g.mode === 'timed' ? 'ВРЕМЯ ВЫШЛО' : 'ХОДЫ КОНЧИЛИСЬ';
+    big = g.found + ' / ' + g.pairs;
+    sub = 'Найдено ' + pairsW(g.found) + ' из ' + g.pairs + ' · ' + sizeName(g.pairs);
+    row('Ходов', g.moves);
+    row('Время', fmtT(info.ms));
+    row('Промахи по памяти', g.slips);
+    row('Точность', acc);
+  }
+  h.textContent = title; h.className = cls;
+  const rec = !g.practice && (info.newMoves || info.newTime);
+  $('#over-best').hidden = !rec;
+  if (rec) $('#over-best').textContent = info.newMoves && info.newTime ? '🏆 НОВЫЙ РЕКОРД!' : info.newMoves ? '🏆 РЕКОРД ХОДОВ!' : '🏆 РЕКОРД ВРЕМЕНИ!';
+  $('#big').textContent = big;
+  $('#big-sub').textContent = sub;
+  const box = $('#over-stats'); box.textContent = '';
+  rows.forEach(([k, v]) => { const d = document.createElement('div'), b = document.createElement('b'); d.textContent = k; b.textContent = v; d.appendChild(b); box.appendChild(d); });
+  const oa = $('#over-ach');
+  oa.hidden = !info.ach.length;
+  if (info.ach.length) {
+    oa.textContent = info.ach.length > 1 ? '🏅 Новые достижения: ' : '🏅 Новое достижение: ';
+    const b = document.createElement('b'); b.textContent = info.ach.map(id => E.ACH.find(a => a.id === id).title).join(', ');
+    oa.appendChild(b);
+    setTimeout(sfx.ach, 350);
+  }
+  $('#o-again').textContent = g.mode === 'duo' ? '🔄 Реванш' : g.mode === 'daily' ? '🔁 Ещё раз (тренировка)' : '🔄 Играть снова';
+  $('#o-copy').hidden = !(g.mode === 'daily' && !g.practice && g.result === 'win');
+  openOv('ov-over');
+  say(title + ' ' + big + '.' + (info.ach.length ? ' ' + oa.textContent : ''));
+}
+
+function copyResult() {
+  const g = G;
+  if (!g) return;
+  const txt = 'Найди пару · Испытание дня ' + fmtDay(g.daily) + ' · ' + sizeName(g.pairs) + ' · ' + movesW(g.moves) + ' · ' +
+    fmtT(g.elapsed) + (dailyStreak() > 1 ? ' · серия ' + dailyStreak() + ' 🔥' : '');
+  const fallback = () => {
+    try {
+      const ta = document.createElement('textarea');
+      ta.value = txt; ta.setAttribute('readonly', ''); ta.style.position = 'fixed'; ta.style.opacity = '0';
+      document.body.appendChild(ta); ta.select();
+      const ok = document.execCommand('copy'); document.body.removeChild(ta);
+      toast(ok ? 'Результат скопирован' : 'Не удалось скопировать', ok ? 'good' : 'bad');
+    } catch (e) { toast('Не удалось скопировать', 'bad'); }
+  };
+  try {
+    if (navigator.clipboard && navigator.clipboard.writeText) navigator.clipboard.writeText(txt).then(() => toast('Результат скопирован', 'good'), fallback);
+    else fallback();
+  } catch (e) { fallback(); }
+}
+
+/* ═══ Шапка и показатели ═══ */
+function updateHeader() {
+  if (!G) return;
+  const g = G, s = $('#g-sub');
+  $('#g-title').textContent = MODE_NAME[g.mode].toUpperCase();
+  s.className = 's';
+  if (g.mode === 'duo') {
+    if (g.over) s.textContent = sizeName(g.pairs) + ' · ПАРТИЯ ОКОНЧЕНА';
+    else { s.textContent = 'ХОД: ' + PLAYER[g.player].toUpperCase(); s.classList.add(g.player ? 'p2' : 'p1'); }
+  } else if (g.mode === 'timed') s.textContent = sizeName(g.pairs) + ' · ' + E.TIME_LIMIT[g.pairs] + ' С · ' + setName(g.set).toUpperCase();
+  else if (g.mode === 'limited') s.textContent = sizeName(g.pairs) + ' · ' + movesW(E.MOVE_LIMIT[g.pairs]).toUpperCase();
+  else if (g.mode === 'daily') s.textContent = (g.practice ? 'ТРЕНИРОВКА' : fmtDay(g.daily)) + ' · ' + sizeName(g.pairs) + ' · ' + setName(g.set).toUpperCase();
+  else s.textContent = sizeName(g.pairs) + ' · ' + setName(g.set).toUpperCase();
+  $('#game-hint').textContent = HINTS[g.mode];
+  const bd = $('#board');
+  bd.classList.toggle('turn1', g.mode === 'duo' && !g.over && g.player === 0);
+  bd.classList.toggle('c2', g.mode === 'duo' && !g.over && g.player === 1);
+}
+const shown = {};
+function stat(n, label, value, cls, bar) {
+  const el = $('#st' + n), b = el.querySelector('b'), sp = el.querySelector('span'), v = String(value);
+  if (sp.textContent !== label) sp.textContent = label;
+  const c = 'ku-stat ' + (cls || '') + (bar != null ? ' bar' : '');
+  if (el.className !== c) el.className = c;
+  if (shown[n] !== undefined && shown[n] !== v && /^(\d+|\d+\/\d+)$/.test(v)) { b.classList.remove('pop'); void b.offsetWidth; b.classList.add('pop'); }
+  if (b.textContent !== v) b.textContent = v;
+  shown[n] = v;
+  if (bar != null) el.querySelector('.mbar').style.setProperty('--v', clamp(bar, 0, 1).toFixed(3));
+}
+function updateHud() {
+  const g = G;
+  if (!g) return;
+  const rec = best[g.pairs];
+  if (g.mode === 'duo') {
+    stat(1, PLAYER[0], g.pairsBy[0], 'gold' + (g.player === 0 && !g.over ? ' on' : ''));
+    stat(2, 'Ходы', g.moves, '');
+    stat(4, PLAYER[1], g.pairsBy[1], 'c2' + (g.player === 1 && !g.over ? ' on' : ''));
+  } else {
+    if (g.mode === 'limited') { const left = E.movesLeft(g); stat(1, 'Осталось', left, left <= 3 && !g.over ? 'low' : '', left / g.moveLimit); }
+    else stat(1, 'Ходы', g.moves, '');
+    stat(2, 'Пары', g.found + '/' + g.pairs, 'c2');
+    if (g.mode === 'daily') stat(4, 'Серия дней', dailyStreak() ? dailyStreak() + '🔥' : '—', 'gold');
+    else if (g.mode === 'timed') stat(4, 'Рекорд', rec && rec.time ? fmtT(rec.time) : '—', 'gold');
+    else stat(4, 'Рекорд', rec && rec.tries ? rec.tries : '—', 'gold');
+  }
+  updateTime();
+}
+function updateTime() {
+  const g = G;
+  if (!g) return;
+  const t = g.over ? g.elapsed : clockNow();
+  if (g.mode === 'timed') {
+    const left = g.timeLimit - t;
+    stat(3, 'Осталось', fmtLeft(left), left <= 10000 && !g.over ? 'low' : '', left / g.timeLimit);
+  } else stat(3, 'Время', fmtT(t), '');
+}
+
+// тик часов: 10 раз в секунду (отсчёт «На время» не зависит от частоты кадров)
+setInterval(() => {
+  if (!G || !clock.on) return;
+  G.elapsed = clockNow();
+  updateTime();
+  if (G.mode === 'timed' && !G.over) {
+    const left = G.timeLimit - G.elapsed, sec = Math.ceil(left / 1000);
+    if (left <= 0) { timeOut(); return; }
+    if (sec <= 5 && sec !== lastTickSec) { lastTickSec = sec; sfx.tick(); }
+  }
+}, 100);
+
+/* ═══ Пауза ═══ */
+// заморозка: время стоит, несовпавшая пара закрыта, карты скрыты (пауза и вопрос «Заново?»)
+function freeze(on) {
+  if (on) {
+    held = true; frozenClock = clock.on; clockRun(false);
+    hideShownNow();
+    $('#grid').classList.add('veil');
+  } else {
+    held = false;
+    $('#grid').classList.remove('veil');
+    guardTaps();
+    if (frozenClock && G && !G.over && !paused) clockRun(true);
+  }
+}
+function pause() {
+  if (!G || screen !== 'game' || G.over || paused || asking) return;
+  freeze(true); held = false; paused = true;
+  $('#pause-info').textContent = describe(G);
+  openOv('ov-pause');
+  saveNow();
+}
+function resume() {
   if (!paused) return;
-  paused = false; hide('pause');
-  if (started && !over) clock(true);
+  paused = false; returnTo = null;
+  OVERLAYS.forEach(id => $('#' + id).classList.remove('open'));
+  freeze(false);
 }
 function toMenu() {
-  clearTimeout(missTimer); clearTimeout(winTimer);
-  clock(false); over = true; paused = false; locked = false;
-  ['pause', 'over', 'rules'].forEach(hide);
+  if (G && !G.over) { clockRun(false); saveNow(); }
+  clearTimers();
+  paused = false; held = false; G = null; cardEls = [];
+  clock.on = false;
+  $('#grid').classList.remove('veil');
+  $('#grid').textContent = '';
   showScreen('menu');
 }
 
-/* ── Кнопки ── */
-document.querySelectorAll('#size-seg button').forEach(b => b.addEventListener('click', () => {
-  pairs = +b.dataset.p;
-  try { localStorage.setItem(LS_SIZE, String(pairs)); } catch (e) {}
-  refreshMenu();
+/* ═══ Сохранение партии ═══ */
+function saveNow() {
+  if (!G || G.over) return;
+  if (G.flips === 0) { clearSave(); return; }
+  G.elapsed = clockNow();
+  store.set(KEYS.save, E.serialize(G));
+}
+function clearSave() { store.del(KEYS.save); }
+function loadSave() {
+  const o = store.get(KEYS.save, null);
+  if (o === null) return null;
+  const g = E.restore(o);
+  if (!g) store.del(KEYS.save);
+  return g;
+}
+
+/* ═══ Меню ═══ */
+function buildMenu() {
+  const ss = $('#size-seg');
+  E.SIZE_LIST.forEach(p => {
+    const b = document.createElement('button');
+    b.dataset.p = p; b.setAttribute('role', 'radio');
+    b.innerHTML = '<b>' + sizeName(p) + '</b><small>' + pairsW(p) + '</small>';
+    b.setAttribute('aria-label', 'Поле ' + sizeName(p) + ', ' + pairsW(p));
+    b.addEventListener('click', () => { sfx.click(); pairsSel = p; store.set(KEYS.size, p); refreshMenu(); });
+    ss.appendChild(b);
+  });
+  const sets = $('#set-seg');
+  $('#pill-sets').textContent = '🃏 ' + SETS_SHOWN.length + ' ' + plural(SETS_SHOWN.length, 'набор', 'набора', 'наборов');
+  SETS_SHOWN.forEach(id => {
+    const b = document.createElement('button');
+    b.dataset.s = id; b.setAttribute('role', 'radio'); b.textContent = E.SETS[id].icon;
+    b.title = E.SETS[id].name + (E.SETS[id].hard ? ' (сложный)' : '');
+    b.setAttribute('aria-label', b.title);
+    b.addEventListener('click', () => { sfx.click(); settings.set = id; saveSettings(); refreshMenu(); });
+    sets.appendChild(b);
+  });
+}
+function refreshMenu() {
+  $$('#size-seg button').forEach(b => { const on = +b.dataset.p === pairsSel; b.classList.toggle('active', on); b.setAttribute('aria-checked', on); });
+  $$('#set-seg button').forEach(b => { const on = b.dataset.s === settings.set; b.classList.toggle('active', on); b.setAttribute('aria-checked', on); });
+  const set = E.SETS[settings.set], info = $('#set-info');
+  info.innerHTML = '<b></b> <span class="sample"></span>' + (set.hard ? ' · <span class="hard">сложный: похожие карты</span>' : '');
+  info.querySelector('b').textContent = set.name;
+  info.querySelector('.sample').textContent = set.cards.slice(0, 6).map(c => c[0]).join(' ');
+  const sz = sizeName(pairsSel), r = best[pairsSel];
+  $('#best-classic').textContent = 'Рекорд ' + sz + ': ' + (r && r.tries ? movesW(r.tries) + ' · ' + fmtT(r.time) : '—');
+  $('#best-timed').textContent = sz + ' за ' + E.TIME_LIMIT[pairsSel] + ' с' + (r && r.time ? ' · ' + fmtT(r.time) : '');
+  $('#best-limited').textContent = sz + ' за ' + movesW(E.MOVE_LIMIT[pairsSel]);
+  const dd = stats.modes.duo;
+  $('#best-duo').textContent = dd.g ? sz + ' · партий: ' + dd.g : sz + ' · по очереди';
+  const tk = today(), cfg = E.dailyConfig(tk), res = daily.res[tk], st = dailyStreak();
+  $('#best-daily').textContent = res ? '✓ ' + movesW(res.mv) + ' · ' + fmtT(res.ms) + (st > 1 ? ' · 🔥' + st : '')
+    : sizeName(cfg.pairs) + ' · ' + setName(cfg.set) + (daily.att[tk] ? ' · начато' : st ? ' · 🔥' + st : '');
+  const sv = loadSave();
+  $('#btn-continue').hidden = !sv;
+  if (sv) $('#continue-sub').textContent = describe(sv);
+  const n = Object.keys(unlocked).length;
+  $('#menu-stats').innerHTML = stats.games
+    ? 'Партий: <b>' + stats.games + '</b> • Побед: <b>' + stats.wins + '</b> • Достижений: <b>' + n + '/' + E.ACH.length + '</b>'
+    : 'Сыграйте первую партию' + (n ? ' • Достижений: <b>' + n + '/' + E.ACH.length + '</b>' : '');
+}
+
+/* ═══ Статистика, достижения, история, настройки ═══ */
+function stCard(v, l) { return '<div class="st-card"><div class="sv">' + v + '</div><div class="sl">' + l + '</div></div>'; }
+function openStats() {
+  const s = stats, solo = s.games - s.modes.duo.g;
+  $('#st-grid').innerHTML = stCard(s.games, 'Партий') + stCard(s.wins, 'Побед') + stCard(solo ? Math.round(s.wins / solo * 100) + '%' : '—', '% побед') +
+    stCard(s.pairs, 'Пар найдено') + stCard(s.moves ? Math.round(s.pairs / s.moves * 100) + '%' : '—', 'Точность') +
+    stCard(s.bestCombo, 'Лучшая серия') + stCard(fmtLong(s.time), 'Время в игре') + stCard(Object.keys(unlocked).length + '/' + E.ACH.length, 'Достижения');
+  let t = '<tr><th>Поле</th><th>Ходы</th><th>Время</th><th>Побед</th></tr>';
+  E.SIZE_LIST.forEach(p => {
+    const r = best[p];
+    t += '<tr><td>' + sizeName(p) + ' <small>' + pairsW(p) + '</small></td>' +
+      (r && r.tries ? '<td>' + r.tries + '</td><td>' + fmtT(r.time) + '</td>' : '<td class="none">—</td><td class="none">—</td>') +
+      '<td>' + (r ? r.wins : 0) + '</td></tr>';
+  });
+  $('#st-rec').innerHTML = t;
+  const m = s.modes, rows = [];
+  const pr = (k, v) => rows.push('<div><span>' + k + '</span><b>' + v + '</b></div>');
+  pr('🎮 Классика', 'побед ' + m.classic.w + ' из ' + m.classic.g);
+  pr('⏱ На время', 'побед ' + m.timed.w + ' из ' + m.timed.g);
+  pr('🧮 Лимит ходов', 'побед ' + m.limited.w + ' из ' + m.limited.g);
+  pr('📅 Испытание дня', 'пройдено ' + m.daily.w + ' · серия ' + dailyStreak() + ' · лучшая ' + daily.best);
+  pr('👥 Вдвоём', m.duo.g ? 'партий ' + m.duo.g + ': игрок 1 — ' + m.duo.p1 + ', игрок 2 — ' + m.duo.p2 + ', ничьих ' + m.duo.d : 'ещё не играли');
+  pr('Прервано партий', s.quits);
+  pr('Промахи по памяти', s.slips);
+  $('#st-modes').innerHTML = rows.join('');
+  openOv('ov-stats');
+}
+function openAch() {
+  const list = $('#ach-list');
+  list.textContent = '';
+  E.ACH.forEach(a => {
+    const d = document.createElement('div');
+    d.className = 'ach-item' + (unlocked[a.id] ? ' unlocked' : '');
+    d.innerHTML = '<div class="ach-icon"></div><div class="ach-info"><h4></h4><p></p></div>';
+    d.querySelector('.ach-icon').textContent = a.icon;
+    d.querySelector('h4').textContent = a.title + (unlocked[a.id] ? ' ✓' : '');
+    d.querySelector('p').textContent = a.desc;
+    list.appendChild(d);
+  });
+  $('#ach-count').textContent = Object.keys(unlocked).length + '/' + E.ACH.length;
+  openOv('ov-ach');
+}
+function openHistory() {
+  const list = $('#history-list');
+  list.textContent = '';
+  if (!hist.length) { list.innerHTML = '<div class="empty">Пока пусто — сыграйте партию</div>'; openOv('ov-history'); return; }
+  const p2 = n => String(n).padStart(2, '0');
+  hist.forEach(x => {
+    const d = document.createElement('div'), dt = new Date(x.t);
+    d.className = 'hist-item';
+    d.innerHTML = '<div class="hi" aria-hidden="true"></div><div class="hm"><div class="ht"></div><div class="hs"><span class="res"></span><span class="det"></span></div></div>';
+    let icon, res, cls, det;
+    if (x.m === 'duo') {
+      icon = '👥'; cls = 'duo';
+      res = x.r === 'draw' ? 'Ничья' : 'Победил ' + PLAYER[x.r === 'p2' ? 1 : 0].toLowerCase();
+      det = movesW(x.mv);
+      if (x.sc) { const hr = document.createElement('div'); hr.className = 'hr'; hr.textContent = x.sc[0] + ' : ' + x.sc[1]; d.appendChild(hr); }
+    } else if (x.r === 'win') { icon = '✅'; cls = 'win'; res = 'Победа'; det = movesW(x.mv); }
+    else {
+      icon = x.r === 'lose' ? '❌' : '🏳️'; cls = x.r === 'lose' ? 'lose' : 'quit';
+      res = x.r === 'quit' ? 'Прервана' : x.m === 'timed' ? 'Время вышло' : 'Ходы кончились';
+      det = x.f + '/' + x.p + ' пар · ' + movesW(x.mv);
+    }
+    d.querySelector('.hi').textContent = icon;
+    d.querySelector('.ht').textContent = MODE_ICON[x.m] + ' ' + MODE_NAME[x.m] + ' · ' + sizeName(x.p) + ' · ' + setName(x.s) + (x.pr ? ' · тренировка' : '');
+    const r = d.querySelector('.res'); r.textContent = res; r.className = 'res ' + cls;
+    d.querySelector('.det').textContent = ' · ' + det + ' · ' + fmtT(x.ms) + ' · ' + p2(dt.getDate()) + '.' + p2(dt.getMonth() + 1) + ' ' + p2(dt.getHours()) + ':' + p2(dt.getMinutes());
+    list.appendChild(d);
+  });
+  openOv('ov-history');
+}
+function openSettings(fromGame) {
+  $$('#set-delay button').forEach(b => b.classList.toggle('active', b.dataset.v === settings.delay));
+  $$('[data-opt]').forEach(i => { i.checked = !!settings[i.dataset.opt]; });
+  $('#set-data').hidden = !!fromGame;          // сброс — только из меню
+  openOv('ov-settings');
+}
+$$('#set-delay button').forEach(b => b.addEventListener('click', () => {
+  settings.delay = b.dataset.v; saveSettings(); sfx.click();
+  $$('#set-delay button').forEach(x => x.classList.toggle('active', x === b));
 }));
-$('btn-play').onclick = () => { showScreen('game'); newGame(); };
-$('btn-restart').onclick = () => newGame();
-$('btn-pause').onclick = () => pauseGame();
-$('btn-resume').onclick = () => resumeGame();
-$('btn-pause-restart').onclick = () => newGame();
-$('btn-pause-menu').onclick = toMenu;
-$('btn-again').onclick = () => newGame();
-$('btn-over-menu').onclick = toMenu;
-
-let rulesFromPause = false;
-$('btn-rules').onclick = () => { rulesFromPause = false; show('rules'); };
-$('btn-pause-rules').onclick = () => { rulesFromPause = true; hide('pause'); show('rules'); };
-function closeRules() { hide('rules'); if (rulesFromPause && paused) show('pause'); rulesFromPause = false; }
-$('btn-rules-x').onclick = closeRules;
-$('btn-rules-ok').onclick = closeRules;
-
-document.addEventListener('keydown', e => {
-  if ($('rules').classList.contains('open')) { if (e.code === 'Escape') closeRules(); return; }
-  if (!inGame() || e.repeat) return;
-  if (e.code === 'KeyP' || e.code === 'Escape') { e.preventDefault(); paused ? resumeGame() : pauseGame(); }
+$$('[data-opt]').forEach(i => i.addEventListener('change', () => { settings[i.dataset.opt] = i.checked; saveSettings(); if (i.checked) sfx.click(); }));
+$('#btn-reset').addEventListener('click', async () => {
+  const ok = await KuArcade.confirm('Рекорды, статистика, достижения, история, испытания дня и незаконченная партия будут удалены. Настройки останутся.',
+    { title: 'СБРОСИТЬ ПРОГРЕСС?', ok: 'Сбросить', cancel: 'Отмена', danger: true });
+  if (!ok) return;
+  [KEYS.best, KEYS.stats, KEYS.ach, KEYS.hist, KEYS.save, KEYS.daily].forEach(store.del);
+  best = {}; stats = blankStats(); unlocked = {}; hist = [];
+  daily.att = {}; daily.res = {}; daily.streak = daily.best = 0; daily.last = '';
+  saveStats();                                   // пустая статистика — чтобы не перенеслись победы прежней версии
+  closeOv('ov-settings'); refreshMenu();
+  toast('Прогресс сброшен', 'good');
 });
-// свернули вкладку / ушли из приложения — ставим на паузу, чтобы время не шло
-document.addEventListener('visibilitychange', () => { if (document.hidden && started && !over) pauseGame(); });
-setInterval(() => { if (running) $('h-time').textContent = fmtTime(now()); }, 250);
 
-/* ── Старт ── */
-try { const p = +localStorage.getItem(LS_SIZE); if (SIZES[p]) pairs = p; } catch (e) {}
+/* ═══ Кнопки ═══ */
+$('#btn-classic').addEventListener('click', () => launch('classic'));
+$('#btn-timed').addEventListener('click', () => launch('timed'));
+$('#btn-limited').addEventListener('click', () => launch('limited'));
+$('#btn-duo').addEventListener('click', () => launch('duo'));
+$('#btn-daily').addEventListener('click', () => launch('daily'));
+$('#btn-continue').addEventListener('click', () => { const sv = loadSave(); sfx.click(); if (sv) beginGame(sv, true); else refreshMenu(); });
+$('#btn-rules').addEventListener('click', () => { sfx.click(); openOv('ov-rules'); });
+$('#btn-stats').addEventListener('click', () => { sfx.click(); openStats(); });
+$('#btn-ach').addEventListener('click', () => { sfx.click(); openAch(); });
+$('#btn-history').addEventListener('click', () => { sfx.click(); openHistory(); });
+$('#btn-settings').addEventListener('click', () => { sfx.click(); openSettings(false); });
+$('#btn-pause').addEventListener('click', () => { sfx.click(); pause(); });
+$('#btn-restart').addEventListener('click', () => { sfx.click(); restartAsk(); });
+$('#p-resume').addEventListener('click', () => { sfx.click(); resume(); });
+$('#p-restart').addEventListener('click', () => { sfx.click(); restartAsk(); });
+$('#p-rules').addEventListener('click', () => { sfx.click(); returnTo = 'ov-pause'; $('#ov-pause').classList.remove('open'); openOv('ov-rules'); });
+$('#p-settings').addEventListener('click', () => { sfx.click(); returnTo = 'ov-pause'; $('#ov-pause').classList.remove('open'); openSettings(true); });
+$('#p-menu').addEventListener('click', () => { sfx.click(); toMenu(); });
+$('#o-again').addEventListener('click', () => { sfx.click(); again(); });
+$('#o-copy').addEventListener('click', () => copyResult());
+$('#o-menu').addEventListener('click', () => { sfx.click(); toMenu(); });
+
+/* ═══ Клавиатура ═══ */
+function setRoving(i) {
+  if (!cardEls[i]) return;
+  if (cardEls[focusIdx]) cardEls[focusIdx].tabIndex = -1;
+  focusIdx = i; cardEls[i].tabIndex = 0;
+}
+function focusCard(i) { setRoving(i); try { cardEls[i].focus({ preventScroll: true }); } catch (e) {} }
+const DIRS = { ArrowUp: [-1, 0], KeyW: [-1, 0], ArrowDown: [1, 0], KeyS: [1, 0], ArrowLeft: [0, -1], KeyA: [0, -1], ArrowRight: [0, 1], KeyD: [0, 1] };
+// Tab не уходит из открытого окна под него
+function trapTab(e) {
+  const ovs = [...$$('.ku-overlay.open')], ov = ovs[ovs.length - 1];
+  if (!ov) return false;
+  const f = [...ov.querySelectorAll('button, input')].filter(x => !x.disabled && x.offsetParent !== null);
+  if (!f.length) return false;
+  e.preventDefault();
+  const i = f.indexOf(document.activeElement);
+  f[(i + (e.shiftKey ? -1 : 1) + f.length) % f.length].focus();
+  return true;
+}
+document.addEventListener('keydown', e => {
+  if (dialogOpen()) return;                              // диалог набора обрабатывает клавиши сам
+  if (e.key === 'Tab') { trapTab(e); return; }
+  const modal = MODALS.find(isOpen);
+  if (modal) { if (e.code === 'Escape') { e.preventDefault(); closeOv(modal); } return; }
+  if (screen !== 'game' || !G) return;
+  if (isOpen('ov-over')) return;                         // Enter — кнопка окна в фокусе
+  if (e.code === 'KeyP' || e.code === 'Escape') { e.preventDefault(); if (!e.repeat) paused ? resume() : pause(); return; }
+  if (paused) return;
+  if (e.code === 'KeyR') { e.preventDefault(); if (!e.repeat) restartAsk(); return; }
+  const d = DIRS[e.code];
+  if (d) {
+    e.preventDefault();
+    const a = document.activeElement, cur = a && a.classList && a.classList.contains('card') ? +a.dataset.i : -1;
+    if (cur < 0) { focusCard(focusIdx); return; }
+    const [r, c] = visPos(cur);
+    focusCard(idxAt(clamp(r + d[0], 0, visRows() - 1), clamp(c + d[1], 0, visCols() - 1)));
+    return;
+  }
+  if (e.code === 'Enter' || e.code === 'NumpadEnter' || e.code === 'Space') {
+    const a = document.activeElement;
+    if (a && a.classList && a.classList.contains('card')) { e.preventDefault(); if (!e.repeat) tap(+a.dataset.i); }  // без двойного «клика» кнопки
+  }
+});
+document.addEventListener('keyup', e => {
+  const a = document.activeElement;
+  if (e.code === 'Space' && a && a.classList && a.classList.contains('card')) e.preventDefault();
+});
+
+// голос экранного диктора (aria-live)
+function say(msg) {
+  const el = $('#live');
+  el.textContent = '';
+  clearTimeout(sayTimer);
+  sayTimer = setTimeout(() => { el.textContent = msg; }, 40);
+}
+
+// свернули вкладку / ушли из приложения — пауза и сохранение
+document.addEventListener('visibilitychange', () => {
+  if (!document.hidden) return;
+  if (screen === 'game' && G && !G.over && !paused && !asking) pause(); else saveNow();
+});
+window.addEventListener('pagehide', () => { if (G && !G.over) { clockRun(false); saveNow(); } });
+
+/* ═══ Старт ═══ */
+buildMenu();
+checkAch(Object.assign({ streak: dailyStreak() }, profileCtx()));     // накопленное прежней версией (молча)
 refreshMenu();
+
 </script>
 </body>
 </html>

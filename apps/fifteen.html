@@ -8,39 +8,176 @@
 <script src="ku-arcade.js"></script>
 <style>
   html,body{height:100%;overflow:hidden}
-  #screen-game,#screen-game *{touch-action:none}
-  #wrap{flex:1;min-height:0;width:100%;display:flex;flex-direction:column;align-items:center;justify-content:center}
-  #hint{margin-top:12px}
 
-  /* ── Поле 4×4: клетки-подложки + плитки, которые ездят через transform ── */
-  #grid{--S:300px;--gap:8px;position:relative;width:var(--S);height:var(--S)}
-  .cell,.tile{position:absolute;left:0;top:0;width:calc((100% - 3 * var(--gap)) / 4);height:calc((100% - 3 * var(--gap)) / 4);
-    border-radius:12px;transform:translate(calc(var(--x) * (100% + var(--gap))),calc(var(--y) * (100% + var(--gap))))}
-  .cell{background:rgba(255,255,255,.035);border:1px solid rgba(255,255,255,.06)}
-  /* плитка не на месте — стекло с неоновой цифрой цвета своего ряда */
-  .tile{--c:var(--cyan);display:flex;align-items:center;justify-content:center;cursor:pointer;
-    font-family:var(--font-display);font-size:calc(var(--S) * .1);line-height:1;color:var(--c);
-    background:linear-gradient(160deg,rgba(255,255,255,.10),rgba(255,255,255,.03));
-    border:1px solid rgba(255,255,255,.16);
-    box-shadow:0 4px 14px rgba(0,0,0,.35),inset 0 1px 0 rgba(255,255,255,.08);
-    text-shadow:0 0 10px var(--c);
-    transition:transform .13s cubic-bezier(.2,.8,.3,1),color .25s,border-color .25s,box-shadow .25s}
-  .tile.r1{--c:var(--yellow)} .tile.r2{--c:var(--purple)} .tile.r3{--c:var(--green)}
+  /* ═══ МЕНЮ ═══ */
+  #screen-menu .ku-field{margin-top:14px}
+  /* точка на кнопке размера/режима — есть сохранённая партия */
+  .ku-seg button.has-save{position:relative}
+  .ku-seg button.has-save::after{content:'';position:absolute;top:5px;right:6px;width:6px;height:6px;border-radius:50%;
+    background:var(--gold);box-shadow:0 0 6px var(--gold)}
+  .mode-note{font-size:12px;color:var(--muted);text-align:center;margin:10px auto 0;max-width:340px;line-height:1.45;min-height:2.9em}
+  .mode-note b{color:var(--text);font-weight:600}
+  #art-pick{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:6px;width:min(340px,88vw)}
+  .art-btn{position:relative;aspect-ratio:1;padding:0;border-radius:10px;overflow:hidden;cursor:pointer;color:var(--text);
+    border:1px solid var(--panel-border);background:var(--glass);transition:transform .15s,box-shadow .2s,border-color .2s}
+  .art-btn canvas{display:block;width:100%;height:100%}
+  .art-btn.rand{display:flex;align-items:center;justify-content:center;font-size:20px}
+  .art-btn.active{border-color:var(--accent);box-shadow:0 0 0 2px rgba(0,229,255,.6),0 0 14px rgba(0,229,255,.35)}
+  .art-btn:active{transform:scale(.94)}
+  #art-name{font-size:11.5px;color:var(--muted);letter-spacing:.5px;margin-top:-2px}
+  .ku-menu-btns .best{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:100%}
+
+  /* ═══ ИГРА: шапка · показатели · поле · кнопки помощи · подсказка ═══ */
+  #screen-game{padding-left:10px;padding-right:10px;touch-action:none}
+  #play{flex:1 1 auto;min-height:0;width:100%;display:flex;flex-direction:column;align-items:center}
+  #hud{flex-wrap:nowrap}
+  #hud .ku-stat{min-width:80px}
+  #hud-best{font-size:15px}
+  #zone{flex:1 1 auto;min-height:0;width:100%;display:flex;flex-direction:column;align-items:center;touch-action:none}
+  #zone::before{content:'';flex:1 1 0}   /* свободное место: 1 часть над полем, 1,4 — под подсказкой */
+  #zone::after{content:'';flex:1.4 1 0}
+  #board{flex:none;padding:7px;line-height:1}
+  #grid{position:relative;display:grid;grid-template-columns:repeat(var(--n,4),var(--cs,70px));grid-auto-rows:var(--cs,70px);
+    gap:var(--gap,8px);padding:var(--gap,8px);border-radius:11px;background:rgba(4,6,22,.55)}
+  .cell{border-radius:var(--rad,10px);background:rgba(255,255,255,.035);border:1px solid rgba(255,255,255,.06)}
+  #tiles{position:absolute;inset:7px;pointer-events:none;transition:opacity .2s}
+  #board.veil #tiles,#board.veil #peek{opacity:0!important}      /* пауза: поле скрыто */
+  #veil{position:absolute;inset:7px;display:none;align-items:center;justify-content:center;flex-direction:column;gap:6px;
+    font-family:var(--font-display);color:var(--muted);font-size:14px;letter-spacing:1.5px;pointer-events:none}
+  #veil b{font-size:42px;color:var(--accent);text-shadow:0 0 18px rgba(0,229,255,.6);font-weight:400}
+  #board.veil #veil{display:flex}
+  #peek{position:absolute;left:7px;top:7px;border-radius:11px;opacity:0;pointer-events:none;transition:opacity .15s;z-index:6}
+  #board.peeking #peek{opacity:1}
+  #peek-tag{position:absolute;left:50%;bottom:14px;transform:translateX(-50%);z-index:7;opacity:0;pointer-events:none;transition:opacity .15s;
+    font:400 11px/1 var(--font-display);letter-spacing:1.5px;color:var(--text);background:rgba(4,6,22,.75);padding:6px 10px;border-radius:8px}
+  #board.peeking #peek-tag{opacity:1}
+  #tools{display:flex;gap:8px;justify-content:center;margin-top:12px;flex:none}
+  #tools .ku-btn{padding:8px 13px;min-height:38px}
+  #tools .ku-btn.ic{width:44px;padding-left:0;padding-right:0;font-size:16px}
+  #t-nums .ico{font-family:var(--font-display)}
+  #tools .ku-btn.on{border-color:var(--accent);color:var(--accent);box-shadow:0 0 0 2px rgba(0,229,255,.35),var(--shadow-btn)}
+  #t-hint.busy{pointer-events:none;opacity:.75}
+  #t-hint.busy .ico{display:inline-block;animation:spin 1s linear infinite}
+  @keyframes spin{to{transform:rotate(360deg)}}
+  @media (max-width:380px){ #tools.pic #t-solve .lbl{display:none} }
+  #g-hint{margin-top:6px;flex:none;max-width:100%;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-height:18px}
+  #g-hint.tip{color:var(--gold)}
+  #g-hint.warn{color:#ffb4c3}
+
+  /* Альбомная ориентация телефона: поле слева, показатели и кнопки — колонкой справа */
+  body.land #play{display:grid;grid-template-columns:auto 200px;grid-template-rows:1fr auto auto auto 1fr;
+    grid-template-areas:"zone ." "zone hud" "zone tools" "zone hint" "zone .";justify-content:center;align-items:center;column-gap:16px}
+  body.land #zone{display:contents}
+  body.land #zone::before,body.land #zone::after{display:none}
+  body.land #board{grid-area:zone;align-self:center}
+  body.land #hud{grid-area:hud;flex-wrap:wrap;justify-content:center;margin:0}
+  body.land #hud .ku-stat{min-width:90px}
+  body.land #tools{grid-area:tools;flex-wrap:wrap;margin-top:8px}
+  body.land #tools .lbl{display:none}
+  body.land #tools .ku-btn{width:44px;padding-left:0;padding-right:0}
+  body.land #tools{gap:6px}
+  body.land #g-hint{grid-area:hint;white-space:normal;text-align:center;font-size:11.5px;margin-top:8px}
+
+  /* ═══ Плитки: внешний слой едет (transform из JS), внутренний — оформление ═══ */
+  .tile{position:absolute;left:0;top:0;width:var(--cs);height:var(--cs);z-index:2;will-change:transform;--c:var(--cyan)}
+  .tile-in{position:relative;width:100%;height:100%;display:flex;align-items:center;justify-content:center;border-radius:var(--rad,10px);overflow:hidden;
+    font-family:var(--font-display);font-weight:400;font-size:calc(var(--cs) * .44);line-height:1;color:var(--c);font-variant-numeric:tabular-nums;
+    background:linear-gradient(160deg,rgba(255,255,255,.10),rgba(255,255,255,.03));border:1px solid rgba(255,255,255,.16);
+    box-shadow:0 4px 14px rgba(0,0,0,.35),inset 0 1px 0 rgba(255,255,255,.08);text-shadow:0 0 10px var(--c);
+    transition:color .25s,border-color .25s,box-shadow .25s,background .25s}
+  .tile.d2 .tile-in{font-size:calc(var(--cs) * .4)}
+  /* цвет числа — цвет ряда, где плитка должна стоять */
+  .tile.r1{--c:var(--yellow)} .tile.r2{--c:var(--purple)} .tile.r3{--c:var(--green)} .tile.r4{--c:var(--orange)} .tile.r5{--c:var(--blue)}
   /* плитка на своём месте — яркий блок как в Тетрисе: свечение и блик сверху */
-  .tile.ok{color:#041018;text-shadow:none;border-color:transparent;
+  .tile.ok .tile-in{color:#041018;text-shadow:none;border-color:transparent;
     background:linear-gradient(180deg,rgba(255,255,255,.42),rgba(255,255,255,0) 50%,rgba(0,0,0,.2)),var(--c);
     box-shadow:0 0 8px var(--c),inset 0 1px 0 rgba(255,255,255,.35),inset 0 0 0 1px rgba(255,255,255,.18)}
-  /* полупрозрачные оттенки цвета ряда — только где есть color-mix(). Запасное объявление перед
-     значением с var() не помогает: такое значение «валидно» при разборе и перекрывает запасное,
-     а в старом браузере потом превращается в unset. */
   @supports (color:color-mix(in srgb,red 50%,blue)){
-    .tile{border-color:color-mix(in srgb,var(--c) 40%,transparent);text-shadow:0 0 14px color-mix(in srgb,var(--c) 70%,transparent)}
-    .tile.ok{box-shadow:0 0 12px color-mix(in srgb,var(--c) 45%,transparent),inset 0 1px 0 rgba(255,255,255,.35),inset 0 0 0 1px rgba(255,255,255,.18)}
+    .tile-in{border-color:color-mix(in srgb,var(--c) 40%,transparent);text-shadow:0 0 14px color-mix(in srgb,var(--c) 70%,transparent)}
+    .tile.ok .tile-in{box-shadow:0 0 12px color-mix(in srgb,var(--c) 45%,transparent),inset 0 1px 0 rgba(255,255,255,.35),inset 0 0 0 1px rgba(255,255,255,.18)}
   }
-  #grid.shuffling .tile{transition:transform .35s cubic-bezier(.3,.7,.3,1),color .25s,border-color .25s,box-shadow .25s}
-  #grid.solved .tile{animation:tileWin .7s ease calc(var(--i) * 45ms) both}
-  @keyframes tileWin{40%{scale:1.08;filter:brightness(1.35)}}
-  @media (prefers-reduced-motion:reduce){ .tile,#grid.shuffling .tile{transition:none} #grid.solved .tile{animation:none} }
+  /* картинка: кусочек рисунка, номер-подсказка — в углу */
+  .tile.pic .tile-in{background:#0b0a24;border:0;box-shadow:0 3px 10px rgba(0,0,0,.5),inset 0 0 0 1px rgba(255,255,255,.12);text-shadow:none}
+  .tile.pic canvas{position:absolute;left:0;top:0;width:100%;height:100%;display:block}
+  .tile .badge{display:none;position:absolute;left:3px;top:3px;z-index:1;min-width:1.6em;padding:3px 4px;border-radius:6px;text-align:center;
+    font:400 max(10px,calc(var(--cs) * .19))/1 var(--font-display);color:#fff;background:rgba(4,6,22,.72);box-shadow:0 0 0 1px rgba(255,255,255,.15)}
+  #board.nums .tile.pic .badge{display:block}
+  #board.nums .tile.pic.ok .badge{background:rgba(81,245,139,.9);color:#03210f}
+  .tile.last{opacity:0;transition:opacity .6s ease .15s}
+  .tile.last .badge{display:none!important}
+  .tile.last.show{opacity:1}
+  /* подсказка: плитка пульсирует золотом, стрелка — куда ехать */
+  .tile.hinted{z-index:4}
+  .tile.hinted .tile-in{animation:hintPulse 1s ease-in-out infinite}
+  @keyframes hintPulse{0%,100%{box-shadow:0 0 0 2px var(--gold),0 0 10px rgba(255,214,10,.5)}50%{box-shadow:0 0 0 3px var(--gold),0 0 26px rgba(255,214,10,.85)}}
+  /* стрелка — в пустой клетке: «плитка едет сюда» */
+  #harrow{position:absolute;left:0;top:0;width:var(--cs);height:var(--cs);z-index:3;display:flex;align-items:center;justify-content:center;pointer-events:none;
+    border-radius:var(--rad,10px);border:2px dashed rgba(255,214,10,.55);background:rgba(255,214,10,.06)}
+  #harrow span{font:700 calc(var(--cs) * .46)/1 var(--font-body);color:var(--gold);text-shadow:0 0 14px rgba(255,214,10,.9);animation:arrNudge 1s ease-in-out infinite}
+  @keyframes arrNudge{0%,100%{transform:translate(0,0);opacity:1}50%{transform:translate(var(--ax,0),var(--ay,0));opacity:.6}}
+  body.anim-off #harrow span{animation:none}
+  /* победа: волна по плиткам */
+  #board.solved .tile-in{animation:tileWin .7s ease calc(var(--i) * 32ms) both}
+  @keyframes tileWin{40%{transform:scale(1.08);filter:brightness(1.35)}}
+  body.anim-off .tile-in,body.anim-off #board.solved .tile-in{animation:none!important}
+  body.anim-off .tile.hinted .tile-in{box-shadow:0 0 0 3px var(--gold),0 0 18px rgba(255,214,10,.7)}
+
+  /* ═══ ОКНА ═══ */
+  .ov-btns{display:flex;flex-direction:column;gap:10px}
+  #ov-win .ku-card{gap:10px}
+  .win-sub{font-size:13.5px}
+  .badges{display:flex;flex-wrap:wrap;gap:6px;justify-content:center}
+  .badges span{font-family:var(--font-display);font-size:12px;letter-spacing:.5px;padding:5px 10px;border-radius:10px;color:var(--gold);
+    border:1px solid #ffd60a55;background:rgba(255,214,10,.09);animation:kuPulse 1.2s infinite}
+  .badges span.plain{color:var(--muted);border-color:var(--panel-border);background:var(--panel);animation:none}
+  .badges span.ach{font-family:var(--font-body);font-weight:600;color:#ffe38a;animation:none}
+  .stats-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(96px,1fr));gap:8px}
+  .st-card{background:var(--glass-panel,rgba(255,255,255,.06));border:1px solid var(--panel-border);border-radius:14px;padding:10px 6px;text-align:center}
+  .st-card .sv{font-family:var(--font-display);font-size:17px;color:var(--accent);margin-top:2px;white-space:nowrap}
+  .st-card .sl{font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:.8px;margin-top:3px}
+  .st-card.gold .sv{color:var(--gold)}
+  .st-tabs{margin-bottom:8px}
+  .ku-modal .ku-seg{width:100%}
+  .st-tabs button{font-size:12px}
+  .top-list{display:flex;flex-direction:column;gap:6px}
+  .top-row{display:grid;grid-template-columns:28px 1fr auto;gap:8px;align-items:center;font-size:13px;padding:7px 10px;border-radius:10px;background:var(--panel);border:1px solid var(--panel-border)}
+  .top-row b{font-family:var(--font-display);font-weight:400;color:var(--gold)}
+  .top-row .k{font-family:var(--font-display);color:var(--muted);text-align:center}
+  .top-row .d{color:var(--muted);font-size:11.5px;text-align:right}
+  .list{display:flex;flex-direction:column;gap:8px}
+  .ach-item{display:flex;align-items:center;gap:12px;padding:10px 12px;border-radius:14px;background:var(--panel);border:1px solid var(--panel-border)}
+  .ach-item.unlocked{border-color:rgba(255,214,10,.45);background:rgba(255,214,10,.07)}
+  .ach-item.unlocked h4{color:var(--gold)}
+  .ach-icon{font-size:22px;width:40px;height:40px;flex:none;display:flex;align-items:center;justify-content:center;background:rgba(255,255,255,.05);border-radius:12px}
+  .ach-info{min-width:0;flex:1}
+  .ach-info h4{margin:0 0 2px;font-family:var(--font-display);font-weight:400;font-size:13px;letter-spacing:.5px}
+  .ach-info p{margin:0;font-size:11.5px;color:var(--muted);line-height:1.4}
+  .ach-prog{height:5px;border-radius:3px;background:rgba(255,255,255,.08);overflow:hidden;margin-top:5px}
+  .ach-prog i{display:block;height:100%;background:linear-gradient(90deg,var(--accent),var(--accent2))}
+  .h-size{flex:none;min-width:46px;height:32px;padding:0 6px;border-radius:9px;display:flex;align-items:center;justify-content:center;
+    font:400 12px/1 var(--font-display);color:#041018;background:var(--accent)}
+  .h-size.pic{background:var(--accent2);color:#1a0412}
+  .h-size.daily{background:var(--gold);color:#241500}
+  .h-size.off{background:rgba(255,255,255,.1);color:var(--muted)}
+  .empty{text-align:center;color:var(--muted);padding:20px}
+  .set-btns{display:flex;gap:8px;flex-wrap:wrap}
+  #set-data h3{margin-top:18px}
+  #ov-settings .ku-field{width:100%;align-items:stretch;margin-top:6px}
+  .ku-rules .ex{font-family:var(--font-display);font-weight:400;color:var(--accent);white-space:nowrap}
+  @media (max-height:560px){
+    .ku-overlay .ku-card{padding:12px 18px;gap:5px}
+    #ov-win .ku-card{gap:5px;width:min(560px,92vw)}
+    #ov-pause .ku-card{width:min(560px,92vw)}
+    .ku-overlay .ku-card h2{font-size:19px}
+    .ku-overlay .ku-card p{font-size:12.5px;line-height:1.35}
+    .ku-overlay .ku-big-score{font-size:26px}
+    .ku-overlay .ku-over-stats{display:grid;grid-template-columns:1fr 1fr;column-gap:16px;row-gap:3px;margin:2px 0}
+    .ku-overlay .ku-over-stats div{font-size:13px}
+    .ku-overlay .ku-card .ku-btn{min-height:34px;padding-top:6px;padding-bottom:6px;font-size:14px}
+    .ov-btns{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+    #ov-pause .ov-btns .ku-btn.primary{grid-column:1 / -1}
+  }
+  @media (prefers-reduced-motion:reduce){ .badges span{animation:none} }
 </style>
 </head>
 <body class="ku">
@@ -49,346 +186,2178 @@
   <!-- ═══ МЕНЮ ═══ -->
   <section id="screen-menu" class="ku-screen menu active">
     <h1 class="ku-logo">ПЯТНАШКИ</h1>
-    <p class="ku-tagline">Головоломка • 4×4 • Рекорды</p>
-    <div class="ku-pills"><span>🔢 15 плиток</span><span>⏱ На время</span><span>👆 Тап и свайп</span><span>✅ Всегда решаемо</span></div>
-    <div class="ku-menu-btns">
-      <button class="ku-btn big primary" id="btn-play">🎮 Играть<span class="best" id="menu-best">Рекорд: —</span></button>
+    <p class="ku-tagline">Головоломка • 4&nbsp;поля • 2&nbsp;режима</p>
+    <div class="ku-pills"><span>🧩 3×3 – 6×6</span><span>🖼 Картинки</span><span>💡 Подсказки</span><span>📅 Пятнашки дня</span></div>
+
+    <div class="ku-field">
+      <div class="ku-label">Поле</div>
+      <div class="ku-seg" id="seg-size" aria-label="Размер поля">
+        <button data-n="3">3×3</button><button data-n="4">4×4</button><button data-n="5">5×5</button><button data-n="6">6×6</button>
+      </div>
     </div>
-    <div class="ku-menu-row"><button class="ku-btn ghost" id="btn-rules">📖 Правила</button></div>
-    <div class="ku-menu-stats" id="menu-stats"></div>
-    <div class="ku-menu-hint">Стрелки — сдвиг плитки в пустую клетку · P / Esc — пауза<br>На телефоне: тап по плитке рядом с пустой клеткой или свайп</div>
+    <div class="ku-field">
+      <div class="ku-label">Режим</div>
+      <div class="ku-seg" id="seg-mode" aria-label="Режим">
+        <button data-m="num">🔢 Числа</button><button data-m="pic">🖼 Картинка</button>
+      </div>
+    </div>
+    <div class="ku-field" id="f-art" hidden>
+      <div class="ku-label">Картинка</div>
+      <div id="art-pick" role="radiogroup" aria-label="Картинка"></div>
+      <div id="art-name"></div>
+    </div>
+    <p class="mode-note" id="mode-note"></p>
+
+    <div class="ku-menu-btns">
+      <button class="ku-btn big primary" id="btn-continue" hidden>▶ Продолжить<span class="best" id="continue-sub">—</span></button>
+      <button class="ku-btn big accent2" id="btn-new">🎮 Новая игра<span class="best" id="new-sub">—</span></button>
+      <button class="ku-btn big gold" id="btn-daily">📅 Пятнашки дня<span class="best" id="daily-sub">—</span></button>
+    </div>
+    <div class="ku-menu-row">
+      <button class="ku-btn ghost" id="btn-rules">📖 Правила</button>
+      <button class="ku-btn ghost" id="btn-stats">📊 Статистика</button>
+      <button class="ku-btn ghost" id="btn-ach">🏅 Достижения</button>
+      <button class="ku-btn ghost" id="btn-history">📜 История</button>
+      <button class="ku-btn ghost" id="btn-settings">⚙️ Настройки</button>
+    </div>
+    <div class="ku-menu-stats" id="menu-stats">Собрано: 0</div>
+    <div class="ku-menu-hint" id="menu-hint">Клавиши: стрелки / WASD — ход · H — подсказка · P / Esc — пауза<br>На телефоне: тап по плитке или свайп</div>
   </section>
 
   <!-- ═══ ИГРА ═══ -->
   <section id="screen-game" class="ku-screen fit">
     <header class="ku-top">
       <div class="ku-top-left"></div>
-      <div class="ku-top-title"><div class="t">ПЯТНАШКИ 4×4</div><div class="s">НА МЕСТЕ: <b id="in-place">0</b> / 15</div></div>
+      <div class="ku-top-title"><div class="t" id="g-title">ЧИСЛА · 4×4</div><div class="s">НА МЕСТЕ <b id="g-place">0</b>/<b id="g-total">15</b></div></div>
       <div class="ku-top-actions">
-        <button class="ku-btn icon" id="btn-new" aria-label="Перемешать заново"><svg viewBox="0 0 24 24"><polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/></svg></button>
-        <button class="ku-btn icon" id="btn-pause" aria-label="Пауза"><svg viewBox="0 0 24 24"><line x1="9" y1="5" x2="9" y2="19"/><line x1="15" y1="5" x2="15" y2="19"/></svg></button>
+        <button class="ku-btn icon" id="btn-new2" aria-label="Перемешать заново (R)" title="Перемешать заново (R)"><svg viewBox="0 0 24 24"><polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/></svg></button>
+        <button class="ku-btn icon" id="btn-pause" aria-label="Пауза (P)" title="Пауза (P)"><svg viewBox="0 0 24 24"><line x1="9" y1="5" x2="9" y2="19"/><line x1="15" y1="5" x2="15" y2="19"/></svg></button>
       </div>
     </header>
-    <div class="ku-hud">
-      <div class="ku-stat"><span>Ходы</span><b id="moves">0</b></div>
-      <div class="ku-stat c2"><span>Время</span><b id="timer">0:00</b></div>
-      <div class="ku-stat gold"><span>Рекорд</span><b id="best">—</b></div>
-    </div>
-    <div id="wrap">
-      <div class="ku-board" id="board"><div id="grid"></div></div>
-      <p class="ku-hint" id="hint">Тап по плитке рядом с пустой клеткой · свайп · стрелки</p>
+    <div id="play">
+      <div class="ku-hud" id="hud">
+        <div class="ku-stat"><span>Ходы</span><b id="hud-moves">0</b></div>
+        <div class="ku-stat c2"><span>Время</span><b id="hud-time">0:00</b></div>
+        <div class="ku-stat gold" id="st-best"><span>Рекорд</span><b id="hud-best">—</b></div>
+      </div>
+      <div id="zone">
+        <div class="ku-board" id="board" role="group" aria-label="Поле пятнашек">
+          <div id="grid"></div>
+          <div id="tiles"></div>
+          <canvas id="peek"></canvas>
+          <div id="peek-tag">ОБРАЗЕЦ</div>
+          <div id="veil"><b>⏸</b>ПАУЗА</div>
+        </div>
+        <div id="tools">
+          <button class="ku-btn sm" id="t-hint" title="Подсказка (H)"><span class="ico">💡</span><span class="lbl">Подсказка</span></button>
+          <button class="ku-btn sm" id="t-solve" title="Показать решение"><span class="ico">🤖</span><span class="lbl">Решение</span></button>
+          <button class="ku-btn sm ic" id="t-peek" title="Образец — удерживайте (V)" aria-label="Образец картинки" hidden><span class="ico">👁</span></button>
+          <button class="ku-btn sm ic" id="t-nums" title="Номера на плитках (N)" aria-label="Номера на плитках" aria-pressed="false" hidden><span class="ico">#</span></button>
+        </div>
+        <p class="ku-hint" id="g-hint">Тап по плитке в ряду с пустой клеткой · свайп · стрелки</p>
+      </div>
     </div>
   </section>
 </main>
 
 <!-- ═══ ПАУЗА ═══ -->
-<div class="ku-overlay" id="ov-pause"><div class="ku-card">
+<div class="ku-overlay" id="ov-pause"><div class="ku-card" role="dialog" aria-modal="true">
   <h2>⏸ ПАУЗА</h2>
-  <button class="ku-btn primary" id="btn-resume">Продолжить</button>
-  <button class="ku-btn" id="btn-restart">Заново</button>
-  <button class="ku-btn" id="btn-rules2">📖 Правила</button>
-  <button class="ku-btn ghost" id="btn-quit">В меню</button>
+  <p id="pause-info">—</p>
+  <div class="ov-btns">
+    <button class="ku-btn primary" id="p-resume">Продолжить</button>
+    <button class="ku-btn" id="p-new">🔄 Новая раскладка</button>
+    <button class="ku-btn" id="p-rules">📖 Правила</button>
+    <button class="ku-btn" id="p-settings">⚙️ Настройки</button>
+    <button class="ku-btn ghost" id="p-menu">В меню</button>
+  </div>
 </div></div>
 
-<!-- ═══ ПОБЕДА ═══ -->
-<div class="ku-overlay" id="ov-win"><div class="ku-card">
-  <h2 class="win">РЕШЕНО!</h2>
-  <div class="ku-new-best" id="win-best" hidden>🏆 НОВЫЙ РЕКОРД!</div>
+<!-- ═══ СОБРАНО ═══ -->
+<div class="ku-overlay" id="ov-win"><div class="ku-card" role="dialog" aria-modal="true">
+  <h2 class="win" id="win-title">СОБРАНО!</h2>
+  <div class="badges" id="win-badges"></div>
   <div class="ku-big-score" id="win-moves">0</div>
-  <p id="win-sub">ходов</p>
+  <p class="win-sub" id="win-sub">ходов</p>
   <div class="ku-over-stats" id="win-stats"></div>
-  <button class="ku-btn primary" id="btn-again">Играть снова</button>
-  <button class="ku-btn ghost" id="btn-win-menu">В меню</button>
+  <div class="ov-btns">
+    <button class="ku-btn primary" id="w-again">🔄 Играть снова</button>
+    <button class="ku-btn" id="w-view">👁 Посмотреть поле</button>
+    <button class="ku-btn ghost" id="w-menu">В меню</button>
+  </div>
 </div></div>
 
 <!-- ═══ ПРАВИЛА ═══ -->
-<div class="ku-overlay" id="ov-rules"><div class="ku-modal">
-  <header><h2>📖 Правила</h2><button class="ku-btn icon" id="btn-rules-x" aria-label="Закрыть">✕</button></header>
+<div class="ku-overlay" id="ov-rules"><div class="ku-modal" role="dialog" aria-modal="true">
+  <header><h2>📖 Правила</h2><button class="ku-btn icon" data-close aria-label="Закрыть">✕</button></header>
   <div class="ku-body">
     <h3>Цель</h3>
     <ul class="ku-rules">
-      <li>Расставь плитки по порядку <b>1–15</b> слева направо и сверху вниз. Пустая клетка — в правом нижнем углу.</li>
-      <li>Каждая раскладка гарантированно решаема.</li>
+      <li>Расставьте плитки по порядку — <b>1, 2, 3…</b> слева направо и сверху вниз; пустая клетка — в правом нижнем углу. В режиме «Картинка» — соберите рисунок.</li>
+      <li>Каждая раскладка <b>гарантированно решаема</b> (проверяется чётность перестановки с учётом ряда пустой клетки) и хорошо перемешана.</li>
     </ul>
     <h3>Ход</h3>
     <ul class="ku-rules">
-      <li>Сдвинь в пустую клетку соседнюю с ней плитку: тап по плитке, свайп в сторону сдвига или стрелки на клавиатуре.</li>
-      <li>Плитка, стоящая на своём месте, загорается цветом своего ряда.</li>
+      <li><b>Тап по плитке</b> в одном ряду или столбце с пустой клеткой сдвигает к ней сразу все плитки между ними — как пальцем на настоящих пятнашках.</li>
+      <li><b>Свайп по полю</b> сдвигает в сторону свайпа плитку, соседнюю с пустой клеткой. <b>Стрелки / WASD</b> — то же с клавиатуры.</li>
+      <li>Ходы считаются <b>по плиткам</b>: сдвиг трёх плиток одним тапом — <span class="ex">3</span> хода.</li>
+      <li>Плитка на своём месте загорается цветом своего ряда (на картинке с номерами — зелёный номер).</li>
+    </ul>
+    <h3>Поля и режимы</h3>
+    <ul class="ku-rules">
+      <li><b>3×3</b> (8 плиток) — разминка, <b>4×4</b> — классические пятнашки, <b>5×5</b> и <b>6×6</b> — для терпеливых.</li>
+      <li><b>🔢 Числа</b> — классика. <b>🖼 Картинка</b> — неоновый рисунок, нарезанный на плитки; номера-подсказки в углу включаются кнопкой <b>#</b>, а <b>👁 Образец</b> (удерживайте) показывает целый рисунок.</li>
+      <li><b>📅 Пятнашки дня</b> — одна раскладка 4×4 в день, одинаковая у всех. Засчитывается первая сборка дня, серия 🔥 растёт, если собирать каждый день.</li>
+    </ul>
+    <h3>Помощь</h3>
+    <ul class="ku-rules">
+      <li><b>💡 Подсказка</b> (H) — следующий ход из текущей позиции: на 3×3 — по кратчайшему решению, на 4×4 — по кратчайшему, если решатель успеет его найти (иначе по близкому к нему), на 5×5 и 6×6 — по решению «ряд за рядом». Идите по подсказкам — дойдёте до сборки.</li>
+      <li>Партия с подсказкой засчитывается в статистику <b>с пометкой 💡, но без рекорда</b>.</li>
+      <li><b>🤖 Решение</b> — компьютер собирает головоломку у вас на глазах (остановить можно в любой момент). Такая партия <b>не засчитывается</b>.</li>
     </ul>
     <h3>Рекорды</h3>
     <ul class="ku-rules">
-      <li>Таймер стартует с первого хода и стоит на паузе.</li>
-      <li>Рекорд — наименьшее число ходов. Лучшее время тоже запоминается.</li>
+      <li>Время идёт с первого хода, на паузе стоит, а поле скрыто.</li>
+      <li>Рекорды — <b>отдельно для каждого поля и режима</b>: наименьшее число ходов и лучшее время (это могут быть разные партии).</li>
+      <li>Незаконченная партия сохраняется сама — для каждого поля и режима своя.</li>
+    </ul>
+    <h3>Управление</h3>
+    <ul class="ku-rules">
+      <li><b>Стрелки / WASD</b> — ход, <b>H</b> — подсказка, <b>V</b> (удерживать) — образец, <b>N</b> — номера на картинке, <b>P / Esc</b> — пауза, <b>R</b> — новая раскладка.</li>
+      <li>Быстрые ходы подряд не теряются — анимация догоняет.</li>
     </ul>
   </div>
-  <footer><button class="ku-btn primary" id="btn-rules-close">Понятно</button></footer>
+  <footer><button class="ku-btn primary" data-close>Понятно</button></footer>
 </div></div>
 
+<!-- ═══ СТАТИСТИКА ═══ -->
+<div class="ku-overlay" id="ov-stats"><div class="ku-modal" role="dialog" aria-modal="true">
+  <header><h2>📊 Статистика</h2><button class="ku-btn icon" data-close aria-label="Закрыть">✕</button></header>
+  <div class="ku-body">
+    <div class="ku-seg st-tabs" id="st-size"><button data-n="3">3×3</button><button data-n="4">4×4</button><button data-n="5">5×5</button><button data-n="6">6×6</button></div>
+    <div class="ku-seg st-tabs" id="st-mode"><button data-m="num">🔢 Числа</button><button data-m="pic">🖼 Картинка</button></div>
+    <div class="stats-grid" id="st-grid"></div>
+    <h3>Лучшее время</h3>
+    <div class="top-list" id="st-top"></div>
+    <h3>📅 Пятнашки дня</h3>
+    <div class="stats-grid" id="st-daily"></div>
+    <h3>Всего</h3>
+    <div class="stats-grid" id="st-total"></div>
+  </div>
+  <footer><button class="ku-btn primary" data-close>Готово</button></footer>
+</div></div>
+
+<!-- ═══ ДОСТИЖЕНИЯ ═══ -->
+<div class="ku-overlay" id="ov-ach"><div class="ku-modal" role="dialog" aria-modal="true">
+  <header><h2>🏅 Достижения <span class="ku-muted" id="ach-count"></span></h2><button class="ku-btn icon" data-close aria-label="Закрыть">✕</button></header>
+  <div class="ku-body"><div class="list" id="ach-list"></div></div>
+</div></div>
+
+<!-- ═══ ИСТОРИЯ ═══ -->
+<div class="ku-overlay" id="ov-history"><div class="ku-modal" role="dialog" aria-modal="true">
+  <header><h2>📜 История</h2><button class="ku-btn icon" data-close aria-label="Закрыть">✕</button></header>
+  <div class="ku-body"><div class="list" id="history-list"></div></div>
+</div></div>
+
+<!-- ═══ НАСТРОЙКИ ═══ -->
+<div class="ku-overlay" id="ov-settings"><div class="ku-modal" role="dialog" aria-modal="true">
+  <header><h2>⚙️ Настройки</h2><button class="ku-btn icon" data-close aria-label="Закрыть">✕</button></header>
+  <div class="ku-body">
+    <h3>Звук и вибрация</h3>
+    <label class="ku-switch-row">Звуки<input type="checkbox" data-opt="sound"><span class="ku-switch"></span></label>
+    <label class="ku-switch-row">Вибрация<input type="checkbox" data-opt="vibration"><span class="ku-switch"></span></label>
+    <h3>Вид</h3>
+    <div class="ku-field"><div class="ku-label">Анимации</div>
+      <div class="ku-seg" id="set-anim"><button data-v="smooth">Плавные</button><button data-v="fast">Быстрые</button><button data-v="off">Выкл</button></div></div>
+    <label class="ku-switch-row">Номера на картинке<input type="checkbox" data-opt="nums"><span class="ku-switch"></span></label>
+    <div id="set-data">
+      <h3>Данные</h3>
+      <div class="set-btns"><button class="ku-btn sm danger" id="btn-reset">🗑 Сбросить прогресс</button></div>
+    </div>
+  </div>
+  <footer><button class="ku-btn primary" data-close>Готово</button></footer>
+</div></div>
+
+<div class="ku-toast" id="toast"></div>
 <script>
 'use strict';
-const $ = id => document.getElementById(id);
-const N = 4, SIZE = N * N;
-const BEST_KEY = '15best';      // наименьшее число ходов (ключ прежний)
-const STATS_KEY = '15stats';    // { solved, bestTime } — решено головоломок и лучшее время, с
 
-function lsGet(k) { try { return localStorage.getItem(k); } catch (e) { return null; } }
-function lsSet(k, v) { try { localStorage.setItem(k, v); } catch (e) {} }
-function loadStats() {
-  try { const s = JSON.parse(lsGet(STATS_KEY) || '{}'); return s && typeof s === 'object' ? s : {}; }
-  catch (e) { return {}; }
-}
-function plural(n, forms) {
-  const a = Math.abs(n) % 100, b = a % 10;
-  return forms[a > 10 && a < 20 ? 2 : b === 1 ? 0 : b >= 2 && b <= 4 ? 1 : 2];
-}
-const fmt = s => Math.floor(s / 60) + ':' + String(s % 60).padStart(2, '0');
+/* ═══ engine.js ═══ */
+/* ═══════════════════════════════════════════════════════════════
+ * Пятнашки — движок: раскладки (решаемость, перемешивание, зерно), ходы (в т. ч. сдвиг нескольких
+ * плиток), эвристика «манхэттен + linear conflict» и решатели:
+ *   • IDA* — оптимальный (3×3 — всегда, 4×4 — с ограничением по времени);
+ *   • взвешенный IDA* (f = g + w·h) — быстрый запасной для 4×4, решение длиннее оптимального;
+ *   • послойный — любой размер: ряд, столбец, ряд… (поиск в ширину по плитке или паре плиток,
+ *     собранные клетки не трогаются), остаток 3×3 — оптимально. Решение находится всегда.
+ * Без DOM: тот же код работает в Node (тесты), в основном потоке и в Web Worker (решатель).
+ * Ход везде — индекс клетки, куда уходит пустая клетка (плитка оттуда едет на место пустой).
+ * ═════════════════════════════════════════════════════════════ */
+function FifteenEngine() {
+  'use strict';
+  const SIZES = [3, 4, 5, 6];
+  const now = (typeof performance !== 'undefined' && performance.now) ? () => performance.now() : () => Date.now();
 
-let tiles = [], empty = SIZE - 1, moves = 0;
-let phase = 'menu';             // menu | play | paused | won
-let elapsed = 0, startedAt = 0, tickT = 0, winT = 0, shuffleT = 0, rulesFromPause = false;
-let asking = false;             // открыт диалог «перемешать заново?» — ввод в игру не идёт
-let best = parseInt(lsGet(BEST_KEY), 10) || 0;
-
-const grid = $('grid'), tileEls = [];
-
-/* ── Поле: 16 подложек и 15 плиток создаются один раз, ходы двигают плитки ── */
-function build() {
-  for (let i = 0; i < SIZE; i++) {
-    const c = document.createElement('div');
-    c.className = 'cell';
-    c.style.setProperty('--x', i % N); c.style.setProperty('--y', (i / N) | 0);
-    grid.appendChild(c);
+  /* ── Случайность: зерно → mulberry32 (одинаково на всех устройствах) ── */
+  function rng(seed) {
+    let a = seed >>> 0;
+    return () => {
+      a = (a + 0x6D2B79F5) | 0;
+      let t = Math.imul(a ^ (a >>> 15), 1 | a);
+      t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
+      return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+    };
   }
-  for (let v = 1; v < SIZE; v++) {
-    const t = document.createElement('div');
-    t.className = 'tile r' + (((v - 1) / N) | 0);
-    t.textContent = v;
-    t.style.setProperty('--i', v - 1);
-    grid.appendChild(t);
-    tileEls[v] = t;
+  function hash(str) {                       // FNV-1a
+    let h = 2166136261;
+    for (let i = 0; i < str.length; i++) { h ^= str.charCodeAt(i); h = Math.imul(h, 16777619); }
+    return h >>> 0;
   }
+  function randomSeed() {
+    try { const a = new Uint32Array(1); crypto.getRandomValues(a); return a[0]; } catch (e) { return (Math.random() * 4294967296) >>> 0; }
+  }
+
+  /* ── Таблицы поля n×n: ряд/столбец клетки, соседи, ряд/столбец цели плитки ── */
+  const TBL = {};
+  function tables(n) {
+    if (TBL[n]) return TBL[n];
+    const N = n * n, row = new Int8Array(N), col = new Int8Array(N), nb = new Array(N), gr = new Int8Array(N), gc = new Int8Array(N);
+    for (let i = 0; i < N; i++) { row[i] = (i / n) | 0; col[i] = i % n; }
+    for (let i = 0; i < N; i++) {
+      const a = [];
+      if (row[i] > 0) a.push(i - n);
+      if (col[i] < n - 1) a.push(i + 1);
+      if (row[i] < n - 1) a.push(i + n);
+      if (col[i] > 0) a.push(i - 1);
+      nb[i] = a;
+    }
+    for (let v = 1; v < N; v++) { gr[v] = row[v - 1]; gc[v] = col[v - 1]; }   // плитка v стоит на месте v − 1
+    const dist = new Int8Array(N * N);            // dist[v·N + i] — манхэттен плитки v в клетке i
+    for (let v = 1; v < N; v++) for (let i = 0; i < N; i++) dist[v * N + i] = Math.abs(gr[v] - row[i]) + Math.abs(gc[v] - col[i]);
+    return (TBL[n] = { n, N, row, col, nb, gr, gc, dist });
+  }
+
+  /* ── Поле ── */
+  function goal(n) { const N = n * n, a = new Array(N); for (let i = 0; i < N - 1; i++) a[i] = i + 1; a[N - 1] = 0; return a; }
+  function isSolved(c) { const L = c.length; for (let i = 0; i < L - 1; i++) if (c[i] !== i + 1) return false; return c[L - 1] === 0; }
+  function validCells(c, n) {
+    if (!Array.isArray(c) || !SIZES.includes(n) || c.length !== n * n) return false;
+    const seen = new Uint8Array(n * n);
+    for (const v of c) { if (!Number.isInteger(v) || v < 0 || v >= n * n || seen[v]) return false; seen[v] = 1; }
+    return true;
+  }
+  function inversions(c) {
+    let inv = 0;
+    for (let i = 0; i < c.length; i++) { const a = c[i]; if (a) for (let j = i + 1; j < c.length; j++) if (c[j] && c[j] < a) inv++; }
+    return inv;
+  }
+  // Решаемость: нечётная ширина — число инверсий чётное; чётная — чётна сумма инверсий и номера ряда
+  // пустой клетки, считая снизу с нуля (пустая в нижнем ряду — инверсий должно быть чётное число).
+  function isSolvable(c, n) {
+    const inv = inversions(c);
+    if (n % 2) return inv % 2 === 0;
+    return (inv + n - 1 - Math.floor(c.indexOf(0) / n)) % 2 === 0;
+  }
+  function inPlaceCount(c) { let k = 0; for (let i = 0; i < c.length - 1; i++) if (c[i] === i + 1) k++; return k; }
+
+  /* ── Эвристика: манхэттен + linear conflict ──
+   * Плитки ряда, чья цель в этом же ряду, должны прийти к цели в нужном порядке; если порядок нарушен,
+   * кому-то придётся выйти из ряда и вернуться (+2 хода). Минимум «выходящих» = k − длина наибольшей
+   * возрастающей подпоследовательности их целевых столбцов. Так же для столбцов. Оценка не завышает. */
+  const SEQ = new Int8Array(8), LIS = new Int8Array(8);
+  function lineConflict(k) {
+    let best = 0;
+    for (let i = 0; i < k; i++) {
+      let l = 1; const s = SEQ[i];
+      for (let j = 0; j < i; j++) if (SEQ[j] < s && LIS[j] >= l) l = LIS[j] + 1;
+      LIS[i] = l; if (l > best) best = l;
+    }
+    return 2 * (k - best);
+  }
+  function rowLC(b, n, r, gr, gc) {
+    let k = 0; const base = r * n;
+    for (let c = 0; c < n; c++) { const t = b[base + c]; if (t && gr[t] === r) SEQ[k++] = gc[t]; }
+    return k > 1 ? lineConflict(k) : 0;
+  }
+  function colLC(b, n, c, gr, gc) {
+    let k = 0;
+    for (let r = 0; r < n; r++) { const t = b[r * n + c]; if (t && gc[t] === c) SEQ[k++] = gr[t]; }
+    return k > 1 ? lineConflict(k) : 0;
+  }
+  function manhattan(c, n) {
+    const { row, col, gr, gc } = tables(n);
+    let s = 0;
+    for (let i = 0; i < c.length; i++) { const t = c[i]; if (t) s += Math.abs(gr[t] - row[i]) + Math.abs(gc[t] - col[i]); }
+    return s;
+  }
+  function linearConflict(c, n) {
+    const { gr, gc } = tables(n);
+    let s = 0;
+    for (let i = 0; i < n; i++) s += rowLC(c, n, i, gr, gc) + colLC(c, n, i, gr, gc);
+    return s;
+  }
+  const heuristic = (c, n) => manhattan(c, n) + linearConflict(c, n);
+
+  /* ── Перемешивание: равномерно по решаемым раскладкам, затем отбор «хорошо перемешанных» ──
+   * Случайная перестановка; если нерешаема — меняем местами две плитки (это делает её решаемой и
+   * сохраняет равномерность). Отбрасываем почти собранные: мало плиток не на месте или малая оценка. */
+  const MIX = { 3: { h: 12, keep: 2, opt: 16 }, 4: { h: 33, keep: 3 }, 5: { h: 69, keep: 3 }, 6: { h: 125, keep: 3 } };
+  function scramble(n, seed) {
+    const R = rng(seed), N = n * n;
+    let a = null;
+    for (let attempt = 0; attempt < 500; attempt++) {
+      a = goal(n);
+      for (let i = N - 1; i > 0; i--) { const j = Math.floor(R() * (i + 1)); const t = a[i]; a[i] = a[j]; a[j] = t; }
+      if (!isSolvable(a, n)) {
+        let i = 0; while (!a[i]) i++;
+        let j = i + 1; while (!a[j]) j++;
+        const t = a[i]; a[i] = a[j]; a[j] = t;
+      }
+      const m = MIX[n];
+      if (!isSolved(a) && inPlaceCount(a) <= m.keep && heuristic(a, n) >= m.h && (!m.opt || ida(a, n).path.length >= m.opt)) return a;
+    }
+    return a;
+  }
+
+  /* ── Ходы ── */
+  const neighbors = n => tables(n).nb;
+  // Тап по клетке idx: если она в одном ряду или столбце с пустой, все плитки между ними едут на шаг к
+  // пустой. Возвращает последовательность одиночных ходов (позиции пустой клетки) или null.
+  function lineMoves(c, n, idx) {
+    const z = c.indexOf(0);
+    if (idx === z || idx < 0 || idx >= n * n) return null;
+    let step;
+    if (Math.floor(idx / n) === Math.floor(z / n)) step = idx > z ? 1 : -1;
+    else if (idx % n === z % n) step = idx > z ? n : -n;
+    else return null;
+    const out = [];
+    for (let p = z + step; ; p += step) { out.push(p); if (p === idx) break; }
+    return out;
+  }
+  // Направление, куда едет плитка: 0 — вверх, 1 — вправо, 2 — вниз, 3 — влево.
+  // Едет плитка, соседняя с пустой с противоположной стороны; ход — её клетка, иначе −1.
+  function dirMove(c, n, dir) {
+    const z = c.indexOf(0), r = Math.floor(z / n), k = z % n;
+    if (dir === 0) return r < n - 1 ? z + n : -1;
+    if (dir === 1) return k > 0 ? z - 1 : -1;
+    if (dir === 2) return r > 0 ? z - n : -1;
+    if (dir === 3) return k < n - 1 ? z + 1 : -1;
+    return -1;
+  }
+  // Куда поедет плитка из клетки p в пустую z (0 вверх, 1 вправо, 2 вниз, 3 влево)
+  function moveDir(n, z, p) { return p === z + n ? 0 : p === z - 1 ? 1 : p === z - n ? 2 : 3; }
+  const adjacent = (n, a, b) => (Math.abs(a - b) === n) || (Math.abs(a - b) === 1 && Math.floor(a / n) === Math.floor(b / n));
+  // Применить ходы к копии поля; неверный ход (не сосед пустой) — null
+  function applyMoves(c, n, moves) {
+    const b = c.slice(); let z = b.indexOf(0);
+    for (const p of moves) {
+      if (!Number.isInteger(p) || p < 0 || p >= b.length || !adjacent(n, z, p)) return null;
+      b[z] = b[p]; b[p] = 0; z = p;
+    }
+    return b;
+  }
+
+  // Таблицы конфликтов для 4×4: линия из 4 клеток по 4 бита → готовое значение (строится один раз, ~0,5 МБ)
+  let LC4 = null;
+  function lc4Tables() {
+    if (LC4) return LC4;
+    const { gr, gc } = tables(4), R = new Uint8Array(4 << 16), C = new Uint8Array(4 << 16);
+    for (let line = 0; line < 4; line++) for (let key = 0; key < 65536; key++) {
+      let k = 0, m = 0;
+      for (let i = 0; i < 4; i++) { const t = (key >> (12 - 4 * i)) & 15; if (t && gr[t] === line) SEQ[k++] = gc[t]; }
+      R[(line << 16) | key] = k > 1 ? lineConflict(k) : 0;
+      for (let i = 0; i < 4; i++) { const t = (key >> (12 - 4 * i)) & 15; if (t && gc[t] === line) SEQ[m++] = gr[t]; }
+      C[(line << 16) | key] = m > 1 ? lineConflict(m) : 0;
+    }
+    return (LC4 = { R, C });
+  }
+
+  // сумма конфликтов 4×4 по таблицам (для проверки таблиц в тестах)
+  function lcTable4(c) {
+    const { R, C } = lc4Tables();
+    let s = 0;
+    for (let i = 0; i < 4; i++) {
+      s += R[(i << 16) | (c[i * 4] << 12) | (c[i * 4 + 1] << 8) | (c[i * 4 + 2] << 4) | c[i * 4 + 3]];
+      s += C[(i << 16) | (c[i] << 12) | (c[i + 4] << 8) | (c[i + 8] << 4) | c[i + 12]];
+    }
+    return s;
+  }
+
+  /* ── IDA* по манхэттену + linear conflict ──
+   * weight = 1 — оптимальное решение; weight > 1 — взвешенный поиск (f = g + w·h): во много раз быстрее,
+   * решение длиннее. Ограничения: deadline (момент now()) и maxNodes. Прервано — null. */
+  function ida(cells, n, opts) {
+    opts = opts || {};
+    const { N, nb, row, col, gr, gc, dist } = tables(n);
+    const w = opts.weight || 1, deadline = opts.deadline || Infinity, maxNodes = opts.maxNodes || Infinity;
+    const b = Uint8Array.from(cells), lr = new Int8Array(n), lcol = new Int8Array(n), path = [];
+    // конфликты линии: для 4×4 — из таблицы по 4 плиткам линии (ключ 16 бит), иначе — подсчётом
+    const T4 = n === 4 ? lc4Tables() : null, TR = T4 && T4.R, TC = T4 && T4.C;
+    const colL = T4 ? a => TC[(a << 16) | (b[a] << 12) | (b[a + 4] << 8) | (b[a + 8] << 4) | b[a + 12]] : a => colLC(b, n, a, gr, gc);
+    const rowL = T4 ? a => { const s = a << 2; return TR[(a << 16) | (b[s] << 12) | (b[s + 1] << 8) | (b[s + 2] << 4) | b[s + 3]]; } : a => rowLC(b, n, a, gr, gc);
+    let z = b.indexOf(0), md = manhattan(b, n), lc = 0, nodes = 0, stop = false;
+    for (let i = 0; i < n; i++) { lr[i] = rowL(i); lcol[i] = colL(i); lc += lr[i] + lcol[i]; }
+    function dfs(g, bound, prev) {
+      const h = md + lc, f = g + w * h;
+      if (f > bound) return f;
+      if (h === 0) return -1;
+      if ((++nodes & 2047) === 0 && (nodes > maxNodes || now() > deadline)) { stop = true; return Infinity; }
+      let min = Infinity;
+      const ns = nb[z];
+      for (let k = 0; k < ns.length; k++) {
+        const p = ns[k];
+        if (p === prev) continue;
+        const t = b[p], oz = z, horiz = row[p] === row[oz], lc0 = lc;
+        const d = dist[t * N + oz] - dist[t * N + p];
+        let a1, a2, o1, o2;
+        b[oz] = t; b[p] = 0; z = p;
+        if (horiz) {          // плитка сменила столбец: пересчитать конфликты двух столбцов
+          a1 = col[p]; a2 = col[oz]; o1 = lcol[a1]; o2 = lcol[a2];
+          const v1 = colL(a1), v2 = colL(a2);
+          lcol[a1] = v1; lcol[a2] = v2; lc += v1 + v2 - o1 - o2;
+        } else {              // сменила ряд — двух рядов
+          a1 = row[p]; a2 = row[oz]; o1 = lr[a1]; o2 = lr[a2];
+          const v1 = rowL(a1), v2 = rowL(a2);
+          lr[a1] = v1; lr[a2] = v2; lc += v1 + v2 - o1 - o2;
+        }
+        md += d;
+        path.push(p);
+        const r = dfs(g + 1, bound, oz);
+        if (r === -1) return -1;
+        path.pop();
+        md -= d; lc = lc0;
+        if (horiz) { lcol[a1] = o1; lcol[a2] = o2; } else { lr[a1] = o1; lr[a2] = o2; }
+        b[p] = t; b[oz] = 0; z = oz;
+        if (stop) return Infinity;
+        if (r < min) min = r;
+      }
+      return min;
+    }
+    let bound = w * (md + lc);
+    for (;;) {
+      const r = dfs(0, bound, -1);
+      if (r === -1) return { path: path.slice(), nodes, optimal: w === 1 };
+      if (stop || r === Infinity) return null;
+      bound = r;
+    }
+  }
+
+  /* ── Послойный решатель ── */
+  // Поиск в ширину: довести плитку v до клетки target, не заходя пустой клеткой в locked.
+  // Состояние — (клетка плитки, клетка пустой). Возвращает ходы или null.
+  function bfsTile(b, n, v, target, locked) {
+    const { N, nb } = tables(n);
+    const start = b.indexOf(v) * N + b.indexOf(0);
+    if (((start / N) | 0) === target) return [];
+    const prev = new Int32Array(N * N).fill(-1), q = new Int32Array(N * N);
+    let qh = 0, qt = 0;
+    prev[start] = start; q[qt++] = start;
+    while (qh < qt) {
+      const s = q[qh++], t = (s / N) | 0, z = s % N, ns = nb[z];
+      for (let k = 0; k < ns.length; k++) {
+        const p = ns[k];
+        if (locked[p]) continue;
+        const t2 = p === t ? z : t, s2 = t2 * N + p;
+        if (prev[s2] !== -1) continue;
+        prev[s2] = s;
+        if (t2 === target) return backtrack(prev, s2, start, N);
+        q[qt++] = s2;
+      }
+    }
+    return null;
+  }
+  // То же для пары плиток (a → ta, c → tc): последние две клетки ряда или столбца ставятся вместе
+  function bfsPair(b, n, a, ta, c, tc, locked) {
+    const { N, nb } = tables(n);
+    const NN = N * N, start = (b.indexOf(a) * N + b.indexOf(c)) * N + b.indexOf(0);
+    if (b[ta] === a && b[tc] === c) return [];
+    const prev = new Int32Array(NN * N).fill(-1), q = new Int32Array(NN * N);
+    let qh = 0, qt = 0;
+    prev[start] = start; q[qt++] = start;
+    while (qh < qt) {
+      const s = q[qh++], pa = (s / NN) | 0, pc = ((s / N) | 0) % N, z = s % N, ns = nb[z];
+      for (let k = 0; k < ns.length; k++) {
+        const p = ns[k];
+        if (locked[p]) continue;
+        const pa2 = p === pa ? z : pa, pc2 = p === pc ? z : pc, s2 = (pa2 * N + pc2) * N + p;
+        if (prev[s2] !== -1) continue;
+        prev[s2] = s;
+        if (pa2 === ta && pc2 === tc) return backtrack(prev, s2, start, N);
+        q[qt++] = s2;
+      }
+    }
+    return null;
+  }
+  // ходы из цепочки состояний: позиция пустой клетки — остаток от деления на N
+  function backtrack(prev, s, start, N) {
+    const out = [];
+    while (s !== start) { out.push(s % N); s = prev[s]; }
+    return out.reverse();
+  }
+
+  // Ряд r0 (столбцы c0…) и столбец c0 (ряды r0…) по очереди, пока не останется квадрат stopAt×stopAt;
+  // его решает small(sub, k) — по умолчанию IDA* (для 3×3 оптимально и мгновенно). colFirst — у квадрата
+  // сначала столбец. В ряду первые плитки ставятся по одной, последние две — парой. Возвращает ходы.
+  function solveLayered(cells, n, opts) {
+    opts = opts || {};
+    const N = n * n, b = cells.slice(), locked = new Uint8Array(N), moves = [];
+    const stopAt = Math.max(3, Math.min(n, opts.stopAt || 3));
+    let z = b.indexOf(0);
+    const apply = path => { for (const p of path) { b[z] = b[p]; b[p] = 0; z = p; moves.push(p); } };
+    const placeLine = targets => {
+      for (let i = 0; i < targets.length - 2; i++) {
+        const tg = targets[i], path = bfsTile(b, n, tg + 1, tg, locked);
+        if (!path) throw new Error('layered: tile ' + (tg + 1));
+        apply(path); locked[tg] = 1;
+      }
+      const ta = targets[targets.length - 2], tc = targets[targets.length - 1];
+      const path = bfsPair(b, n, ta + 1, ta, tc + 1, tc, locked);
+      if (!path) throw new Error('layered: pair ' + (ta + 1) + ',' + (tc + 1));
+      apply(path); locked[ta] = locked[tc] = 1;
+    };
+    let r0 = 0, c0 = 0;
+    while (n - r0 > stopAt || n - c0 > stopAt) {
+      const tg = [];
+      const h = n - r0, w = n - c0;
+      if (h > w || (h === w && !opts.colFirst)) { for (let c = c0; c < n; c++) tg.push(r0 * n + c); placeLine(tg); r0++; }
+      else { for (let r = r0; r < n; r++) tg.push(r * n + c0); placeLine(tg); c0++; }
+    }
+    // остаток — квадрат k×k в правом нижнем углу: перенумеровать плитки и решить как отдельную головоломку
+    const k = n - r0, sub = new Array(k * k);
+    for (let r = 0; r < k; r++) for (let c = 0; c < k; c++) {
+      const v = b[(r0 + r) * n + c0 + c];
+      sub[r * k + c] = v ? (Math.floor((v - 1) / n) - r0) * k + ((v - 1) % n - c0) + 1 : 0;
+    }
+    const small = opts.small || ((s, kk) => ida(s, kk).path);
+    apply(small(sub, k).map(p => (r0 + Math.floor(p / k)) * n + c0 + p % k));
+    return shorten(cells, moves);
+  }
+
+  // Убрать петли: если позиция повторилась, ходы между двумя её появлениями лишние
+  function shorten(cells, path) {
+    const b = cells.slice(), key = () => String.fromCharCode.apply(null, b);
+    let z = b.indexOf(0);
+    const out = [], keys = [key()], seen = new Map([[keys[0], 0]]);
+    for (const p of path) {
+      b[z] = b[p]; b[p] = 0; z = p;
+      const kk = key(), at = seen.get(kk);
+      if (at !== undefined) {
+        while (out.length > at) { out.pop(); seen.delete(keys.pop()); }
+      } else { out.push(p); keys.push(kk); seen.set(kk, out.length); }
+    }
+    return out;
+  }
+
+  /* ── Решение из позиции: { path, optimal, method } ──
+   * 3×3 — IDA*: оптимально и мгновенно. 4×4 — IDA* (оптимум) в пределах optMs; не успел — быстрый поиск
+   * quick4. 5×5, 6×6 — послойный в четырёх вариантах (ряд или столбец первым; остаток 3×3 оптимально
+   * или 4×4 быстрым поиском), берётся кратчайшее. Позиция должна быть решаемой. */
+  function solve(cells, n, opts) {
+    opts = opts || {};
+    if (isSolved(cells)) return { path: [], optimal: true, method: 'solved' };
+    if (n === 3) return { path: ida(cells, 3).path, optimal: true, method: 'ida' };
+    const fastMs = opts.fastMs === undefined ? 400 : opts.fastMs;
+    if (n === 4) {
+      const optMs = opts.optMs === undefined ? 1500 : opts.optMs;
+      if (optMs > 0) { const r = ida(cells, 4, { deadline: now() + optMs }); if (r) return { path: r.path, optimal: true, method: 'ida' }; }
+      return quick4(cells, fastMs);
+    }
+    let best = null;
+    for (const stopAt of [3, 4]) for (const colFirst of [false, true]) {
+      if (stopAt === 4 && !(fastMs > 0)) continue;
+      const small = stopAt === 4 ? (s, k) => quick4(s, fastMs / 4).path : null;
+      const p = solveLayered(cells, n, { colFirst, stopAt, small });
+      if (!best || p.length < best.path.length) best = { path: p, optimal: false, method: 'layered' };
+    }
+    return best;
+  }
+  // 4×4 без гарантии оптимума: послойный (два порядка) и взвешенный IDA* (w = 1,5, не успел — w = 2)
+  // в пределах ms — берётся кратчайшее. w = 1,5 в среднем на ~13 % длиннее оптимума.
+  function quick4(cells, ms) {
+    let best = null;
+    for (const colFirst of [false, true]) {
+      const p = solveLayered(cells, 4, { colFirst });
+      if (!best || p.length < best.path.length) best = { path: p, optimal: false, method: 'layered' };
+    }
+    if (ms > 0) {
+      const t0 = now();
+      const r = ida(cells, 4, { weight: 1.5, deadline: t0 + ms * 0.7 }) || ida(cells, 4, { weight: 2, deadline: t0 + ms });
+      if (r) { const p = shorten(cells, r.path); if (p.length < best.path.length) best = { path: p, optimal: false, method: 'wida' }; }
+    }
+    return best;
+  }
+
+  /* ── План подсказок ──
+   * Решение кэшируется: пока игрок ходит по плану, следующая подсказка — следующий ход плана (мгновенно);
+   * каждый ход по подсказке сокращает остаток плана, поэтому «подсказка за подсказкой» всегда доводит до
+   * сборки. Свернул с плана — план не подходит к позиции и считается заново. */
+  const keyOf = c => c.join(',');
+  function makePlan(cells, res) { return { key: keyOf(cells), moves: res.path.slice(), i: 0, optimal: !!res.optimal, method: res.method || '' }; }
+  function planNext(plan, cells) { return plan && plan.i < plan.moves.length && plan.key === keyOf(cells) ? plan.moves[plan.i] : -1; }
+  function planAdvance(plan, before, p, after) {
+    if (planNext(plan, before) !== p) return false;
+    plan.i++; plan.key = keyOf(after);
+    return true;
+  }
+  const planLeft = plan => (plan ? plan.moves.length - plan.i : 0);
+
+  return {
+    SIZES, rng, hash, randomSeed, tables, goal, isSolved, validCells, inversions, isSolvable, inPlaceCount,
+    manhattan, linearConflict, heuristic, scramble, MIX, neighbors, lineMoves, dirMove, moveDir, adjacent, applyMoves,
+    lcTable4, ida, bfsTile, bfsPair, solveLayered, shorten, solve, quick4, keyOf, makePlan, planNext, planAdvance, planLeft
+  };
+}
+const F15 = FifteenEngine();
+
+/* ═══ art.js ═══ */
+/* ═══════════════════════════════════════════════════════════════
+ * Картинки для режима «Картинка»: неоновые сюжеты рисуются кодом на canvas (без внешних файлов).
+ * Рисунок задаётся сюжетом и зерном — сохранённая партия восстанавливает ту же картинку.
+ * Каждый сюжет несимметричен и меняет цвет и по горизонтали, и по вертикали, чтобы кусочки
+ * различались между собой.
+ * ═════════════════════════════════════════════════════════════ */
+const Art = (() => {
+  const C = { cyan: '#00e5ff', yellow: '#ffd60a', purple: '#c77dff', green: '#51f58b', red: '#ff5d7d', blue: '#5b8cff', orange: '#ff9f43', pink: '#ff4dd2' };
+  const TAU = Math.PI * 2;
+  const pick = (R, a) => a[Math.floor(R() * a.length)];
+  const lin = (ctx, x0, y0, x1, y1, stops) => { const g = ctx.createLinearGradient(x0, y0, x1, y1); stops.forEach(([o, c]) => g.addColorStop(o, c)); return g; };
+  const rad = (ctx, x, y, r0, r1, stops) => { const g = ctx.createRadialGradient(x, y, r0, x, y, r1); stops.forEach(([o, c]) => g.addColorStop(o, c)); return g; };
+  let GS = 1;                                  // масштаб рисунка: shadowBlur не подчиняется трансформации холста
+  const glow = (ctx, color, blur) => { ctx.shadowColor = color; ctx.shadowBlur = blur * GS; };
+  const noGlow = ctx => { ctx.shadowBlur = 0; ctx.shadowColor = 'transparent'; };
+  function stars(ctx, S, R, count, yMax, big) {
+    ctx.fillStyle = '#fff';
+    for (let i = 0; i < count; i++) {
+      const x = R() * S, y = R() * yMax, r = S * (0.0012 + R() * R() * (big ? 0.005 : 0.003));
+      ctx.globalAlpha = 0.35 + R() * 0.65;
+      ctx.beginPath(); ctx.arc(x, y, r, 0, TAU); ctx.fill();
+    }
+    ctx.globalAlpha = 1;
+  }
+  // мягкий цветной оттенок по диагонали — соседние кусочки одного ряда отличаются цветом
+  function tint(ctx, S, a, b, alpha) {
+    ctx.globalAlpha = alpha;
+    ctx.fillStyle = lin(ctx, 0, 0, S, S * 0.6, [[0, a], [0.5, 'rgba(0,0,0,0)'], [1, b]]);
+    ctx.fillRect(0, 0, S, S);
+    ctx.globalAlpha = 1;
+  }
+  const layer = S => { const c = document.createElement('canvas'); c.width = c.height = Math.ceil(S); return c; };
+
+  /* ── Закат: солнце с прорезями, горы, пальма, сетка до горизонта ── */
+  function sunset(ctx, S, R) {
+    const hz = S * (0.6 + R() * 0.04), warm = R() < 0.5;
+    ctx.fillStyle = lin(ctx, 0, 0, 0, hz, [[0, '#07041f'], [0.42, '#26094d'], [0.78, warm ? '#86206e' : '#3b1d8f'], [1, warm ? '#ff6a7f' : '#ff4dd2']]);
+    ctx.fillRect(0, 0, S, hz);
+    tint(ctx, S, 'rgba(0,229,255,.55)', 'rgba(255,159,67,.55)', 0.28);
+    stars(ctx, S, R, 110, hz * 0.62, true);
+    // луна-серп в верхнем углу
+    const mx = S * (R() < 0.5 ? 0.16 + R() * 0.1 : 0.74 + R() * 0.1), my = S * (0.1 + R() * 0.08), mr = S * 0.045;
+    glow(ctx, '#fff6c8', S * 0.03); ctx.fillStyle = '#fff1b8';
+    ctx.beginPath(); ctx.arc(mx, my, mr, 0, TAU); ctx.fill(); noGlow(ctx);
+    ctx.fillStyle = '#120737'; ctx.beginPath(); ctx.arc(mx + mr * 0.45, my - mr * 0.2, mr * 0.9, 0, TAU); ctx.fill();
+    // солнце с горизонтальными прорезями — на отдельном слое
+    const sr = S * (0.19 + R() * 0.03), sx = S * (0.5 + (R() - 0.5) * 0.18), sy = hz - sr * 0.62;
+    const L = layer(S * GS), lc = L.getContext('2d');
+    lc.scale(GS, GS);
+    lc.fillStyle = lin(lc, 0, sy - sr, 0, sy + sr, [[0, '#fff27a'], [0.45, '#ffb347'], [1, '#ff3fa4']]);
+    lc.beginPath(); lc.arc(sx, sy, sr, 0, TAU); lc.fill();
+    lc.globalCompositeOperation = 'destination-out';
+    for (let k = 0; k < 6; k++) { const y = sy + sr * (0.02 + k * 0.17); lc.fillRect(sx - sr, y, sr * 2, sr * (0.03 + k * 0.024)); }
+    glow(ctx, '#ff7ac8', S * 0.06); ctx.drawImage(L, 0, 0, S, S); noGlow(ctx);
+    // горы в два слоя
+    for (const [base, hmax, fill, line] of [[hz, S * 0.17, '#2b0f5c', C.purple], [hz, S * 0.1, '#14072f', C.cyan]]) {
+      ctx.beginPath(); ctx.moveTo(0, base);
+      let x = 0;
+      while (x < S) { const w = S * (0.06 + R() * 0.12); ctx.lineTo(x + w / 2, base - hmax * (0.35 + R() * 0.65)); x += w; ctx.lineTo(Math.min(S, x), base - hmax * R() * 0.25); }
+      ctx.lineTo(S, base); ctx.closePath();
+      ctx.fillStyle = fill; ctx.fill();
+      glow(ctx, line, S * 0.015); ctx.strokeStyle = line; ctx.lineWidth = S * 0.004; ctx.stroke(); noGlow(ctx);
+    }
+    // земля и перспективная сетка
+    ctx.fillStyle = lin(ctx, 0, hz, 0, S, [[0, '#2a0749'], [1, '#05010f']]);
+    ctx.fillRect(0, hz, S, S - hz);
+    ctx.save(); ctx.beginPath(); ctx.rect(0, hz, S, S - hz); ctx.clip();
+    glow(ctx, C.pink, S * 0.012); ctx.strokeStyle = warm ? C.pink : C.cyan; ctx.lineWidth = S * 0.0035;
+    for (let k = 1; k <= 9; k++) { const t = k / 9, y = hz + (S - hz) * t * t; ctx.globalAlpha = 0.35 + 0.65 * t; ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(S, y); ctx.stroke(); }
+    ctx.globalAlpha = 1;
+    const vx = sx;
+    for (let i = -12; i <= 12; i++) { ctx.beginPath(); ctx.moveTo(vx + i * S * 0.012, hz); ctx.lineTo(vx + i * S * 0.16, S); ctx.stroke(); }
+    noGlow(ctx); ctx.restore();
+    // пальма у одного края
+    const left = sx > S * 0.5, px = left ? S * (0.08 + R() * 0.08) : S * (0.84 + R() * 0.08), py = S * 0.98, top = S * (0.3 + R() * 0.08);
+    const lean = (left ? 1 : -1) * S * 0.07;
+    ctx.strokeStyle = '#0b0420'; ctx.lineCap = 'round';
+    ctx.lineWidth = S * 0.022; ctx.beginPath(); ctx.moveTo(px, py); ctx.quadraticCurveTo(px + lean * 1.4, (py + top) / 2, px + lean, top); ctx.stroke();
+    const tx = px + lean, ty = top;
+    for (let f = 0; f < 7; f++) {
+      const a = -Math.PI / 2 + (f - 3) * 0.55 + (R() - 0.5) * 0.2, len = S * (0.13 + R() * 0.06);
+      const ex = tx + Math.cos(a) * len, ey = ty + Math.sin(a) * len * 0.55 + len * 0.35;
+      ctx.lineWidth = S * 0.012;
+      ctx.beginPath(); ctx.moveTo(tx, ty); ctx.quadraticCurveTo(tx + Math.cos(a) * len * 0.6, ty + Math.sin(a) * len * 0.6 - S * 0.03, ex, ey); ctx.stroke();
+    }
+    glow(ctx, C.pink, S * 0.02); ctx.strokeStyle = 'rgba(255,77,210,.55)'; ctx.lineWidth = S * 0.003;
+    ctx.beginPath(); ctx.moveTo(px, py); ctx.quadraticCurveTo(px + lean * 1.4, (py + top) / 2, px + lean, top); ctx.stroke(); noGlow(ctx);
+    ctx.lineCap = 'butt';
+  }
+
+  /* ── Ночной город: луна, два ряда домов с окнами, неоновые вывески, отражения ── */
+  function city(ctx, S, R) {
+    const street = S * 0.8;
+    ctx.fillStyle = lin(ctx, 0, 0, 0, street, [[0, '#040822'], [0.55, '#1d0c4a'], [1, '#5a1a72']]);
+    ctx.fillRect(0, 0, S, street);
+    tint(ctx, S, 'rgba(91,140,255,.6)', 'rgba(255,77,210,.6)', 0.25);
+    stars(ctx, S, R, 70, S * 0.4, false);
+    const mx = S * (0.15 + R() * 0.7), my = S * (0.12 + R() * 0.08), mr = S * 0.07;
+    ctx.fillStyle = rad(ctx, mx, my, mr * 0.5, mr * 3.2, [[0, 'rgba(255,240,200,.35)'], [1, 'rgba(255,240,200,0)']]);
+    ctx.fillRect(mx - mr * 4, my - mr * 4, mr * 8, mr * 8);
+    ctx.fillStyle = '#fff4cf'; ctx.beginPath(); ctx.arc(mx, my, mr, 0, TAU); ctx.fill();
+    ctx.fillStyle = 'rgba(200,180,140,.25)';
+    for (let i = 0; i < 4; i++) { ctx.beginPath(); ctx.arc(mx + (R() - 0.5) * mr, my + (R() - 0.5) * mr, mr * (0.12 + R() * 0.15), 0, TAU); ctx.fill(); }
+    // дальний ряд — силуэты
+    let x = -S * 0.02;
+    while (x < S) {
+      const w = S * (0.05 + R() * 0.08), h = S * (0.22 + R() * 0.3);
+      ctx.fillStyle = '#26124f'; ctx.fillRect(x, street - h, w, h);
+      if (R() < 0.3) { ctx.fillRect(x + w * 0.4, street - h - S * 0.05, w * 0.12, S * 0.05); }
+      x += w + S * 0.004;
+    }
+    // ближний ряд — дома с окнами и вывесками
+    x = -S * 0.03;
+    const colors = [C.yellow, C.cyan, C.pink, C.orange, C.purple];
+    while (x < S) {
+      const w = S * (0.09 + R() * 0.1), h = S * (0.18 + R() * 0.42), top = street - h, edge = pick(R, colors);
+      ctx.fillStyle = lin(ctx, x, top, x + w, street, [[0, '#170b36'], [1, '#0a0620']]);
+      ctx.fillRect(x, top, w, h);
+      glow(ctx, edge, S * 0.012); ctx.strokeStyle = edge; ctx.lineWidth = S * 0.003;
+      ctx.beginPath(); ctx.moveTo(x, top); ctx.lineTo(x + w, top); ctx.stroke(); noGlow(ctx);
+      const cols = Math.max(2, Math.round(w / (S * 0.022))), rows = Math.max(2, Math.round(h / (S * 0.03)));
+      const cw = w / cols, rh = h / rows, lit = 0.25 + R() * 0.45, wc = pick(R, [C.yellow, C.yellow, C.cyan, '#ffe7a3']);
+      for (let r = 1; r < rows; r++) for (let c = 0; c < cols; c++) {
+        ctx.fillStyle = R() < lit ? wc : 'rgba(255,255,255,.05)';
+        ctx.globalAlpha = 0.55 + R() * 0.45;
+        ctx.fillRect(x + c * cw + cw * 0.25, top + r * rh, cw * 0.5, rh * 0.45);
+      }
+      ctx.globalAlpha = 1;
+      if (R() < 0.45 && h > S * 0.25) {         // вертикальная неоновая вывеска
+        const sxp = x + (R() < 0.5 ? -S * 0.012 : w - S * 0.012), sy = top + h * (0.1 + R() * 0.3), sc = pick(R, [C.pink, C.cyan, C.green, C.red]);
+        glow(ctx, sc, S * 0.03); ctx.fillStyle = sc; ctx.fillRect(sxp, sy, S * 0.024, h * 0.3); noGlow(ctx);
+        ctx.fillStyle = 'rgba(10,6,32,.55)';
+        for (let k = 0; k < 4; k++) ctx.fillRect(sxp + S * 0.006, sy + h * 0.3 * (0.08 + k * 0.23), S * 0.012, h * 0.3 * 0.1);
+      }
+      x += w + S * 0.006;
+    }
+    // улица: асфальт, отражения окон, разметка
+    ctx.fillStyle = lin(ctx, 0, street, 0, S, [[0, '#120a2e'], [1, '#04020f']]);
+    ctx.fillRect(0, street, S, S - street);
+    for (let i = 0; i < 26; i++) {
+      const rx = R() * S, rc = pick(R, colors);
+      ctx.fillStyle = lin(ctx, 0, street, 0, S, [[0, rc], [1, 'rgba(0,0,0,0)']]);
+      ctx.globalAlpha = 0.18 + R() * 0.2; ctx.fillRect(rx, street, S * (0.006 + R() * 0.012), (S - street) * (0.4 + R() * 0.6));
+    }
+    ctx.globalAlpha = 1;
+    glow(ctx, C.cyan, S * 0.015); ctx.strokeStyle = C.cyan; ctx.lineWidth = S * 0.004;
+    ctx.beginPath(); ctx.moveTo(0, street + S * 0.004); ctx.lineTo(S, street + S * 0.004); ctx.stroke();
+    ctx.strokeStyle = C.yellow; ctx.setLineDash([S * 0.04, S * 0.035]); ctx.lineWidth = S * 0.006;
+    ctx.beginPath(); ctx.moveTo(0, S * 0.91); ctx.lineTo(S, S * 0.91); ctx.stroke(); ctx.setLineDash([]); noGlow(ctx);
+  }
+
+  /* ── Волны: слои синусоид с градиентом и светящимся гребнем, светило и искры ── */
+  function waves(ctx, S, R) {
+    ctx.fillStyle = lin(ctx, 0, 0, S * 0.3, S, [[0, '#050628'], [0.5, '#1a0a48'], [1, '#2a0a3f']]);
+    ctx.fillRect(0, 0, S, S);
+    tint(ctx, S, 'rgba(81,245,139,.45)', 'rgba(255,77,210,.5)', 0.22);
+    stars(ctx, S, R, 60, S * 0.3, false);
+    const ox = S * (0.2 + R() * 0.6), oy = S * (0.16 + R() * 0.06), orr = S * 0.11;
+    ctx.fillStyle = rad(ctx, ox, oy, orr * 0.3, orr * 2.6, [[0, 'rgba(255,214,10,.45)'], [1, 'rgba(255,214,10,0)']]);
+    ctx.fillRect(0, 0, S, S * 0.6);
+    ctx.fillStyle = lin(ctx, 0, oy - orr, 0, oy + orr, [[0, '#fff7b0'], [1, '#ff9f43']]);
+    ctx.beginPath(); ctx.arc(ox, oy, orr, 0, TAU); ctx.fill();
+    const pairs = [[C.cyan, C.blue], [C.blue, C.purple], [C.purple, C.pink], [C.pink, C.red], [C.orange, C.pink], [C.green, C.cyan], [C.cyan, C.purple], [C.yellow, C.orange]];
+    const off = Math.floor(R() * pairs.length), K = 8;
+    for (let k = 0; k < K; k++) {
+      const y0 = S * (0.3 + k * 0.088), A = S * (0.025 + R() * 0.035), f1 = TAU * (1 + R() * 1.8) / S, f2 = TAU * (2.5 + R() * 3) / S, p1 = R() * TAU, p2 = R() * TAU;
+      const [a, b] = pairs[(k + off) % pairs.length];
+      const yAt = x => y0 + A * Math.sin(f1 * x + p1) + A * 0.35 * Math.sin(f2 * x + p2);
+      ctx.beginPath(); ctx.moveTo(0, S); ctx.lineTo(0, yAt(0));
+      for (let xx = 0; xx <= S; xx += S / 90) ctx.lineTo(xx, yAt(xx));
+      ctx.lineTo(S, S); ctx.closePath();
+      ctx.globalAlpha = 0.88;
+      ctx.fillStyle = lin(ctx, 0, 0, S, 0, [[0, a], [1, b]]); ctx.fill();
+      ctx.globalAlpha = 0.55;
+      ctx.fillStyle = lin(ctx, 0, y0 - A, 0, y0 + S * 0.16, [[0, 'rgba(0,0,0,0)'], [1, 'rgba(4,2,20,.9)']]); ctx.fill();
+      ctx.globalAlpha = 1;
+      ctx.beginPath(); ctx.moveTo(0, yAt(0));
+      for (let xx = 0; xx <= S; xx += S / 90) ctx.lineTo(xx, yAt(xx));
+      glow(ctx, a, S * 0.02); ctx.strokeStyle = 'rgba(255,255,255,.75)'; ctx.lineWidth = S * 0.003; ctx.stroke(); noGlow(ctx);
+    }
+    for (let i = 0; i < 40; i++) {
+      const x = R() * S, y = S * (0.3 + R() * 0.7), r = S * (0.002 + R() * 0.004);
+      glow(ctx, '#fff', S * 0.01); ctx.fillStyle = 'rgba(255,255,255,.8)';
+      ctx.beginPath(); ctx.arc(x, y, r, 0, TAU); ctx.fill();
+    }
+    noGlow(ctx);
+  }
+
+  /* ── Космос: туманности, звёзды, планета с кольцом, луна, комета ── */
+  function space(ctx, S, R) {
+    ctx.fillStyle = lin(ctx, 0, 0, S, S, [[0, '#070726'], [1, '#02020e']]);
+    ctx.fillRect(0, 0, S, S);
+    ctx.globalCompositeOperation = 'lighter';
+    const neb = [C.pink, C.purple, C.cyan, C.blue, C.orange, C.green];
+    for (let i = 0; i < 9; i++) {
+      const x = S * (0.1 + R() * 0.8), y = S * (0.1 + R() * 0.8), r = S * (0.18 + R() * 0.3), c = neb[(i + Math.floor(R() * 2)) % neb.length];
+      ctx.globalAlpha = 0.16 + R() * 0.16;
+      ctx.fillStyle = rad(ctx, x, y, 0, r, [[0, c], [1, 'rgba(0,0,0,0)']]);
+      ctx.fillRect(x - r, y - r, r * 2, r * 2);
+    }
+    ctx.globalAlpha = 1; ctx.globalCompositeOperation = 'source-over';
+    stars(ctx, S, R, 220, S, true);
+    for (let i = 0; i < 7; i++) {                // яркие звёзды с лучами
+      const x = R() * S, y = R() * S, l = S * (0.015 + R() * 0.02);
+      glow(ctx, '#fff', S * 0.015); ctx.strokeStyle = 'rgba(255,255,255,.85)'; ctx.lineWidth = S * 0.0025;
+      ctx.beginPath(); ctx.moveTo(x - l, y); ctx.lineTo(x + l, y); ctx.moveTo(x, y - l); ctx.lineTo(x, y + l); ctx.stroke();
+    }
+    noGlow(ctx);
+    // планета с кольцом
+    const px = S * (0.3 + R() * 0.4), py = S * (0.35 + R() * 0.3), pr = S * (0.15 + R() * 0.05), tilt = -0.35 + R() * 0.25;
+    const ring = (front) => {
+      ctx.save(); ctx.translate(px, py); ctx.rotate(tilt);
+      ctx.beginPath(); ctx.ellipse(0, 0, pr * 1.75, pr * 0.42, 0, front ? 0 : Math.PI, front ? Math.PI : TAU);
+      glow(ctx, C.yellow, S * 0.02); ctx.strokeStyle = 'rgba(255,214,10,.85)'; ctx.lineWidth = S * 0.014; ctx.stroke();
+      ctx.strokeStyle = 'rgba(255,159,67,.7)'; ctx.lineWidth = S * 0.005;
+      ctx.beginPath(); ctx.ellipse(0, 0, pr * 1.5, pr * 0.34, 0, front ? 0 : Math.PI, front ? Math.PI : TAU); ctx.stroke();
+      noGlow(ctx); ctx.restore();
+    };
+    ring(false);
+    glow(ctx, C.purple, S * 0.05);
+    ctx.fillStyle = rad(ctx, px - pr * 0.4, py - pr * 0.4, pr * 0.1, pr * 1.2, [[0, '#9fd8ff'], [0.45, C.blue], [0.8, '#5a2a9e'], [1, '#1a0b3a']]);
+    ctx.beginPath(); ctx.arc(px, py, pr, 0, TAU); ctx.fill(); noGlow(ctx);
+    ctx.save(); ctx.beginPath(); ctx.arc(px, py, pr, 0, TAU); ctx.clip();
+    ctx.globalAlpha = 0.35; ctx.strokeStyle = '#ffffff'; ctx.lineWidth = S * 0.01;
+    for (let k = -2; k <= 2; k++) { ctx.beginPath(); ctx.ellipse(px, py + k * pr * 0.32, pr * 1.1, pr * 0.08, tilt, 0, TAU); ctx.stroke(); }
+    ctx.restore(); ctx.globalAlpha = 1;
+    ring(true);
+    // луна и комета
+    const ang = R() * TAU, mx = px + Math.cos(ang) * pr * 2.4, my = py + Math.sin(ang) * pr * 2.1, mr = pr * 0.28;
+    ctx.fillStyle = rad(ctx, mx - mr * 0.3, my - mr * 0.3, 0, mr * 1.1, [[0, '#ffe0f4'], [1, C.pink]]);
+    glow(ctx, C.pink, S * 0.03); ctx.beginPath(); ctx.arc(mx, my, mr, 0, TAU); ctx.fill(); noGlow(ctx);
+    const cx = S * (0.1 + R() * 0.25), cy = S * (0.75 + R() * 0.15), ca = -0.6 - R() * 0.3, cl = S * 0.32;
+    ctx.strokeStyle = lin(ctx, cx, cy, cx - Math.cos(ca) * cl, cy - Math.sin(ca) * cl, [[0, 'rgba(0,229,255,.95)'], [1, 'rgba(0,229,255,0)']]);
+    ctx.lineWidth = S * 0.012; ctx.lineCap = 'round';
+    ctx.beginPath(); ctx.moveTo(cx, cy); ctx.lineTo(cx - Math.cos(ca) * cl, cy - Math.sin(ca) * cl); ctx.stroke(); ctx.lineCap = 'butt';
+    glow(ctx, C.cyan, S * 0.03); ctx.fillStyle = '#e8fdff'; ctx.beginPath(); ctx.arc(cx, cy, S * 0.012, 0, TAU); ctx.fill(); noGlow(ctx);
+  }
+
+  /* ── Мозаика: низкополигональная сетка с плавным переходом четырёх цветов по углам ── */
+  function mosaic(ctx, S, R) {
+    const sets = [[C.cyan, C.purple, C.yellow, C.pink], [C.green, C.cyan, C.orange, C.purple], [C.blue, C.pink, C.cyan, C.yellow], [C.purple, C.orange, C.blue, C.green]];
+    const [tl, tr, bl, br] = pick(R, sets).map(h => [parseInt(h.slice(1, 3), 16), parseInt(h.slice(3, 5), 16), parseInt(h.slice(5, 7), 16)]);
+    const colAt = (x, y, j) => {
+      const u = Math.min(1, Math.max(0, x / S)), v = Math.min(1, Math.max(0, y / S)), out = [];
+      for (let i = 0; i < 3; i++) out.push((tl[i] * (1 - u) + tr[i] * u) * (1 - v) + (bl[i] * (1 - u) + br[i] * u) * v);
+      const k = 0.62 + j * 0.5;                    // яркость треугольника
+      return `rgb(${out.map(c => Math.round(Math.min(255, c * k))).join(',')})`;
+    };
+    const G = 9, cell = S / G, P = [];
+    for (let r = 0; r <= G; r++) { P.push([]); for (let c = 0; c <= G; c++) {
+      const edgeX = c === 0 || c === G, edgeY = r === 0 || r === G;
+      P[r].push([c * cell + (edgeX ? 0 : (R() - 0.5) * cell * 0.7), r * cell + (edgeY ? 0 : (R() - 0.5) * cell * 0.7)]);
+    } }
+    ctx.lineJoin = 'round';
+    for (let r = 0; r < G; r++) for (let c = 0; c < G; c++) {
+      const a = P[r][c], b = P[r][c + 1], d = P[r + 1][c], e = P[r + 1][c + 1];
+      const tris = R() < 0.5 ? [[a, b, e], [a, e, d]] : [[a, b, d], [b, e, d]];
+      for (const t of tris) {
+        const cx = (t[0][0] + t[1][0] + t[2][0]) / 3, cy = (t[0][1] + t[1][1] + t[2][1]) / 3;
+        ctx.beginPath(); ctx.moveTo(t[0][0], t[0][1]); ctx.lineTo(t[1][0], t[1][1]); ctx.lineTo(t[2][0], t[2][1]); ctx.closePath();
+        ctx.fillStyle = colAt(cx, cy, R()); ctx.fill();
+        ctx.strokeStyle = 'rgba(8,6,30,.35)'; ctx.lineWidth = S * 0.0025; ctx.stroke();
+      }
+    }
+    // несколько светящихся рёбер и узлов
+    glow(ctx, '#fff', S * 0.02); ctx.strokeStyle = 'rgba(255,255,255,.85)'; ctx.lineWidth = S * 0.003;
+    for (let i = 0; i < 14; i++) {
+      const r = 1 + Math.floor(R() * (G - 1)), c = 1 + Math.floor(R() * (G - 1)), [x, y] = P[r][c], [x2, y2] = P[r + (R() < 0.5 ? 1 : 0)][c + 1];
+      ctx.beginPath(); ctx.moveTo(x, y); ctx.lineTo(x2, y2); ctx.stroke();
+      ctx.fillStyle = '#fff'; ctx.beginPath(); ctx.arc(x, y, S * 0.006, 0, TAU); ctx.fill();
+    }
+    noGlow(ctx);
+  }
+
+  /* ── Фигуры: неоновые контуры (круги, треугольники, зигзаги, плюсы) на цветном фоне с точками ── */
+  function shapes(ctx, S, R) {
+    ctx.fillStyle = lin(ctx, 0, 0, S, S, [[0, '#1b0846'], [0.5, '#0a0b2e'], [1, '#2a0a3a']]);
+    ctx.fillRect(0, 0, S, S);
+    const blobs = [C.cyan, C.pink, C.yellow, C.purple, C.green, C.blue];
+    ctx.globalCompositeOperation = 'lighter';
+    for (let i = 0; i < 6; i++) {
+      const x = S * ((i % 3) * 0.35 + 0.15 + (R() - 0.5) * 0.15), y = S * (Math.floor(i / 3) * 0.5 + 0.25 + (R() - 0.5) * 0.2), r = S * (0.25 + R() * 0.15);
+      ctx.globalAlpha = 0.2; ctx.fillStyle = rad(ctx, x, y, 0, r, [[0, blobs[i]], [1, 'rgba(0,0,0,0)']]);
+      ctx.fillRect(x - r, y - r, r * 2, r * 2);
+    }
+    ctx.globalAlpha = 1; ctx.globalCompositeOperation = 'source-over';
+    ctx.fillStyle = 'rgba(255,255,255,.14)';
+    for (let y = S * 0.03; y < S; y += S * 0.045) for (let x = S * 0.03; x < S; x += S * 0.045) { ctx.beginPath(); ctx.arc(x, y, S * 0.0025, 0, TAU); ctx.fill(); }
+    // по одной фигуре в каждой клетке сетки 3×3 (со сдвигом) — у каждого края поля что-то своё
+    const kinds = ['circle', 'tri', 'square', 'zig', 'plus', 'ring', 'tri', 'circle', 'wave'];
+    const cols = [C.cyan, C.pink, C.yellow, C.green, C.orange, C.purple, C.red, C.blue, C.cyan];
+    const order = kinds.map((k, i) => i).sort(() => R() - 0.5);
+    ctx.lineCap = 'round'; ctx.lineJoin = 'round';
+    for (let i = 0; i < 9; i++) {
+      const k = kinds[order[i]], col = cols[(order[i] + i) % cols.length];
+      const x = S * ((i % 3) / 3 + 1 / 6 + (R() - 0.5) * 0.12), y = S * (Math.floor(i / 3) / 3 + 1 / 6 + (R() - 0.5) * 0.12), s = S * (0.09 + R() * 0.05), a = R() * TAU;
+      glow(ctx, col, S * 0.025); ctx.strokeStyle = col; ctx.lineWidth = S * (0.012 + R() * 0.008);
+      ctx.save(); ctx.translate(x, y); ctx.rotate(a); ctx.beginPath();
+      if (k === 'circle') ctx.arc(0, 0, s, 0, TAU);
+      else if (k === 'ring') { ctx.arc(0, 0, s, 0, TAU); ctx.moveTo(s * 0.55, 0); ctx.arc(0, 0, s * 0.55, 0, TAU); }
+      else if (k === 'tri') { for (let j = 0; j < 3; j++) { const t = j * TAU / 3; ctx[j ? 'lineTo' : 'moveTo'](Math.cos(t) * s * 1.15, Math.sin(t) * s * 1.15); } ctx.closePath(); }
+      else if (k === 'square') ctx.rect(-s * 0.85, -s * 0.85, s * 1.7, s * 1.7);
+      else if (k === 'zig') { ctx.moveTo(-s * 1.2, s * 0.3); for (let j = 1; j <= 5; j++) ctx.lineTo(-s * 1.2 + j * s * 0.48, j % 2 ? -s * 0.3 : s * 0.3); }
+      else if (k === 'plus') { ctx.moveTo(-s, 0); ctx.lineTo(s, 0); ctx.moveTo(0, -s); ctx.lineTo(0, s); }
+      else { ctx.moveTo(-s * 1.2, 0); for (let j = 0; j <= 24; j++) ctx.lineTo(-s * 1.2 + j * s * 0.1, Math.sin(j / 24 * TAU * 1.5) * s * 0.35); }
+      ctx.stroke(); ctx.restore();
+    }
+    noGlow(ctx);
+    for (let i = 0; i < 26; i++) {                 // мелкие кружки и крестики
+      const x = R() * S, y = R() * S, col = pick(R, cols), s = S * (0.008 + R() * 0.012);
+      ctx.strokeStyle = col; ctx.fillStyle = col; ctx.lineWidth = S * 0.004;
+      if (R() < 0.5) { ctx.beginPath(); ctx.arc(x, y, s, 0, TAU); ctx.fill(); }
+      else { ctx.beginPath(); ctx.moveTo(x - s, y - s); ctx.lineTo(x + s, y + s); ctx.moveTo(x + s, y - s); ctx.lineTo(x - s, y + s); ctx.stroke(); }
+    }
+    ctx.lineCap = 'butt'; ctx.lineJoin = 'miter';
+  }
+
+  const LIST = [
+    { id: 'sunset', name: 'Закат', draw: sunset },
+    { id: 'city', name: 'Город', draw: city },
+    { id: 'waves', name: 'Волны', draw: waves },
+    { id: 'space', name: 'Космос', draw: space },
+    { id: 'mosaic', name: 'Мозаика', draw: mosaic },
+    { id: 'shapes', name: 'Фигуры', draw: shapes }
+  ];
+  const byId = id => LIST.find(a => a.id === id) || null;
+
+  // Нарисовать сюжет id с зерном seed на холсте размера px×px (кэш — последние несколько картинок)
+  const cache = new Map();
+  function render(id, seed, px) {
+    px = Math.max(16, Math.round(px));
+    const key = id + ':' + seed + ':' + px;
+    if (cache.has(key)) return cache.get(key);
+    const art = byId(id) || LIST[0], c = layer(px), ctx = c.getContext('2d');
+    // рисуем в «эталонном» размере 600, масштабируя — пропорции сюжета не зависят от размера экрана
+    const S = 600;
+    GS = px / S;
+    ctx.save(); ctx.scale(GS, GS);
+    try { art.draw(ctx, S, F15.rng(seed)); } catch (e) { ctx.fillStyle = '#1a0b45'; ctx.fillRect(0, 0, S, S); }
+    ctx.restore();
+    // большой рисунок (для поля) в памяти держим один — прежний (другой размер или сюжет) выбрасываем
+    if (px > 300) for (const [k, c2] of cache) if (c2.width > 300) cache.delete(k);
+    cache.set(key, c);
+    if (cache.size > 12) cache.delete(cache.keys().next().value);
+    return c;
+  }
+  return { LIST, byId, render };
+})();
+
+/* ═══ ui.js ═══ */
+/* ═══════════════════════════════════════════════════════════════
+ * Пятнашки — интерфейс: меню, партия, ввод (тап со сдвигом нескольких плиток, свайп, клавиши),
+ * анимации, режимы «Числа», «Картинка», «Пятнашки дня», подсказки и показ решения (решатель —
+ * в фоновом потоке), рекорды по ходам и по времени для каждого поля и режима, статистика,
+ * достижения, история, сохранение незаконченной партии.
+ *
+ * Ход применяется к состоянию сразу (ввод не ждёт анимацию и не теряется), а поле на экране
+ * проигрывает очередь ходов; если ходы копятся, анимация ускоряется и догоняет.
+ * ═════════════════════════════════════════════════════════════ */
+const $ = s => document.querySelector(s), $$ = s => document.querySelectorAll(s);
+const clamp = (v, a, b) => Math.min(b, Math.max(a, v));
+const now = () => performance.now();
+const asObj = o => (o && typeof o === 'object' && !Array.isArray(o)) ? o : {};
+const has = (o, k) => Object.prototype.hasOwnProperty.call(o, k);
+const nn = v => (Number.isFinite(v) && v >= 0 ? Math.floor(v) : 0);      // неотрицательное целое из хранилища
+const plural = (n, a, b, c) => { const m = n % 10, h = n % 100; return m === 1 && h !== 11 ? a : m >= 2 && m <= 4 && (h < 12 || h > 14) ? b : c; };
+const movesWord = n => plural(n, 'ход', 'хода', 'ходов');
+const fmtN = n => Math.round(n || 0).toLocaleString('ru-RU');
+const pad = v => String(v).padStart(2, '0');
+// часы на поле — m:ss; результаты и рекорды — m:ss,д (десятые)
+const fmtClock = ms => { const s = Math.floor(Math.max(0, ms) / 1000), h = Math.floor(s / 3600), m = Math.floor(s / 60) % 60; return (h ? h + ':' + pad(m) : m) + ':' + pad(s % 60); };
+const fmtTime = ms => { const d = Math.floor(Math.max(0, ms) / 100), s = Math.floor(d / 10), h = Math.floor(s / 3600), m = Math.floor(s / 60) % 60; return (h ? h + ':' + pad(m) : m) + ':' + pad(s % 60) + ',' + (d % 10); };
+const fmtDur = ms => { const s = Math.floor(Math.max(0, ms || 0) / 1000), h = Math.floor(s / 3600), m = Math.floor(s / 60) % 60; return h ? `${h}:${pad(m)}:${pad(s % 60)}` : `${m}:${pad(s % 60)}`; };
+const DIR_WORD = ['вверх', 'вправо', 'вниз', 'влево'], DIR_ARROW = ['↑', '→', '↓', '←'];
+let screen = 'menu';
+// тост: в игре в альбомной ориентации — сверху (снизу поле), иначе — снизу
+const toast = (m, k, d) => { if (window.KuArcade) KuArcade.toast(m, ((k || '') + (screen === 'game' && document.body.classList.contains('land') ? ' top' : '')).trim(), d); };
+const confirmDlg = (msg, title, ok, danger) => (window.KuArcade && KuArcade.confirm)
+  ? KuArcade.confirm(msg, { title, ok, cancel: 'Отмена', danger: !!danger }) : Promise.resolve(true);
+
+/* ═══ Хранилище ═══ */
+const store = {
+  get(k, d) { try { const v = localStorage.getItem(k); if (v === null) return d; const o = JSON.parse(v); return o === null ? d : o; } catch (e) { return d; } },
+  set(k, v) { try { localStorage.setItem(k, JSON.stringify(v)); } catch (e) {} },
+  raw(k) { try { return localStorage.getItem(k); } catch (e) { return null; } },
+  setRaw(k, v) { try { localStorage.setItem(k, String(v)); } catch (e) {} },
+  del(k) { try { localStorage.removeItem(k); } catch (e) {} }
+};
+const KEY = {
+  set: 'fifteen_settings', stats: 'fifteen_stats', ach: 'fifteen_ach', hist: 'fifteen_history', save: slot => 'fifteen_save_' + slot,
+  // ключи прежней версии (4×4): рекорд ходов и { solved, bestTime (с) } — переносятся и дальше обновляются
+  oldBest: '15best', oldStats: '15stats'
+};
+const MODES = {
+  num: { name: 'Числа', short: 'ЧИСЛА', icon: '🔢', ch: 'n' },
+  pic: { name: 'Картинка', short: 'КАРТИНКА', icon: '🖼', ch: 'p' },
+  daily: { name: 'Пятнашки дня', short: 'ПЯТНАШКИ ДНЯ', icon: '📅', ch: 'd' }
+};
+const slotOf = (n, m) => (m === 'daily' ? 'daily' : n + MODES[m].ch);       // '4n' — 4×4 числа, '5p' — 5×5 картинка
+const ALL_SLOTS = [];
+for (const n of F15.SIZES) for (const m of ['num', 'pic']) ALL_SLOTS.push(slotOf(n, m));
+ALL_SLOTS.push('daily');
+const SLOT_RE = /^([3-6][np]|daily)$/;
+const HISTORY_MAX = 60, DAILY_N = 4;
+// бюджеты решателя (мс): в фоновом потоке и запасной — в основном (если поток не запустился)
+const BUDGET = {
+  hint: { 4: { optMs: 1200, fastMs: 400 }, 5: { fastMs: 400 }, 6: { fastMs: 400 } },
+  solve: { 4: { optMs: 2500, fastMs: 600 }, 5: { fastMs: 600 }, 6: { fastMs: 600 } },
+  local: { 4: { optMs: 100, fastMs: 80 }, 5: { fastMs: 60 }, 6: { fastMs: 60 } }
+};
+
+/* ── Дата для «Пятнашек дня»: местная, раскладка — от зерна даты (одинаковая у всех) ── */
+const dateKey = d => d.getFullYear() + '-' + pad(d.getMonth() + 1) + '-' + pad(d.getDate());
+const todayKey = () => dateKey(new Date());
+const prevKey = k => { const [y, m, d] = k.split('-').map(Number), t = new Date(y, m - 1, d); t.setDate(t.getDate() - 1); return dateKey(t); };
+const dailySeed = k => F15.hash('fifteen-daily-v1-' + k);
+const DATE_RE = /^\d{4}-\d{2}-\d{2}$/;
+const fmtDate = k => { const [y, m, d] = k.split('-'); return `${d}.${m}.${y}`; };
+
+/* ── Настройки ── */
+const reducedMotion = (() => { try { return matchMedia('(prefers-reduced-motion: reduce)').matches; } catch (e) { return false; } })();
+const ART_IDS = Art.LIST.map(a => a.id);
+const settings = (() => {
+  const o = asObj(store.get(KEY.set, null));
+  const s = { sound: true, vibration: true, anim: reducedMotion ? 'off' : 'smooth', nums: false, n: 4, mode: 'num', art: 'random', lastArt: '' };
+  for (const k of ['sound', 'vibration', 'nums']) if (typeof o[k] === 'boolean') s[k] = o[k];
+  if (['smooth', 'fast', 'off'].includes(o.anim)) s.anim = o.anim;
+  if (F15.SIZES.includes(o.n)) s.n = o.n;
+  if (o.mode === 'num' || o.mode === 'pic') s.mode = o.mode;
+  if (o.art === 'random' || ART_IDS.includes(o.art)) s.art = o.art;
+  if (ART_IDS.includes(o.lastArt)) s.lastArt = o.lastArt;
+  return s;
+})();
+const saveSettings = () => store.set(KEY.set, settings);
+
+/* ── Статистика и рекорды по слоту «поле + режим» ──
+ * g — партий (собранных и брошенных), w — собрано игроком, wh — из них с подсказками, sh — решение показано,
+ * cw — чистых сборок (без подсказок), bm — рекорд ходов, bt — лучшее время (мс): только чистые сборки;
+ * an, sm, st — число, сумма ходов и времени чистых сборок (для средних), top — 5 лучших времён */
+const blankRec = () => ({ g: 0, w: 0, wh: 0, sh: 0, cw: 0, bm: 0, bt: 0, an: 0, sm: 0, st: 0, top: [] });
+const stats = (() => {
+  const o = asObj(store.get(KEY.stats, null));
+  const st = { by: {}, total: { g: 0, w: 0, moves: 0, time: 0, hints: 0, shown: 0 }, daily: { last: '', streak: 0, best: 0, days: 0, res: {} }, mig: o.mig === 1 ? 1 : 0 };
+  const t = asObj(o.total);
+  for (const k in st.total) st.total[k] = nn(t[k]);
+  const by = asObj(o.by);
+  for (const k in by) {
+    if (!SLOT_RE.test(k)) continue;
+    const r = asObj(by[k]), x = blankRec();
+    for (const f of ['g', 'w', 'wh', 'sh', 'cw', 'bm', 'bt', 'an', 'sm', 'st']) x[f] = nn(r[f]);
+    x.w = Math.min(x.w, x.g); x.wh = Math.min(x.wh, x.w); x.cw = Math.min(x.cw, x.w); x.an = Math.min(x.an, x.cw);
+    x.top = (Array.isArray(r.top) ? r.top : []).filter(e => e && nn(e.t) > 0 && nn(e.mv) > 0)
+      .map(e => ({ t: nn(e.t), mv: nn(e.mv), d: nn(e.d) })).sort((a, b) => a.t - b.t).slice(0, 5);
+    st.by[k] = x;
+  }
+  const d = asObj(o.daily);
+  if (typeof d.last === 'string' && DATE_RE.test(d.last)) st.daily.last = d.last;
+  st.daily.streak = nn(d.streak); st.daily.best = Math.max(nn(d.best), st.daily.streak); st.daily.days = nn(d.days);
+  const res = asObj(d.res);
+  for (const k in res) if (DATE_RE.test(k)) { const e = asObj(res[k]); st.daily.res[k] = { mv: nn(e.mv), t: nn(e.t), h: nn(e.h) }; }
+  return st;
+})();
+const rec = slot => stats.by[slot] || (stats.by[slot] = blankRec());
+// перенос рекордов прежней версии (4×4, только числа) — один раз
+(() => {
+  if (stats.mig) return;
+  const r = rec('4n');
+  const best = parseInt(store.raw(KEY.oldBest), 10);
+  if (Number.isFinite(best) && best > 0 && best < 1e7 && (!r.bm || best < r.bm)) r.bm = best;
+  const os = asObj(store.get(KEY.oldStats, null)), solved = Math.min(nn(os.solved), 1e6), bt = nn(os.bestTime);
+  if (solved > r.w) { const add = solved - r.w; r.w += add; r.cw += add; r.g += add; stats.total.w += add; stats.total.g += add; }
+  if (bt > 0 && bt < 1e6 && (!r.bt || bt * 1000 < r.bt)) r.bt = bt * 1000;
+  stats.mig = 1;
+})();
+function saveStats() {
+  store.set(KEY.stats, stats);
+  const r = stats.by['4n'];            // прежние ключи — для совместимости
+  if (r && r.bm > 0) store.setRaw(KEY.oldBest, r.bm);
+  if (r && r.w > 0) store.set(KEY.oldStats, { solved: r.w, bestTime: r.bt ? Math.floor(r.bt / 1000) : 0 });
+}
+const curStreak = () => { const D = stats.daily, t = todayKey(); return D.last === t || D.last === prevKey(t) ? D.streak : 0; };
+const sizesSolved = () => F15.SIZES.filter(n => ['num', 'pic'].some(m => (stats.by[slotOf(n, m)] || {}).w > 0) || (n === DAILY_N && (stats.by.daily || {}).w > 0)).length;
+
+/* ═══ Достижения ═══ */
+const ACH = [
+  { id: 'first', icon: '🧩', title: 'Первая сборка', desc: 'Соберите любую головоломку' },
+  { id: 's3', icon: '🐣', title: 'Разминка', desc: 'Соберите 3×3 без подсказок' },
+  { id: 's4', icon: '🔢', title: 'Классика', desc: 'Соберите 4×4 без подсказок' },
+  { id: 's5', icon: '🧠', title: 'Большое поле', desc: 'Соберите 5×5 без подсказок' },
+  { id: 's6', icon: '🏔️', title: 'Гигант', desc: 'Соберите 6×6 без подсказок' },
+  { id: 'fast3', icon: '⚡', title: 'Молния', desc: 'Соберите 3×3 быстрее 20 секунд без подсказок' },
+  { id: 'fast4', icon: '⏱️', title: 'Скорость', desc: 'Соберите 4×4 быстрее 1:30 без подсказок' },
+  { id: 'eco4', icon: '🎯', title: 'Экономно', desc: 'Соберите 4×4 не больше чем за 150 ходов без подсказок' },
+  { id: 'perfect3', icon: '💎', title: 'Идеально', desc: 'Соберите 3×3 за кратчайшее возможное число ходов без подсказок' },
+  { id: 'picture', icon: '🎨', title: 'Художник', desc: 'Соберите картинку' },
+  { id: 'nonum', icon: '🖼️', title: 'Чистое искусство', desc: 'Соберите картинку 4×4 или больше без номеров и подсказок' },
+  { id: 'daily', icon: '📅', title: 'Пятнашки дня', desc: 'Соберите головоломку дня' },
+  { id: 'streak7', icon: '🔥', title: 'Неделя подряд', desc: 'Собирайте пятнашки дня 7 дней подряд', prog: () => [Math.min(7, Math.max(curStreak(), stats.daily.best)), 7] },
+  { id: 'allsizes', icon: '🧭', title: 'Все поля', desc: 'Соберите каждое поле: 3×3, 4×4, 5×5 и 6×6', prog: () => [sizesSolved(), 4] },
+  { id: 'vet25', icon: '🎖️', title: 'Ветеран', desc: 'Соберите 25 головоломок', prog: () => [Math.min(25, stats.total.w), 25] }
+];
+let unlocked = (() => { const o = asObj(store.get(KEY.ach, null)), u = {}; for (const a of ACH) if (Number.isFinite(o[a.id]) && o[a.id] > 0) u[a.id] = o[a.id]; return u; })();
+const achQueue = []; let achTimer = 0;
+function nextAchToast() { const m = achQueue.shift(); if (!m) { achTimer = 0; return; } toast(m, 'gold', 2400); achTimer = setTimeout(nextAchToast, 2600); }
+// Открыть достижение. В конце партии новые достижения показываются значками в окне итогов (list),
+// иначе — тостом
+function award(id, list) {
+  if (unlocked[id]) return;
+  unlocked[id] = Date.now(); store.set(KEY.ach, unlocked);
+  const a = ACH.find(x => x.id === id);
+  if (!a) return;
+  if (list) { list.push(a); return; }               // звук — один на всю сборку (в win)
+  sfx.ach();
+  achQueue.push(`🏅 Достижение: ${a.title}`); if (!achTimer) achTimer = setTimeout(nextAchToast, 900);
 }
 
-function solvable(a) {
-  let inv = 0;
-  for (let i = 0; i < SIZE; i++) for (let j = i + 1; j < SIZE; j++) if (a[i] && a[j] && a[i] > a[j]) inv++;
-  const row = N - 1 - Math.floor(a.indexOf(0) / N);   // ряд пустой клетки, считая снизу с 0
-  return (inv + row) % 2 === 0;
-}
-const isSolved = a => a.every((v, i) => v === (i < SIZE - 1 ? i + 1 : 0));
+/* ── История партий ── */
+let historyData = (() => { const h = store.get(KEY.hist, []); return Array.isArray(h) ? h.filter(x => x && typeof x === 'object' && !Array.isArray(x)).slice(0, HISTORY_MAX) : []; })();
 
-function shuffle() {
-  // Fisher-Yates, проверяем чётность перестановки (и что раскладка не собрана сразу)
-  const arr = Array.from({ length: SIZE }, (_, i) => (i + 1) % SIZE);
-  do {
-    for (let i = SIZE - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [arr[i], arr[j]] = [arr[j], arr[i]]; }
-  } while (!solvable(arr) || isSolved(arr));
-  return arr;
+/* ═══ Звук и вибрация ═══ */
+let audioCtx = null;
+const activated = () => !navigator.userActivation || navigator.userActivation.hasBeenActive;   // до первого касания звук всё равно не разрешён
+function tone(f, d, type, v, delay, f2) {
+  if (!settings.sound || !activated()) return;
+  try {
+    if (!audioCtx) { const AC = window.AudioContext || window.webkitAudioContext; if (!AC) return; audioCtx = new AC(); }
+    if (audioCtx.state === 'suspended') audioCtx.resume();
+    const c = audioCtx, o = c.createOscillator(), g = c.createGain(), t0 = c.currentTime + (delay || 0);
+    o.type = type || 'sine'; o.frequency.setValueAtTime(f, t0);
+    if (f2) o.frequency.exponentialRampToValueAtTime(f2, t0 + d);
+    g.gain.setValueAtTime(v || 0.04, t0); g.gain.exponentialRampToValueAtTime(0.0001, t0 + d);
+    o.connect(g); g.connect(c.destination); o.start(t0); o.stop(t0 + d + 0.02);
+  } catch (e) {}
 }
+const sfx = {
+  click: () => tone(520, 0.04, 'sine', 0.03),
+  move: k => { tone(250, 0.05, 'triangle', 0.035, 0, 190); for (let i = 1; i < Math.min(k, 4); i++) tone(250 + i * 30, 0.04, 'triangle', 0.025, i * 0.03, 200); },
+  bump: () => tone(110, 0.07, 'sine', 0.035),
+  hint: () => tone(740, 0.14, 'sine', 0.04, 0, 990),
+  win: () => [523, 659, 784, 1046, 1318].forEach((f, i) => tone(f, 0.15, 'square', 0.04, i * 0.09)),
+  shown: () => [440, 554, 659].forEach((f, i) => tone(f, 0.14, 'triangle', 0.04, i * 0.1)),
+  ach: () => [659, 784, 1046].forEach((f, i) => tone(f, 0.12, 'sine', 0.05, 0.3 + i * 0.09)),
+  record: () => [784, 988, 1318, 1568].forEach((f, i) => tone(f, 0.1, 'sine', 0.045, 0.5 + i * 0.07))
+};
+const vib = p => { if (settings.vibration && navigator.vibrate && activated()) try { navigator.vibrate(p); } catch (e) {} };
 
-function render() {
-  let ok = 0;
-  tiles.forEach((v, i) => {
-    if (!v) return;
-    const t = tileEls[v], inPlace = v === i + 1;
-    t.style.setProperty('--x', i % N); t.style.setProperty('--y', (i / N) | 0);
-    t.classList.toggle('ok', inPlace);
-    if (inPlace) ok++;
-  });
-  $('in-place').textContent = ok;
+/* ═══ Экраны и окна ═══ */
+const OVERLAYS = ['ov-pause', 'ov-win', 'ov-rules', 'ov-stats', 'ov-ach', 'ov-history', 'ov-settings'];
+const isOpen = id => $('#' + id).classList.contains('open');
+const anyOverlay = () => OVERLAYS.some(isOpen) || !!document.querySelector('.ku-dialog');
+const topOverlay = () => { const id = OVERLAYS.find(isOpen); return id ? $('#' + id) : null; };
+let returnTo = null;           // окна, открытые из паузы, возвращают в неё
+function openOv(id) { $('#' + id).classList.add('open'); cancelPointer(); peek(false); clockSync(); }
+function closeOv(id) {
+  $('#' + id).classList.remove('open');
+  if (returnTo && id !== returnTo && !OVERLAYS.some(o => o !== id && isOpen(o))) { const r = returnTo; returnTo = null; if (screen === 'game' && G.active) openOv(r); }
+  clockSync();
 }
-
-/* ── Время: считается по часам, а не счётчиком setInterval; стартует с первого хода ── */
-const timeSec = () => Math.floor((elapsed + (startedAt ? performance.now() - startedAt : 0)) / 1000);
-function showTime() { $('timer').textContent = fmt(timeSec()); }
-function startClock() {
-  if (startedAt) return;
-  startedAt = performance.now();
-  clearInterval(tickT); tickT = setInterval(showTime, 250);
-}
-function stopClock() {
-  if (startedAt) { elapsed += performance.now() - startedAt; startedAt = 0; }
-  clearInterval(tickT); showTime();
-}
-
-function showBest() {
-  $('best').textContent = best || '—';
-  $('menu-best').textContent = best ? `Рекорд: ${best} ${plural(best, ['ход', 'хода', 'ходов'])}` : 'Рекорд: —';
-}
-function refreshMenu() {
-  showBest();
-  const st = loadStats();
-  $('menu-stats').textContent = st.solved
-    ? `Решено: ${st.solved} • Лучшее время: ${st.bestTime ? fmt(st.bestTime) : '—'}`
-    : 'Собери первую головоломку!';
-}
-
-function pop(el) { el.classList.remove('pop'); void el.offsetWidth; el.classList.add('pop'); }
-
-function move(i) {
-  if (phase !== 'play') return;                       // пауза, меню, уже решено — ходов нет
-  const r = (i / N) | 0, c = i % N, er = (empty / N) | 0, ec = empty % N;
-  if (Math.abs(r - er) + Math.abs(c - ec) !== 1) return;
-  [tiles[i], tiles[empty]] = [tiles[empty], tiles[i]];
-  empty = i; moves++;
-  if (moves === 1) startClock();
-  $('moves').textContent = moves;
-  render();
-  if (isSolved(tiles)) win();
-}
-
-// dx/dy — куда едет плитка: сдвигаем соседку пустой клетки с противоположной стороны
-function slide(dx, dy) {
-  const er = (empty / N) | 0, ec = empty % N;
-  let t = -1;
-  if (dx === 1 && ec > 0) t = empty - 1;
-  else if (dx === -1 && ec < N - 1) t = empty + 1;
-  else if (dy === 1 && er > 0) t = empty - N;
-  else if (dy === -1 && er < N - 1) t = empty + N;
-  if (t >= 0) move(t);
-}
-
-function win() {
-  phase = 'won';
-  stopClock();
-  const sec = timeSec();
-  const newBest = !best || moves < best;
-  if (newBest) { best = moves; lsSet(BEST_KEY, String(best)); }
-  const st = loadStats();
-  st.solved = (st.solved | 0) + 1;
-  const newTime = !st.bestTime || sec < st.bestTime;
-  if (newTime) st.bestTime = sec;
-  lsSet(STATS_KEY, JSON.stringify(st));
-  showBest();
-
-  const nb = $('win-best');
-  nb.hidden = !(newBest || newTime);
-  nb.textContent = newBest ? '🏆 НОВЫЙ РЕКОРД!' : '⏱ ЛУЧШЕЕ ВРЕМЯ!';
-  $('win-moves').textContent = moves;
-  $('win-sub').textContent = plural(moves, ['ход', 'хода', 'ходов']);
-  const rows = [['Время', fmt(sec)], ['Рекорд ходов', best], ['Лучшее время', fmt(st.bestTime)], ['Решено всего', st.solved]];
-  const box = $('win-stats'); box.textContent = '';
-  rows.forEach(([l, v]) => { const d = document.createElement('div'), b = document.createElement('b'); d.textContent = l; b.textContent = v; d.appendChild(b); box.appendChild(d); });
-  pop($('moves'));
-  grid.classList.add('solved');
-  clearTimeout(winT);
-  winT = setTimeout(() => open('ov-win'), 900);
-}
-
-/* ── Экраны и оверлеи ── */
-const open = id => $(id).classList.add('open');
-const close = id => $(id).classList.remove('open');
-const isOpen = id => $(id).classList.contains('open');
+function closeAll() { OVERLAYS.forEach(id => $('#' + id).classList.remove('open')); returnTo = null; }
 function showScreen(name) {
-  $('screen-menu').classList.toggle('active', name === 'menu');
-  $('screen-game').classList.toggle('active', name === 'game');
+  screen = name;
+  $('#screen-menu').classList.toggle('active', name === 'menu');
+  $('#screen-game').classList.toggle('active', name === 'game');
+  document.body.classList.toggle('ku-calm', name === 'game');
+  if (name === 'menu') { closeAll(); refreshMenu(); } else layout();
+}
+$$('[data-close]').forEach(b => b.addEventListener('click', () => { sfx.click(); closeOv(b.closest('.ku-overlay').id); }));
+$$('.ku-overlay').forEach(o => o.addEventListener('click', e => { if (e.target === o && o.querySelector('.ku-modal')) closeOv(o.id); }));
+
+/* ═══ Партия ═══ */
+const G = {
+  active: false, finalized: false, token: 0,
+  n: 4, mode: 'num', slot: '4n', daily: '', practice: false,
+  cells: [], start: [], moves: 0, ms: 0, clockAt: 0,
+  hints: 0, shown: false, demo: false, won: false, winShown: false,
+  art: null, numsUsed: false, opt: 0, started: 0
+};
+let plan = null;              // план решения для подсказок и показа (F15.makePlan) — продвигается ходами игрока
+let hintKey = '';             // позиция, для которой сейчас горит подсказка
+const playMs = () => G.ms + (G.clockAt ? now() - G.clockAt : 0);
+const ranked = () => !G.practice && !G.shown;
+// Время идёт с первого хода, пока партия на экране, не собрана, решение не показано и нет окон
+function clockSync() {
+  const want = G.active && screen === 'game' && !G.won && !G.shown && G.moves > 0 && !anyOverlay() && !document.hidden;
+  if (want && !G.clockAt) G.clockAt = now();
+  else if (!want && G.clockAt) { G.ms += now() - G.clockAt; G.clockAt = 0; }
+}
+const canAct = () => G.active && screen === 'game' && !anyOverlay() && !G.won;
+
+function pickArt() {
+  if (settings.art !== 'random') return settings.art;
+  const pool = ART_IDS.filter(id => id !== settings.lastArt);
+  return pool[Math.floor(Math.random() * pool.length)];
 }
 
-// Поле — квадрат во всё свободное место под шапкой и HUD (рамка .ku-board — 16 px)
-function layout() {
-  if (!$('screen-game').classList.contains('active')) return;
-  const wrap = $('wrap'), hint = $('hint');
-  const hintH = hint.offsetHeight + 12;
-  const S = Math.floor(Math.max(200, Math.min(wrap.clientWidth - 16, wrap.clientHeight - 16 - hintH, 440)));
-  grid.style.setProperty('--S', S + 'px');
+function startGame(n, mode, opt) {
+  opt = opt || {};
+  let cells, daily = '', art = null;
+  if (mode === 'daily') { daily = opt.date || todayKey(); n = DAILY_N; cells = F15.scramble(n, dailySeed(daily)); }
+  else cells = F15.scramble(n, F15.randomSeed());
+  if (mode === 'pic') { art = { id: pickArt(), seed: F15.randomSeed() }; settings.lastArt = art.id; saveSettings(); }
+  Object.assign(G, {
+    active: true, finalized: false, n, mode, slot: slotOf(n, mode), daily, practice: !!opt.practice,
+    cells, start: cells.slice(), moves: 0, ms: 0, clockAt: 0, hints: 0, shown: false, demo: false, won: false,
+    art, numsUsed: mode === 'pic' && settings.nums, opt: n === 3 ? F15.ida(cells, 3).path.length : 0, started: Date.now()
+  });
+  afterLoad();
+  saveNow();
 }
-window.addEventListener('resize', layout);
+function loadGame(s) {
+  Object.assign(G, s, { active: true, finalized: false, clockAt: 0, demo: false, won: false });
+  afterLoad();
+}
+function afterLoad() {
+  G.token++; plan = null; hintKey = ''; idleQ.length = 0; G.winShown = false;
+  Solver.cancel(); setBusy(false);
+  Vis.clear();                                         // плитки прошлой партии (другой размер или режим) — убрать до раскладки экрана
+  closeAll(); showScreen('game');
+  boardEl.classList.remove('solved');
+  Vis.reset();
+  syncHud();
+}
 
-function newGame() {
-  clearTimeout(winT); clearInterval(tickT);
-  ['ov-win', 'ov-pause', 'ov-rules'].forEach(close);
-  grid.classList.remove('solved');
-  tiles = shuffle(); empty = tiles.indexOf(0); moves = 0;
-  elapsed = 0; startedAt = 0;
-  $('moves').textContent = 0; showTime(); showBest();
-  phase = 'play';
-  showScreen('game'); layout();
-  grid.classList.add('shuffling');
-  render();
-  clearTimeout(shuffleT); shuffleT = setTimeout(() => grid.classList.remove('shuffling'), 400);
+// Ход игрока или показа решения: seq — клетки, куда по очереди уходит пустая (одна или несколько плиток)
+function doMoves(seq, demo) {
+  if (!seq || !seq.length) return false;
+  if (busy && !demo) Solver.cancel();                  // позиция меняется — начатый расчёт подсказки уже не нужен
+  const step = [];
+  for (const p of seq) {
+    const before = G.cells, z = before.indexOf(0), v = before[p], after = before.slice();
+    after[z] = v; after[p] = 0;
+    F15.planAdvance(plan, before, p, after);          // ход по плану — план продвигается
+    G.cells = after;
+    step.push({ v, to: z });
+  }
+  G.moves += seq.length;
+  clearHint();
+  Vis.push(step);
+  if (!demo || G.moves % 3 === 0) sfx.move(seq.length);
+  clockSync();                                         // время пошло с первого хода
+  syncMoves();
+  if (F15.isSolved(G.cells)) win();
+  else saveSoon();
+  return true;
 }
 
-function pause() {
-  if (phase !== 'play') return;
-  phase = 'paused'; stopClock(); open('ov-pause');
+// Ввод игрока разрешён? Во время показа решения ход игрока останавливает показ
+function inputOk() {
+  if (screen !== 'game' || !G.active || anyOverlay()) return false;
+  if (G.won) { nudgeState(); return false; }
+  if (G.demo) stopDemo(true);
+  return true;
 }
-function resume() {
-  if (phase !== 'paused') return;
-  close('ov-pause'); close('ov-rules');
-  phase = 'play';
-  if (moves > 0) startClock();
+function tapCell(idx) {
+  if (!inputOk()) return;
+  const seq = F15.lineMoves(G.cells, G.n, idx);
+  if (!seq) { if (idx !== G.cells.indexOf(0)) bump(idx); return; }
+  doMoves(seq);
+}
+function onDir(dir) {
+  if (!inputOk()) return;
+  const p = F15.dirMove(G.cells, G.n, dir);
+  if (p < 0) { nudge(dir); return; }
+  doMoves([p]);
+}
+
+/* ── Сборка ── */
+function win() {
+  G.won = true; G.demo = false; clockSync();
+  const tok = ++G.token;
+  Solver.cancel(); setBusy(false); syncTools(); updateHint();
+  const res = recordWin();
+  G.finalized = true;
+  store.del(KEY.save(G.slot));
+  fillWin(res);                                        // окно итогов заполнено сразу, откроется после салюта
+  whenIdle(() => {
+    if (G.token !== tok) return;
+    boardEl.classList.add('solved');
+    if (Vis.last) Vis.last.classList.add('show');
+    if (G.shown) sfx.shown(); else { sfx.win(); vib([40, 40, 40, 120]); burst(); }
+    if (res.newM || res.newT) sfx.record();
+    if (res.ach.length) sfx.ach();
+  }, 60);
+  // у картинки окно итогов — чуть позже: собранный рисунок с последним кусочком успевает показаться
+  whenIdle(() => { if (G.token === tok && G.won) { G.winShown = true; if (screen === 'game' && !anyOverlay()) openOv('ov-win'); } }, G.mode === 'pic' && !G.shown ? 2000 : 1100);
+}
+
+// Итог партии → история, статистика, рекорды, достижения
+function recordWin() {
+  const t = Math.round(playMs()), mv = G.moves, clean = !G.hints && !G.shown && !G.practice;
+  const r = rec(G.slot), out = { t, mv, clean, newM: false, newT: false, perfect: false, streak: 0, firstDaily: false, ach: [] };
+  if (G.practice) { pushHistory(G.shown ? 'shown' : 'win', t); return out; }
+  r.g++; stats.total.g++; stats.total.moves += mv; stats.total.time += t;
+  if (G.shown) { r.sh++; stats.total.shown++; saveStats(); pushHistory('shown', t); return out; }
+  r.w++; stats.total.w++; stats.total.hints += G.hints;
+  if (G.hints) r.wh++;
+  else {
+    r.cw++; r.an++; r.sm += mv; r.st += t;
+    if (!r.bm || mv < r.bm) { out.newM = r.bm > 0; r.bm = mv; }
+    if (!r.bt || t < r.bt) { out.newT = r.bt > 0; r.bt = t; }
+    r.top.push({ t, mv, d: Date.now() }); r.top.sort((a, b) => a.t - b.t); r.top.length = Math.min(r.top.length, 5);
+  }
+  if (G.mode === 'daily') {
+    const D = stats.daily;
+    if (!D.res[G.daily]) {
+      D.res[G.daily] = { mv, t, h: G.hints }; D.days++; out.firstDaily = true;
+      D.streak = D.last === prevKey(G.daily) ? D.streak + 1 : (D.last === G.daily ? D.streak : 1);
+      D.last = G.daily; D.best = Math.max(D.best, D.streak);
+      const keys = Object.keys(D.res).sort();
+      while (keys.length > 60) delete D.res[keys.shift()];
+    }
+    out.streak = curStreak();
+  }
+  out.perfect = G.n === 3 && G.opt > 0 && mv === G.opt;
+  saveStats();
+  pushHistory('win', t, out);
+  // достижения
+  const A = id => award(id, out.ach);
+  A('first');
+  if (G.mode === 'pic') A('picture');
+  if (G.mode === 'daily') A('daily');
+  if (clean) {
+    A('s' + G.n);
+    if (G.n === 3 && t < 20000) A('fast3');
+    if (G.n === 4 && t < 90000) A('fast4');
+    if (G.n === 4 && mv <= 150) A('eco4');
+    if (out.perfect) A('perfect3');
+    if (G.mode === 'pic' && G.n >= 4 && !G.numsUsed) A('nonum');
+  }
+  if (curStreak() >= 7 || stats.daily.best >= 7) A('streak7');
+  if (sizesSolved() >= 4) A('allsizes');
+  if (stats.total.w >= 25) A('vet25');
+  return out;
+}
+function pushHistory(r, t, out) {
+  historyData.unshift({ d: Date.now(), n: G.n, m: G.mode, r, mv: G.moves, t: Math.round(t), h: G.hints, p: G.practice ? 1 : 0,
+    dt: G.daily || undefined, art: G.art ? G.art.id : undefined, bm: out && out.newM ? 1 : 0, bt: out && out.newT ? 1 : 0, opt: G.opt || 0 });
+  if (historyData.length > HISTORY_MAX) historyData.length = HISTORY_MAX;
+  store.set(KEY.hist, historyData);
+}
+// Брошенная партия (новая раскладка поверх, устаревшие пятнашки дня) → история и счётчик партий
+function recordQuit(s) {
+  if (!s || s.moves <= 0) return;
+  const t = Math.round(s.ms || 0);
+  historyData.unshift({ d: Date.now(), n: s.n, m: s.mode, r: 'quit', mv: s.moves, t, h: s.hints, p: s.practice ? 1 : 0, dt: s.daily || undefined, art: s.art ? s.art.id : undefined, opt: s.opt || 0 });
+  if (historyData.length > HISTORY_MAX) historyData.length = HISTORY_MAX;
+  store.set(KEY.hist, historyData);
+  if (s.practice) return;
+  const r = rec(s.slot);
+  r.g++; stats.total.g++; stats.total.moves += s.moves; stats.total.time += t;
+  if (s.shown) { r.sh++; stats.total.shown++; }
+  stats.total.hints += s.hints;
+  saveStats();
+}
+function finalizeCurrent() {
+  if (!G.active || G.finalized || G.won) return;
+  G.finalized = true; clockSync();
+  recordQuit({ n: G.n, mode: G.mode, slot: G.slot, moves: G.moves, ms: playMs(), hints: G.hints, shown: G.shown, practice: G.practice, daily: G.daily, art: G.art, opt: G.opt });
+  store.del(KEY.save(G.slot));
+}
+
+// Окно итогов закрыто «Посмотреть поле» — тап по полю или пауза открывают его снова
+function nudgeState() {
+  if (screen !== 'game' || !G.active || anyOverlay() || !G.won || !G.winShown) return;   // во время салюта — не перебивать
+  openOv('ov-win');
+}
+
+async function askNewGame() {
+  if (!G.active || screen !== 'game' || G.mode === 'daily') return;
+  if (!G.won && G.moves > 0) {
+    const wasPause = isOpen('ov-pause');
+    if (wasPause) closeOv('ov-pause');
+    const ok = await confirmDlg('Текущая раскладка будет потеряна — партия попадёт в историю как брошенная.', 'НОВАЯ РАСКЛАДКА?', 'Перемешать', true);
+    if (!ok) { if (wasPause && screen === 'game' && G.active) openOv('ov-pause'); return; }
+  }
+  finalizeCurrent();
+  startGame(G.n, G.mode);
+}
+function playAgain() {
+  if (G.mode === 'daily') { startGame(settings.n, settings.mode); return; }
+  startGame(G.n, G.mode);
 }
 function toMenu() {
-  clearTimeout(winT); stopClock();
-  phase = 'menu';
-  ['ov-win', 'ov-pause', 'ov-rules'].forEach(close);
-  refreshMenu(); showScreen('menu');
-}
-function closeRules() {
-  close('ov-rules');
-  if (rulesFromPause && phase === 'paused') open('ov-pause');
-  rulesFromPause = false;
+  if (G.active && !G.won) saveNow();
+  G.active = false; G.demo = false; G.token++; idleQ.length = 0;
+  Solver.cancel(); setBusy(false); clearHint(); peek(false);
+  clockSync();
+  Vis.clear();
+  showScreen('menu');
 }
 
-/* ── Ввод: тап по клетке (по координатам — двойной тап не вернёт плитку назад) и свайп ── */
-let down = null;
-const screenGame = $('screen-game');
-screenGame.addEventListener('pointerdown', e => {
-  if (e.button > 0 || e.target.closest('button')) return;
-  const rc = grid.getBoundingClientRect(), S = rc.width, gap = 8, cs = (S - 3 * gap) / 4;
-  const x = e.clientX - rc.left, y = e.clientY - rc.top;
-  const cell = (x >= 0 && y >= 0 && x < S && y < S) ? Math.min(N - 1, Math.floor(y / (cs + gap))) * N + Math.min(N - 1, Math.floor(x / (cs + gap))) : -1;
-  down = { x: e.clientX, y: e.clientY, cell, id: e.pointerId };
-  try { screenGame.setPointerCapture(e.pointerId); } catch (err) {}
-});
-screenGame.addEventListener('pointerup', e => {
-  if (!down || down.id !== e.pointerId) return;
-  const dx = e.clientX - down.x, dy = e.clientY - down.y, cell = down.cell;
-  down = null;
-  if (Math.max(Math.abs(dx), Math.abs(dy)) >= 24) {
-    if (Math.abs(dx) > Math.abs(dy)) slide(dx > 0 ? 1 : -1, 0); else slide(0, dy > 0 ? 1 : -1);
-  } else if (cell >= 0) move(cell);
-});
-screenGame.addEventListener('pointercancel', () => { down = null; });
+/* ── Пауза ── */
+function pauseInfo() {
+  const parts = [`${MODES[G.mode].name} · ${G.n}×${G.n}`, `${fmtN(G.moves)} ${movesWord(G.moves)}`, fmtClock(playMs())];
+  if (G.hints) parts.push(`💡 ${G.hints}`);
+  if (G.shown) parts.push('решение показано');
+  if (G.practice) parts.push('тренировка');
+  return parts.join(' · ');
+}
+function pause() {
+  if (screen !== 'game' || !G.active || anyOverlay()) return;
+  if (G.won) { nudgeState(); return; }
+  $('#pause-info').textContent = pauseInfo();          // показ решения на паузе стоит и продолжится после
+  $('#p-new').hidden = G.mode === 'daily';
+  openOv('ov-pause');
+  saveNow();
+}
+function resume() { closeOv('ov-pause'); nudgeState(); }
+document.addEventListener('visibilitychange', () => { if (document.hidden) { if (screen === 'game' && G.active && !G.won) pause(); clockSync(); saveNow(); } else clockSync(); });
+window.addEventListener('pagehide', () => saveNow());
 
+/* ═══ Сохранение партии: свой слот на каждое поле и режим, пятнашки дня — отдельно ═══ */
+let saveT = 0;
+const saveSoon = () => { clearTimeout(saveT); saveT = setTimeout(saveNow, 250); };
+function saveNow() {
+  clearTimeout(saveT);
+  if (!G.active || G.finalized || G.won) return;
+  store.set(KEY.save(G.slot), {
+    v: 1, n: G.n, m: G.mode, c: G.cells, s: G.start, mv: G.moves, ms: Math.round(playMs()), h: G.hints, sh: G.shown ? 1 : 0,
+    d: G.daily, p: G.practice ? 1 : 0, art: G.art, nu: G.numsUsed ? 1 : 0, o: G.opt, st: G.started, at: Date.now()
+  });
+}
+// Прочитать и проверить сохранение слота; испорченное — null
+function readSave(slot) {
+  const o = asObj(store.get(KEY.save(slot), null));
+  const daily = slot === 'daily', n = daily ? DAILY_N : +slot[0], mode = daily ? 'daily' : (slot[1] === 'p' ? 'pic' : 'num');
+  if (o.v !== 1 || o.n !== n || o.m !== mode || !F15.validCells(o.c, n) || !F15.isSolvable(o.c, n) || F15.isSolved(o.c)) return null;
+  const s = {
+    n, mode, slot, cells: o.c.slice(), start: F15.validCells(o.s, n) ? o.s.slice() : o.c.slice(),
+    moves: nn(o.mv), ms: Math.min(nn(o.ms), 360000000), hints: nn(o.h), shown: !!o.sh, practice: !!o.p,
+    daily: daily && typeof o.d === 'string' && DATE_RE.test(o.d) ? o.d : '', art: null, numsUsed: !!o.nu,
+    opt: n === 3 ? nn(o.o) : 0, started: nn(o.st) || Date.now()
+  };
+  if (daily && !s.daily) return null;
+  if (mode === 'pic') {
+    const a = asObj(o.art);
+    s.art = { id: ART_IDS.includes(a.id) ? a.id : ART_IDS[0], seed: Number.isInteger(a.seed) ? a.seed >>> 0 : 1 };
+  }
+  return s;
+}
+const savedGame = slot => { const s = readSave(slot); return s && s.moves > 0 ? s : null; };
+// При запуске: испорченные сохранения — удалить; пятнашки прошлых дней — в историю как брошенные
+function cleanSaves() {
+  for (const slot of ALL_SLOTS) {
+    if (store.raw(KEY.save(slot)) === null) continue;
+    const s = readSave(slot);
+    if (!s) { store.del(KEY.save(slot)); continue; }
+    if (slot === 'daily' && s.daily !== todayKey()) { recordQuit(s); store.del(KEY.save(slot)); }
+  }
+}
+
+/* ═══ Решатель: фоновый поток из той же функции движка; не запустился — в основном потоке ═══ */
+const Solver = {
+  w: null, off: false, busy: null, seq: 0,
+  worker() {
+    if (this.off) return null;
+    if (this.w) return this.w;
+    try {
+      const src = 'const F15=(' + FifteenEngine.toString() + ')();' +
+        'onmessage=function(e){var d=e.data,r;try{r=F15.solve(d.cells,d.n,d.opts);postMessage({id:d.id,path:r.path,optimal:r.optimal,method:r.method})}' +
+        'catch(err){postMessage({id:d.id,err:String(err&&err.message||err)})}};';
+      const w = new Worker(URL.createObjectURL(new Blob([src], { type: 'text/javascript' })));
+      w.onmessage = e => this.done(e.data);
+      w.onerror = ev => { if (ev && ev.preventDefault) ev.preventDefault(); this.fail(); };
+      this.w = w;
+      return w;
+    } catch (e) { this.off = true; return null; }
+  },
+  // Решение позиции → Promise<{ path, optimal, method } | null> (null — отменено или ошибка)
+  run(cells, n, kind) {
+    this.cancel();
+    return new Promise(resolve => {
+      const id = ++this.seq, opts = (BUDGET[kind] || {})[n] || {}, lopts = BUDGET.local[n] || {};
+      const local = () => setTimeout(() => {
+        if (!this.busy || this.busy.id !== id) return;
+        this.busy = null;
+        let r = null;
+        try { r = F15.solve(cells, n, lopts); } catch (e) { r = null; }
+        resolve(r);
+      }, 30);
+      this.busy = { id, resolve, local, timer: 0 };
+      const w = n > 3 ? this.worker() : null;          // 3×3 решается мгновенно — без потока
+      if (!w) { local(); return; }
+      w.postMessage({ id, cells, n, opts });
+      // страховка: поток не ответил вовремя — считаем в основном потоке
+      this.busy.timer = setTimeout(() => { if (this.busy && this.busy.id === id) { this.kill(); local(); } }, (opts.optMs || 0) + (opts.fastMs || 0) * 3 + 5000);
+    });
+  },
+  done(d) {
+    const b = this.busy;
+    if (!b || !d || b.id !== d.id) return;
+    clearTimeout(b.timer); this.busy = null;
+    b.resolve(d.err || !Array.isArray(d.path) ? null : { path: d.path, optimal: !!d.optimal, method: d.method });
+  },
+  fail() { this.off = true; this.kill(); const b = this.busy; if (b) { clearTimeout(b.timer); b.local(); } },
+  kill() { if (this.w) { try { this.w.terminate(); } catch (e) {} this.w = null; } },
+  // идёт расчёт — прервать (поток останавливается, следующий запрос создаст новый)
+  cancel() { const b = this.busy; if (!b) return; clearTimeout(b.timer); this.busy = null; this.kill(); b.resolve(null); }
+};
+
+// План к текущей позиции: из кэша или от решателя. null — позиция изменилась или расчёт прерван
+async function ensurePlan(kind) {
+  if (F15.planNext(plan, G.cells) >= 0) return plan;
+  const key = F15.keyOf(G.cells), tok = G.token;
+  setBusy(true, kind === 'solve' ? '🤔 Ищу решение…' : '🤔 Ищу лучший ход…');
+  const res = await Solver.run(G.cells.slice(), G.n, kind);
+  if (G.token !== tok) return null;
+  setBusy(false);
+  if (!res || !G.active || G.won || F15.keyOf(G.cells) !== key) return null;
+  plan = F15.makePlan(G.cells, res);
+  return F15.planNext(plan, G.cells) >= 0 ? plan : null;
+}
+let busy = false;
+function setBusy(on, text) {
+  busy = on;
+  $('#t-hint').classList.toggle('busy', on);
+  $('#t-hint .ico').textContent = on ? '⏳' : '💡';
+  if (on) setHintText(text || '🤔 Ищу лучший ход…', 'tip'); else if (!hintKey) updateHint();
+}
+
+/* ── Подсказка ── */
+async function hint() {
+  if (!canAct() || G.demo || busy) return;
+  const key = F15.keyOf(G.cells);
+  if (hintKey === key) return;                         // подсказка к этой позиции уже на поле
+  if (!G.hints && ranked()) {
+    const ok = await confirmDlg('С подсказкой партия засчитается в статистику с пометкой 💡, но без рекорда.', 'ПОДСКАЗКА', '💡 Показать');
+    if (!ok || !canAct() || G.demo) return;
+  }
+  const pl = await ensurePlan('hint');
+  if (!pl || !canAct() || G.demo) return;
+  const p = F15.planNext(pl, G.cells);
+  if (p < 0) return;
+  G.hints++;
+  showHint(p);
+  sfx.hint();
+  syncHud(); saveSoon();
+}
+function showHint(p) {
+  clearHint();
+  const v = G.cells[p], el = Vis.els[v], z = G.cells.indexOf(0), dir = F15.moveDir(G.n, z, p);
+  hintKey = F15.keyOf(G.cells);
+  if (el) el.classList.add('hinted');
+  const a = document.createElement('div'), d = [[0, -1], [1, 0], [0, 1], [-1, 0]][dir], off = geo.cs * 0.12;
+  a.id = 'harrow';
+  a.innerHTML = `<span>${DIR_ARROW[dir]}</span>`;
+  a.style.setProperty('--ax', d[0] * off + 'px'); a.style.setProperty('--ay', d[1] * off + 'px');
+  const [x, y] = cellXY(z); setXY(a, x, y);
+  tilesEl.appendChild(a);
+  const left = F15.planLeft(plan), what = G.mode === 'pic' && !settings.nums ? 'Подсвеченную плитку' : `Плитку ${v}`;
+  setHintText(`💡 ${what} — ${DIR_WORD[dir]} · до сборки ${plan.optimal ? '' : '≈'}${fmtN(left)} ${movesWord(left)}${plan.optimal ? ' (кратчайший путь)' : ''}`, 'tip');
+}
+function clearHint() {
+  if (!hintKey) return;
+  hintKey = '';
+  $$('#tiles .hinted').forEach(el => el.classList.remove('hinted'));
+  $$('#harrow').forEach(el => el.remove());
+  updateHint();
+}
+
+/* ── Показ решения: компьютер собирает головоломку из текущей позиции ── */
+let demoAt = 0, demoMs = 200;
+async function solveToggle() {
+  if (G.demo) { stopDemo(); return; }
+  if (!canAct() || busy) return;
+  if (!G.shown) {
+    const ok = await confirmDlg('Компьютер соберёт головоломку у вас на глазах (остановить можно в любой момент). Партия не будет засчитана: ни рекорда, ни статистики.', 'ПОКАЗАТЬ РЕШЕНИЕ?', '🤖 Показать', true);
+    if (!ok || !canAct()) return;
+    G.shown = true; clockSync(); syncHud(); saveSoon();
+  }
+  const pl = await ensurePlan('solve');
+  if (!pl || !canAct()) return;
+  clearHint();
+  G.demo = true;
+  demoMs = clamp(22000 / Math.max(1, F15.planLeft(pl)), 70, 300);
+  demoAt = 0;
+  syncTools();
+  setHintText(`🤖 Решение: ${fmtN(F15.planLeft(pl))} ${movesWord(F15.planLeft(pl))}${pl.optimal ? ' (кратчайшее)' : ''} · ваш ход — стоп`, 'tip');
+}
+function stopDemo(quiet) {
+  if (!G.demo) return;
+  G.demo = false;
+  syncTools();
+  if (!quiet) toast('Показ остановлен — можно продолжить самому', '', 1800);
+  updateHint();
+}
+function demoTick(t) {
+  if (!G.demo || anyOverlay() || !Vis.idle() || t < demoAt) return;
+  const p = F15.planNext(plan, G.cells);
+  if (p < 0) { stopDemo(true); return; }
+  demoAt = t + demoMs;
+  doMoves([p], true);
+}
+
+/* ── Образец картинки (удерживать 👁 или V) и номера-подсказки ── */
+let peeking = false;
+function peek(on) {
+  on = !!on && G.active && G.mode === 'pic' && screen === 'game' && !anyOverlay();
+  if (on === peeking) return;
+  peeking = on;
+  boardEl.classList.toggle('peeking', on);
+  $('#t-peek').classList.toggle('on', on);
+}
+function setNums(on) {
+  settings.nums = !!on; saveSettings();
+  if (on && G.active && G.mode === 'pic' && !G.won) { G.numsUsed = true; saveSoon(); }
+  applyView(); syncTools();
+  if (hintKey && plan) { const p = F15.planNext(plan, G.cells); if (p >= 0) showHint(p); }
+}
+
+/* ═══ Поле: размер и анимация ═══ */
+const boardEl = $('#board'), gridEl = $('#grid'), tilesEl = $('#tiles'), zoneEl = $('#zone');
+const geo = { n: 0, cs: 70, gap: 8, side: 0 };
+const cellXY = i => [geo.gap + (i % geo.n) * (geo.cs + geo.gap), geo.gap + Math.floor(i / geo.n) * (geo.cs + geo.gap)];
+const setXY = (el, x, y) => { el.style.transform = `translate3d(${x.toFixed(2)}px,${y.toFixed(2)}px,0)`; };
+function buildGrid(n) {
+  if (geo.n === n && gridEl.childElementCount === n * n) return;
+  gridEl.textContent = '';
+  for (let i = 0; i < n * n; i++) gridEl.appendChild(document.createElement('div')).className = 'cell';
+  geo.n = n;
+}
+function layout() {
+  if (screen !== 'game' || !G.active) return;
+  const land = innerWidth > innerHeight * 1.15 && innerHeight < 620;
+  document.body.classList.toggle('land', land);
+  buildGrid(G.n);
+  const play = $('#play');
+  let w, h;
+  if (land) { w = play.clientWidth - 200 - 16; h = play.clientHeight; }   // справа — колонка 200 px
+  else { w = zoneEl.clientWidth; h = zoneEl.clientHeight - $('#tools').offsetHeight - 12 - $('#g-hint').offsetHeight - 6; }   // под полем — кнопки и подсказка
+  if (!w || !h) return;
+  const side = Math.floor(clamp(Math.min(w, h), 150, 600));
+  const inner = side - 16, n = geo.n;                 // .ku-board: padding 7 + border 1
+  const gap = Math.round(clamp(inner * (n <= 4 ? 0.022 : 0.016), 3, 10));
+  geo.cs = (inner - gap * (n + 1)) / n; geo.gap = gap; geo.side = side;
+  boardEl.style.width = boardEl.style.height = side + 'px';
+  boardEl.style.setProperty('--n', n);
+  boardEl.style.setProperty('--cs', geo.cs + 'px');
+  boardEl.style.setProperty('--gap', gap + 'px');
+  boardEl.style.setProperty('--rad', Math.round(clamp(geo.cs * 0.14, 5, 13)) + 'px');
+  Vis.placeAll();
+  Vis.drawArt();
+}
+let layoutRaf = 0;
+window.addEventListener('resize', () => { cancelAnimationFrame(layoutRaf); layoutRaf = requestAnimationFrame(layout); });
+
+const easeOut = p => 1 - (1 - p) * (1 - p) * (1 - p);
+const Vis = {
+  els: [], at: [], from: [], last: null,      // по номеру плитки: элемент, клетка на экране, откуда едет
+  queue: [], cur: null, t: 0,
+  slideMs() {
+    const base = settings.anim === 'off' ? 0 : settings.anim === 'fast' ? 65 : 115;
+    return G.demo ? Math.min(base, demoMs * 0.8) : base;
+  },
+  clear() { this.queue = []; this.cur = null; this.els = []; this.at = []; this.from = []; this.last = null; tilesEl.textContent = ''; },
+  make(v, at, pic) {
+    const el = document.createElement('div');
+    el.className = `tile r${Math.floor((v - 1) / G.n)}${v >= 10 ? ' d2' : ''}${pic ? ' pic' : ''}`;
+    el.style.setProperty('--i', v - 1);
+    const inner = el.appendChild(document.createElement('div'));
+    inner.className = 'tile-in';
+    if (pic) { inner.appendChild(document.createElement('canvas')); const b = inner.appendChild(document.createElement('span')); b.className = 'badge'; b.textContent = v; }
+    else inner.textContent = v;
+    tilesEl.appendChild(el);
+    const [x, y] = cellXY(at); setXY(el, x, y);
+    return el;
+  },
+  reset() {
+    this.clear();
+    buildGrid(G.n);
+    const pic = G.mode === 'pic', N = G.n * G.n;
+    G.cells.forEach((v, i) => { if (v) { this.els[v] = this.make(v, i, pic); this.at[v] = i; this.from[v] = i; } });
+    if (pic) { this.last = this.make(N, N - 1, true); this.last.classList.add('last'); }   // недостающий кусочек — появится при сборке
+    layout();
+    this.marks();
+  },
+  placeAll() {
+    for (let v = 1; v < this.els.length; v++) { const el = this.els[v]; if (el) { const [x, y] = cellXY(this.at[v]); setXY(el, x, y); } }
+    if (this.last) { const [x, y] = cellXY(G.n * G.n - 1); setXY(this.last, x, y); }
+    const ha = document.getElementById('harrow');
+    if (ha) { const [x, y] = cellXY(G.cells.indexOf(0)); setXY(ha, x, y); }
+  },
+  // плитки на своих местах (по позиции на экране)
+  marks() { for (let v = 1; v < this.els.length; v++) { const el = this.els[v]; if (el) el.classList.toggle('ok', this.at[v] === v - 1); } },
+  push(step) {
+    if (!this.slideMs()) { this.begin(step); this.finish(step); return; }
+    this.queue.push(step);
+    if (!this.cur) this.next();
+  },
+  next() { this.cur = this.queue.shift() || null; this.t = 0; if (this.cur) this.begin(this.cur); },
+  begin(step) { for (const s of step) { this.from[s.v] = this.at[s.v]; this.at[s.v] = s.to; } },
+  frame(dt) {
+    const c = this.cur;
+    if (!c) return;
+    this.t += dt * (1 + 1.5 * this.queue.length);   // ходы в очереди — анимация ускоряется и догоняет
+    const D = this.slideMs(), p = D ? Math.min(1, this.t / D) : 1, k = easeOut(p);
+    for (const s of c) {
+      const el = this.els[s.v];
+      if (!el) continue;
+      const [x0, y0] = cellXY(this.from[s.v]), [x1, y1] = cellXY(s.to);
+      setXY(el, x0 + (x1 - x0) * k, y0 + (y1 - y0) * k);
+    }
+    if (p >= 1) { this.finish(c); this.next(); }
+  },
+  finish(step) {
+    for (const s of step) { this.from[s.v] = s.to; const el = this.els[s.v]; if (el) { const [x, y] = cellXY(s.to); setXY(el, x, y); } }
+    this.marks();
+  },
+  idle() { return !this.cur && !this.queue.length; },
+  // кусочки картинки: общий рисунок режется на n×n, у каждой плитки — свой холст
+  drawArt() {
+    if (G.mode !== 'pic' || !G.art || !geo.cs) return;
+    const dpr = Math.min(2, window.devicePixelRatio || 1), n = G.n, tpx = Math.max(8, Math.round(geo.cs * dpr)), px = tpx * n;
+    const master = Art.render(G.art.id, G.art.seed, px);
+    for (let v = 1; v <= n * n; v++) {
+      const el = v < n * n ? this.els[v] : this.last;
+      if (!el) continue;
+      const cv = el.querySelector('canvas');
+      if (!cv) continue;
+      if (cv.width !== tpx) cv.width = cv.height = tpx;
+      const g = v - 1, ctx = cv.getContext('2d');
+      ctx.clearRect(0, 0, tpx, tpx);
+      ctx.drawImage(master, (g % n) * tpx, Math.floor(g / n) * tpx, tpx, tpx, 0, 0, tpx, tpx);
+    }
+    const pk = $('#peek'), size = n * geo.cs + (n - 1) * geo.gap, ppx = Math.round(size * dpr);
+    pk.style.left = pk.style.top = (7 + geo.gap) + 'px';
+    pk.style.width = pk.style.height = size + 'px';
+    if (pk.width !== ppx) pk.width = pk.height = ppx;
+    const c2 = pk.getContext('2d');
+    c2.clearRect(0, 0, ppx, ppx); c2.drawImage(master, 0, 0, px, px, 0, 0, ppx, ppx);
+  }
+};
+
+// Отложенное действие: когда анимация доиграет + пауза (итоги)
+const idleQ = [];
+function whenIdle(fn, delay) { idleQ.push({ fn, delay: delay || 0, at: 0 }); }
+function runIdle(t) {
+  if (!idleQ.length || !Vis.idle()) return;
+  for (let i = 0; i < idleQ.length; i++) {
+    const q = idleQ[i];
+    if (!q.at) q.at = t + q.delay;
+    if (t >= q.at) { idleQ.splice(i--, 1); q.fn(); }
+  }
+}
+
+// Ход «в стену» или тап мимо ряда пустой клетки — плитка/поле вздрагивает
+function nudge(dir) {
+  sfx.bump();
+  if (settings.anim === 'off') return;
+  const d = [[0, -1], [1, 0], [0, 1], [-1, 0]][dir], a = Math.max(3, geo.cs * 0.06);
+  tilesEl.animate([{ transform: 'none' }, { transform: `translate(${d[0] * a}px,${d[1] * a}px)` }, { transform: 'none' }], { duration: 170, easing: 'ease-out' });
+}
+function bump(idx) {
+  sfx.bump();
+  const el = Vis.els[G.cells[idx]];
+  if (!el || settings.anim === 'off') return;
+  el.firstChild.animate([{ transform: 'none' }, { transform: 'scale(.92)' }, { transform: 'none' }], { duration: 160, easing: 'ease-out' });
+}
+// Салют из центра поля (DOM-искры)
+function burst() {
+  if (settings.anim === 'off') return;
+  const COLORS = ['#00e5ff', '#ffd60a', '#ff4dd2', '#51f58b', '#c77dff', '#ff9f43'];
+  const box = document.createElement('div');
+  box.style.cssText = 'position:absolute;left:50%;top:50%;width:0;height:0;pointer-events:none;z-index:8';
+  for (let i = 0; i < 28; i++) {
+    const s = document.createElement('i'), a = (i / 28) * Math.PI * 2 + Math.random() * 0.3, r = geo.side * (0.25 + Math.random() * 0.3);
+    s.style.cssText = `position:absolute;width:7px;height:7px;border-radius:2px;background:${COLORS[i % COLORS.length]};box-shadow:0 0 8px ${COLORS[i % COLORS.length]}`;
+    s.animate([{ transform: 'translate(-50%,-50%) scale(1)', opacity: 1 }, { transform: `translate(calc(-50% + ${Math.cos(a) * r}px), calc(-50% + ${Math.sin(a) * r}px)) scale(.4) rotate(${Math.random() * 360}deg)`, opacity: 0 }],
+      { duration: 900 + Math.random() * 300, easing: 'cubic-bezier(.2,.7,.3,1)', fill: 'forwards' });
+    box.appendChild(s);
+  }
+  boardEl.appendChild(box);
+  setTimeout(() => box.remove(), 1400);
+}
+
+/* ═══ HUD ═══ */
+function pop(el) { el.classList.remove('pop'); void el.offsetWidth; el.classList.add('pop'); }
+function syncMoves() {
+  const m = $('#hud-moves'), s = fmtN(G.moves);
+  if (m.textContent !== s) { m.textContent = s; pop(m); }
+  $('#g-place').textContent = F15.inPlaceCount(G.cells);
+}
+let lastClockText = '';
+function drawClock() {
+  const s = fmtClock(playMs());
+  if (s !== lastClockText) { lastClockText = s; $('#hud-time').textContent = s; }
+}
+function syncHud() {
+  $('#g-title').textContent = G.mode === 'daily' ? `ДЕНЬ ${fmtDate(G.daily).slice(0, 5)} · ${G.practice ? 'ТРЕНИРОВКА' : '4×4'}` : `${MODES[G.mode].short} · ${G.n}×${G.n}`;
+  $('#g-total').textContent = G.n * G.n - 1;
+  const r = stats.by[G.slot];
+  $('#hud-best').textContent = r && (r.bm || r.bt) ? `${r.bm || '—'} · ${r.bt ? fmtClock(r.bt) : '—'}` : '—';
+  $('#st-best').title = r && (r.bm || r.bt) ? `Рекорд: ${r.bm ? r.bm + ' ' + movesWord(r.bm) : '—'}, лучшее время ${r.bt ? fmtTime(r.bt) : '—'}` : 'Рекордов пока нет';
+  $('#btn-new2').hidden = G.mode === 'daily';
+  lastClockText = ''; drawClock();
+  syncMoves(); syncTools(); applyView();
+  if (!hintKey) updateHint();
+}
+function syncTools() {
+  const pic = G.mode === 'pic';
+  $('#tools').classList.toggle('pic', pic);
+  $('#t-peek').hidden = !pic; $('#t-nums').hidden = !pic;
+  $('#t-nums').classList.toggle('on', settings.nums);
+  $('#t-nums').setAttribute('aria-pressed', settings.nums ? 'true' : 'false');
+  const ts = $('#t-solve');
+  ts.querySelector('.ico').textContent = G.demo ? '⏹' : '🤖';
+  ts.querySelector('.lbl').textContent = G.demo ? 'Стоп' : 'Решение';
+  ts.classList.toggle('on', G.demo);
+  $('#t-hint').disabled = G.won || G.demo; ts.disabled = G.won;
+}
+const coarse = () => { try { return matchMedia('(pointer: coarse)').matches; } catch (e) { return false; } };
+function setHintText(t, cls) { const el = $('#g-hint'); el.textContent = t; el.className = 'ku-hint' + (cls ? ' ' + cls : ''); }
+function updateHint() {
+  if (!G.active) return;
+  if (G.demo) return;
+  if (G.won) { setHintText(G.shown ? '🤖 Собрано показом решения' : '🏆 Собрано!', 'tip'); return; }
+  if (G.shown) { setHintText('🤖 Решение показано — партия не засчитывается', 'warn'); return; }
+  if (G.practice) { setHintText('🎓 Тренировка — пятнашки дня уже собраны сегодня', ''); return; }
+  if (G.hints) { setHintText(`💡 С подсказками (${G.hints}) — без рекорда`, 'warn'); return; }
+  setHintText(coarse() ? 'Тап по плитке в ряду с пустой клеткой · свайп' : 'Клик по плитке в ряду с пустой · стрелки / WASD', '');
+}
+
+/* ── Окно итогов ── */
+function fillWin(res) {
+  const shown = G.shown, r = rec(G.slot);
+  const h = $('#win-title');
+  h.textContent = shown ? 'РЕШЕНИЕ ПОКАЗАНО' : G.mode === 'daily' ? (G.practice ? 'СОБРАНО!' : 'ПЯТНАШКИ ДНЯ!') : 'СОБРАНО!';
+  h.className = shown ? '' : 'win';
+  const b = [];
+  if (res.newM) b.push('<span>🏆 Рекорд ходов!</span>');
+  if (res.newT) b.push('<span>⏱ Рекорд времени!</span>');
+  if (res.perfect && res.clean) b.push('<span>💎 Кратчайшее решение!</span>');
+  if (res.clean && !res.newM && !res.newT && r.cw === 1 && !G.practice && G.mode !== 'daily' && !res.ach.length) b.push('<span>🎉 Первая сборка поля!</span>');
+  if (res.firstDaily && res.streak > 1) b.push(`<span>🔥 Серия ${res.streak} ${plural(res.streak, 'день', 'дня', 'дней')}</span>`);
+  if (G.hints && !shown) b.push(`<span class="plain">💡 С подсказками — без рекорда</span>`);
+  if (shown) b.push('<span class="plain">🤖 Не засчитывается</span>');
+  if (G.practice) b.push('<span class="plain">🎓 Тренировка</span>');
+  for (const a of res.ach) b.push(`<span class="ach">${a.icon} ${a.title}</span>`);
+  $('#win-badges').innerHTML = b.join('');
+  $('#win-moves').textContent = fmtN(G.moves);
+  $('#win-sub').textContent = `${movesWord(G.moves)} · ${fmtTime(res.t)}`;
+  const rows = [['Поле', `${G.n}×${G.n} · ${MODES[G.mode].name}`]];
+  if (G.mode === 'daily') rows[0][1] = `4×4 · ${fmtDate(G.daily)}`;
+  rows.push(['Время', fmtTime(res.t)]);
+  if (G.n === 3 && G.opt) rows.push(['Кратчайшее решение', `${G.opt} ${movesWord(G.opt)}`]);
+  if (!shown && !G.practice) rows.push(['Рекорд ходов', r.bm ? fmtN(r.bm) : '—'], ['Лучшее время', r.bt ? fmtTime(r.bt) : '—']);
+  if (G.hints) rows.push(['Подсказок', fmtN(G.hints)]);
+  if (G.mode === 'daily' && !G.practice && !shown) rows.push(['Серия дней', `🔥 ${curStreak()}`]);
+  $('#win-stats').innerHTML = rows.map(([k, v]) => `<div>${k}<b>${v}</b></div>`).join('');
+  $('#w-again').textContent = G.mode === 'daily' ? `🎮 Новая игра ${settings.n}×${settings.n}` : '🔄 Играть снова';
+}
+
+/* ═══ Ввод: клавиатура ═══ */
+const DIRKEY = { ArrowUp: 0, KeyW: 0, Numpad8: 0, ArrowRight: 1, KeyD: 1, Numpad6: 1, ArrowDown: 2, KeyS: 2, Numpad2: 2, ArrowLeft: 3, KeyA: 3, Numpad4: 3 };
+const DIRCHAR = { w: 0, d: 1, s: 2, a: 3, 'ц': 0, 'в': 1, 'ы': 2, 'ф': 3 };
 document.addEventListener('keydown', e => {
-  if (asking) return;
-  if ((e.code === 'Escape' || e.code === 'KeyP') && !e.repeat) {
-    if (isOpen('ov-rules')) { closeRules(); return; }
-    if (phase === 'play') pause(); else if (phase === 'paused') resume();
+  if (e.ctrlKey || e.metaKey || e.altKey || document.querySelector('.ku-dialog')) return;
+  const code = e.code || '', key = (e.key || '').toLowerCase();
+  const top = topOverlay();
+  if (code === 'Escape' || e.key === 'Escape') {
+    e.preventDefault();
+    if (top) { if (top.querySelector('.ku-modal')) closeOv(top.id); else if (top.id === 'ov-pause') resume(); }
+    else if (screen === 'game') pause();
     return;
   }
-  const dir = { ArrowUp: [0, -1], ArrowDown: [0, 1], ArrowLeft: [-1, 0], ArrowRight: [1, 0] }[e.key];
-  if (dir && phase === 'play') { e.preventDefault(); slide(dir[0], dir[1]); }
-});
-document.addEventListener('visibilitychange', () => { if (document.hidden) pause(); });
-
-$('btn-play').addEventListener('click', newGame);
-// ↻ в шапке стоит рядом с паузой: если партия уже идёт — спрашиваем, чтобы не потерять раскладку
-$('btn-new').addEventListener('click', async () => {
-  if (asking) return;
-  if (phase === 'play' && moves > 0) {
-    asking = true; stopClock();
-    const ok = await KuArcade.confirm('Текущая раскладка, ходы и время будут потеряны.',
-      { title: 'ПЕРЕМЕШАТЬ ЗАНОВО?', ok: 'Перемешать', cancel: 'Отмена', danger: true });
-    asking = false;
-    if (!ok) { if (phase === 'play') startClock(); return; }
+  if (screen !== 'game') return;
+  if (code === 'KeyP' || key === 'з') { e.preventDefault(); if (!top) pause(); else if (top.id === 'ov-pause') resume(); return; }
+  if (top) {
+    // Enter / пробел — главная кнопка окна (если фокус не на другой кнопке окна)
+    if ((code === 'Enter' || code === 'NumpadEnter' || code === 'Space') && !(document.activeElement && document.activeElement.closest && document.activeElement.closest('.ku-overlay'))) {
+      const b = top.querySelector('.ku-card .ku-btn.primary');
+      if (b && !b.hidden) { e.preventDefault(); b.click(); }
+    }
+    return;
   }
-  newGame();
+  let dir = DIRKEY[code];
+  if (dir === undefined) dir = DIRCHAR[key];
+  if (dir !== undefined) { e.preventDefault(); if (!e.repeat) onDir(dir); return; }   // удержание клавиши не повторяет ход
+  if (e.repeat) return;
+  if (code === 'KeyH' || key === 'р') { e.preventDefault(); hint(); return; }
+  if (code === 'KeyV' || key === 'м') { e.preventDefault(); peek(true); return; }
+  if ((code === 'KeyN' || key === 'т') && G.mode === 'pic') { e.preventDefault(); setNums(!settings.nums); return; }
+  if (code === 'KeyR' || key === 'к') { e.preventDefault(); askNewGame(); }
 });
-$('btn-restart').addEventListener('click', newGame);
-$('btn-again').addEventListener('click', newGame);
-$('btn-pause').addEventListener('click', pause);
-$('btn-resume').addEventListener('click', resume);
-$('btn-quit').addEventListener('click', toMenu);
-$('btn-win-menu').addEventListener('click', toMenu);
-$('btn-rules').addEventListener('click', () => { rulesFromPause = false; open('ov-rules'); });
-$('btn-rules2').addEventListener('click', () => { rulesFromPause = true; close('ov-pause'); open('ov-rules'); });
-$('btn-rules-close').addEventListener('click', closeRules);
-$('btn-rules-x').addEventListener('click', closeRules);
+document.addEventListener('keyup', e => { if (e.code === 'KeyV' || (e.key || '').toLowerCase() === 'м') peek(false); });
+window.addEventListener('blur', () => peek(false));
 
-build();
-refreshMenu();
+/* ═══ Ввод: тап по плитке и свайп по полю (палец, мышь, перо) ═══ */
+let ptr = null;
+function cancelPointer() { ptr = null; }
+const swipeTh = () => clamp(geo.cs * 0.32, 16, 40);
+const swipeDir = (dx, dy) => (Math.abs(dx) > Math.abs(dy) ? (dx > 0 ? 1 : 3) : (dy > 0 ? 2 : 0));
+// клетка под точкой (координаты окна) или −1 (мимо поля)
+function cellAt(cx, cy) {
+  const rc = tilesEl.getBoundingClientRect(), x = cx - rc.left - geo.gap / 2, y = cy - rc.top - geo.gap / 2, step = geo.cs + geo.gap;
+  if (x < -geo.gap || y < -geo.gap || x > geo.n * step + geo.gap || y > geo.n * step + geo.gap) return -1;
+  return clamp(Math.floor(y / step), 0, geo.n - 1) * geo.n + clamp(Math.floor(x / step), 0, geo.n - 1);
+}
+zoneEl.addEventListener('pointerdown', e => {
+  if (!e.isPrimary || (e.pointerType === 'mouse' && e.button !== 0) || screen !== 'game' || anyOverlay() || e.target.closest('button')) return;
+  if (peeking) { peek(false); return; }
+  ptr = { id: e.pointerId, x: e.clientX, y: e.clientY, cell: cellAt(e.clientX, e.clientY), done: false };
+  try { zoneEl.setPointerCapture(e.pointerId); } catch (_) {}
+});
+zoneEl.addEventListener('pointermove', e => {
+  if (!ptr || e.pointerId !== ptr.id || ptr.done) return;
+  const dx = e.clientX - ptr.x, dy = e.clientY - ptr.y;
+  // свайп срабатывает, как только палец прошёл порог, — не дожидаясь отпускания; один свайп = один ход
+  if (Math.max(Math.abs(dx), Math.abs(dy)) >= swipeTh()) { ptr.done = true; onDir(swipeDir(dx, dy)); }
+});
+zoneEl.addEventListener('pointerup', e => {
+  if (!ptr || e.pointerId !== ptr.id) return;
+  const p = ptr; ptr = null;
+  if (p.done) return;
+  if (G.won) { nudgeState(); return; }
+  if (p.cell >= 0) tapCell(p.cell);
+});
+zoneEl.addEventListener('pointercancel', e => { if (ptr && e.pointerId === ptr.id) ptr = null; });
+zoneEl.addEventListener('contextmenu', e => e.preventDefault());
+
+/* ═══ Кнопки игры и окон ═══ */
+$('#btn-pause').addEventListener('click', () => { sfx.click(); pause(); });
+$('#btn-new2').addEventListener('click', () => { sfx.click(); askNewGame(); });
+$('#t-hint').addEventListener('click', () => hint());
+$('#t-solve').addEventListener('click', () => { sfx.click(); solveToggle(); });
+{
+  // 👁: пока держишь — образец; короткое нажатие — показать до следующего касания
+  const b = $('#t-peek');
+  let downAt = 0;
+  b.addEventListener('pointerdown', e => { e.preventDefault(); if (peeking) { peek(false); downAt = -1; return; } downAt = now(); peek(true); });
+  const up = () => { if (downAt > 0 && now() - downAt > 300) peek(false); downAt = 0; };
+  b.addEventListener('pointerup', up); b.addEventListener('pointerleave', up); b.addEventListener('pointercancel', up);
+  b.addEventListener('click', e => e.preventDefault());
+}
+// кнопки игры после нажатия мышью или пальцем отдают фокус: пробел и Enter не нажмут их повторно, клавиши идут в игру
+$$('#tools .ku-btn, .ku-top-actions .ku-btn').forEach(b => b.addEventListener('click', e => { if (e.detail > 0) b.blur(); }));
+$('#t-nums').addEventListener('click', () => { sfx.click(); setNums(!settings.nums); toast(settings.nums ? 'Номера включены' : 'Номера выключены', '', 1200); });
+$('#p-resume').addEventListener('click', () => { sfx.click(); resume(); });
+$('#p-new').addEventListener('click', () => { sfx.click(); askNewGame(); });
+$('#p-rules').addEventListener('click', () => { sfx.click(); returnTo = 'ov-pause'; $('#ov-pause').classList.remove('open'); openOv('ov-rules'); });
+$('#p-settings').addEventListener('click', () => { sfx.click(); returnTo = 'ov-pause'; $('#ov-pause').classList.remove('open'); openSettings(true); });
+$('#p-menu').addEventListener('click', () => { sfx.click(); toMenu(); });
+$('#w-again').addEventListener('click', () => { sfx.click(); playAgain(); });
+$('#w-view').addEventListener('click', () => { sfx.click(); closeOv('ov-win'); toast('Собранное поле · тап по полю — итоги', '', 1800); });
+$('#w-menu').addEventListener('click', () => { sfx.click(); toMenu(); });
+
+/* ═══ Меню ═══ */
+function buildArtPicker() {
+  const box = $('#art-pick');
+  box.textContent = '';
+  const rb = document.createElement('button');
+  rb.className = 'art-btn rand'; rb.dataset.art = 'random'; rb.textContent = '🎲'; rb.title = 'Случайная'; rb.setAttribute('role', 'radio');
+  box.appendChild(rb);
+  const dpr = Math.min(2, window.devicePixelRatio || 1);
+  for (const a of Art.LIST) {
+    const b = document.createElement('button');
+    b.className = 'art-btn'; b.dataset.art = a.id; b.title = a.name; b.setAttribute('role', 'radio'); b.setAttribute('aria-label', a.name);
+    const c = document.createElement('canvas'), px = Math.round(44 * dpr);
+    c.width = c.height = px;
+    c.getContext('2d').drawImage(Art.render(a.id, 20261023, px), 0, 0);
+    b.appendChild(c); box.appendChild(b);
+  }
+  box.addEventListener('click', e => {
+    const b = e.target.closest('.art-btn');
+    if (!b) return;
+    sfx.click(); settings.art = b.dataset.art; saveSettings(); refreshMenu();
+  });
+}
+const NOTE = {
+  num: '<b>Классика:</b> расставьте числа по порядку. Тап по плитке в ряду с пустой клеткой сдвигает сразу несколько.',
+  pic: '<b>Соберите рисунок</b> — номера-подсказки включаются кнопкой <b>#</b>, удерживайте <b>👁</b>, чтобы увидеть образец.'
+};
+function refreshMenu() {
+  const n = settings.n, m = settings.mode, slot = slotOf(n, m);
+  $$('#seg-size button').forEach(b => { const bn = +b.dataset.n; b.classList.toggle('active', bn === n); b.classList.toggle('has-save', !!savedGame(slotOf(bn, m))); });
+  $$('#seg-mode button').forEach(b => { b.classList.toggle('active', b.dataset.m === m); b.classList.toggle('has-save', !!savedGame(slotOf(n, b.dataset.m))); });
+  $('#f-art').hidden = m !== 'pic';
+  $$('#art-pick .art-btn').forEach(b => { const on = b.dataset.art === settings.art; b.classList.toggle('active', on); b.setAttribute('aria-checked', on ? 'true' : 'false'); });
+  $('#art-name').textContent = settings.art === 'random' ? '🎲 Случайная картинка' : (Art.byId(settings.art) || {}).name || '';
+  $('#mode-note').innerHTML = NOTE[m];
+  const s = savedGame(slot);
+  $('#btn-continue').hidden = !s;
+  if (s) $('#continue-sub').textContent = [`${n}×${n} · ${MODES[m].name}`, `${fmtN(s.moves)} ${movesWord(s.moves)}`, fmtClock(s.ms), s.hints ? `💡 ${s.hints}` : '', s.shown ? 'решение показано' : ''].filter(Boolean).join(' · ');
+  $('#btn-new').classList.toggle('primary', !s); $('#btn-new').classList.toggle('accent2', !!s);
+  const r = stats.by[slot];
+  $('#new-sub').textContent = r && (r.bm || r.bt)
+    ? `Рекорд ${n}×${n}: ${r.bm ? r.bm + ' ' + movesWord(r.bm) : '—'} · ${r.bt ? fmtTime(r.bt) : '—'}`
+    : `${n}×${n} · ${n * n - 1} ${plural(n * n - 1, 'плитка', 'плитки', 'плиток')}${m === 'pic' ? ' · картинка' : ''}`;
+  // пятнашки дня
+  const today = todayKey(), dres = stats.daily.res[today], ds = savedGame('daily'), st = curStreak();
+  let dsub;
+  if (dres) dsub = `✓ Сегодня: ${dres.mv} ${movesWord(dres.mv)} · ${fmtTime(dres.t)}${st ? ' · 🔥 ' + st : ''}`;
+  else if (ds && ds.daily === today) dsub = `▶ Продолжить: ${fmtN(ds.moves)} ${movesWord(ds.moves)} · ${fmtClock(ds.ms)}`;
+  else dsub = st ? `Новая раскладка · 🔥 серия ${st}` : 'Одна раскладка 4×4 на всех · сегодня';
+  $('#daily-sub').textContent = dsub;
+  const got = ACH.filter(a => unlocked[a.id]).length;
+  $('#menu-stats').textContent = `Собрано: ${fmtN(stats.total.w)} • Достижений: ${got}/${ACH.length}${stats.daily.best ? ' • Лучшая серия дня: ' + stats.daily.best : ''}`;
+  $('#menu-hint').innerHTML = coarse()
+    ? 'Тап по плитке в ряду с пустой — сдвиг · свайп — соседняя плитка<br>💡 — подсказка · ⏸ — пауза · партии сохраняются сами'
+    : 'Клавиши: стрелки / WASD — ход · H — подсказка · P / Esc — пауза · R — новая раскладка<br>Мышь: клик по плитке в ряду с пустой клеткой сдвигает её и соседей';
+}
+$$('#seg-size button').forEach(b => b.addEventListener('click', () => { sfx.click(); settings.n = +b.dataset.n; saveSettings(); refreshMenu(); }));
+$$('#seg-mode button').forEach(b => b.addEventListener('click', () => { sfx.click(); settings.mode = b.dataset.m; saveSettings(); refreshMenu(); }));
+$('#btn-continue').addEventListener('click', () => {
+  sfx.click();
+  const s = savedGame(slotOf(settings.n, settings.mode));
+  if (s) loadGame(s); else refreshMenu();
+});
+$('#btn-new').addEventListener('click', async () => {
+  sfx.click();
+  const n = settings.n, m = settings.mode, slot = slotOf(n, m), s = savedGame(slot);
+  if (s) {
+    const ok = await confirmDlg(`Сохранённая партия ${n}×${n} «${MODES[m].name}» (${fmtN(s.moves)} ${movesWord(s.moves)}) будет брошена и попадёт в историю.`, 'НОВАЯ ИГРА?', 'Начать заново', true);
+    if (!ok) return;
+    recordQuit(s); store.del(KEY.save(slot));
+  }
+  startGame(n, m);
+});
+$('#btn-daily').addEventListener('click', async () => {
+  sfx.click();
+  const today = todayKey(), s = readSave('daily');
+  if (s && s.daily === today) { loadGame(s); return; }
+  if (s) { recordQuit(s); store.del(KEY.save('daily')); }
+  if (stats.daily.res[today]) {
+    const ok = await confirmDlg('Пятнашки дня уже собраны — результат записан. Сыграть ту же раскладку ещё раз для тренировки (без статистики)?', 'ЕЩЁ РАЗ?', '🎓 Тренировка');
+    if (!ok) return;
+    startGame(DAILY_N, 'daily', { date: today, practice: true });
+    return;
+  }
+  startGame(DAILY_N, 'daily', { date: today });
+});
+
+/* ── Статистика ── */
+let stN = 4, stM = 'num';
+const card = (l, v, cls) => `<div class="st-card${cls ? ' ' + cls : ''}"><div class="sv">${v}</div><div class="sl">${l}</div></div>`;
+function renderStats() {
+  $$('#st-size button').forEach(b => b.classList.toggle('active', +b.dataset.n === stN));
+  $$('#st-mode button').forEach(b => b.classList.toggle('active', b.dataset.m === stM));
+  const r = stats.by[slotOf(stN, stM)] || blankRec();
+  $('#st-grid').innerHTML = [
+    ['Партий', fmtN(r.g)], ['Собрано', r.g ? `${fmtN(r.w)} · ${Math.round(r.w / r.g * 100)}%` : '—'],
+    ['Рекорд ходов', r.bm ? fmtN(r.bm) : '—', 'gold'], ['Лучшее время', r.bt ? fmtTime(r.bt) : '—', 'gold'],
+    ['Среднее время', r.an ? fmtClock(r.st / r.an) : '—'], ['Средне ходов', r.an ? fmtN(r.sm / r.an) : '—'],
+    ['С подсказкой', fmtN(r.wh)], ['Решение показано', fmtN(r.sh)]
+  ].map(([l, v, c]) => card(l, v, c)).join('');
+  $('#st-top').innerHTML = r.top.length
+    ? r.top.map((e, i) => `<div class="top-row"><span class="k">${i + 1}</span><span><b>${fmtTime(e.t)}</b> · ${fmtN(e.mv)} ${movesWord(e.mv)}</span><span class="d">${e.d ? new Date(e.d).toLocaleDateString('ru-RU') : ''}</span></div>`).join('')
+    : '<div class="empty">Чистых сборок (без подсказок) пока нет</div>';
+  const D = stats.daily, dr = stats.by.daily || blankRec();
+  $('#st-daily').innerHTML = [['Собрано дней', fmtN(D.days)], ['Серия', curStreak() ? `🔥 ${curStreak()}` : '0'], ['Лучшая серия', fmtN(D.best)],
+    ['Рекорд ходов', dr.bm ? fmtN(dr.bm) : '—', 'gold'], ['Лучшее время', dr.bt ? fmtTime(dr.bt) : '—', 'gold']].map(([l, v, c]) => card(l, v, c)).join('');
+  const T = stats.total, got = ACH.filter(a => unlocked[a.id]).length;
+  $('#st-total').innerHTML = [['Партий', fmtN(T.g)], ['Собрано', fmtN(T.w)], ['Ходов', fmtN(T.moves)], ['Время в игре', fmtDur(T.time)],
+    ['Подсказок', fmtN(T.hints)], ['Достижений', `${got}/${ACH.length}`]].map(([l, v]) => card(l, v)).join('');
+}
+$$('#st-size button').forEach(b => b.addEventListener('click', () => { stN = +b.dataset.n; renderStats(); }));
+$$('#st-mode button').forEach(b => b.addEventListener('click', () => { stM = b.dataset.m; renderStats(); }));
+$('#btn-stats').addEventListener('click', () => { sfx.click(); stN = settings.n; stM = settings.mode; renderStats(); openOv('ov-stats'); });
+
+/* ── Достижения и история ── */
+function renderAch() {
+  const got = ACH.filter(a => unlocked[a.id]).length;
+  $('#ach-count').textContent = `${got}/${ACH.length}`;
+  $('#ach-list').innerHTML = ACH.map(a => {
+    const u = unlocked[a.id];
+    let prog = '', extra = '';
+    if (!u && a.prog) { const [v, max] = a.prog(); prog = `<div class="ach-prog"><i style="width:${Math.round(v / max * 100)}%"></i></div>`; extra = ` • ${v}/${max}`; }
+    return `<div class="ach-item${u ? ' unlocked' : ''}"><div class="ach-icon">${u ? a.icon : '🔒'}</div><div class="ach-info"><h4>${a.title}</h4><p>${a.desc}${extra}${u ? ' • ' + new Date(u).toLocaleDateString('ru-RU') : ''}</p>${prog}</div></div>`;
+  }).join('');
+}
+const RESULT = { win: 'собрано', quit: 'брошена', shown: 'решение показано' };
+function renderHistory() {
+  const box = $('#history-list');
+  if (!historyData.length) { box.innerHTML = '<div class="empty">История пуста — соберите первую головоломку</div>'; return; }
+  box.innerHTML = historyData.map(h => {
+    const n = F15.SIZES.includes(h.n) ? h.n : 4, m = typeof h.m === 'string' && has(MODES, h.m) ? h.m : 'num', mv = nn(h.mv);
+    const r = has(RESULT, h.r) ? h.r : 'quit';
+    const icon = r === 'win' ? (h.bm || h.bt ? '🏆' : '✅') : r === 'shown' ? '🤖' : '⏹️';
+    const art = m === 'pic' && Art.byId(h.art) ? ` · ${Art.byId(h.art).name}` : '';
+    const title = m === 'daily' ? `Пятнашки дня${typeof h.dt === 'string' && DATE_RE.test(h.dt) ? ' ' + fmtDate(h.dt) : ''}` : `${MODES[m].name}${art}`;
+    const tags = [`${fmtN(mv)} ${movesWord(mv)}`, fmtTime(nn(h.t)), RESULT[r], nn(h.h) ? `💡 ${nn(h.h)}` : '', h.bm ? 'рекорд ходов' : '', h.bt ? 'рекорд времени' : '',
+      n === 3 && r === 'win' && nn(h.opt) && nn(h.opt) === mv ? '💎 кратчайшее' : '', h.p ? '🎓 тренировка' : ''].filter(Boolean).join(' · ');
+    const when = Number.isFinite(h.d) ? new Date(h.d).toLocaleString('ru-RU', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' }) : '';
+    const cls = r !== 'win' ? 'off' : m === 'pic' ? 'pic' : m === 'daily' ? 'daily' : '';
+    return `<div class="ach-item"><div class="h-size ${cls}">${n}×${n}</div><div class="ach-info"><h4>${icon} ${title}</h4><p>${tags}${when ? ' • ' + when : ''}</p></div></div>`;
+  }).join('');
+}
+$('#btn-ach').addEventListener('click', () => { sfx.click(); renderAch(); openOv('ov-ach'); });
+$('#btn-history').addEventListener('click', () => { sfx.click(); renderHistory(); openOv('ov-history'); });
+$('#btn-rules').addEventListener('click', () => { sfx.click(); openOv('ov-rules'); });
+
+/* ── Настройки ── */
+function applyView() {
+  document.body.classList.toggle('anim-off', settings.anim === 'off');
+  boardEl.classList.toggle('nums', settings.nums);
+}
+function openSettings(fromGame) {
+  $$('#ov-settings input[data-opt]').forEach(el => { el.checked = !!settings[el.dataset.opt]; });
+  $$('#set-anim button').forEach(b => b.classList.toggle('active', b.dataset.v === settings.anim));
+  $('#set-data').hidden = !!fromGame;          // сброс прогресса — только из меню
+  openOv('ov-settings');
+}
+$$('#ov-settings input[data-opt]').forEach(el => el.addEventListener('change', () => {
+  if (el.dataset.opt === 'nums') setNums(el.checked);
+  else { settings[el.dataset.opt] = el.checked; saveSettings(); }
+  if (el.dataset.opt === 'sound' && el.checked) sfx.click();
+  if (el.dataset.opt === 'vibration' && el.checked) vib(20);
+}));
+$$('#set-anim button').forEach(b => b.addEventListener('click', () => { sfx.click(); settings.anim = b.dataset.v; saveSettings(); applyView(); openSettings(screen === 'game'); }));
+$('#btn-settings').addEventListener('click', () => { sfx.click(); openSettings(false); });
+$('#btn-reset').addEventListener('click', async () => {
+  sfx.click();
+  const ok = await confirmDlg('Рекорды, статистика, серия пятнашек дня, история, достижения и сохранённые партии будут удалены. Настройки останутся. Данные других игр не затрагиваются.', 'СБРОСИТЬ ПРОГРЕСС?', '🗑 Сбросить', true);
+  if (!ok) return;
+  [KEY.stats, KEY.ach, KEY.hist, KEY.oldBest, KEY.oldStats].forEach(k => store.del(k));
+  ALL_SLOTS.forEach(s => store.del(KEY.save(s)));
+  stats.by = {}; for (const k in stats.total) stats.total[k] = 0;
+  stats.daily = { last: '', streak: 0, best: 0, days: 0, res: {} }; stats.mig = 1;
+  store.set(KEY.stats, stats);
+  unlocked = {}; historyData = [];
+  refreshMenu(); toast('Прогресс «Пятнашек» сброшен', 'good');
+});
+
+/* ═══ Главный цикл: анимация поля, часы, показ решения, отложенные окна ═══ */
+let lastT = now();
+function loop() {
+  requestAnimationFrame(loop);
+  const t = now(), dt = Math.min(250, Math.max(0, t - lastT));
+  lastT = t;
+  Vis.frame(dt);
+  if (screen === 'game' && G.active) {
+    clockSync();
+    drawClock();
+    boardEl.classList.toggle('veil', !G.won && anyOverlay());     // пауза и окна поверх партии — поле скрыто
+    demoTick(t);
+  }
+  runIdle(t);
+}
+
+/* ═══ Запуск ═══ */
+if (document.fonts && document.fonts.ready) document.fonts.ready.then(() => layout()).catch(() => {});
+cleanSaves();
+saveStats();
+buildArtPicker();
+applyView();
+showScreen('menu');
+requestAnimationFrame(loop);
+
 </script>
 </body>
 </html>

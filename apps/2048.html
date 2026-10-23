@@ -9,38 +9,87 @@
 <style>
   html,body{height:100%;overflow:hidden}
 
-  /* ── Игровой экран: шапка · HUD · поле (зона свайпов) · подсказка ── */
-  #zone{flex:1;min-height:0;width:100%;display:flex;flex-direction:column;align-items:center;touch-action:none}
-  #zone::before{content:'';flex:1 1 0}   /* свободное место: 1 часть над полем, 2 — под подсказкой */
-  #zone::after{content:'';flex:2 1 0}
-  #game-board{flex:none;line-height:1}
-  #grid{position:relative;display:grid;grid-template-columns:repeat(4,var(--cs,70px));grid-auto-rows:var(--cs,70px);
+  /* ═══ МЕНЮ ═══ */
+  #screen-menu .ku-field{margin-top:14px}
+  #seg-mode button{font-size:12.5px;padding-left:4px;padding-right:4px}
+  @media (max-width:380px){ #seg-mode .em{display:none} }   /* на узком экране — без значков, чтобы «Без отмены» не обрезалось */
+  #seg-target button{font-variant-numeric:tabular-nums}
+  /* точка на кнопке размера/режима — есть сохранённая партия */
+  .ku-seg button.has-save{position:relative}
+  .ku-seg button.has-save::after{content:'';position:absolute;top:5px;right:6px;width:6px;height:6px;border-radius:50%;
+    background:var(--gold);box-shadow:0 0 6px var(--gold)}
+  .mode-note{font-size:12px;color:var(--muted);text-align:center;margin:10px auto 0;max-width:340px;line-height:1.45;min-height:2.9em}
+  .mode-note b{color:var(--text);font-weight:600}
+  #btn-continue .best,#btn-new .best{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:100%}
+
+  /* ═══ ИГРА: шапка · HUD · поле (зона свайпов) · подсказка ═══ */
+  #screen-game{padding-left:10px;padding-right:10px}
+  #play{flex:1 1 auto;min-height:0;width:100%;display:flex;flex-direction:column;align-items:center}
+  #hud{flex-wrap:nowrap}
+  #hud .ku-stat{position:relative;min-width:86px}
+  #hud-third.low{color:var(--bad);animation:kuPulse .8s ease-in-out infinite}
+  #zone{flex:1 1 auto;min-height:0;width:100%;display:flex;flex-direction:column;align-items:center;touch-action:none;cursor:grab}
+  #zone:active{cursor:grabbing}
+  #zone::before{content:'';flex:1 1 0}   /* свободное место: 1 часть над полем, 1,4 — под ним */
+  #zone::after{content:'';flex:1.4 1 0}
+  #board{flex:none;line-height:1;padding:7px}
+  #board.veil #tiles{opacity:0}          /* «На время»: на паузе поле скрыто */
+  #grid{position:relative;display:grid;grid-template-columns:repeat(var(--n,4),var(--cs,70px));grid-auto-rows:var(--cs,70px);
     gap:var(--gap,8px);padding:var(--gap,8px);border-radius:11px;background:rgba(4,6,22,.55)}
   .cell{border-radius:var(--rad,10px);background:rgba(255,255,255,.045);border:1px solid rgba(255,255,255,.07)}
-  #tiles{position:absolute;inset:7px;pointer-events:none}
-  #zone .ku-hint{margin-top:10px;flex:none}
+  #tiles{position:absolute;inset:7px;pointer-events:none;transition:opacity .2s}
+  #tiles.nudge{animation:tNudge .17s ease-out}
+  @keyframes tNudge{40%{transform:translate(var(--nx,0),var(--ny,0))}}
+  #goal{flex:none;display:flex;align-items:center;gap:10px;margin-top:10px;font-size:12px;color:var(--muted);white-space:nowrap}
+  #goal b{font-family:var(--font-display);font-weight:400;color:var(--text)}
+  #goal-r{font-family:var(--font-display);color:var(--accent2)}
+  #goal .ku-pbar{flex:1;min-width:40px}
+  #goal-bar{transition:width .25s}
+  #goal.done #goal-bar{background:linear-gradient(90deg,var(--green),var(--gold));box-shadow:0 0 8px var(--gold)}
+  #goal.done #goal-r{color:var(--gold)}
+  #goal.time #goal-bar{transition:none}
+  #goal.low #goal-bar{background:linear-gradient(90deg,var(--red),var(--accent2));box-shadow:0 0 8px var(--red)}
+  #g-hint{margin-top:6px;flex:none;max-width:100%;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}   /* одна строка: смена текста не двигает поле */
+  .plus{position:absolute;left:50%;top:26%;font-family:var(--font-display);font-size:15px;color:var(--accent);pointer-events:none;white-space:nowrap;
+    text-shadow:0 0 10px rgba(0,229,255,.7);animation:plusUp .75s ease-out forwards;z-index:3}
+  @keyframes plusUp{from{opacity:1;transform:translate(-50%,0)}to{opacity:0;transform:translate(-50%,-30px)}}
+  /* значок оставшихся отмен */
+  #btn-undo{position:relative;overflow:visible}
+  #undo-badge{position:absolute;top:-6px;right:-6px;min-width:19px;height:19px;padding:0 5px;border-radius:10px;font:400 11px/19px var(--font-display);
+    background:linear-gradient(135deg,#ff4dd2,#c77dff);color:#1a0412;box-shadow:0 0 8px rgba(255,77,210,.6);pointer-events:none}
+  #undo-badge.zero{background:rgba(255,255,255,.18);color:var(--muted);box-shadow:none}
 
-  /* ── Плитки: внешний слой едет (transform), внутренний — появление/слияние (scale) ── */
-  .tile{position:absolute;left:0;top:0;width:var(--cs);height:var(--cs);z-index:2;
-    transform:translate(calc(var(--gap) + var(--c,0) * (var(--cs) + var(--gap))),calc(var(--gap) + var(--r,0) * (var(--cs) + var(--gap))));
-    transition:transform .12s ease-in-out}
-  .noanim .tile{transition:none}
+  /* Альбомная ориентация телефона: показатели — колонкой справа от поля */
+  body.land #play{flex-direction:row;justify-content:center;align-items:stretch;gap:14px}
+  body.land #hud{order:2;flex-direction:column;justify-content:center;margin:0}
+  body.land #zone{order:1;flex:0 1 auto;flex-direction:row;justify-content:center;align-items:center;width:auto}
+  body.land #zone::before,body.land #zone::after{display:none}
+  body.land #g-hint,body.land #goal{display:none}
+
+  /* ═══ Плитки: внешний слой едет (transform из JS), внутренний — появление/слияние (scale, CSS) ═══ */
+  .tile{position:absolute;left:0;top:0;width:var(--cs);height:var(--cs);z-index:2;will-change:transform}
   .tile.merged{z-index:3}
+  .tile.gone{z-index:1}
+  .tile.gone .tile-in{animation:tGone var(--pop-ms,190ms) ease-out forwards}
+  @keyframes tGone{to{opacity:0;transform:scale(.9)}}
   .tile-in{width:100%;height:100%;display:flex;align-items:center;justify-content:center;border-radius:var(--rad,10px);
-    font-family:var(--font-display);font-weight:400;font-size:calc(var(--cs) * .46);line-height:1;font-variant-numeric:tabular-nums;
+    font-family:var(--font-display);font-weight:400;font-size:calc(var(--cs) * .5);line-height:1;font-variant-numeric:tabular-nums;
     color:var(--tx,var(--text));background:var(--tb,rgba(255,255,255,.08));border:1px solid var(--bd,transparent);
     box-shadow:0 0 var(--gl,0px) color-mix(in srgb,var(--tc,var(--accent)) 45%,transparent),inset 0 1px 0 rgba(255,255,255,.25)}
+  .d2 .tile-in{font-size:calc(var(--cs) * .46)}
   .d3 .tile-in{font-size:calc(var(--cs) * .38)}
   .d4 .tile-in{font-size:calc(var(--cs) * .3)}
   .d5 .tile-in{font-size:calc(var(--cs) * .245)}
-  .d6 .tile-in{font-size:calc(var(--cs) * .2)}
-  .tile.new .tile-in{animation:tAppear .18s ease backwards}
-  .tile.merged .tile-in{animation:tPop .2s ease}
-  @keyframes tAppear{from{opacity:0;transform:scale(0)}}
-  @keyframes tPop{0%{transform:scale(.6)}55%{transform:scale(1.16)}100%{transform:none}}
+  .d6 .tile-in{font-size:calc(var(--cs) * .205)}
+  .d7 .tile-in{font-size:calc(var(--cs) * .18)}
+  .tile.new .tile-in{animation:tAppear var(--app-ms,170ms) ease-out backwards}
+  .tile.merged .tile-in{animation:tPop var(--pop-ms,190ms) ease-out}
+  body.anim-off .tile .tile-in{animation:none!important}
+  @keyframes tAppear{from{opacity:0;transform:scale(.15)}}
+  @keyframes tPop{0%{transform:scale(.78)}55%{transform:scale(1.14)}100%{transform:none}}
   @keyframes tSuper{50%{box-shadow:0 0 36px color-mix(in srgb,var(--gold) 75%,transparent),inset 0 1px 0 rgba(255,255,255,.35)}}
 
-  /* Палитра «Неон» (по умолчанию): низкие — приглушённое стекло, дальше — цвета набора со свечением, 2048+ — золото */
+  /* Палитра «Неон» (по умолчанию): низкие — приглушённое стекло, дальше — цвета набора со свечением */
   .v2{--tb:color-mix(in srgb,var(--cyan) 11%,rgba(255,255,255,.03));--bd:color-mix(in srgb,var(--cyan) 30%,transparent);--tx:#bff6ff}
   .v4{--tb:color-mix(in srgb,var(--purple) 15%,rgba(255,255,255,.03));--bd:color-mix(in srgb,var(--purple) 40%,transparent);--tx:#ead9ff}
   .v8{--tb:linear-gradient(160deg,#82a8ff,var(--blue));--tx:#060a24;--tc:var(--blue);--gl:6px}
@@ -52,11 +101,13 @@
   .v512{--tb:linear-gradient(160deg,#ffc383,var(--orange));--tx:#241200;--tc:var(--orange);--gl:17px}
   .v1024{--tb:linear-gradient(135deg,var(--cyan),var(--purple) 55%,var(--accent2));--tx:#0b0626;--tc:var(--accent2);--gl:20px}
   .v2048{--tb:linear-gradient(135deg,#fff1a8,var(--gold) 45%,var(--orange));--tx:#241500;--tc:var(--gold);--gl:24px}
+  .v4096{--tb:linear-gradient(135deg,#ffc2ef,var(--accent2) 45%,var(--purple));--tx:#1a0412;--tc:var(--accent2);--gl:26px}
+  .v8192{--tb:linear-gradient(135deg,#c4fff0,var(--green) 40%,var(--cyan));--tx:#03210f;--tc:var(--green);--gl:27px}
   .vsuper{--tb:linear-gradient(135deg,#fffbe0,var(--gold) 35%,var(--orange) 70%,var(--accent2));--tx:#241500;--tc:var(--gold);--gl:28px}
-  .vsuper:not(.merged) .tile-in{animation:tSuper 1.8s ease-in-out infinite}
+  .tile.vsuper:not(.merged) .tile-in{animation:tSuper 1.8s ease-in-out infinite}
 
   /* Палитра «Классика» — цвета оригинальной 2048 (меняет только плитки) */
-  body[data-tiles=classic] .tile{--bd:transparent;--gl:0px}
+  body[data-tiles=classic] .tile,body[data-tiles=classic] .dchip{--bd:transparent;--gl:0px}
   body[data-tiles=classic] .v2{--tb:#eee4da;--tx:#776e65}
   body[data-tiles=classic] .v4{--tb:#ede0c8;--tx:#776e65}
   body[data-tiles=classic] .v8{--tb:#f2b179;--tx:#f9f6f2}
@@ -68,11 +119,62 @@
   body[data-tiles=classic] .v512{--tb:#edc850;--tx:#f9f6f2;--tc:#f3d774;--gl:18px}
   body[data-tiles=classic] .v1024{--tb:#edc53f;--tx:#f9f6f2;--tc:#f3d774;--gl:21px}
   body[data-tiles=classic] .v2048{--tb:#edc22e;--tx:#f9f6f2;--tc:#f3d774;--gl:24px}
-  body[data-tiles=classic] .vsuper{--tb:#3c3a32;--tx:#f9f6f2}
-  body[data-tiles=classic] .vsuper .tile-in{animation:none}
+  body[data-tiles=classic] .v4096,body[data-tiles=classic] .v8192,body[data-tiles=classic] .vsuper{--tb:#3c3a32;--tx:#f9f6f2}
+  body[data-tiles=classic] .tile.vsuper .tile-in{animation:none}
 
-  [hidden]{display:none!important}   /* .ku-btn задаёт display — иначе атрибут hidden не скрывает кнопку */
-  #reset-card h2{background:linear-gradient(90deg,#ff5d7d,#ff4dd2);-webkit-background-clip:text;background-clip:text}
+  /* ═══ ОКНА ═══ */
+  #ov-over .ku-card,#ov-win .ku-card{gap:10px}
+  .over-sub{font-size:13.5px}
+  .ov-btns{display:flex;flex-direction:column;gap:10px}
+  .stats-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(96px,1fr));gap:8px}
+  .st-card{background:var(--glass-panel,rgba(255,255,255,.06));border:1px solid var(--panel-border);border-radius:14px;padding:10px 6px;text-align:center}
+  .st-card .sv{font-family:var(--font-display);font-size:17px;color:var(--accent);margin-top:2px;white-space:nowrap}
+  .st-card .sl{font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:.8px;margin-top:3px}
+  .st-tabs{margin-bottom:8px}
+  .ku-modal .ku-seg{width:100%}
+  .st-tabs button{font-size:12px}
+  .dist{display:flex;flex-direction:column;gap:6px}
+  .dist-row{display:grid;grid-template-columns:62px 1fr 44px 54px;align-items:center;gap:8px;font-size:12.5px}
+  .dchip{display:flex;align-items:center;justify-content:center;height:26px;border-radius:8px;font:400 12px/1 var(--font-display);
+    background:var(--tb,rgba(255,255,255,.08));color:var(--tx,var(--text));border:1px solid var(--bd,transparent)}
+  .dbar{height:10px;border-radius:5px;background:rgba(255,255,255,.07);overflow:hidden}
+  .dbar i{display:block;height:100%;border-radius:5px;background:linear-gradient(90deg,var(--accent),var(--accent2));box-shadow:0 0 8px rgba(0,229,255,.5)}
+  .dist-row b{font-family:var(--font-display);font-weight:400;color:var(--text);text-align:right}
+  .dist-row .pct{color:var(--muted);text-align:right;font-size:11.5px}
+  .list{display:flex;flex-direction:column;gap:8px}
+  .ach-item{display:flex;align-items:center;gap:12px;padding:10px 12px;border-radius:14px;background:var(--panel);border:1px solid var(--panel-border)}
+  .ach-item.unlocked{border-color:rgba(255,214,10,.45);background:rgba(255,214,10,.07)}
+  .ach-item.unlocked h4{color:var(--gold)}
+  .ach-icon{font-size:22px;width:40px;height:40px;flex:none;display:flex;align-items:center;justify-content:center;background:rgba(255,255,255,.05);border-radius:12px}
+  .ach-info{min-width:0;flex:1}
+  .ach-info h4{margin:0 0 2px;font-family:var(--font-display);font-weight:400;font-size:13px;letter-spacing:.5px}
+  .ach-info p{margin:0;font-size:11.5px;color:var(--muted);line-height:1.4}
+  .ach-prog{height:5px;border-radius:3px;background:rgba(255,255,255,.08);overflow:hidden;margin-top:5px}
+  .ach-prog i{display:block;height:100%;background:linear-gradient(90deg,var(--accent),var(--accent2))}
+  .h-tile{flex:none;min-width:46px;height:32px;padding:0 6px;border-radius:9px;display:flex;align-items:center;justify-content:center;font:400 12px/1 var(--font-display)}
+  .empty{text-align:center;color:var(--muted);padding:20px}
+  .set-btns{display:flex;gap:8px;flex-wrap:wrap}
+  #set-data h3{margin-top:18px}
+  #ov-settings .ku-field{width:100%;align-items:stretch;margin-top:6px}
+  #ov-settings .ku-seg{width:100%}
+  .ku-rules .ex{font-family:var(--font-display);font-weight:400;color:var(--accent);white-space:nowrap}
+  @media (max-height:560px){
+    .ku-overlay .ku-card{padding:12px 18px;gap:5px}
+    #ov-over .ku-card,#ov-win .ku-card{gap:5px}
+    .ku-overlay .ku-card h2{font-size:19px}
+    .ku-overlay .ku-card p{font-size:12.5px;line-height:1.35}
+    .ku-overlay .ku-big-score{font-size:26px}
+    .ku-overlay .ku-over-stats{display:grid;grid-template-columns:1fr 1fr;column-gap:16px;row-gap:3px;margin:2px 0}
+    .ku-overlay .ku-over-stats div{font-size:13px}
+    .ku-overlay .ku-card .ku-btn{min-height:34px;padding-top:6px;padding-bottom:6px;font-size:14px}
+    #ov-pause .ov-btns .ku-btn.primary{grid-column:1 / -1}
+    #ov-over .ku-card,#ov-win .ku-card,#ov-pause .ku-card{width:min(560px,92vw)}
+    /* низкое окно (альбом телефона): кнопки итогов — в две колонки, строка «Поле» есть в шапке */
+    .ov-btns{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+    #over-stats div:first-child{display:none}
+    .ku-overlay .ku-new-best{font-size:15px}
+  }
+  @media (prefers-reduced-motion:reduce){ .plus{animation-duration:.01s} }
 </style>
 </head>
 <body class="ku" data-tiles="neon">
@@ -81,715 +183,1336 @@
   <!-- ═══ МЕНЮ ═══ -->
   <section id="screen-menu" class="ku-screen menu active">
     <h1 class="ku-logo">2048</h1>
-    <p class="ku-tagline">Неоновая головоломка • 5 целей • Рекорды</p>
-    <div class="ku-pills"><span>🧩 Сливай плитки</span><span>↶ Отмена хода</span><span>💾 Автосохранение</span><span>👆 Свайпы</span></div>
+    <p class="ku-tagline">Головоломка • 4&nbsp;поля • 3&nbsp;режима</p>
+    <div class="ku-pills"><span>🧩 3×3 – 6×6</span><span>⏱ На время</span><span>🔥 Без отмены</span><span>🏅 Достижения</span></div>
 
     <div class="ku-field">
-      <div class="ku-label">Цель новой игры</div>
-      <div class="ku-seg" id="seg-target">
-        <button data-v="512">512</button><button data-v="1024">1024</button><button data-v="2048">2048</button><button data-v="4096">4096</button><button data-v="8192">8192</button>
+      <div class="ku-label">Поле</div>
+      <div class="ku-seg" id="seg-size" aria-label="Размер поля">
+        <button data-n="3">3×3</button><button data-n="4">4×4</button><button data-n="5">5×5</button><button data-n="6">6×6</button>
       </div>
     </div>
     <div class="ku-field">
-      <div class="ku-label">Плитки</div>
-      <div class="ku-seg" id="seg-tiles">
-        <button data-v="neon">✨ Неон</button><button data-v="classic">🟫 Классика</button>
+      <div class="ku-label">Режим</div>
+      <div class="ku-seg" id="seg-mode" aria-label="Режим">
+        <button data-m="classic"><span class="em">🧩 </span>Классика</button><button data-m="timed"><span class="em">⏱️ </span>На время</button><button data-m="hard"><span class="em">🔥 </span>Без отмены</button>
       </div>
     </div>
+    <div class="ku-field" id="f-target">
+      <div class="ku-label">Цель</div>
+      <div class="ku-seg" id="seg-target" aria-label="Цель"></div>
+    </div>
+    <p class="mode-note" id="mode-note"></p>
 
-    <div class="ku-menu-btns" id="menu-btns">
-      <button class="ku-btn big primary" id="btn-continue" hidden>▶ Продолжить<span class="best" id="continue-sub">Счёт: 0</span></button>
-      <button class="ku-btn big accent2" id="btn-new">🎮 Новая игра<span class="best" id="new-sub">Цель: 2048</span></button>
+    <div class="ku-menu-btns">
+      <button class="ku-btn big primary" id="btn-continue" hidden>▶ Продолжить<span class="best" id="continue-sub">—</span></button>
+      <button class="ku-btn big accent2" id="btn-new">🎮 Новая игра<span class="best" id="new-sub">—</span></button>
     </div>
     <div class="ku-menu-row">
       <button class="ku-btn ghost" id="btn-rules">📖 Правила</button>
-      <button class="ku-btn ghost danger" id="btn-reset" title="Сбросить прогресс 2048">🗑 Сбросить</button>
+      <button class="ku-btn ghost" id="btn-stats">📊 Статистика</button>
+      <button class="ku-btn ghost" id="btn-ach">🏅 Достижения</button>
+      <button class="ku-btn ghost" id="btn-history">📜 История</button>
+      <button class="ku-btn ghost" id="btn-settings">⚙️ Настройки</button>
     </div>
-    <div class="ku-menu-stats" id="menu-stats">Рекорд: 0</div>
-    <div class="ku-menu-hint">Клавиши: ← ↑ → ↓ или WASD · Z / U — отмена хода · P / Esc — пауза<br>На телефоне: свайпы по полю</div>
+    <div class="ku-menu-stats" id="menu-stats">Сыграно партий: 0</div>
+    <div class="ku-menu-hint" id="menu-hint">Клавиши: стрелки / WASD — ход · Z — отмена · P / Esc — пауза<br>На телефоне: свайп по полю</div>
   </section>
 
   <!-- ═══ ИГРА ═══ -->
   <section id="screen-game" class="ku-screen fit">
     <header class="ku-top">
       <div class="ku-top-left"></div>
-      <div class="ku-top-title"><div class="t">2048</div><div class="s">ХОД <b id="g-moves">0</b></div></div>
+      <div class="ku-top-title"><div class="t" id="g-title">КЛАССИКА · 4×4</div><div class="s" id="g-sub">ХОД <b id="g-moves">0</b></div></div>
       <div class="ku-top-actions">
-        <button class="ku-btn icon" id="btn-undo" aria-label="Отменить ход" title="Отменить ход" disabled><svg viewBox="0 0 24 24"><polyline points="9 14 4 9 9 4"/><path d="M20 20v-7a4 4 0 0 0-4-4H4"/></svg></button>
-        <button class="ku-btn icon" id="btn-pause" aria-label="Пауза" title="Пауза"><svg viewBox="0 0 24 24"><line x1="9" y1="5" x2="9" y2="19"/><line x1="15" y1="5" x2="15" y2="19"/></svg></button>
+        <button class="ku-btn icon" id="btn-undo" aria-label="Отменить ход (Z)" title="Отменить ход (Z)"><svg viewBox="0 0 24 24"><polyline points="9 14 4 9 9 4"/><path d="M20 20v-7a4 4 0 0 0-4-4H4"/></svg><span id="undo-badge">3</span></button>
+        <button class="ku-btn icon" id="btn-pause" aria-label="Пауза (P)" title="Пауза (P)"><svg viewBox="0 0 24 24"><line x1="9" y1="5" x2="9" y2="19"/><line x1="15" y1="5" x2="15" y2="19"/></svg></button>
       </div>
     </header>
-    <div class="ku-hud">
-      <div class="ku-stat"><span>Счёт</span><b id="score">0</b></div>
-      <div class="ku-stat gold"><span>Рекорд</span><b id="best-score">0</b></div>
-      <div class="ku-stat c2"><span>Цель</span><b id="target-text">2048</b></div>
-    </div>
-    <div id="zone">
-      <div class="ku-board" id="game-board">
-        <div id="grid">
-          <div class="cell"></div><div class="cell"></div><div class="cell"></div><div class="cell"></div>
-          <div class="cell"></div><div class="cell"></div><div class="cell"></div><div class="cell"></div>
-          <div class="cell"></div><div class="cell"></div><div class="cell"></div><div class="cell"></div>
-          <div class="cell"></div><div class="cell"></div><div class="cell"></div><div class="cell"></div>
-        </div>
-        <div id="tiles"></div>
+    <div id="play">
+      <div class="ku-hud" id="hud">
+        <div class="ku-stat" id="st-score"><span>Счёт</span><b id="hud-score">0</b></div>
+        <div class="ku-stat gold"><span>Рекорд</span><b id="hud-best">0</b></div>
+        <div class="ku-stat c2"><span id="hud-third-label">Цель</span><b id="hud-third">2048</b></div>
       </div>
-      <p class="ku-hint" id="g-hint">Свайп по полю или стрелки · ↶ — отмена хода (до 10)</p>
+      <div id="zone">
+        <div class="ku-board" id="board" role="group" aria-label="Поле 2048">
+          <div id="grid"></div>
+          <div id="tiles"></div>
+        </div>
+        <div id="goal"><span id="goal-l">Лучшая плитка <b id="goal-tile">2</b></span><div class="ku-pbar"><i id="goal-bar"></i></div><span id="goal-r">2048</span></div>
+        <p class="ku-hint" id="g-hint">Свайп по полю, стрелки или WASD</p>
+      </div>
     </div>
   </section>
 </main>
 
 <!-- ═══ ПАУЗА ═══ -->
-<div class="ku-overlay" id="ov-pause"><div class="ku-card">
+<div class="ku-overlay" id="ov-pause"><div class="ku-card" role="dialog" aria-modal="true">
   <h2>⏸ ПАУЗА</h2>
-  <button class="ku-btn primary" id="btn-resume">Продолжить</button>
-  <button class="ku-btn" id="btn-p-new">Новая игра</button>
-  <button class="ku-btn" id="btn-p-rules">📖 Правила</button>
-  <button class="ku-btn ghost" id="btn-p-menu">В меню</button>
+  <p id="pause-info">—</p>
+  <div class="ov-btns">
+    <button class="ku-btn primary" id="p-resume">Продолжить</button>
+    <button class="ku-btn" id="p-new">🔄 Новая игра</button>
+    <button class="ku-btn" id="p-rules">📖 Правила</button>
+    <button class="ku-btn" id="p-settings">⚙️ Настройки</button>
+    <button class="ku-btn ghost" id="p-menu">В меню</button>
+  </div>
 </div></div>
 
-<!-- ═══ ЦЕЛЬ ДОСТИГНУТА ═══ -->
-<div class="ku-overlay" id="ov-win"><div class="ku-card">
+<!-- ═══ ЦЕЛЬ СОБРАНА ═══ -->
+<div class="ku-overlay" id="ov-win"><div class="ku-card" role="dialog" aria-modal="true">
   <h2 class="win">ПОБЕДА!</h2>
   <p id="win-sub">Плитка 2048 собрана</p>
   <div class="ku-big-score" id="win-score">0</div>
-  <button class="ku-btn primary" id="btn-w-continue">▶ Играть дальше</button>
-  <button class="ku-btn" id="btn-w-new">Новая игра</button>
-  <button class="ku-btn ghost" id="btn-w-menu">В меню</button>
+  <div class="ov-btns">
+    <button class="ku-btn primary" id="w-continue">▶ Играть дальше</button>
+    <button class="ku-btn" id="w-new">🔄 Новая игра</button>
+    <button class="ku-btn ghost" id="w-menu">В меню</button>
+  </div>
 </div></div>
 
-<!-- ═══ КОНЕЦ ИГРЫ ═══ -->
-<div class="ku-overlay" id="ov-over"><div class="ku-card">
-  <h2 class="lose">ИГРА ОКОНЧЕНА</h2>
+<!-- ═══ КОНЕЦ ПАРТИИ ═══ -->
+<div class="ku-overlay" id="ov-over"><div class="ku-card" role="dialog" aria-modal="true">
+  <h2 class="lose" id="over-title">ИГРА ОКОНЧЕНА</h2>
   <div class="ku-new-best" id="over-best" hidden>🏆 НОВЫЙ РЕКОРД!</div>
   <div class="ku-big-score" id="over-score">0</div>
-  <div class="ku-over-stats">
-    <div>Лучшая плитка<b id="over-tile">0</b></div>
-    <div>Ходов<b id="over-moves">0</b></div>
-    <div>Рекорд<b id="over-record">0</b></div>
+  <p class="over-sub" id="over-sub">Ходов больше нет</p>
+  <div class="ku-over-stats" id="over-stats"></div>
+  <div class="ov-btns">
+    <button class="ku-btn primary" id="o-again">🔄 Играть снова</button>
+    <button class="ku-btn" id="o-undo" hidden>↶ Отменить ход</button>
+    <button class="ku-btn" id="o-view">👁 Посмотреть поле</button>
+    <button class="ku-btn ghost" id="o-menu">В меню</button>
   </div>
-  <button class="ku-btn primary" id="btn-o-again">Играть снова</button>
-  <button class="ku-btn" id="btn-o-undo">↶ Отменить ход</button>
-  <button class="ku-btn ghost" id="btn-o-menu">В меню</button>
-</div></div>
-
-<!-- ═══ СБРОС ПРОГРЕССА (бывшая «Очистить кеш») ═══ -->
-<div class="ku-overlay" id="ov-reset"><div class="ku-card" id="reset-card">
-  <h2>СБРОСИТЬ ПРОГРЕСС?</h2>
-  <p>Будут удалены текущая партия и рекорд 2048. Цель и палитра плиток сохранятся. Данные других игр не затрагиваются.</p>
-  <button class="ku-btn red" id="btn-reset-yes">🗑 Сбросить</button>
-  <button class="ku-btn ghost" id="btn-reset-no">Отмена</button>
 </div></div>
 
 <!-- ═══ ПРАВИЛА ═══ -->
-<div class="ku-overlay" id="ov-rules"><div class="ku-modal">
-  <header><h2>📖 Правила</h2><button class="ku-btn icon" id="btn-rules-x" aria-label="Закрыть">✕</button></header>
+<div class="ku-overlay" id="ov-rules"><div class="ku-modal" role="dialog" aria-modal="true">
+  <header><h2>📖 Правила</h2><button class="ku-btn icon" data-close aria-label="Закрыть">✕</button></header>
   <div class="ku-body">
     <h3>Цель</h3>
     <ul class="ku-rules">
-      <li>Сдвигайте плитки: <b>одинаковые числа сливаются</b> в одно (2+2=4, 4+4=8…).</li>
-      <li>Соберите плитку-цель (по умолчанию <b>2048</b>; в меню можно выбрать 512–8192). После победы можно играть дальше.</li>
+      <li>Сдвигайте плитки: две одинаковые при встрече <b>сливаются в одну</b> — 2&nbsp;+&nbsp;2&nbsp;=&nbsp;4, 4&nbsp;+&nbsp;4&nbsp;=&nbsp;8… Соберите плитку-цель (на 4×4 по умолчанию <b>2048</b>).</li>
+      <li>После победы можно нажать <b>«Играть дальше»</b> и продолжать сколько угодно — до конца ходов.</li>
     </ul>
     <h3>Ход</h3>
     <ul class="ku-rules">
-      <li>Все плитки едут до упора в сторону свайпа. Каждая плитка сливается <b>не больше одного раза</b> за ход.</li>
-      <li>После каждого хода, который что-то сдвинул, появляется новая плитка: 2 (90%) или 4 (10%).</li>
-      <li>Очки за слияние — значение новой плитки.</li>
-      <li>Игра окончена, когда нет пустых клеток и соседних одинаковых плиток.</li>
+      <li>Свайп или стрелка двигает <b>все плитки</b> в эту сторону до упора.</li>
+      <li>Каждая плитка сливается <b>не больше одного раза за ход</b>: <span class="ex">2 2 2 2</span> влево → <span class="ex">4 4</span>, а не 8.</li>
+      <li>Пары сливаются <b>начиная от стены</b>, к которой идёт ход: <span class="ex">2 2 2 ·</span> влево → <span class="ex">4 2 · ·</span>, вправо → <span class="ex">· · 2 4</span>; <span class="ex">4 2 2 ·</span> влево → <span class="ex">4 4 · ·</span>.</li>
+      <li>После каждого хода, который что-то сдвинул, в случайной пустой клетке появляется новая плитка: <b>2</b> (90&nbsp;%) или <b>4</b> (10&nbsp;%). Ход, который ничего не меняет, не считается.</li>
+      <li>Игра окончена, когда <b>ходов нет</b>: все клетки заняты и рядом нет одинаковых плиток.</li>
+    </ul>
+    <h3>Очки</h3>
+    <ul class="ku-rules">
+      <li>За каждое слияние — значение новой плитки: 2&nbsp;+&nbsp;2&nbsp;→&nbsp;<b>+4</b>, 8&nbsp;+&nbsp;8&nbsp;→&nbsp;<b>+16</b>. Ход <span class="ex">2 2 4 4</span> влево → <span class="ex">4 8</span>: +4&nbsp;+8&nbsp;=&nbsp;<b>+12</b>.</li>
+      <li>Рекорды (лучший счёт и лучшая плитка), статистика и сохранённая партия — <b>отдельно для каждого поля и режима</b>.</li>
+    </ul>
+    <h3>Поля</h3>
+    <ul class="ku-rules">
+      <li><b>3×3</b> — тесно и трудно (больше 1024 собрать нельзя), <b>4×4</b> — классика, <b>5×5</b> и <b>6×6</b> — просторнее и длиннее. Цели: 3×3 — 128…1024, 4×4 — 512…8192, 5×5 — 1024…16384, 6×6 — 2048…32768.</li>
+    </ul>
+    <h3>Режимы</h3>
+    <ul class="ku-rules">
+      <li><b>🧩 Классика</b> — <b>3 отмены хода</b> за партию, рекорд засчитывается. Отменить можно и больше, но тогда партия становится <b>тренировкой</b>: без рекордов, статистики и достижений.</li>
+      <li>Отмена не перебрасывает случайность: отмените ход и сделайте его снова — появится та же плитка в той же клетке.</li>
+      <li><b>⏱ На время</b> — <b>3 минуты</b> на очки. Время пойдёт с первого хода; на паузе оно стоит, а поле скрыто. Отмены и цели нет; если ходы кончатся раньше — партия окончена.</li>
+      <li><b>🔥 Без отмены</b> — классика без единой отмены, свой рекорд.</li>
     </ul>
     <h3>Управление</h3>
     <ul class="ku-rules">
-      <li><b>Свайп</b> по полю (или мышью), <b>стрелки</b> или <b>WASD</b>.</li>
-      <li><b>↶</b>, Z или U — отменить ход (до 10 последних, счёт тоже откатывается).</li>
-      <li><b>P / Esc</b> — пауза. Партия сохраняется автоматически.</li>
+      <li><b>Свайп по полю</b> — пальцем или мышью (перетаскивание); <b>стрелки</b> или <b>WASD</b>. Быстрые ходы подряд не теряются — анимация догоняет.</li>
+      <li><b>Z / U / Backspace</b> — отмена хода, <b>P / Esc</b> — пауза, <b>R</b> — новая игра.</li>
+      <li>Партия сохраняется сама после каждого хода — для каждого поля и режима своя; при сворачивании игра встаёт на паузу.</li>
     </ul>
   </div>
-  <footer><button class="ku-btn primary" id="btn-rules-ok">Понятно</button></footer>
+  <footer><button class="ku-btn primary" data-close>Понятно</button></footer>
+</div></div>
+
+<!-- ═══ СТАТИСТИКА ═══ -->
+<div class="ku-overlay" id="ov-stats"><div class="ku-modal" role="dialog" aria-modal="true">
+  <header><h2>📊 Статистика</h2><button class="ku-btn icon" data-close aria-label="Закрыть">✕</button></header>
+  <div class="ku-body">
+    <div class="ku-seg st-tabs" id="st-size"><button data-n="3">3×3</button><button data-n="4">4×4</button><button data-n="5">5×5</button><button data-n="6">6×6</button></div>
+    <div class="ku-seg st-tabs" id="st-mode"><button data-m="classic">Классика</button><button data-m="timed">На время</button><button data-m="hard">Без отмены</button></div>
+    <div class="stats-grid" id="st-grid"></div>
+    <h3>Лучшая плитка партии</h3>
+    <div class="dist" id="st-dist"></div>
+    <h3>Всего</h3>
+    <div class="stats-grid" id="st-total"></div>
+  </div>
+  <footer><button class="ku-btn primary" data-close>Готово</button></footer>
+</div></div>
+
+<!-- ═══ ДОСТИЖЕНИЯ ═══ -->
+<div class="ku-overlay" id="ov-ach"><div class="ku-modal" role="dialog" aria-modal="true">
+  <header><h2>🏅 Достижения <span class="ku-muted" id="ach-count"></span></h2><button class="ku-btn icon" data-close aria-label="Закрыть">✕</button></header>
+  <div class="ku-body"><div class="list" id="ach-list"></div></div>
+</div></div>
+
+<!-- ═══ ИСТОРИЯ ═══ -->
+<div class="ku-overlay" id="ov-history"><div class="ku-modal" role="dialog" aria-modal="true">
+  <header><h2>📜 История</h2><button class="ku-btn icon" data-close aria-label="Закрыть">✕</button></header>
+  <div class="ku-body"><div class="list" id="history-list"></div></div>
+</div></div>
+
+<!-- ═══ НАСТРОЙКИ ═══ -->
+<div class="ku-overlay" id="ov-settings"><div class="ku-modal" role="dialog" aria-modal="true">
+  <header><h2>⚙️ Настройки</h2><button class="ku-btn icon" data-close aria-label="Закрыть">✕</button></header>
+  <div class="ku-body">
+    <h3>Звук и вибрация</h3>
+    <label class="ku-switch-row">Звуки<input type="checkbox" data-opt="sound"><span class="ku-switch"></span></label>
+    <label class="ku-switch-row">Вибрация<input type="checkbox" data-opt="vibration"><span class="ku-switch"></span></label>
+    <h3>Вид</h3>
+    <div class="ku-field"><div class="ku-label">Анимации</div>
+      <div class="ku-seg" id="set-anim"><button data-v="smooth">Плавные</button><button data-v="fast">Быстрые</button><button data-v="off">Выкл</button></div></div>
+    <div class="ku-field"><div class="ku-label">Плитки</div>
+      <div class="ku-seg" id="set-tiles"><button data-v="neon">✨ Неон</button><button data-v="classic">🟫 Классика</button></div></div>
+    <div id="set-data">
+      <h3>Данные</h3>
+      <div class="set-btns"><button class="ku-btn sm danger" id="btn-reset">🗑 Сбросить прогресс</button></div>
+    </div>
+  </div>
+  <footer><button class="ku-btn primary" data-close>Готово</button></footer>
 </div></div>
 
 <div class="ku-toast" id="toast"></div>
-
 <script>
 'use strict';
-const $ = id => document.getElementById(id);
-// localStorage может быть недоступен (приватный режим, запрет сайта) — игра должна работать и без него
-const store = {
-  get(k) { try { return localStorage.getItem(k); } catch (e) { return null; } },
-  set(k, v) { try { localStorage.setItem(k, String(v)); } catch (e) {} },
-  del(k) { try { localStorage.removeItem(k); } catch (e) {} }
-};
-const fmt = n => Number(n || 0).toLocaleString('ru-RU');
-const TARGETS = [512, 1024, 2048, 4096, 8192];
-const normTarget = v => TARGETS.includes(v) ? v : 2048;
-const ANIM = 120;          // мс: сдвиг плиток (= transition у .tile)
-const OVER_DELAY = 450;    // мс: дать увидеть последнее поле перед «Игра окончена»
 
-function pop(el) { el.classList.remove('pop'); void el.offsetWidth; el.classList.add('pop'); }
+/* ═══ engine.js ═══ */
+/* ═══════════════════════════════════════════════════════════════
+ * 2048 — движок без DOM (проверяется в Node: tests/test_engine.js).
+ * Поле n×n — одномерный массив степеней двойки: 0 — пусто, 1 — «2», 2 — «4», … 11 — «2048».
+ * Направления (как в прежней версии): 0 — вверх, 1 — вправо, 2 — вниз, 3 — влево.
+ * ═════════════════════════════════════════════════════════════ */
+const E2048 = (() => {
+  const SIZES = [3, 4, 5, 6];
+  // цели по размеру поля (степени двойки): на 3×3 больше 1024 собрать нельзя в принципе
+  const TARGETS = { 3: [7, 8, 9, 10], 4: [9, 10, 11, 12, 13], 5: [10, 11, 12, 13, 14], 6: [11, 12, 13, 14, 15] };
+  const DEF_TARGET = { 3: 8, 4: 11, 5: 11, 6: 11 };
+  const value = e => (e > 0 ? 2 ** e : 0);
 
-class Tile {
-  static idCounter = parseInt(store.get('tileIdCounter2048'), 10) || 0;
-  constructor(r, c, value, id = null) {
-    this.id = id !== null ? id : Tile.idCounter++;
-    this.r = r;
-    this.c = c;
-    this.value = value;
-  }
-}
-
-class GameManager {
-  constructor(size) {
-    this.size = size;
-    this.board = this.emptyBoard();
-    this.score = 0;
-    this.moves = 0;
-    this.bestScore = parseInt(store.get('bestScore2048'), 10) || 0;
-    this.bestAtStart = this.bestScore;   // для «Новый рекорд!» в конце партии
-    this.bestToast = false;
-    this.gameOver = false;
-    this.gameWon = false;
-    this.keepPlaying = false;
-    this.isAnimating = false;
-    this.queued = null;                  // ход, нажатый во время анимации (выполнится следом)
-    this.gameToken = 0;
-    this.overTimer = 0;
-
-    // Настройки: цель новой игры и палитра плиток (ключи прежние)
-    this.targetValue = normTarget(parseInt(store.get('targetValue2048'), 10));
-    this.gameTarget = this.targetValue;  // цель текущей партии (хранится в сохранении)
-    this.theme = store.get('theme2048') === 'classic' ? 'classic' : 'neon';
-
-    this.history = [];                   // стек для отмены хода
-    this.maxHistory = 10;
-
-    this.tileContainer = $('tiles');
-    this.els = new Map();                // id плитки → DOM
-    this.scoreEl = $('score');
-    this.bestScoreEl = $('best-score');
-    this.btnUndo = $('btn-undo');
-
-    this.applyTheme();
-    if (!this.loadState()) this.restart();
-  }
-
-  emptyBoard() { return Array.from({ length: this.size }, () => Array(this.size).fill(null)); }
-  serialize() { return this.board.map(row => row.map(t => t ? { r: t.r, c: t.c, value: t.value, id: t.id } : null)); }
-  tileCount() { return this.board.reduce((n, row) => n + row.filter(Boolean).length, 0); }
-  maxTile() { return this.board.reduce((m, row) => row.reduce((mm, t) => t ? Math.max(mm, t.value) : mm, m), 0); }
-  // есть ли что продолжать из меню
-  inProgress() { return !this.gameOver && (this.moves > 0 || this.score > 0 || this.tileCount() > 2); }
-
-  applyTheme() { document.body.dataset.tiles = this.theme; }
-
-  changeTheme(t) {
-    this.theme = t === 'classic' ? 'classic' : 'neon';
-    store.set('theme2048', this.theme);
-    this.applyTheme();
-    UI.syncMenu();
-  }
-
-  // Цель для новой игры; текущая партия доигрывается со своей целью
-  changeMode(v) {
-    this.targetValue = normTarget(parseInt(v, 10));
-    store.set('targetValue2048', this.targetValue);
-    UI.syncMenu();
-  }
-
-  // Бывшая «Очистить кеш»: удаляет только ключи 2048 (не localStorage.clear()), тема и цель остаются
-  resetProgress() {
-    store.del('gameState2048');
-    store.del('bestScore2048');
-    store.del('tileIdCounter2048');
-    this.bestScore = 0;
-    Tile.idCounter = 0;
-    this.restart();
-  }
-
-  saveState() {
-    store.set('gameState2048', JSON.stringify({
-      board: this.serialize(),
-      score: this.score,
-      moves: this.moves,
-      gameOver: this.gameOver,
-      gameWon: this.gameWon,
-      keepPlaying: this.keepPlaying,
-      targetValue: this.gameTarget,
-      bestAtStart: this.bestAtStart
-    }));
-    store.set('tileIdCounter2048', Tile.idCounter);   // раньше писался в localStorage на каждую плитку
-    this.updateUndoButton();
-  }
-
-  pushHistory() {
-    if (this.history.length >= this.maxHistory) this.history.shift();
-    this.history.push({ board: this.serialize(), score: this.score, moves: this.moves, gameWon: this.gameWon, keepPlaying: this.keepPlaying });
-  }
-
-  undo() {
-    if (this.isAnimating || this.history.length === 0) return;
-    const prev = this.history.pop();
-    this.gameToken++;                 // отменяет отложенный показ «Игра окончена»
-    clearTimeout(this.overTimer);
-    this.queued = null;
-    this.score = prev.score;          // счёт откатывается вместе с полем
-    this.moves = prev.moves;
-    this.gameOver = false;
-    this.gameWon = prev.gameWon;
-    this.keepPlaying = prev.keepPlaying;
-    UI.close('ov-over');
-    UI.close('ov-win');
-    this.clearTiles();
-    this.board = prev.board.map((row, r) => row.map((d, c) => {
-      if (!d) return null;
-      const tile = new Tile(r, c, d.value, d.id);
-      this.renderTile(tile);
-      return tile;
-    }));
-    this.updateScore();
-    this.saveState();
-  }
-
-  updateUndoButton() {
-    this.btnUndo.disabled = this.history.length === 0;   // во время анимации undo() сам игнорирует нажатие
-  }
-
-  loadState() {
-    const raw = store.get('gameState2048');
-    if (!raw) return false;
-    try {
-      const st = JSON.parse(raw);
-      const okCell = d => d === null || (d && Number.isInteger(d.value) && d.value >= 2 && (d.value & (d.value - 1)) === 0);
-      if (!st || !Array.isArray(st.board) || st.board.length !== this.size ||
-          !st.board.every(row => Array.isArray(row) && row.length === this.size && row.every(okCell))) return false;
-
-      this.score = Math.max(0, parseInt(st.score, 10) || 0);
-      this.moves = Math.max(0, parseInt(st.moves, 10) || 0);
-      this.gameOver = !!st.gameOver;
-      this.gameWon = !!st.gameWon;
-      this.keepPlaying = !!st.keepPlaying;
-      this.gameTarget = TARGETS.includes(st.targetValue) ? st.targetValue : this.targetValue;
-      // в старых сохранениях bestAtStart нет: порог «нового рекорда» — текущий рекорд
-      // (min(рекорд, счёт) давал ложное «НОВЫЙ РЕКОРД!» при счёте ниже рекорда)
-      this.bestAtStart = Number.isFinite(st.bestAtStart) ? st.bestAtStart : this.bestScore;
-      this.bestToast = this.score > this.bestAtStart;
-      this.history = [];
-      this.clearTiles();
-      this.board = st.board.map((row, r) => row.map((d, c) => {
-        if (!d) return null;
-        const tile = new Tile(r, c, d.value);
-        this.renderTile(tile);
-        return tile;
-      }));
-      this.updateScore();
-      this.updateUndoButton();
-      return true;
-    } catch (e) {
-      console.warn('2048: не удалось прочитать сохранение', e);
-      return false;
-    }
-  }
-
-  restart() {
-    this.gameToken++;
-    clearTimeout(this.overTimer);
-    this.isAnimating = false;         // иначе рестарт во время анимации «замораживал» ввод навсегда
-    this.queued = null;
-    this.board = this.emptyBoard();
-    this.score = 0;
-    this.moves = 0;
-    this.gameOver = false;
-    this.gameWon = false;
-    this.keepPlaying = false;
-    this.gameTarget = this.targetValue;
-    this.bestAtStart = this.bestScore;
-    this.bestToast = false;
-    this.history = [];
-    this.clearTiles();
-    UI.close('ov-over');
-    UI.close('ov-win');
-    this.addRandomTile();
-    this.addRandomTile();
-    this.updateScore();
-    this.saveState();
-  }
-
-  continueGame() {
-    this.keepPlaying = true;
-    UI.close('ov-win');
-    // цель собрана последним ходом на полном поле без ходов — сразу «Игра окончена» (раньше — тупик)
-    if (!this.movesAvailable()) this.finish(false);
-    this.saveState();
-  }
-
-  finish(delayed) {
-    this.gameOver = true;
-    this.queued = null;
-    const token = this.gameToken;
-    clearTimeout(this.overTimer);
-    const show = () => { if (this.gameToken === token && this.gameOver && UI.screen === 'game') UI.showOver(); };
-    if (delayed) this.overTimer = setTimeout(show, OVER_DELAY); else show();
-  }
-
-  addRandomTile() {
-    const availableCells = [];
-    for (let r = 0; r < this.size; r++) {
-      for (let c = 0; c < this.size; c++) {
-        if (!this.board[r][c]) availableCells.push({ r, c });
+  // Линии поля для хода: индексы клеток, первая — у стены, к которой едут плитки
+  const lineCache = {};
+  function lines(n, dir) {
+    const key = n * 4 + dir;
+    if (lineCache[key]) return lineCache[key];
+    const res = [];
+    for (let a = 0; a < n; a++) {
+      const line = [];
+      for (let b = 0; b < n; b++) {
+        let r, c;
+        if (dir === 0) { r = b; c = a; }               // вверх: столбец a от верхней стены
+        else if (dir === 2) { r = n - 1 - b; c = a; }  // вниз: от нижней стены
+        else if (dir === 3) { r = a; c = b; }          // влево: строка a от левой стены
+        else { r = a; c = n - 1 - b; }                 // вправо: от правой стены
+        line.push(r * n + c);
       }
+      res.push(line);
     }
-    if (availableCells.length > 0) {
-      const cell = availableCells[Math.floor(Math.random() * availableCells.length)];
-      const value = Math.random() < 0.9 ? 2 : 4;
-      const tile = new Tile(cell.r, cell.c, value);
-      this.board[cell.r][cell.c] = tile;
-      this.renderTile(tile, 'new');
+    return (lineCache[key] = res);
+  }
+
+  // Сдвиг одной линии по правилам оригинала (индекс 0 — стена, к которой едут плитки):
+  // плитки едут до упора, одинаковые пары сливаются в порядке от стены, плитка, полученная
+  // слиянием, в этом ходу больше не сливается ([2,2,2,2] → [4,4], а не [8]).
+  // Возвращает новую линию, очки (сумма новых плиток), куда уехала каждая плитка и позиции слияний.
+  function slideLine(src) {
+    const len = src.length, out = new Array(len).fill(0), to = new Array(len).fill(-1), merged = [];
+    let k = -1, open = false, gained = 0;   // open — плитка out[k] ещё может принять пару
+    for (let i = 0; i < len; i++) {
+      const e = src[i];
+      if (!e) continue;
+      if (open && out[k] === e) { out[k] = e + 1; gained += value(e + 1); merged.push(k); open = false; }
+      else { out[++k] = e; open = true; }
+      to[i] = k;
     }
+    return { out, to, merged, gained };
   }
 
-  clearTiles() {
-    this.tileContainer.textContent = '';
-    this.els.clear();
-  }
-
-  renderTile(tile, kind = '') {
-    let el = this.els.get(tile.id);
-    if (!el) {
-      el = document.createElement('div');
-      el.appendChild(document.createElement('div')).className = 'tile-in';
-      this.tileContainer.appendChild(el);
-      this.els.set(tile.id, el);
-    }
-    const v = tile.value;
-    el.className = `tile v${v > 2048 ? 'super' : v} d${Math.min(String(v).length, 6)}${kind ? ' ' + kind : ''}`;
-    el.style.setProperty('--r', tile.r);
-    el.style.setProperty('--c', tile.c);
-    el.firstChild.textContent = v;
-  }
-
-  removeTile(tile) {
-    const el = this.els.get(tile.id);
-    if (!el) return;
-    this.els.delete(tile.id);
-    setTimeout(() => el.remove(), ANIM);
-  }
-
-  // ходить можно только на экране игры без открытых окон
-  canPlay() {
-    return UI.screen === 'game' && !UI.anyOverlay() && !this.gameOver && !(this.gameWon && !this.keepPlaying);
-  }
-
-  move(direction) {
-    if (!this.canPlay()) return;
-    if (this.isAnimating) { this.queued = direction; return; }   // быстрый повторный ход не теряется
-
-    this.pushHistory();               // состояние до начала движения
-    this.isAnimating = true;
-    const token = this.gameToken;
-    let moved = false;
-
-    const vectors = {
-      0: { r: -1, c: 0 },
-      1: { r: 0, c: 1 },
-      2: { r: 1, c: 0 },
-      3: { r: 0, c: -1 }
-    };
-    const vector = vectors[direction];
-    const traversals = this.buildTraversals(vector);   // обход от стороны движения → слияние к этой стороне
-    const mergedTiles = [];                            // плитка, получившаяся слиянием, второй раз за ход не сливается
-
-    traversals.r.forEach((r) => {
-      traversals.c.forEach((c) => {
-        const tile = this.board[r][c];
-        if (!tile) return;
-        const positions = this.findFarthestPosition({ r, c }, vector);
-        const next = this.board[positions.next.r]?.[positions.next.c];
-
-        if (next && next.value === tile.value && !mergedTiles.includes(next.id)) {
-          const newValue = tile.value * 2;
-          const newTile = new Tile(positions.next.r, positions.next.c, newValue);
-
-          this.board[r][c] = null;
-          this.board[positions.next.r][positions.next.c] = newTile;
-
-          tile.r = positions.next.r;
-          tile.c = positions.next.c;
-          this.renderTile(tile);
-          this.removeTile(tile);
-          this.removeTile(next);
-
-          setTimeout(() => {
-            if (this.gameToken === token) this.renderTile(newTile, 'merged');
-          }, ANIM);
-
-          mergedTiles.push(newTile.id);
-          this.score += newValue;
-          moved = true;
-
-          if (newValue === this.gameTarget && !this.gameWon) this.gameWon = true;
-        } else if (positions.farthest.r !== r || positions.farthest.c !== c) {
-          this.board[r][c] = null;
-          this.board[positions.farthest.r][positions.farthest.c] = tile;
-          tile.r = positions.farthest.r;
-          tile.c = positions.farthest.c;
-          this.renderTile(tile);
-          moved = true;
-        }
-      });
-    });
-
-    if (moved) {
-      this.moves++;
-      this.updateScore();
-      setTimeout(() => {
-        if (this.gameToken !== token) return;
-        this.isAnimating = false;
-        this.addRandomTile();          // новая плитка — только после реального сдвига
-
-        if (this.gameWon && !this.keepPlaying) {
-          this.queued = null;
-          UI.showWin();
-        } else if (!this.movesAvailable()) {
-          this.finish(true);
-        }
-        this.saveState();
-        if (this.queued !== null) {
-          const d = this.queued;
-          this.queued = null;
-          this.move(d);
-        }
-      }, ANIM);
-    } else {
-      this.history.pop();
-      this.isAnimating = false;
-      this.updateUndoButton();
-    }
-  }
-
-  buildTraversals(vector) {
-    const traversals = { r: [], c: [] };
-    for (let pos = 0; pos < this.size; pos++) {
-      traversals.r.push(pos);
-      traversals.c.push(pos);
-    }
-    if (vector.r === 1) traversals.r = traversals.r.reverse();
-    if (vector.c === 1) traversals.c = traversals.c.reverse();
-    return traversals;
-  }
-
-  findFarthestPosition(cell, vector) {
-    let previous;
-    do {
-      previous = cell;
-      cell = { r: previous.r + vector.r, c: previous.c + vector.c };
-    } while (this.withinBounds(cell) && this.board[cell.r][cell.c] === null);
-    return { farthest: previous, next: cell };
-  }
-
-  withinBounds(position) {
-    return position.r >= 0 && position.r < this.size &&
-           position.c >= 0 && position.c < this.size;
-  }
-
-  movesAvailable() {
-    for (let r = 0; r < this.size; r++) {
-      for (let c = 0; c < this.size; c++) {
-        if (!this.board[r][c]) return true;
-        for (const v of [{ r: 1, c: 0 }, { r: 0, c: 1 }]) {
-          const nr = r + v.r, nc = c + v.c;
-          if (this.withinBounds({ r: nr, c: nc })) {
-            const neighbor = this.board[nr][nc];
-            if (neighbor && this.board[r][c].value === neighbor.value) return true;
-          }
-        }
+  // Ход целиком. Исходное поле не меняется. paths — пути плиток для анимации
+  // (merge: плитка участвовала в слиянии и исчезает), born — плитки, рождённые слиянием.
+  function move(cells, n, dir) {
+    const res = { cells: cells.slice(), moved: false, gained: 0, merges: 0, paths: [], born: [] };
+    for (const line of lines(n, dir)) {
+      const src = line.map(i => cells[i]);
+      const s = slideLine(src);
+      for (let b = 0; b < n; b++) {
+        res.cells[line[b]] = s.out[b];
+        if (!src[b]) continue;
+        const to = line[s.to[b]];
+        if (to !== line[b]) res.moved = true;
+        res.paths.push({ from: line[b], to, merge: s.merged.includes(s.to[b]) });
       }
+      if (s.merged.length) res.moved = true;
+      for (const k of s.merged) res.born.push({ at: line[k], e: s.out[k] });
+      res.merges += s.merged.length;
+      res.gained += s.gained;
+    }
+    return res;
+  }
+
+  // Есть ли ход: пустая клетка или две одинаковые соседние плитки
+  function canMove(cells, n) {
+    for (let r = 0; r < n; r++) for (let c = 0; c < n; c++) {
+      const e = cells[r * n + c];
+      if (!e) return true;
+      if (c + 1 < n && cells[r * n + c + 1] === e) return true;
+      if (r + 1 < n && cells[(r + 1) * n + c] === e) return true;
     }
     return false;
   }
 
-  updateScore() {
-    const s = fmt(this.score);
-    if (this.scoreEl.textContent !== s) { this.scoreEl.textContent = s; pop(this.scoreEl); }
-    if (this.score > this.bestScore) {
-      this.bestScore = this.score;
-      store.set('bestScore2048', this.bestScore);
-      if (!this.bestToast && this.bestAtStart > 0) {
-        this.bestToast = true;
-        if (window.KuArcade) KuArcade.toast('🏆 Новый рекорд!', 'gold');
-      }
-    }
-    this.bestScoreEl.textContent = fmt(this.bestScore);
-    $('g-moves').textContent = this.moves;
-    $('target-text').textContent = this.gameTarget;
+  /* ── Случайность ──
+   * Новая плитка зависит от зерна партии, номера хода и поля после сдвига (MurmurHash3 → mulberry32).
+   * Поэтому «отменить и повторить тот же ход» даёт ту же плитку — отмена не перебрасывает удачу,
+   * а другой ход даёт независимый случай. */
+  const rotl = (x, r) => (x << r) | (x >>> (32 - r));
+  function fmix(h) {
+    h ^= h >>> 16; h = Math.imul(h, 0x85ebca6b);
+    h ^= h >>> 13; h = Math.imul(h, 0xc2b2ae35);
+    h ^= h >>> 16; return h >>> 0;
   }
-}
-
-/* ═══ Экраны и окна ═══ */
-const UI = {
-  screen: 'menu',
-  rulesReturn: null,
-  show(name) {
-    this.screen = name;
-    $('screen-menu').classList.toggle('active', name === 'menu');
-    $('screen-game').classList.toggle('active', name === 'game');
-    if (name === 'game') layout(); else this.syncMenu();
-  },
-  open(id) { $(id).classList.add('open'); },
-  close(id) { $(id).classList.remove('open'); },
-  closeAll() { document.querySelectorAll('.ku-overlay.open').forEach(o => o.classList.remove('open')); },
-  anyOverlay() { return document.querySelector('.ku-overlay.open') !== null; },
-  syncMenu() {
-    if (!window.Game) return;
-    document.querySelectorAll('#seg-target button').forEach(b => b.classList.toggle('active', +b.dataset.v === Game.targetValue));
-    document.querySelectorAll('#seg-tiles button').forEach(b => b.classList.toggle('active', b.dataset.v === Game.theme));
-    const cont = Game.inProgress();
-    $('btn-continue').hidden = !cont;
-    $('continue-sub').textContent = `Счёт: ${fmt(Game.score)} · цель ${Game.gameTarget} · ход ${Game.moves}`;
-    $('btn-new').classList.toggle('primary', !cont);
-    $('btn-new').classList.toggle('accent2', cont);
-    $('new-sub').textContent = `Цель: ${Game.targetValue}`;
-    $('menu-stats').textContent = `Рекорд: ${fmt(Game.bestScore)}`;
-  },
-  showWin() {
-    $('win-sub').textContent = `Плитка ${Game.gameTarget} собрана за ${Game.moves} ${plural(Game.moves, 'ход', 'хода', 'ходов')}`;
-    $('win-score').textContent = fmt(Game.score);
-    this.closeAll();
-    this.open('ov-win');
-  },
-  showOver() {
-    $('over-best').hidden = !(Game.score > Game.bestAtStart && Game.score > 0);
-    $('over-score').textContent = fmt(Game.score);
-    $('over-tile').textContent = Game.maxTile();
-    $('over-moves').textContent = Game.moves;
-    $('over-record').textContent = fmt(Game.bestScore);
-    $('btn-o-undo').hidden = Game.history.length === 0;
-    this.closeAll();
-    this.open('ov-over');
+  function hashState(seed, salt, cells) {
+    let h = seed >>> 0, len = 0;
+    const word = w => {
+      let k = Math.imul(w | 0, 0xcc9e2d51); k = rotl(k, 15); k = Math.imul(k, 0x1b873593);
+      h ^= k; h = rotl(h, 13); h = (Math.imul(h, 5) + 0xe6546b64) | 0; len++;
+    };
+    word(salt); word(cells.length);
+    for (let i = 0; i < cells.length; i++) word(cells[i]);
+    return fmix(h ^ len);
   }
-};
-function plural(n, one, few, many) {
-  const m10 = n % 10, m100 = n % 100;
-  return m10 === 1 && m100 !== 11 ? one : m10 >= 2 && m10 <= 4 && (m100 < 10 || m100 >= 20) ? few : many;
-}
-
-// Размер поля: квадрат по свободному месту (ширина/высота экрана), клетки и отступы — через CSS-переменные
-function layout() {
-  const zone = $('zone');
-  if (!zone.clientHeight) return;                 // экран игры скрыт
-  const hint = $('g-hint');
-  const side = Math.floor(Math.min(zone.clientWidth, zone.clientHeight - hint.offsetHeight - 10, 500));
-  const inner = side - 16;                        // рамка .ku-board: padding 7 + border 1
-  const gap = Math.max(6, Math.round(inner * 0.026));
-  const cs = (inner - gap * 5) / 4;
-  const board = $('game-board');
-  board.classList.add('noanim');                  // при ресайзе плитки не «едут»
-  board.style.setProperty('--cs', cs + 'px');
-  board.style.setProperty('--gap', gap + 'px');
-  board.style.setProperty('--rad', Math.round(Math.min(12, Math.max(6, cs * 0.14))) + 'px');
-  requestAnimationFrame(() => requestAnimationFrame(() => board.classList.remove('noanim')));
-}
-window.addEventListener('resize', layout);
-
-let Game = null;
-Game = new GameManager(4);
-window.Game = Game;
-
-/* ═══ Кнопки ═══ */
-document.querySelectorAll('#seg-target button').forEach(b => b.addEventListener('click', () => Game.changeMode(b.dataset.v)));
-document.querySelectorAll('#seg-tiles button').forEach(b => b.addEventListener('click', () => Game.changeTheme(b.dataset.v)));
-
-function enterGame() {
-  UI.show('game');
-  if (Game.gameWon && !Game.keepPlaying && !Game.gameOver) UI.showWin();
-  else if (Game.gameOver) UI.showOver();
-}
-function toMenu() {
-  UI.closeAll();
-  UI.show('menu');
-}
-function openRules(from) {
-  UI.rulesReturn = from || null;
-  if (from) UI.close(from);
-  UI.open('ov-rules');
-}
-function closeRules() {
-  UI.close('ov-rules');
-  if (UI.rulesReturn) UI.open(UI.rulesReturn);
-  UI.rulesReturn = null;
-}
-
-$('btn-continue').onclick = enterGame;
-$('btn-new').onclick = () => { Game.restart(); UI.show('game'); };
-$('btn-rules').onclick = () => openRules(null);
-$('btn-reset').onclick = () => UI.open('ov-reset');
-$('btn-reset-no').onclick = () => UI.close('ov-reset');
-$('btn-reset-yes').onclick = () => {
-  Game.resetProgress();
-  UI.close('ov-reset');
-  UI.syncMenu();
-  if (window.KuArcade) KuArcade.toast('Прогресс 2048 сброшен', 'good');
-};
-$('btn-rules-x').onclick = $('btn-rules-ok').onclick = closeRules;
-
-$('btn-undo').onclick = () => Game.undo();
-$('btn-pause').onclick = () => { if (!UI.anyOverlay()) UI.open('ov-pause'); };
-$('btn-resume').onclick = () => UI.close('ov-pause');
-$('btn-p-new').onclick = () => { UI.close('ov-pause'); Game.restart(); };
-$('btn-p-rules').onclick = () => openRules('ov-pause');
-$('btn-p-menu').onclick = toMenu;
-
-$('btn-w-continue').onclick = () => Game.continueGame();
-$('btn-w-new').onclick = () => Game.restart();
-$('btn-w-menu').onclick = toMenu;
-
-$('btn-o-again').onclick = () => Game.restart();
-$('btn-o-undo').onclick = () => Game.undo();
-$('btn-o-menu').onclick = toMenu;
-
-/* ═══ Клавиатура (по e.code — работает и в русской раскладке) ═══ */
-const KEYS = { ArrowUp: 0, KeyW: 0, ArrowRight: 1, KeyD: 1, ArrowDown: 2, KeyS: 2, ArrowLeft: 3, KeyA: 3,
-               w: 0, d: 1, s: 2, a: 3, W: 0, D: 1, S: 2, A: 3 };
-document.addEventListener('keydown', (e) => {
-  if (e.ctrlKey || e.metaKey || e.altKey || UI.screen !== 'game') return;
-  const k = e.code || e.key;
-  const ov = document.querySelector('.ku-overlay.open');
-  if (k === 'Escape' || k === 'KeyP') {
-    e.preventDefault();
-    if (!ov) UI.open('ov-pause');
-    else if (ov.id === 'ov-pause') UI.close('ov-pause');
-    else if (ov.id === 'ov-rules') closeRules();
-    else if (ov.id === 'ov-reset') UI.close('ov-reset');
-    return;
+  function rng(a) {
+    return () => {
+      a = (a + 0x6D2B79F5) | 0;
+      let t = Math.imul(a ^ (a >>> 15), 1 | a);
+      t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
+      return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+    };
   }
-  if (ov) return;
-  const dir = KEYS[k] !== undefined ? KEYS[k] : KEYS[e.key];
-  if (dir !== undefined) { e.preventDefault(); Game.move(dir); return; }
-  if (k === 'KeyZ' || k === 'KeyU' || k === 'Backspace') { e.preventDefault(); Game.undo(); }
-});
-
-/* ═══ Свайпы: Pointer Events (палец, мышь, перо) по всей зоне поля ═══ */
-(() => {
-  const zone = $('zone');
-  let pid = null, sx = 0, sy = 0, done = false;
-  const fire = (e, threshold) => {
-    const dx = e.clientX - sx, dy = e.clientY - sy;
-    if (Math.max(Math.abs(dx), Math.abs(dy)) < threshold) return;
-    done = true;
-    Game.move(Math.abs(dx) > Math.abs(dy) ? (dx > 0 ? 1 : 3) : (dy > 0 ? 2 : 0));
+  // Новая плитка: случайная пустая клетка, «2» с вероятностью 90 %, «4» — 10 %
+  function spawn(cells, seed, salt) {
+    const empty = [];
+    for (let i = 0; i < cells.length; i++) if (!cells[i]) empty.push(i);
+    if (!empty.length) return null;
+    const r = rng(hashState(seed, salt, cells));
+    const at = empty[Math.floor(r() * empty.length)];
+    return { at, e: r() < 0.9 ? 1 : 2 };
+  }
+  // Начальное поле: две случайные плитки
+  function newBoard(n, seed) {
+    const cells = new Array(n * n).fill(0);
+    for (let k = 0; k < 2; k++) { const s = spawn(cells, seed, 0); cells[s.at] = s.e; }
+    return cells;
+  }
+  const maxExp = cells => cells.reduce((m, e) => (e > m ? e : m), 0);
+  const randomSeed = () => {
+    try { const a = new Uint32Array(1); crypto.getRandomValues(a); return a[0] >>> 0; } catch (e) { return (Math.random() * 4294967296) >>> 0; }
   };
-  zone.addEventListener('pointerdown', (e) => {
-    if (!e.isPrimary || (e.pointerType === 'mouse' && e.button !== 0)) return;
-    pid = e.pointerId; sx = e.clientX; sy = e.clientY; done = false;
-    try { zone.setPointerCapture(pid); } catch (_) {}
-  });
-  zone.addEventListener('pointermove', (e) => { if (e.pointerId === pid && !done) fire(e, 30); });
-  zone.addEventListener('pointerup', (e) => {
-    if (e.pointerId !== pid) return;
-    if (!done) fire(e, 20);
-    pid = null;
-  });
-  zone.addEventListener('pointercancel', (e) => { if (e.pointerId === pid) pid = null; });
+  // Проверка поля из хранилища: n×n целых степеней 0…40, хотя бы одна плитка
+  function validCells(c, n) {
+    return Array.isArray(c) && c.length === n * n && c.every(e => Number.isInteger(e) && e >= 0 && e <= 40) && c.some(e => e > 0);
+  }
+
+  return { SIZES, TARGETS, DEF_TARGET, value, lines, slideLine, move, canMove, hashState, rng, spawn, newBoard, maxExp, randomSeed, validCells };
 })();
 
-UI.syncMenu();
+/* ═══ ui.js ═══ */
+/* ═══════════════════════════════════════════════════════════════
+ * 2048 — интерфейс: меню, партия, ввод (клавиши, свайпы, мышь), анимации, режимы,
+ * рекорды и статистика по полю и режиму, достижения, история, сохранение партий.
+ *
+ * Ход применяется к состоянию сразу (ввод не ждёт анимацию и не теряется), а поле
+ * на экране проигрывает очередь ходов; если ходы копятся, анимация ускоряется и догоняет.
+ * ═════════════════════════════════════════════════════════════ */
+const $ = s => document.querySelector(s), $$ = s => document.querySelectorAll(s);
+const clamp = (v, a, b) => Math.min(b, Math.max(a, v));
+const fmt = n => Math.round(n || 0).toLocaleString('ru-RU');
+const now = () => performance.now();
+const asObj = o => (o && typeof o === 'object' && !Array.isArray(o)) ? o : {};
+const has = (o, k) => Object.prototype.hasOwnProperty.call(o, k);
+const nn = v => (Number.isFinite(v) && v >= 0 ? Math.floor(v) : 0);   // неотрицательное целое из хранилища
+const plural = (n, a, b, c) => { const m = n % 10, h = n % 100; return m === 1 && h !== 11 ? a : m >= 2 && m <= 4 && (h < 12 || h > 14) ? b : c; };
+// часы обратного отсчёта: целые секунды вверх (3:00 … 0:01)
+const fmtClock = ms => { const s = Math.ceil(Math.max(0, ms) / 1000); return Math.floor(s / 60) + ':' + String(s % 60).padStart(2, '0'); };
+const fmtDur = ms => {
+  const s = Math.floor(Math.max(0, ms || 0) / 1000), h = Math.floor(s / 3600), m = Math.floor((s % 3600) / 60), r = s % 60;
+  return h ? `${h}:${String(m).padStart(2, '0')}:${String(r).padStart(2, '0')}` : `${m}:${String(r).padStart(2, '0')}`;
+};
+const V = E2048.value;
+const tileCls = e => 'v' + (e <= 13 ? V(e) : 'super');
+let screen = 'menu';
+// тост: в игре в альбомной ориентации — сверху (снизу поле), иначе — снизу, где свободно
+const toast = (m, k, d) => { if (window.KuArcade) KuArcade.toast(m, ((k || '') + (screen === 'game' && document.body.classList.contains('land') ? ' top' : '')).trim(), d); };
+const confirmDlg = (msg, title, ok, danger) => (window.KuArcade && KuArcade.confirm)
+  ? KuArcade.confirm(msg, { title, ok, cancel: 'Отмена', danger: !!danger }) : Promise.resolve(true);
+
+/* ═══ Хранилище ═══ */
+const store = {
+  get(k, d) { try { const v = localStorage.getItem(k); if (v === null) return d; const o = JSON.parse(v); return o === null ? d : o; } catch (e) { return d; } },
+  set(k, v) { try { localStorage.setItem(k, JSON.stringify(v)); } catch (e) {} },
+  raw(k) { try { return localStorage.getItem(k); } catch (e) { return null; } },
+  setRaw(k, v) { try { localStorage.setItem(k, String(v)); } catch (e) {} },
+  del(k) { try { localStorage.removeItem(k); } catch (e) {} }
+};
+const KEY = {
+  set: 'g2048_settings', stats: 'g2048_stats', ach: 'g2048_ach', hist: 'g2048_history', save: slot => 'g2048_save_' + slot,
+  // ключи прежней версии: рекорд 4×4, палитра и цель 4×4 поддерживаются и дальше; партия переносится в новый слот
+  oldBest: 'bestScore2048', oldSave: 'gameState2048', oldTheme: 'theme2048', oldTarget: 'targetValue2048', oldIds: 'tileIdCounter2048'
+};
+const MODES = {
+  classic: { name: 'Классика', short: 'КЛАССИКА', icon: '🧩', ch: 'c' },
+  timed: { name: 'На время', short: 'НА ВРЕМЯ', icon: '⏱', ch: 't' },
+  hard: { name: 'Без отмены', short: 'БЕЗ ОТМЕНЫ', icon: '🔥', ch: 'h' }
+};
+const MODE_KEYS = Object.keys(MODES);
+const modeOfCh = ch => MODE_KEYS.find(k => MODES[k].ch === ch);
+const slotOf = (n, m) => n + MODES[m].ch;              // '4c' — 4×4 классика, '5t' — 5×5 на время…
+const ALL_SLOTS = [];
+for (const n of E2048.SIZES) for (const m of MODE_KEYS) ALL_SLOTS.push(slotOf(n, m));
+const UNDO_FREE = 3;       // бесплатных отмен в классике за партию
+const UNDO_DEPTH = 40;     // глубина истории для отмены (тренировка)
+const TIMED_MS = 180000;   // «На время» — 3 минуты
+const HISTORY_MAX = 60;    // партий в истории
+
+/* ── Настройки (перенос палитры и цели 4×4 из прежних ключей) ── */
+const reducedMotion = (() => { try { return matchMedia('(prefers-reduced-motion: reduce)').matches; } catch (e) { return false; } })();
+const settings = (() => {
+  const o = asObj(store.get(KEY.set, null));
+  const s = { sound: true, vibration: true, anim: reducedMotion ? 'off' : 'smooth', tiles: 'neon', n: 4, mode: 'classic', targets: Object.assign({}, E2048.DEF_TARGET) };
+  if (typeof o.sound === 'boolean') s.sound = o.sound;
+  if (typeof o.vibration === 'boolean') s.vibration = o.vibration;
+  if (['smooth', 'fast', 'off'].includes(o.anim)) s.anim = o.anim;
+  s.tiles = (o.tiles === 'classic' || o.tiles === 'neon') ? o.tiles : (store.raw(KEY.oldTheme) === 'classic' ? 'classic' : 'neon');
+  if (E2048.SIZES.includes(o.n)) s.n = o.n;
+  if (typeof o.mode === 'string' && has(MODES, o.mode)) s.mode = o.mode;
+  const t = asObj(o.targets);
+  for (const n of E2048.SIZES) if (E2048.TARGETS[n].includes(t[n])) s.targets[n] = t[n];
+  if (!E2048.TARGETS[4].includes(t[4])) {
+    const old = parseInt(store.raw(KEY.oldTarget), 10);
+    if ([512, 1024, 2048, 4096, 8192].includes(old)) s.targets[4] = Math.round(Math.log2(old));
+  }
+  return s;
+})();
+function saveSettings() {
+  store.set(KEY.set, settings);
+  store.setRaw(KEY.oldTheme, settings.tiles);
+  store.setRaw(KEY.oldTarget, V(settings.targets[4]));
+}
+
+/* ── Статистика и рекорды: по слоту «поле + режим» ──
+ * g — партий, w — собрана цель, best — лучший счёт, tile — лучшая плитка (степень), sum — сумма очков,
+ * moves — ходов, time — мс в игре, dist — сколько партий закончились с такой лучшей плиткой */
+const SLOT_RE = /^[3-6][cth]$/;
+const blankRec = () => ({ g: 0, w: 0, best: 0, tile: 0, sum: 0, moves: 0, time: 0, dist: {} });
+const stats = (() => {
+  const o = asObj(store.get(KEY.stats, null));
+  const st = { by: {}, total: { g: 0, moves: 0, time: 0, merges: 0, tile: 0 } };
+  const t = asObj(o.total);
+  for (const k in st.total) st.total[k] = nn(t[k]);
+  st.total.tile = Math.min(st.total.tile, 40);
+  const by = asObj(o.by);
+  for (const k in by) {
+    if (!SLOT_RE.test(k)) continue;
+    const r = asObj(by[k]), x = blankRec();
+    for (const f of ['g', 'w', 'best', 'tile', 'sum', 'moves', 'time']) x[f] = nn(r[f]);
+    x.w = Math.min(x.w, x.g); x.tile = Math.min(x.tile, 40);
+    const d = asObj(r.dist);
+    for (const e in d) if (/^\d{1,2}$/.test(e) && +e >= 1 && +e <= 40 && nn(d[e]) > 0) x.dist[e] = nn(d[e]);
+    st.by[k] = x;
+  }
+  return st;
+})();
+const rec = slot => stats.by[slot] || (stats.by[slot] = blankRec());
+// рекорд прежней версии (4×4) переносится в «4×4 · Классика» и дальше пишется и в старый ключ
+(() => { const old = parseInt(store.raw(KEY.oldBest), 10); if (Number.isFinite(old) && old > 0 && old < 1e13 && old > rec('4c').best) rec('4c').best = old; })();
+function saveStats() {
+  store.set(KEY.stats, stats);
+  if (stats.by['4c'] && stats.by['4c'].best > 0) store.setRaw(KEY.oldBest, stats.by['4c'].best);
+}
+const sizesWith128 = () => E2048.SIZES.filter(n => MODE_KEYS.some(m => (stats.by[slotOf(n, m)] || {}).tile >= 7)).length;
+
+/* ═══ Достижения ═══ */
+const ACH = [
+  { id: 'first_game', icon: '🎮', title: 'Первая партия', desc: 'Доиграйте партию до конца: ходов нет или время вышло' },
+  { id: 't256', icon: '🟣', title: '256', desc: 'Соберите плитку 256' },
+  { id: 't512', icon: '🔶', title: '512', desc: 'Соберите плитку 512' },
+  { id: 't1024', icon: '💠', title: '1024', desc: 'Соберите плитку 1024' },
+  { id: 't2048', icon: '🏆', title: '2048!', desc: 'Соберите плитку 2048' },
+  { id: 't4096', icon: '👑', title: '4096', desc: 'Соберите плитку 4096' },
+  { id: 't8192', icon: '🌟', title: '8192', desc: 'Соберите плитку 8192' },
+  { id: 'small256', icon: '🔬', title: 'В тесноте', desc: 'Соберите 256 на поле 3×3' },
+  { id: 'hard2048', icon: '🔥', title: 'Без страховки', desc: 'Соберите 2048 на поле 4×4 в режиме «Без отмены»' },
+  { id: 'timed3000', icon: '⏱️', title: 'Блиц', desc: 'Наберите 3 000 очков в режиме «На время»' },
+  { id: 'timed512', icon: '⚡', title: 'Скорострел', desc: 'Соберите 512 в режиме «На время»' },
+  { id: 'combo5', icon: '💥', title: 'Цепная реакция', desc: 'Сделайте 5 слияний одним ходом' },
+  { id: 'marathon', icon: '🏃', title: 'Марафон', desc: 'Сделайте 1 000 ходов в одной партии' },
+  { id: 'all_sizes', icon: '🧭', title: 'Все поля', desc: 'Соберите 128 на каждом поле: 3×3, 4×4, 5×5 и 6×6', prog: () => [sizesWith128(), 4] },
+  { id: 'games25', icon: '🎖️', title: 'Ветеран', desc: 'Сыграйте 25 партий', prog: () => [Math.min(25, stats.total.g), 25] }
+];
+let unlocked = (() => { const o = asObj(store.get(KEY.ach, null)), u = {}; for (const a of ACH) if (Number.isFinite(o[a.id]) && o[a.id] > 0) u[a.id] = o[a.id]; return u; })();
+const achQueue = []; let achTimer = 0;
+function nextAchToast() { const m = achQueue.shift(); if (!m) { achTimer = 0; return; } toast(m, 'gold', 2400); achTimer = setTimeout(nextAchToast, 2600); }
+function award(id) {
+  if (unlocked[id]) return;
+  unlocked[id] = Date.now(); store.set(KEY.ach, unlocked);
+  const a = ACH.find(x => x.id === id);
+  if (a) { sfx.ach(); vib([40, 40, 90]); achQueue.push(`🏅 Достижение: ${a.title}`); if (!achTimer) nextAchToast(); }
+}
+
+/* ── История партий ── */
+let historyData = (() => { const h = store.get(KEY.hist, []); return Array.isArray(h) ? h.filter(x => x && typeof x === 'object' && !Array.isArray(x)).slice(0, HISTORY_MAX) : []; })();
+
+/* ═══ Звук и вибрация ═══ */
+let audioCtx = null;
+// до первого касания/клика браузер всё равно не даст звук и вибрацию (и пишет предупреждения)
+const activated = () => !navigator.userActivation || navigator.userActivation.hasBeenActive;
+function tone(f, d, type, v, delay, f2) {
+  if (!settings.sound || !activated()) return;
+  try {
+    if (!audioCtx) { const AC = window.AudioContext || window.webkitAudioContext; if (!AC) return; audioCtx = new AC(); }
+    if (audioCtx.state === 'suspended') audioCtx.resume();
+    const c = audioCtx, o = c.createOscillator(), g = c.createGain(), t0 = c.currentTime + (delay || 0);
+    o.type = type || 'sine'; o.frequency.setValueAtTime(f, t0);
+    if (f2) o.frequency.exponentialRampToValueAtTime(f2, t0 + d);
+    g.gain.setValueAtTime(v || 0.04, t0); g.gain.exponentialRampToValueAtTime(0.0001, t0 + d);
+    o.connect(g); g.connect(c.destination); o.start(t0); o.stop(t0 + d + 0.02);
+  } catch (e) {}
+}
+const sfx = {
+  click: () => tone(520, 0.04, 'sine', 0.03),
+  move: () => tone(200, 0.05, 'sine', 0.028, 0, 150),
+  // слияние: чем больше плитка, тем выше тон; от 512 — с отзвуком
+  merge: e => { const f = 240 * Math.pow(1.12, Math.min(e, 18)); tone(f, 0.09, 'triangle', 0.05); if (e >= 9) tone(f * 1.5, 0.14, 'sine', 0.035, 0.06); },
+  bump: () => tone(105, 0.06, 'sine', 0.03),
+  undo: () => tone(620, 0.1, 'sine', 0.035, 0, 330),
+  win: () => [523, 659, 784, 1046, 1318].forEach((f, i) => tone(f, 0.15, 'square', 0.04, i * 0.09)),
+  over: () => [392, 330, 262, 196].forEach((f, i) => tone(f, 0.17, 'triangle', 0.05, i * 0.12)),
+  tick: () => tone(880, 0.05, 'square', 0.025),
+  timeUp: () => { tone(220, 0.35, 'sawtooth', 0.045); tone(165, 0.45, 'square', 0.035, 0.08); },
+  ach: () => [659, 784, 1046].forEach((f, i) => tone(f, 0.12, 'sine', 0.05, i * 0.09)),
+  record: () => [784, 988, 1318].forEach((f, i) => tone(f, 0.1, 'sine', 0.04, i * 0.07))
+};
+const vib = p => { if (settings.vibration && navigator.vibrate && activated()) try { navigator.vibrate(p); } catch (e) {} };
+
+/* ═══ Экраны и окна ═══ */
+const OVERLAYS = ['ov-pause', 'ov-win', 'ov-over', 'ov-rules', 'ov-stats', 'ov-ach', 'ov-history', 'ov-settings'];
+const isOpen = id => $('#' + id).classList.contains('open');
+const anyOverlay = () => OVERLAYS.some(isOpen) || !!document.querySelector('.ku-dialog');
+const topOverlay = () => { const id = OVERLAYS.find(isOpen); return id ? $('#' + id) : null; };
+let returnTo = null;           // окна, открытые из паузы, возвращают в неё
+function openOv(id) { $('#' + id).classList.add('open'); cancelPointer(); }
+function closeOv(id) {
+  $('#' + id).classList.remove('open');
+  if (returnTo && id !== returnTo && !OVERLAYS.some(o => o !== id && isOpen(o))) { const r = returnTo; returnTo = null; if (screen === 'game' && G.active) openOv(r); }
+}
+function closeAll() { OVERLAYS.forEach(id => $('#' + id).classList.remove('open')); returnTo = null; }
+function showScreen(name) {
+  screen = name;
+  $('#screen-menu').classList.toggle('active', name === 'menu');
+  $('#screen-game').classList.toggle('active', name === 'game');
+  document.body.classList.toggle('ku-calm', name === 'game');
+  if (name === 'menu') { closeAll(); refreshMenu(); } else layout();
+}
+$$('[data-close]').forEach(b => b.addEventListener('click', () => { sfx.click(); closeOv(b.closest('.ku-overlay').id); }));
+$$('.ku-overlay').forEach(o => o.addEventListener('click', e => { if (e.target === o && o.querySelector('.ku-modal')) closeOv(o.id); }));
+
+/* ═══ Партия ═══ */
+const G = {
+  active: false, finalized: false, token: 0,
+  n: 4, mode: 'classic', slot: '4c', target: 11, seed: 0,
+  cells: [], ids: [], score: 0, moves: 0, merges: 0, combo: 0,
+  won: false, keep: false, over: false, reason: '',
+  undoLeft: UNDO_FREE, undoUsed: 0, practice: false, hist: [],
+  timeLeft: TIMED_MS, timerOn: false, playMs: 0, started: 0,
+  bestAtStart: 0, bestShown: 0, toastBest: false, lastSec: 0
+};
+let tileId = 0;
+const newId = () => ++tileId;
+const canPlay = () => G.active && screen === 'game' && !anyOverlay() && !G.over && !(G.won && !G.keep);
+
+// сводка партии для статистики и истории (подходит и для G, и для прочитанного сохранения)
+const summaryOf = (s, reason) => ({ n: s.n, mode: s.mode, score: s.score, maxE: E2048.maxExp(s.cells), moves: s.moves,
+  playMs: s.mode === 'timed' ? Math.max(0, TIMED_MS - s.timeLeft) : s.playMs,          // «На время» — сколько прошло по часам
+  won: s.won, practice: s.practice, undoUsed: s.undoUsed, merges: s.merges, reason });
+
+function recordGame(sm) {
+  if (!sm || sm.moves <= 0) return;
+  historyData.unshift({ d: Date.now(), n: sm.n, m: sm.mode, s: sm.score, e: sm.maxE, mv: sm.moves, t: Math.round(sm.playMs), r: sm.reason, w: !!sm.won, p: !!sm.practice, u: nn(sm.undoUsed) });
+  if (historyData.length > HISTORY_MAX) historyData.length = HISTORY_MAX;
+  store.set(KEY.hist, historyData);
+  if (sm.practice) return;                      // тренировка — только в историю
+  const r = rec(slotOf(sm.n, sm.mode)), T = stats.total;
+  r.g++; if (sm.won) r.w++;
+  r.sum += sm.score; r.moves += sm.moves; r.time += Math.round(sm.playMs);
+  r.dist[sm.maxE] = (r.dist[sm.maxE] || 0) + 1;
+  r.best = Math.max(r.best, sm.score); r.tile = Math.max(r.tile, sm.maxE);
+  T.g++; T.moves += sm.moves; T.time += Math.round(sm.playMs); T.merges += nn(sm.merges); T.tile = Math.max(T.tile, sm.maxE);
+  saveStats();
+  if (sm.reason === 'over' || sm.reason === 'time') award('first_game');
+  if (T.g >= 25) award('games25');
+  if (sizesWith128() >= 4) award('all_sizes');
+}
+
+// Закрыть текущую партию: статистика, история, сохранение удаляется (один раз)
+function finalizeCurrent(reason) {
+  if (!G.active || G.finalized) return;
+  G.finalized = true;
+  recordGame(summaryOf(G, reason));
+  store.del(KEY.save(G.slot));
+}
+
+function startGame(n, mode) {
+  const slot = slotOf(n, mode), seed = E2048.randomSeed(), cells = E2048.newBoard(n, seed);
+  Object.assign(G, {
+    active: true, finalized: false, n, mode, slot, target: settings.targets[n], seed, cells, ids: cells.map(e => (e ? newId() : 0)),
+    score: 0, moves: 0, merges: 0, combo: 0, won: false, keep: false, over: false, reason: '',
+    undoLeft: UNDO_FREE, undoUsed: 0, practice: false, hist: [],
+    timeLeft: TIMED_MS, timerOn: false, playMs: 0, started: Date.now(), bestAtStart: rec(slot).best, toastBest: false, lastSec: 0
+  });
+  G.token++; idleQ.length = 0;
+  closeAll(); showScreen('game');
+  Vis.reset(G.cells, G.ids, true);
+  syncHud(); saveNow();
+}
+
+function loadGame(s) {
+  Object.assign(G, s, { active: true, finalized: false, ids: s.cells.map(e => (e ? newId() : 0)), toastBest: s.bestAtStart > 0 && s.score > s.bestAtStart, lastSec: 0 });
+  G.token++; idleQ.length = 0;
+  closeAll(); showScreen('game');
+  Vis.reset(G.cells, G.ids, true);
+  syncHud();
+  if (G.won && !G.keep && G.mode !== 'timed') showWin(true);
+  else if (G.mode === 'timed' && G.timerOn) { $('#pause-info').textContent = pauseInfo(); openOv('ov-pause'); }   // время пойдёт после «Продолжить»
+}
+
+// Ход: логика сразу, анимация — в очередь
+function doMove(dir) {
+  if (!canPlay()) return false;
+  const r = E2048.move(G.cells, G.n, dir);
+  if (!r.moved) { nudge(dir); return false; }
+  if (G.mode === 'classic') { G.hist.push({ c: G.cells.slice(), s: G.score, mv: G.moves, w: G.won, k: G.keep, mg: G.merges, cb: G.combo }); if (G.hist.length > UNDO_DEPTH) G.hist.shift(); }
+  const N = G.n * G.n, ids = new Array(N).fill(0);
+  const step = { slides: [], gone: [], born: [], spawn: null, gained: r.gained, score: 0, moves: 0, won: false, maxE: 0 };
+  for (const p of r.paths) { const id = G.ids[p.from]; step.slides.push({ id, to: p.to }); if (p.merge) step.gone.push(id); else ids[p.to] = id; }
+  for (const b of r.born) { const id = newId(); ids[b.at] = id; step.born.push({ id, at: b.at, e: b.e }); }
+  G.moves++; G.score += r.gained; G.merges += r.merges; if (r.merges > G.combo) G.combo = r.merges;
+  const sp = E2048.spawn(r.cells, G.seed, G.moves);      // новая плитка — только после хода, который что-то сдвинул
+  if (sp) { r.cells[sp.at] = sp.e; const id = newId(); ids[sp.at] = id; step.spawn = { id, at: sp.at, e: sp.e }; }
+  G.cells = r.cells; G.ids = ids;
+  if (G.mode === 'timed' && !G.timerOn) G.timerOn = true;   // время пошло с первого хода
+  const topE = r.born.reduce((m, b) => Math.max(m, b.e), 0);
+  const justWon = G.mode !== 'timed' && !G.won && topE >= G.target;
+  if (justWon) G.won = true;
+  step.score = G.score; step.moves = G.moves; step.won = G.won; step.maxE = E2048.maxExp(G.cells);
+  Vis.push(step);
+  progress(r);
+  if (!E2048.canMove(G.cells, G.n)) endGame('over');
+  else if (justWon) { const tok = G.token; whenIdle(() => { if (G.token === tok && G.won && !G.keep && !G.over) showWin(); }, 260); }
+  updateUndo();
+  saveSoon();
+  return true;
+}
+
+// Рекорды (сразу, вне тренировки) и достижения
+let statsDirty = false;
+function progress(r) {
+  if (G.practice) return;
+  const mx = E2048.maxExp(G.cells), rr = rec(G.slot);
+  if (G.score > rr.best) {
+    rr.best = G.score; statsDirty = true;
+    if (!G.toastBest && G.bestAtStart > 0) { G.toastBest = true; sfx.record(); toast('🏆 Новый рекорд!', 'gold'); }
+  }
+  if (mx > rr.tile) { rr.tile = mx; statsDirty = true; }
+  if (mx > stats.total.tile) { stats.total.tile = mx; statsDirty = true; }
+  for (const [e, id] of [[8, 't256'], [9, 't512'], [10, 't1024'], [11, 't2048'], [12, 't4096'], [13, 't8192']]) if (mx >= e) award(id);
+  if (G.n === 3 && mx >= 8) award('small256');
+  if (G.mode === 'hard' && G.n === 4 && mx >= 11) award('hard2048');
+  if (G.mode === 'timed') { if (mx >= 9) award('timed512'); if (G.score >= 3000) award('timed3000'); }
+  if (r.merges >= 5) award('combo5');
+  if (G.moves >= 1000) award('marathon');
+  if (mx >= 7 && sizesWith128() >= 4) award('all_sizes');
+}
+
+function endGame(reason) {
+  if (G.over) return;
+  G.over = true; G.reason = reason;
+  const tok = ++G.token;
+  if (G.mode !== 'classic') finalizeCurrent(reason);   // без отмены партия закрыта сразу; в классике — когда игрок уйдёт с итогов
+  saveNow();
+  updateUndo();
+  whenIdle(() => {
+    if (G.token !== tok || !G.over) return;
+    if (reason === 'time') sfx.timeUp(); else sfx.over();
+    vib([60, 40, 60]);
+    if (screen === 'game' && !anyOverlay()) { fillOver(); openOv('ov-over'); }
+  }, reason === 'time' ? 300 : 650);
+}
+
+// Если партия окончена или ждёт ответа «цель собрана», а окно закрыто — открыть его снова
+function nudgeState() {
+  if (screen !== 'game' || !G.active || anyOverlay()) return;
+  if (G.over) { fillOver(); openOv('ov-over'); }
+  else if (G.won && !G.keep && G.mode !== 'timed') showWin(true);
+}
+
+function showWin(quiet) {
+  $('#win-sub').textContent = `Плитка ${V(G.target)} собрана за ${fmt(G.moves)} ${plural(G.moves, 'ход', 'хода', 'ходов')}`;
+  $('#win-score').textContent = fmt(G.score);
+  if (!quiet) { sfx.win(); vib([40, 40, 40, 120]); burst(); }
+  if (screen === 'game' && !anyOverlay()) openOv('ov-win');
+}
+function continueAfterWin() {
+  G.keep = true;
+  closeOv('ov-win');
+  syncHud(); saveSoon();
+  if (!E2048.canMove(G.cells, G.n)) endGame('over');
+}
+
+async function undo() {
+  if (!G.active || G.mode !== 'classic' || screen !== 'game') return;
+  const fromOver = G.over && isOpen('ov-over');
+  if (!fromOver && anyOverlay()) return;
+  if (!G.hist.length) { sfx.bump(); return; }
+  if (!G.practice && G.undoLeft <= 0) {
+    const ok = await confirmDlg(`Бесплатные отмены закончились — ${UNDO_FREE} за партию. Отменить ход всё равно? Партия станет тренировкой: без рекордов, статистики и достижений.`, 'ТРЕНИРОВКА?', '↶ Отменить ход');
+    if (!ok || !G.active || !G.hist.length) return;
+    G.practice = true;
+    toast('🎓 Тренировка: отмены без ограничений, без рекордов', '', 2400);
+  }
+  const h = G.hist.pop();
+  if (!G.practice) G.undoLeft--;
+  G.undoUsed++;
+  Object.assign(G, { cells: h.c.slice(), score: h.s, moves: h.mv, won: h.w, keep: h.k, merges: h.mg, combo: h.cb, over: false, reason: '' });
+  G.ids = G.cells.map(e => (e ? newId() : 0));
+  G.token++; idleQ.length = 0;
+  closeOv('ov-over'); closeOv('ov-win');
+  Vis.reset(G.cells, G.ids, false);
+  syncHud(); saveSoon(); sfx.undo();
+}
+
+async function askNewGame() {
+  if (!G.active || screen !== 'game') return;
+  if (!G.over && G.moves > 0) {
+    const wasPause = isOpen('ov-pause');
+    if (wasPause) closeOv('ov-pause');
+    const ok = await confirmDlg('Текущая партия будет завершена и попадёт в статистику.', 'НОВАЯ ИГРА?', 'Начать заново', true);
+    if (!ok) { if (wasPause && screen === 'game' && G.active) openOv('ov-pause'); return; }
+  }
+  finalizeCurrent(G.over ? G.reason : 'quit');
+  startGame(G.n, G.mode);
+}
+
+function toMenu() {
+  if (G.active) { if (G.over) finalizeCurrent(G.reason); else saveNow(); }
+  G.active = false; G.token++; idleQ.length = 0;
+  Vis.clear();
+  showScreen('menu');
+}
+
+/* ── Пауза ── */
+function pauseInfo() {
+  const parts = [`${MODES[G.mode].name} · ${G.n}×${G.n}`, `счёт ${fmt(G.score)}`];
+  if (G.mode === 'timed') parts.push(G.timerOn ? `осталось ${fmtClock(G.timeLeft)}` : 'время ещё не пошло');
+  if (G.practice) parts.push('тренировка');
+  return parts.join(' · ');
+}
+function pause() {
+  if (screen !== 'game' || !G.active || anyOverlay()) return;
+  if (G.over || (G.won && !G.keep && G.mode !== 'timed')) { nudgeState(); return; }
+  $('#pause-info').textContent = pauseInfo();
+  openOv('ov-pause');
+  saveNow();
+}
+function resume() { closeOv('ov-pause'); nudgeState(); }
+document.addEventListener('visibilitychange', () => { if (document.hidden) { if (screen === 'game' && G.active && !G.over) pause(); saveNow(); } });
+window.addEventListener('pagehide', () => saveNow());
+
+/* ═══ Сохранение партии: отдельный слот на каждое поле и режим ═══ */
+let saveT = 0;
+const saveSoon = () => { clearTimeout(saveT); saveT = setTimeout(saveNow, 250); };
+function saveNow() {
+  clearTimeout(saveT);
+  if (statsDirty) { statsDirty = false; saveStats(); }
+  if (!G.active || G.finalized) return;
+  store.set(KEY.save(G.slot), {
+    v: 1, n: G.n, m: G.mode, c: G.cells, s: G.score, mv: G.moves, seed: G.seed, tg: G.target,
+    won: G.won, keep: G.keep, over: G.over, rs: G.reason, u: G.undoLeft, uu: G.undoUsed, p: G.practice, h: G.hist.slice(-20),
+    tl: Math.round(G.timeLeft), to: G.timerOn, pm: Math.round(G.playMs), mg: G.merges, cb: G.combo, b0: G.bestAtStart, st: G.started, at: Date.now()
+  });
+}
+// Прочитать и проверить сохранение слота; испорченное — null
+function readSave(slot) {
+  const o = asObj(store.get(KEY.save(slot), null));
+  const n = +slot[0], mode = modeOfCh(slot[1]);
+  if (o.v !== 1 || o.n !== n || o.m !== mode || !E2048.validCells(o.c, n)) return null;
+  const s = {
+    n, mode, slot, cells: o.c.slice(), score: nn(o.s), moves: nn(o.mv),
+    seed: Number.isInteger(o.seed) ? o.seed >>> 0 : E2048.randomSeed(),
+    target: E2048.TARGETS[n].includes(o.tg) ? o.tg : settings.targets[n],
+    won: !!o.won, keep: !!o.keep, over: !!o.over, reason: o.rs === 'time' ? 'time' : (o.over ? 'over' : ''),
+    undoLeft: Number.isInteger(o.u) ? clamp(o.u, 0, UNDO_FREE) : UNDO_FREE, undoUsed: nn(o.uu), practice: !!o.p,
+    hist: (Array.isArray(o.h) ? o.h : []).filter(x => x && E2048.validCells(x.c, n))
+      .map(x => ({ c: x.c.slice(), s: nn(x.s), mv: nn(x.mv), w: !!x.w, k: !!x.k, mg: nn(x.mg), cb: nn(x.cb) })).slice(-UNDO_DEPTH),
+    timeLeft: Number.isFinite(o.tl) ? clamp(o.tl, 0, TIMED_MS) : TIMED_MS, timerOn: !!o.to,
+    playMs: nn(o.pm), merges: nn(o.mg), combo: nn(o.cb), bestAtStart: nn(o.b0), started: nn(o.st) || Date.now()
+  };
+  if (mode !== 'classic') { s.hist = []; s.practice = false; }
+  if (mode === 'timed') { s.won = false; s.keep = false; if (s.timerOn && s.timeLeft <= 0) { s.over = true; s.reason = 'time'; } }
+  else s.timeLeft = TIMED_MS;
+  if (!s.over && !E2048.canMove(s.cells, n)) { s.over = true; s.reason = 'over'; }
+  return s;
+}
+const savedGame = slot => { const s = readSave(slot); return s && !s.over && s.moves > 0 ? s : null; };
+
+// Перенос партии прежней версии (gameState2048, поле 4×4 из объектов {value}) в слот «4×4 · Классика»
+function migrateOldSave() {
+  const raw = store.raw(KEY.oldSave);
+  if (raw !== null) {
+    try {
+      const st = JSON.parse(raw);
+      if (store.raw(KEY.save('4c')) === null && st && Array.isArray(st.board) && st.board.length === 4 && !st.gameOver) {
+        const cells = [];
+        let good = true;
+        for (const row of st.board) {
+          if (!Array.isArray(row) || row.length !== 4) { good = false; break; }
+          for (const d of row) {
+            if (d === null) cells.push(0);
+            else if (d && Number.isInteger(d.value) && d.value >= 2 && d.value <= 2 ** 30 && (d.value & (d.value - 1)) === 0) cells.push(Math.round(Math.log2(d.value)));
+            else good = false;
+          }
+        }
+        const moves = nn(parseInt(st.moves, 10)), score = nn(parseInt(st.score, 10));
+        if (good && E2048.validCells(cells, 4) && (moves > 0 || score > 0 || cells.filter(Boolean).length > 2)) {
+          const tg = [512, 1024, 2048, 4096, 8192].includes(st.targetValue) ? Math.round(Math.log2(st.targetValue)) : settings.targets[4];
+          store.set(KEY.save('4c'), { v: 1, n: 4, m: 'classic', c: cells, s: score, mv: Math.max(1, moves), seed: E2048.randomSeed(), tg,
+            won: !!st.gameWon, keep: !!st.keepPlaying, over: false, u: UNDO_FREE, uu: 0, p: false, h: [], pm: 0, mg: 0, cb: 0,
+            b0: Number.isFinite(st.bestAtStart) ? nn(st.bestAtStart) : rec('4c').best, st: Date.now(), at: Date.now() });
+          const mx = E2048.maxExp(cells);
+          if (mx > rec('4c').tile) rec('4c').tile = mx;
+          if (mx > stats.total.tile) stats.total.tile = mx;
+        }
+      }
+    } catch (e) {}
+  }
+  store.del(KEY.oldSave); store.del(KEY.oldIds);
+}
+// Партии, закончившиеся без итогов (закрыли игру на экране «Игра окончена»), — в статистику; испорченные — убрать
+function finalizeStaleSaves() {
+  for (const slot of ALL_SLOTS) {
+    if (store.raw(KEY.save(slot)) === null) continue;
+    const s = readSave(slot);
+    if (!s) { store.del(KEY.save(slot)); continue; }
+    if (s.over) { recordGame(summaryOf(s, s.reason || 'over')); store.del(KEY.save(slot)); }
+  }
+}
+
+/* ═══ Поле: размер и анимации ═══ */
+const boardEl = $('#board'), gridEl = $('#grid'), tilesEl = $('#tiles'), zoneEl = $('#zone');
+const geo = { n: 0, cs: 70, gap: 8, side: 0 };
+const cellXY = i => [geo.gap + (i % geo.n) * (geo.cs + geo.gap), geo.gap + Math.floor(i / geo.n) * (geo.cs + geo.gap)];
+const setXY = (el, x, y) => { el.style.transform = `translate3d(${x.toFixed(2)}px,${y.toFixed(2)}px,0)`; };
+function buildGrid(n) {
+  if (geo.n === n && gridEl.childElementCount === n * n) return;
+  gridEl.textContent = '';
+  for (let i = 0; i < n * n; i++) gridEl.appendChild(document.createElement('div')).className = 'cell';
+  geo.n = n;
+}
+function layout() {
+  if (screen !== 'game') return;
+  const land = innerWidth > innerHeight * 1.15 && innerHeight < 620;
+  document.body.classList.toggle('land', land);
+  buildGrid(G.n);
+  let w, h;
+  if (land) { const play = $('#play'); h = play.clientHeight; w = play.clientWidth - $('#hud').offsetWidth - 14; }
+  else {
+    zoneEl.style.width = '';
+    w = zoneEl.clientWidth;
+    h = zoneEl.clientHeight - $('#goal').offsetHeight - 10 - $('#g-hint').offsetHeight - 6;   // под полем — цель и подсказка
+  }
+  if (!w || !h) return;
+  const side = Math.floor(clamp(Math.min(w, h), 150, 600));
+  const inner = side - 16, n = geo.n;                 // .ku-board: padding 7 + border 1
+  const gap = Math.round(clamp(inner * (n <= 4 ? 0.028 : 0.022), 4, 14));
+  geo.cs = (inner - gap * (n + 1)) / n; geo.gap = gap; geo.side = side;
+  boardEl.style.width = boardEl.style.height = side + 'px';
+  boardEl.style.setProperty('--n', n);
+  boardEl.style.setProperty('--cs', geo.cs + 'px');
+  boardEl.style.setProperty('--gap', gap + 'px');
+  boardEl.style.setProperty('--rad', Math.round(clamp(geo.cs * 0.13, 5, 12)) + 'px');
+  if (land) zoneEl.style.width = side + 'px';
+  $('#goal').style.width = side + 'px';
+  Vis.placeAll();
+}
+let layoutRaf = 0;
+window.addEventListener('resize', () => { cancelAnimationFrame(layoutRaf); layoutRaf = requestAnimationFrame(layout); });
+
+const easeOut = p => 1 - (1 - p) * (1 - p) * (1 - p);
+const Vis = {
+  els: new Map(),          // id → { el, at, from }
+  queue: [], cur: null, t: 0, gone: [],
+  slideMs() { return settings.anim === 'off' ? 0 : settings.anim === 'fast' ? 70 : 120; },
+  popMs() { return settings.anim === 'fast' ? 130 : 190; },
+  clear() { this.queue = []; this.cur = null; this.gone = []; this.els.clear(); tilesEl.textContent = ''; },
+  make(id, at, e, kind) {
+    const el = document.createElement('div');
+    el.className = `tile ${tileCls(e)} d${Math.min(7, String(V(e)).length)}${kind ? ' ' + kind : ''}`;
+    const inner = el.appendChild(document.createElement('div'));
+    inner.className = 'tile-in'; inner.textContent = V(e);
+    if (kind) inner.addEventListener('animationend', () => el.classList.remove('new', 'merged'), { once: true });
+    const [x, y] = cellXY(at); setXY(el, x, y);
+    tilesEl.appendChild(el);
+    this.els.set(id, { el, at, from: at });
+  },
+  reset(cells, ids, appear) {
+    this.clear();
+    cells.forEach((e, i) => { if (e) this.make(ids[i], i, e, appear && settings.anim !== 'off' ? 'new' : ''); });
+  },
+  placeAll() { for (const r of this.els.values()) { const [x, y] = cellXY(r.at); setXY(r.el, x, y); } },
+  push(step) {
+    if (!this.slideMs()) { this.begin(step); this.finish(step); return; }
+    this.queue.push(step);
+    if (!this.cur) this.next();
+  },
+  next() { this.cur = this.queue.shift() || null; this.t = 0; if (this.cur) this.begin(this.cur); },
+  begin(step) {
+    this.dropGone(true);                       // хвосты прошлого слияния убираем до следующего сдвига
+    for (const s of step.slides) { const r = this.els.get(s.id); if (r) { r.from = r.at; r.at = s.to; } }
+    hudStep(step);
+  },
+  frame(dt) {
+    this.dropGone(false);
+    const c = this.cur;
+    if (!c) return;
+    this.t += dt * (1 + 1.5 * this.queue.length);   // ходы в очереди — анимация ускоряется и догоняет
+    const D = this.slideMs(), p = D ? Math.min(1, this.t / D) : 1, k = easeOut(p);
+    for (const s of c.slides) {
+      const r = this.els.get(s.id);
+      if (!r) continue;
+      const [x0, y0] = cellXY(r.from), [x1, y1] = cellXY(r.at);
+      setXY(r.el, x0 + (x1 - x0) * k, y0 + (y1 - y0) * k);
+    }
+    if (p >= 1) { this.finish(c); this.next(); }
+  },
+  finish(step) {
+    for (const s of step.slides) { const r = this.els.get(s.id); if (r) { r.from = r.at; const [x, y] = cellXY(r.at); setXY(r.el, x, y); } }
+    // слившиеся плитки остаются под новой, пока та «пульсирует», — без дыры на месте слияния
+    for (const id of step.gone) { const r = this.els.get(id); if (r) { this.els.delete(id); r.el.classList.add('gone'); this.gone.push({ el: r.el, until: now() + this.popMs() }); } }
+    for (const b of step.born) this.make(b.id, b.at, b.e, settings.anim !== 'off' ? 'merged' : '');
+    if (step.spawn) this.make(step.spawn.id, step.spawn.at, step.spawn.e, settings.anim !== 'off' ? 'new' : '');
+    if (!this.slideMs()) this.dropGone(true);
+  },
+  dropGone(all) {
+    if (!this.gone.length) return;
+    const t = now();
+    this.gone = this.gone.filter(g => { if (all || t >= g.until) { g.el.remove(); return false; } return true; });
+  },
+  idle() { return !this.cur && !this.queue.length; }
+};
+
+// Отложенное действие: когда анимация доиграет + пауза (итоги, «Победа!»)
+const idleQ = [];
+function whenIdle(fn, delay) { idleQ.push({ fn, delay: delay || 0, at: 0 }); }
+function runIdle(t) {
+  if (!idleQ.length || !Vis.idle()) return;
+  for (let i = 0; i < idleQ.length; i++) {
+    const q = idleQ[i];
+    if (!q.at) q.at = t + q.delay;
+    if (t >= q.at) { idleQ.splice(i--, 1); q.fn(); }
+  }
+}
+
+// Ход, который ничего не сдвигает: поле «упирается» в сторону свайпа
+function nudge(dir) {
+  sfx.bump();
+  if (settings.anim === 'off') return;
+  const d = [[0, -1], [1, 0], [0, 1], [-1, 0]][dir], a = Math.max(3, geo.cs * 0.06);
+  tilesEl.style.setProperty('--nx', d[0] * a + 'px'); tilesEl.style.setProperty('--ny', d[1] * a + 'px');
+  tilesEl.classList.remove('nudge'); void tilesEl.offsetWidth; tilesEl.classList.add('nudge');
+}
+
+// Победный салют из центра поля (DOM-искры, без канваса)
+function burst() {
+  if (settings.anim === 'off') return;
+  const COLORS = ['#00e5ff', '#ffd60a', '#ff4dd2', '#51f58b', '#c77dff', '#ff9f43'];
+  const box = document.createElement('div');
+  box.style.cssText = 'position:absolute;left:50%;top:50%;width:0;height:0;pointer-events:none;z-index:5';
+  for (let i = 0; i < 28; i++) {
+    const s = document.createElement('i'), a = (i / 28) * Math.PI * 2 + Math.random() * 0.3, r = geo.side * (0.25 + Math.random() * 0.3);
+    s.style.cssText = `position:absolute;width:7px;height:7px;border-radius:2px;background:${COLORS[i % COLORS.length]};box-shadow:0 0 8px ${COLORS[i % COLORS.length]}`;
+    s.animate([{ transform: 'translate(-50%,-50%) scale(1)', opacity: 1 }, { transform: `translate(calc(-50% + ${Math.cos(a) * r}px), calc(-50% + ${Math.sin(a) * r}px)) scale(.4) rotate(${Math.random() * 360}deg)`, opacity: 0 }],
+      { duration: 900 + Math.random() * 300, easing: 'cubic-bezier(.2,.7,.3,1)', fill: 'forwards' });
+    box.appendChild(s);
+  }
+  boardEl.appendChild(box);
+  setTimeout(() => box.remove(), 1400);
+}
+
+/* ═══ HUD ═══ */
+function pop(el) { el.classList.remove('pop'); void el.offsetWidth; el.classList.add('pop'); }
+function showScore(score, gained) {
+  const el = $('#hud-score'), s = fmt(score);
+  if (el.textContent !== s) { el.textContent = s; pop(el); }
+  if (gained > 0 && settings.anim !== 'off') {
+    const p = document.createElement('i'); p.className = 'plus'; p.textContent = '+' + fmt(gained);
+    $('#st-score').appendChild(p); setTimeout(() => p.remove(), 800);
+  }
+  if (!G.practice && score > G.bestShown) { G.bestShown = score; $('#hud-best').textContent = fmt(score); }
+}
+// Полоса под полем: путь лучшей плитки к цели (классика, без отмены) или остаток времени («На время»)
+function showGoal(maxE, won) {
+  if (G.mode === 'timed') return;
+  const g = $('#goal');
+  g.classList.remove('time', 'low');
+  g.classList.toggle('done', won);
+  $('#goal-l').innerHTML = `Лучшая плитка <b>${V(maxE)}</b>`;
+  $('#goal-r').textContent = (won ? '✓ ' : '🏁 ') + V(G.target);
+  $('#goal-bar').style.width = (won ? 100 : clamp((maxE - 1) / (G.target - 1), 0, 1) * 100).toFixed(1) + '%';
+}
+function showThird(won) {
+  if (G.mode === 'timed') return;
+  $('#hud-third').textContent = V(G.target) + (won ? ' ✓' : '');
+}
+// шаг анимации начался — счёт и ход на экране меняются вместе с плитками
+function hudStep(step) {
+  showScore(step.score, step.gained);
+  $('#g-moves').textContent = fmt(step.moves);
+  showThird(step.won);
+  showGoal(step.maxE, step.won);
+  const topE = step.born.reduce((m, b) => Math.max(m, b.e), 0);
+  if (topE) { sfx.merge(topE); if (topE >= 7) vib(topE >= 10 ? 25 : 12); } else sfx.move();
+}
+function syncHud() {
+  $('#g-title').textContent = `${MODES[G.mode].short} · ${G.n}×${G.n}${G.practice ? ' · ТРЕНИРОВКА' : ''}`;
+  $('#g-moves').textContent = fmt(G.moves);
+  $('#hud-score').textContent = fmt(G.score);
+  G.bestShown = G.practice ? rec(G.slot).best : Math.max(rec(G.slot).best, G.score);
+  $('#hud-best').textContent = fmt(G.bestShown);
+  const third = $('#hud-third');
+  third.classList.remove('low');
+  if (G.mode === 'timed') {
+    $('#hud-third-label').textContent = 'Время'; third.textContent = fmtClock(G.timeLeft); G.lastSec = Math.ceil(G.timeLeft / 1000);
+    const g = $('#goal'); g.classList.remove('done'); g.classList.add('time');
+    $('#goal-l').textContent = '⏱ Время'; drawClock();
+  } else { $('#hud-third-label').textContent = 'Цель'; showThird(G.won); showGoal(E2048.maxExp(G.cells), G.won); }
+  updateUndo(); updateHint();
+}
+function updateUndo() {
+  const b = $('#btn-undo'), badge = $('#undo-badge');
+  const show = G.active && G.mode === 'classic';
+  b.hidden = !show;
+  if (!show) return;
+  badge.textContent = G.practice ? '∞' : String(G.undoLeft);
+  badge.classList.toggle('zero', !G.practice && G.undoLeft <= 0);
+  b.disabled = !G.hist.length || G.over;
+  b.title = G.practice ? 'Отменить ход (Z) — тренировка' : G.undoLeft > 0 ? `Отменить ход (Z) — осталось ${G.undoLeft}` : 'Отмены закончились — дальше тренировка';
+  updateHint();
+}
+const coarse = () => { try { return matchMedia('(pointer: coarse)').matches; } catch (e) { return false; } };
+function updateHint() {
+  const how = coarse() ? 'Свайп по полю' : 'Стрелки / WASD или мышь';
+  let t;
+  if (G.mode === 'classic') t = G.practice ? `${how} · 🎓 тренировка` : `${how} · ↶ отмен осталось: ${G.undoLeft}`;
+  else if (G.mode === 'timed') t = G.timerOn ? `${how} · ⏸ останавливает время` : `${how} · время пойдёт с первого хода`;
+  else t = `${how} · 🔥 без отмены`;
+  $('#g-hint').textContent = t;
+}
+// «На время»: часы, последние 10 секунд — красным, последние 5 — с тиканьем
+function drawClock() {
+  const el = $('#hud-third'), s = fmtClock(G.timeLeft);
+  if (el.textContent !== s) el.textContent = s;
+  const low = G.timerOn && !G.over && G.timeLeft <= 10000;
+  el.classList.toggle('low', low);
+  $('#goal-bar').style.width = (G.timeLeft / TIMED_MS * 100).toFixed(2) + '%';
+  $('#goal').classList.toggle('low', low);
+  const gr = $('#goal-r');
+  if (gr.textContent !== s) gr.textContent = s;
+  const sec = Math.ceil(G.timeLeft / 1000);
+  if (G.timerOn && !G.over && sec < G.lastSec && sec >= 1 && sec <= 5) sfx.tick();
+  G.lastSec = sec;
+}
+
+/* ── Итоги партии ── */
+function fillOver() {
+  const timeUp = G.reason === 'time';
+  const h = $('#over-title');
+  h.textContent = timeUp ? 'ВРЕМЯ ВЫШЛО' : 'ИГРА ОКОНЧЕНА';
+  h.className = timeUp || G.won ? 'win' : 'lose';
+  $('#over-best').hidden = !(!G.practice && G.score > G.bestAtStart && G.score >= rec(G.slot).best);
+  $('#over-score').textContent = fmt(G.score);
+  let sub = timeUp ? '⏱ Три минуты прошли' : (G.won ? `🏆 Цель ${V(G.target)} собрана · ходов больше нет` : 'Ходов больше нет: поле заполнено');
+  if (G.practice) sub += ' · тренировка — без рекорда';
+  $('#over-sub').textContent = sub;
+  const r = rec(G.slot), mx = E2048.maxExp(G.cells);
+  const rows = [['Поле', `${G.n}×${G.n} · ${MODES[G.mode].name}`], ['Лучшая плитка', V(mx)], ['Ходов', fmt(G.moves)]];
+  const clock = TIMED_MS - G.timeLeft;
+  if (G.mode === 'timed') rows.push(['Ходов в минуту', clock > 5000 ? Math.round(G.moves / (clock / 60000)) : '—']);
+  else rows.push(['Время', fmtDur(G.playMs)]);
+  if (G.mode === 'classic' && G.undoUsed) rows.push(['Отмен', fmt(G.undoUsed)]);
+  rows.push(['Рекорд', fmt(r.best)]);
+  $('#over-stats').innerHTML = rows.map(([k, v]) => `<div>${k}<b>${v}</b></div>`).join('');
+  const ou = $('#o-undo');
+  ou.hidden = !(G.mode === 'classic' && G.hist.length);
+  ou.textContent = G.practice ? '↶ Отменить ход' : G.undoLeft > 0 ? `↶ Отменить ход (осталось ${G.undoLeft})` : '↶ Отменить ход (тренировка)';
+}
+
+/* ═══ Ввод: клавиатура ═══ */
+const DIRKEY = { ArrowUp: 0, KeyW: 0, Numpad8: 0, ArrowRight: 1, KeyD: 1, Numpad6: 1, ArrowDown: 2, KeyS: 2, Numpad2: 2, ArrowLeft: 3, KeyA: 3, Numpad4: 3 };
+const DIRCHAR = { w: 0, d: 1, s: 2, a: 3, 'ц': 0, 'в': 1, 'ы': 2, 'ф': 3 };
+function onDir(dir) {
+  if (screen !== 'game' || !G.active || anyOverlay()) return;
+  if (G.over || (G.won && !G.keep)) { nudgeState(); return; }
+  doMove(dir);
+}
+document.addEventListener('keydown', e => {
+  if (e.ctrlKey || e.metaKey || e.altKey || document.querySelector('.ku-dialog')) return;
+  const code = e.code || '', key = e.key || '';
+  const top = topOverlay();
+  if (code === 'Escape' || key === 'Escape') {
+    e.preventDefault();
+    if (top) { if (top.querySelector('.ku-modal')) closeOv(top.id); else if (top.id === 'ov-pause') resume(); }
+    else if (screen === 'game') pause();
+    return;
+  }
+  if (screen !== 'game') return;
+  if (code === 'KeyP') { e.preventDefault(); if (!top) pause(); else if (top.id === 'ov-pause') resume(); return; }
+  if (top) {
+    // Enter / пробел — главная кнопка окна (если фокус не на другой кнопке окна)
+    if ((code === 'Enter' || code === 'NumpadEnter' || code === 'Space') && !(document.activeElement && document.activeElement.closest && document.activeElement.closest('.ku-overlay'))) {
+      const b = top.querySelector('.ku-card .ku-btn.primary');
+      if (b && !b.hidden) { e.preventDefault(); b.click(); }
+    }
+    if ((code === 'KeyZ' || code === 'KeyU' || code === 'Backspace') && top.id === 'ov-over') { e.preventDefault(); undo(); }
+    return;
+  }
+  let dir = DIRKEY[code];
+  if (dir === undefined) dir = DIRCHAR[key.toLowerCase()];
+  if (dir !== undefined) { e.preventDefault(); if (!e.repeat) onDir(dir); return; }   // удержание клавиши не повторяет ход
+  if (code === 'KeyZ' || code === 'KeyU' || code === 'Backspace') {
+    e.preventDefault();
+    if (G.mode === 'classic') undo(); else toast(G.mode === 'timed' ? 'В режиме «На время» отмены нет' : 'В режиме «Без отмены» отмены нет', '', 1600);
+    return;
+  }
+  if (code === 'KeyR') { e.preventDefault(); askNewGame(); }
+});
+
+/* ═══ Ввод: свайп по полю (палец, мышь, перо) ═══ */
+let ptr = null;
+function cancelPointer() { ptr = null; }
+const swipeTh = () => clamp(geo.side * 0.06, 18, 34);
+const swipeDir = (dx, dy) => (Math.abs(dx) > Math.abs(dy) ? (dx > 0 ? 1 : 3) : (dy > 0 ? 2 : 0));
+zoneEl.addEventListener('pointerdown', e => {
+  if (!e.isPrimary || (e.pointerType === 'mouse' && e.button !== 0) || screen !== 'game' || anyOverlay()) return;
+  ptr = { id: e.pointerId, x: e.clientX, y: e.clientY, done: false };
+  try { zoneEl.setPointerCapture(e.pointerId); } catch (_) {}
+});
+zoneEl.addEventListener('pointermove', e => {
+  if (!ptr || e.pointerId !== ptr.id || ptr.done) return;
+  const dx = e.clientX - ptr.x, dy = e.clientY - ptr.y;
+  // ход срабатывает, как только палец прошёл порог, — не дожидаясь отпускания; один свайп = один ход
+  if (Math.max(Math.abs(dx), Math.abs(dy)) >= swipeTh()) { ptr.done = true; onDir(swipeDir(dx, dy)); }
+});
+zoneEl.addEventListener('pointerup', e => {
+  if (!ptr || e.pointerId !== ptr.id) return;
+  const dx = e.clientX - ptr.x, dy = e.clientY - ptr.y;
+  if (!ptr.done) { if (Math.max(Math.abs(dx), Math.abs(dy)) >= 10) onDir(swipeDir(dx, dy)); else nudgeState(); }   // короткий быстрый свайп
+  ptr = null;
+});
+zoneEl.addEventListener('pointercancel', e => { if (ptr && e.pointerId === ptr.id) ptr = null; });
+zoneEl.addEventListener('contextmenu', e => e.preventDefault());
+
+/* ═══ Кнопки игры и окон ═══ */
+$('#btn-pause').addEventListener('click', () => { sfx.click(); pause(); });
+$('#btn-undo').addEventListener('click', () => undo());
+$('#p-resume').addEventListener('click', () => { sfx.click(); resume(); });
+$('#p-new').addEventListener('click', () => { sfx.click(); askNewGame(); });
+$('#p-rules').addEventListener('click', () => { sfx.click(); returnTo = 'ov-pause'; $('#ov-pause').classList.remove('open'); openOv('ov-rules'); });
+$('#p-settings').addEventListener('click', () => { sfx.click(); returnTo = 'ov-pause'; $('#ov-pause').classList.remove('open'); openSettings(true); });
+$('#p-menu').addEventListener('click', () => { sfx.click(); toMenu(); });
+$('#w-continue').addEventListener('click', () => { sfx.click(); continueAfterWin(); });
+$('#w-new').addEventListener('click', () => { sfx.click(); finalizeCurrent('quit'); startGame(G.n, G.mode); });
+$('#w-menu').addEventListener('click', () => { sfx.click(); toMenu(); });
+$('#o-again').addEventListener('click', () => { sfx.click(); finalizeCurrent(G.reason || 'over'); startGame(G.n, G.mode); });
+$('#o-undo').addEventListener('click', () => undo());
+$('#o-view').addEventListener('click', () => { sfx.click(); closeOv('ov-over'); toast('Поле после партии · ⏸ или свайп — итоги', '', 1800); });
+$('#o-menu').addEventListener('click', () => { sfx.click(); toMenu(); });
+
+/* ═══ Меню ═══ */
+const NOTE = {
+  classic: '<b>3 отмены</b> за партию — рекорд засчитывается. Больше отмен — партия станет тренировкой.',
+  timed: '<b>3 минуты</b> на очки: время пойдёт с первого хода. Без отмены и без цели.',
+  hard: '<b>Ни одной отмены</b> — каждый ход окончательный. Отдельный рекорд.'
+};
+function refreshMenu() {
+  const n = settings.n, m = settings.mode, slot = slotOf(n, m);
+  $$('#seg-size button').forEach(b => { const bn = +b.dataset.n; b.classList.toggle('active', bn === n); b.classList.toggle('has-save', !!savedGame(slotOf(bn, m))); });
+  $$('#seg-mode button').forEach(b => { b.classList.toggle('active', b.dataset.m === m); b.classList.toggle('has-save', !!savedGame(slotOf(n, b.dataset.m))); });
+  $('#seg-target').innerHTML = E2048.TARGETS[n].map(e => `<button data-e="${e}"${e === settings.targets[n] ? ' class="active"' : ''}>${V(e)}</button>`).join('');
+  $('#f-target').hidden = m === 'timed';
+  $('#mode-note').innerHTML = NOTE[m];
+  const s = savedGame(slot);
+  $('#btn-continue').hidden = !s;
+  if (s) $('#continue-sub').textContent = [`${n}×${n}`, `счёт ${fmt(s.score)}`, `плитка ${V(E2048.maxExp(s.cells))}`,
+    m === 'timed' ? `осталось ${fmtClock(s.timeLeft)}` : `ход ${fmt(s.moves)}`, s.practice ? 'тренировка' : ''].filter(Boolean).join(' · ');
+  $('#btn-new').classList.toggle('primary', !s); $('#btn-new').classList.toggle('accent2', !!s);
+  const r = stats.by[slot];
+  $('#new-sub').textContent = r && r.best ? `Рекорд ${n}×${n}: ${fmt(r.best)} · плитка ${V(r.tile)}` : (m === 'timed' ? `${n}×${n} · 3 минуты на очки` : `${n}×${n} · цель ${V(settings.targets[n])}`);
+  const got = ACH.filter(a => unlocked[a.id]).length;
+  $('#menu-stats').textContent = `Сыграно партий: ${fmt(stats.total.g)} • Лучшая плитка: ${stats.total.tile ? V(stats.total.tile) : '—'} • Достижений: ${got}/${ACH.length}`;
+  $('#menu-hint').innerHTML = coarse()
+    ? 'Свайп по полю — ход · ↶ — отмена · ⏸ — пауза<br>Партии сохраняются сами — для каждого поля и режима'
+    : 'Клавиши: стрелки / WASD — ход · Z — отмена · P / Esc — пауза · R — новая игра<br>Мышь: перетащите поле в нужную сторону';
+}
+$$('#seg-size button').forEach(b => b.addEventListener('click', () => { sfx.click(); settings.n = +b.dataset.n; saveSettings(); refreshMenu(); }));
+$$('#seg-mode button').forEach(b => b.addEventListener('click', () => { sfx.click(); settings.mode = b.dataset.m; saveSettings(); refreshMenu(); }));
+$('#seg-target').addEventListener('click', e => {
+  const b = e.target.closest('button[data-e]');
+  if (!b) return;
+  sfx.click(); settings.targets[settings.n] = +b.dataset.e; saveSettings(); refreshMenu();
+});
+$('#btn-continue').addEventListener('click', () => {
+  sfx.click();
+  const s = savedGame(slotOf(settings.n, settings.mode));
+  if (s) loadGame(s); else refreshMenu();
+});
+$('#btn-new').addEventListener('click', async () => {
+  sfx.click();
+  const n = settings.n, m = settings.mode, slot = slotOf(n, m), s = savedGame(slot);
+  if (s) {
+    const ok = await confirmDlg(`Сохранённая партия ${n}×${n} «${MODES[m].name}» (счёт ${fmt(s.score)}) будет завершена и попадёт в статистику.`, 'НОВАЯ ИГРА?', 'Начать заново', true);
+    if (!ok) return;
+    const s2 = readSave(slot);
+    if (s2) { recordGame(summaryOf(s2, s2.over ? s2.reason : 'quit')); store.del(KEY.save(slot)); }
+  }
+  startGame(n, m);
+});
+
+/* ── Статистика ── */
+let stN = 4, stM = 'classic';
+const card = (l, v) => `<div class="st-card"><div class="sv">${v}</div><div class="sl">${l}</div></div>`;
+function renderStats() {
+  $$('#st-size button').forEach(b => b.classList.toggle('active', +b.dataset.n === stN));
+  $$('#st-mode button').forEach(b => b.classList.toggle('active', b.dataset.m === stM));
+  const r = stats.by[slotOf(stN, stM)] || blankRec();
+  const cards = [['Партий', fmt(r.g)], ['Лучший счёт', r.best ? fmt(r.best) : '—'], ['Лучшая плитка', r.tile ? V(r.tile) : '—'], ['Средний счёт', r.g ? fmt(r.sum / r.g) : '—']];
+  if (stM === 'timed') cards.push(['Ходов в минуту', r.time > 1000 ? fmt(r.moves / (r.time / 60000)) : '—']);
+  else cards.push(['Цель собрана', r.g ? `${fmt(r.w)} · ${Math.round(r.w / r.g * 100)}%` : '—']);
+  cards.push(['Ходов', fmt(r.moves)], ['Время в игре', fmtDur(r.time)]);
+  $('#st-grid').innerHTML = cards.map(([l, v]) => card(l, v)).join('');
+  // распределение: сколько партий закончились с такой лучшей плиткой и какая доля дошла хотя бы до неё
+  const keys = Object.keys(r.dist).map(Number).filter(e => r.dist[e] > 0).sort((a, b) => b - a);
+  if (!keys.length) $('#st-dist').innerHTML = '<div class="empty">Сыгранных партий пока нет</div>';
+  else {
+    const total = keys.reduce((a, e) => a + r.dist[e], 0), maxC = Math.max(...keys.map(e => r.dist[e]));
+    let cum = 0, html = '';
+    for (let e = keys[0]; e >= keys[keys.length - 1]; e--) {
+      const c = r.dist[e] || 0; cum += c;
+      html += `<div class="dist-row"><span class="dchip ${tileCls(e)}">${V(e)}</span><div class="dbar"><i style="width:${(c / maxC * 100).toFixed(1)}%"></i></div><b>${c}</b><span class="pct">≥ ${Math.round(cum / total * 100)}%</span></div>`;
+    }
+    $('#st-dist').innerHTML = html;
+  }
+  const T = stats.total, got = ACH.filter(a => unlocked[a.id]).length;
+  $('#st-total').innerHTML = [['Партий', fmt(T.g)], ['Ходов', fmt(T.moves)], ['Слияний', fmt(T.merges)], ['Время в игре', fmtDur(T.time)],
+    ['Лучшая плитка', T.tile ? V(T.tile) : '—'], ['Достижений', `${got}/${ACH.length}`]].map(([l, v]) => card(l, v)).join('');
+}
+$$('#st-size button').forEach(b => b.addEventListener('click', () => { stN = +b.dataset.n; renderStats(); }));
+$$('#st-mode button').forEach(b => b.addEventListener('click', () => { stM = b.dataset.m; renderStats(); }));
+$('#btn-stats').addEventListener('click', () => { sfx.click(); stN = settings.n; stM = settings.mode; renderStats(); openOv('ov-stats'); });
+
+/* ── Достижения и история ── */
+function renderAch() {
+  const got = ACH.filter(a => unlocked[a.id]).length;
+  $('#ach-count').textContent = `${got}/${ACH.length}`;
+  $('#ach-list').innerHTML = ACH.map(a => {
+    const u = unlocked[a.id];
+    let prog = '';
+    if (!u && a.prog) { const [v, max] = a.prog(); prog = `<div class="ach-prog"><i style="width:${Math.round(v / max * 100)}%"></i></div>`; }
+    const extra = !u && a.prog ? ` • ${a.prog()[0]}/${a.prog()[1]}` : '';
+    return `<div class="ach-item${u ? ' unlocked' : ''}"><div class="ach-icon">${u ? a.icon : '🔒'}</div><div class="ach-info"><h4>${a.title}</h4><p>${a.desc}${extra}${u ? ' • ' + new Date(u).toLocaleDateString('ru-RU') : ''}</p>${prog}</div></div>`;
+  }).join('');
+}
+const RESULT = { over: 'ходов нет', time: 'время вышло', quit: 'прервана' };
+function renderHistory() {
+  const box = $('#history-list');
+  if (!historyData.length) { box.innerHTML = '<div class="empty">История пуста — сыграйте первую партию</div>'; return; }
+  box.innerHTML = historyData.map(h => {
+    const n = E2048.SIZES.includes(h.n) ? h.n : 4, m = typeof h.m === 'string' && has(MODES, h.m) ? h.m : 'classic';
+    const e = Number.isInteger(h.e) && h.e > 0 && h.e <= 40 ? h.e : 1, mv = nn(h.mv);
+    const icon = h.r === 'time' ? '⏱️' : h.w === true ? '🏆' : h.r === 'over' ? '🧱' : '⏹️';
+    const tags = [`${fmt(mv)} ${plural(mv, 'ход', 'хода', 'ходов')}`, fmtDur(nn(h.t)), has(RESULT, h.r) ? RESULT[h.r] : '', h.p === true ? '🎓 тренировка' : '', nn(h.u) ? `↶${nn(h.u)}` : ''].filter(Boolean).join(' · ');
+    const when = Number.isFinite(h.d) ? new Date(h.d).toLocaleString('ru-RU', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' }) : '';
+    return `<div class="ach-item"><div class="h-tile dchip ${tileCls(e)}">${V(e)}</div><div class="ach-info"><h4>${icon} ${n}×${n} · ${MODES[m].name} — ${fmt(nn(h.s))}</h4><p>${tags}${when ? ' • ' + when : ''}</p></div></div>`;
+  }).join('');
+}
+$('#btn-ach').addEventListener('click', () => { sfx.click(); renderAch(); openOv('ov-ach'); });
+$('#btn-history').addEventListener('click', () => { sfx.click(); renderHistory(); openOv('ov-history'); });
+$('#btn-rules').addEventListener('click', () => { sfx.click(); openOv('ov-rules'); });
+
+/* ── Настройки ── */
+function applyView() {
+  const b = document.body;
+  b.dataset.tiles = settings.tiles;
+  b.classList.toggle('anim-off', settings.anim === 'off');
+  b.style.setProperty('--pop-ms', (settings.anim === 'fast' ? 130 : 190) + 'ms');
+  b.style.setProperty('--app-ms', (settings.anim === 'fast' ? 120 : 170) + 'ms');
+}
+function openSettings(fromGame) {
+  $$('#ov-settings input[data-opt]').forEach(el => { el.checked = !!settings[el.dataset.opt]; });
+  $$('#set-anim button').forEach(b => b.classList.toggle('active', b.dataset.v === settings.anim));
+  $$('#set-tiles button').forEach(b => b.classList.toggle('active', b.dataset.v === settings.tiles));
+  $('#set-data').hidden = !!fromGame;          // сброс прогресса — только из меню
+  openOv('ov-settings');
+}
+$$('#ov-settings input[data-opt]').forEach(el => el.addEventListener('change', () => {
+  settings[el.dataset.opt] = el.checked; saveSettings();
+  if (el.dataset.opt === 'sound' && el.checked) sfx.click();
+  if (el.dataset.opt === 'vibration' && el.checked) vib(20);
+}));
+$$('#set-anim button').forEach(b => b.addEventListener('click', () => { sfx.click(); settings.anim = b.dataset.v; saveSettings(); applyView(); openSettings(screen === 'game'); }));
+$$('#set-tiles button').forEach(b => b.addEventListener('click', () => { sfx.click(); settings.tiles = b.dataset.v; saveSettings(); applyView(); openSettings(screen === 'game'); }));
+$('#btn-settings').addEventListener('click', () => { sfx.click(); openSettings(false); });
+$('#btn-reset').addEventListener('click', async () => {
+  sfx.click();
+  const ok = await confirmDlg('Рекорды, статистика, история, достижения и сохранённые партии 2048 будут удалены. Настройки останутся. Данные других игр не затрагиваются.', 'СБРОСИТЬ ПРОГРЕСС?', '🗑 Сбросить', true);
+  if (!ok) return;
+  [KEY.stats, KEY.ach, KEY.hist, KEY.oldBest, KEY.oldSave, KEY.oldIds].forEach(k => store.del(k));
+  ALL_SLOTS.forEach(s => store.del(KEY.save(s)));
+  stats.by = {}; for (const k in stats.total) stats.total[k] = 0;
+  unlocked = {}; historyData = [];
+  refreshMenu(); toast('Прогресс 2048 сброшен', 'good');
+});
+
+/* ═══ Главный цикл: анимация поля, часы «На время», отложенные окна ═══ */
+let lastT = now();
+function loop() {
+  requestAnimationFrame(loop);
+  const t = now(), raw = Math.max(0, t - lastT), dt = Math.min(250, raw);
+  lastT = t;
+  Vis.frame(Math.min(raw, 1000));
+  if (screen === 'game' && G.active) {
+    const running = !G.over && !anyOverlay() && !document.hidden;
+    if (running) G.playMs += dt;
+    if (G.mode === 'timed') {
+      if (running && G.timerOn) { G.timeLeft -= dt; if (G.timeLeft <= 0) { G.timeLeft = 0; endGame('time'); } }
+      drawClock();
+      boardEl.classList.toggle('veil', G.timerOn && !G.over && anyOverlay());   // на паузе поле скрыто — думать «бесплатно» нельзя
+    } else boardEl.classList.remove('veil');
+  }
+  runIdle(t);
+}
+
+/* ═══ Запуск ═══ */
+if (document.fonts && document.fonts.ready) document.fonts.ready.then(() => layout()).catch(() => {});
+migrateOldSave();
+finalizeStaleSaves();
+saveStats();
+applyView();
+showScreen('menu');
+requestAnimationFrame(loop);
+
 </script>
 </body>
 </html>

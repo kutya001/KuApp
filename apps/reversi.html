@@ -2,7 +2,7 @@
 <html lang="ru">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
 <title>Реверси</title>
 <link rel="stylesheet" href="ku-arcade.css">
 <script src="ku-arcade.js"></script>
@@ -11,59 +11,192 @@
   :root{
     --disc-b:radial-gradient(circle at 34% 30%,#6c76a8 0%,#272d58 34%,#0c0f29 72%,#05071a 100%);
     --disc-w:radial-gradient(circle at 34% 30%,#ffffff 0%,#f2f4ff 32%,#c6cdee 74%,#98a1cc 100%);
+    --rv-flip:420ms;--rv-put:300ms;
   }
-  #screen-game{touch-action:manipulation}
-  #wrap{flex:1;min-height:0;width:100%;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:10px}
-  #hint{margin:0;min-height:18px}
-  #wrap .ku-hud{margin:0}
 
-  /* Счёт фишек: у кого ход — подсвечен */
-  .pl{min-width:116px;transition:border-color .25s,box-shadow .25s}
-  .pl span{display:flex;align-items:center;gap:6px;max-width:150px}
-  .pl span em{font-style:normal;overflow:hidden;text-overflow:ellipsis}
-  .pl.on{border-color:color-mix(in srgb,var(--accent) 75%,transparent);box-shadow:0 0 18px color-mix(in srgb,var(--accent) 30%,transparent)}
-  .pl.on span{color:var(--text)}
+  /* ═══ МЕНЮ ═══ */
+  #screen-menu .ku-field{margin-top:14px}
+  #seg-level button{display:flex;flex-direction:column;align-items:center;gap:2px;padding:6px 2px 5px;font-size:17px;line-height:1.05}
+  #seg-level button small{font-size:10px;font-weight:600;letter-spacing:.1px;max-width:100%;overflow:hidden;text-overflow:ellipsis}
+  .rv-lvdesc{font-size:11.5px;color:var(--muted);text-align:center;line-height:1.35;min-height:2.7em;max-width:340px;margin-top:-2px}
+  #btn-continue .best{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:100%}
+  #screen-menu .ku-menu-row .ku-btn{padding:10px 16px}
 
-  /* Фишки: тёмная и светлая, с бликом */
-  .dot{display:inline-block;width:12px;height:12px;border-radius:50%;flex:none;vertical-align:middle}
-  .dot.b{background:var(--disc-b);box-shadow:0 0 0 1px rgba(143,154,194,.45),0 0 8px rgba(0,229,255,.2)}
+  /* ═══ ИГРА ═══ */
+  #screen-game{padding-left:10px;padding-right:10px}
+  #play{flex:1;min-height:0;width:100%;max-width:1180px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:8px}
+  #board-area{order:1;flex:0 0 auto;min-height:0;min-width:0;width:100%;display:flex;align-items:center;justify-content:center}
+  .rv-side{display:contents}
+  #hud{order:0;margin:0;flex-wrap:nowrap}
+  #tools{order:2}
+  #moves{order:3}
+  #g-tip{order:4;margin:0;min-height:0}
+  /* альбом и широкий экран: поле слева, панель справа */
+  #screen-game.wide #play{flex-direction:row;justify-content:center;align-items:center;gap:18px}
+  #screen-game.wide #board-area{order:0;flex:0 0 auto;width:auto;height:100%}
+  #screen-game.wide .rv-side{order:1;display:flex;flex-direction:column;align-items:stretch;gap:10px;width:clamp(220px,28vw,300px);max-height:100%;min-height:0}
+  #screen-game.wide #hud{flex-direction:column;align-items:stretch}
+  #screen-game.wide #tools{justify-content:stretch}
+  #screen-game.wide #tools .ku-btn{flex:1 1 0;min-width:0;padding-left:6px;padding-right:6px;white-space:nowrap}
+  #screen-game.wide #moves{flex-wrap:wrap;overflow-x:hidden;overflow-y:auto;white-space:normal;max-height:none;flex:0 1 auto;min-height:44px;align-content:flex-start}
+
+  /* игроки */
+  .rv-pl{min-width:132px;flex-direction:row;justify-content:space-between;gap:12px;padding:7px 12px;transition:border-color .25s,box-shadow .25s,opacity .25s}
+  .rv-pl span{display:flex;align-items:center;gap:7px;min-width:0;max-width:150px;font-size:11px}
+  .rv-pl span em{font-style:normal;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .rv-pl b{font-size:22px}
+  .rv-pl.on{border-color:var(--accent);box-shadow:0 0 18px rgba(0,229,255,.32)}
+  .rv-pl.on span{color:var(--text)}
+  .rv-pl.think .dot{animation:rvThink 1s ease-in-out infinite}
+  @keyframes rvThink{50%{transform:scale(.7);opacity:.55}}
+  #screen-game.wide .rv-pl{min-width:0}
+  .dot{display:inline-block;width:14px;height:14px;border-radius:50%;flex:none;vertical-align:middle}
+  .dot.b{background:var(--disc-b);box-shadow:0 0 0 1px rgba(143,154,194,.5),0 0 8px rgba(0,229,255,.25)}
   .dot.w{background:var(--disc-w);box-shadow:0 0 8px rgba(238,242,255,.45)}
+  .rv-tag{font:400 9px/1 var(--font-display);letter-spacing:1px;padding:3px 6px;border-radius:7px;color:var(--gold);border:1px solid rgba(255,214,10,.4);background:rgba(255,214,10,.08);flex:none}
 
-  /* Поле: тёмное стекло, неоновая сетка — это щели между клетками */
-  #grid{display:grid;grid-template-columns:repeat(8,1fr);grid-template-rows:repeat(8,1fr);gap:2px;padding:2px;border-radius:11px;width:300px;height:300px;
-    background:linear-gradient(160deg,color-mix(in srgb,var(--accent) 34%,transparent),color-mix(in srgb,var(--accent2) 28%,transparent))}
-  .cell{position:relative;display:flex;align-items:center;justify-content:center;border-radius:5px;
-    background:rgba(8,11,34,.94);box-shadow:inset 0 1px 0 rgba(255,255,255,.04);transition:background .15s}
-  .cell:nth-child(1){border-top-left-radius:9px}.cell:nth-child(8){border-top-right-radius:9px}
-  .cell:nth-child(57){border-bottom-left-radius:9px}.cell:nth-child(64){border-bottom-right-radius:9px}
-  .cell.hint{cursor:pointer}
-  .cell.hint::after{content:'';width:24%;aspect-ratio:1;border-radius:50%;background:var(--accent);box-shadow:0 0 10px var(--accent);opacity:.8;animation:kuFade .3s ease}
-  @media (hover:hover){.cell.hint:hover{background:color-mix(in srgb,var(--accent) 14%,rgb(8,11,34))}.cell.hint:hover::after{opacity:1}}
-  .cell.hint:active{background:color-mix(in srgb,var(--accent) 22%,rgb(8,11,34))}
-  .disc{position:relative;width:78%;height:78%;border-radius:50%}
-  .disc.b{background:var(--disc-b);box-shadow:0 3px 7px rgba(0,0,0,.6),0 0 0 1px rgba(143,154,194,.4),0 0 12px rgba(0,229,255,.16)}
-  .disc.w{background:var(--disc-w);box-shadow:0 3px 7px rgba(0,0,0,.45),0 0 14px rgba(238,242,255,.35)}
-  .disc::before{content:'';position:absolute;left:18%;top:11%;width:40%;height:25%;border-radius:50%;transform:rotate(-22deg);
+  /* инструменты и запись ходов */
+  .rv-tools{display:flex;gap:8px;justify-content:center;flex:none}
+  .rv-tools .ku-btn{min-width:132px}
+  .rv-moves{display:flex;gap:4px;align-items:center;max-width:min(560px,100%);width:100%;overflow-x:auto;overflow-y:hidden;white-space:nowrap;padding:6px 8px;border-radius:12px;
+    background:rgba(255,255,255,.035);border:1px solid rgba(255,255,255,.07);flex:none;cursor:pointer;scrollbar-width:thin;min-height:36px}
+  .rv-moves:empty::before{content:'Запись партии';color:var(--muted);font-size:12px;opacity:.7}
+  .rv-moves .mp{display:inline-flex;align-items:center;gap:2px;white-space:nowrap;flex:none}
+  .rv-moves .mn{color:var(--muted);font-size:11px;margin:0 1px 0 4px}
+  .rv-moves .mv{font:400 12.5px/1.2 var(--font-display);padding:3px 6px;border-radius:7px;color:var(--text);letter-spacing:.5px}
+  .rv-moves .mv.w{color:#d9def7}
+  .rv-moves .mv.b{color:#9fb0ff}
+  .rv-moves .mv.ps{font-family:var(--font-body);font-size:11px;color:var(--gold)}
+  .rv-moves .mv.cur{background:rgba(255,77,210,.16);box-shadow:inset 0 0 0 1px rgba(255,77,210,.55)}
+  #g-tip{min-height:18px}
+  #g-tip:empty{visibility:hidden}
+
+  /* ═══ ПОЛЕ ═══ */
+  #board-wrap{line-height:0}
+  .rv-grid{display:grid;gap:2px;padding:2px;border-radius:11px;position:relative;
+    background:linear-gradient(160deg,rgba(0,229,255,.34),rgba(255,77,210,.28));touch-action:manipulation;user-select:none;-webkit-user-select:none}
+  @supports (color:color-mix(in srgb,red 50%,blue)){
+    .rv-grid{background:linear-gradient(160deg,color-mix(in srgb,var(--accent) 34%,transparent),color-mix(in srgb,var(--accent2) 28%,transparent))}
+  }
+  .cell{position:relative;border-radius:5px;background:rgba(8,11,34,.94);box-shadow:inset 0 1px 0 rgba(255,255,255,.04);transition:background .15s;outline:none;contain:layout style}
+  .cell.tl{border-top-left-radius:9px}.cell.tr{border-top-right-radius:9px}.cell.bl{border-bottom-left-radius:9px}.cell.br{border-bottom-right-radius:9px}
+  .cell.mv{cursor:pointer}
+  .cell.mv::after{content:'';position:absolute;left:38%;top:38%;width:24%;height:24%;border-radius:50%;background:var(--accent);box-shadow:0 0 10px var(--accent);opacity:.8;animation:kuFade .3s ease}
+  .rv-grid.t2 .cell.mv::after{background:#eef2ff;box-shadow:0 0 10px rgba(238,242,255,.8)}
+  @media (hover:hover){.cell.mv:hover{background:rgba(0,229,255,.13)}.cell.mv:hover::after{opacity:1}}
+  .cell.mv:active{background:rgba(0,229,255,.2)}
+  .cell.sel{background:rgba(0,229,255,.16)}
+  .cell.pvc::after{opacity:0!important}
+  .cell.sug{background:rgba(255,214,10,.14);box-shadow:inset 0 0 0 2px rgba(255,214,10,.75),0 0 16px rgba(255,214,10,.4);animation:rvSug 1s ease-in-out infinite}
+  @keyframes rvSug{50%{box-shadow:inset 0 0 0 2px rgba(255,214,10,.35),0 0 6px rgba(255,214,10,.2)}}
+  .cell.cur{box-shadow:inset 0 0 0 2px var(--accent2),0 0 12px rgba(255,77,210,.45);z-index:2}
+  .cell.last::before{content:'';position:absolute;left:41%;top:41%;width:18%;height:18%;border-radius:50%;background:var(--accent2);box-shadow:0 0 8px var(--accent2);z-index:3;pointer-events:none}
+  .cell .lab{position:absolute;font:600 9px/1 var(--font-body);color:rgba(143,154,194,.75);pointer-events:none;z-index:4;font-style:normal}
+  .cell .lab.r{left:3px;top:3px}.cell .lab.c{right:3px;bottom:2px}
+  .rv-grid.nocoord .lab{display:none}
+  .rv-grid.big .cell .lab{font-size:10px}
+  /* фишка: две стороны; переворот — сжатие по горизонтали, на середине видимая сторона меняется
+     (2D-анимация transform/opacity — дёшево для слабых телефонов, без 3D-слоёв) */
+  .disc{position:absolute;inset:11%;pointer-events:none}
+  .disc .f{position:absolute;inset:0;border-radius:50%}
+  .disc .f::before{content:'';position:absolute;left:18%;top:11%;width:40%;height:25%;border-radius:50%;transform:rotate(-22deg);
     background:radial-gradient(ellipse at center,rgba(255,255,255,.85),rgba(255,255,255,0) 70%)}
-  .disc.b::before{opacity:.35}
-  /* последний ход — розовая точка */
-  .cell.last .disc::after{content:'';position:absolute;left:40%;top:40%;width:20%;height:20%;border-radius:50%;
-    background:var(--accent2);box-shadow:0 0 8px var(--accent2)}
-  .disc.put{animation:rvPut .3s cubic-bezier(.34,1.56,.64,1) backwards}
-  .disc.b.flip{animation:rvToB .42s ease backwards}
-  .disc.w.flip{animation:rvToW .42s ease backwards}
-  @keyframes rvPut{from{transform:scale(.3);opacity:0}}
-  @keyframes rvToB{0%{transform:scaleX(1);background:var(--disc-w)}50%{transform:scaleX(.05);background:var(--disc-w)}50.1%{background:var(--disc-b)}100%{transform:scaleX(1);background:var(--disc-b)}}
-  @keyframes rvToW{0%{transform:scaleX(1);background:var(--disc-b)}50%{transform:scaleX(.05);background:var(--disc-b)}50.1%{background:var(--disc-w)}100%{transform:scaleX(1);background:var(--disc-w)}}
+  .disc .fb{background:var(--disc-b);box-shadow:0 3px 7px rgba(0,0,0,.6),0 0 0 1px rgba(143,154,194,.42),0 0 12px rgba(0,229,255,.18)}
+  .disc .fb::before{opacity:.35}
+  .disc .fw{background:var(--disc-w);box-shadow:0 3px 7px rgba(0,0,0,.45),0 0 14px rgba(238,242,255,.35)}
+  .disc.b .fw,.disc.w .fb{opacity:0}
+  .disc.put{animation:rvPut var(--rv-put) cubic-bezier(.34,1.56,.64,1) backwards}
+  /* два одинаковых ключевых кадра с разными именами — чтобы повторный переворот той же фишки перезапускал анимацию */
+  .disc.b.flip{animation:rvFlipB var(--rv-flip) ease-in-out backwards;animation-delay:var(--d,0ms)}
+  .disc.w.flip{animation:rvFlipW var(--rv-flip) ease-in-out backwards;animation-delay:var(--d,0ms)}
+  .disc.flip .f{animation:var(--rv-flip) step-end backwards;animation-delay:var(--d,0ms)}
+  .disc.b.flip .fb,.disc.w.flip .fw{animation-name:rvFaceIn}
+  .disc.b.flip .fw,.disc.w.flip .fb{animation-name:rvFaceOut}
+  @keyframes rvPut{from{transform:scale(.25);opacity:0}}
+  @keyframes rvFlipB{50%{transform:scaleX(.06) scaleY(1.12)}}
+  @keyframes rvFlipW{50%{transform:scaleX(.06) scaleY(1.12)}}
+  @keyframes rvFaceIn{0%{opacity:0}50%{opacity:1}}
+  @keyframes rvFaceOut{0%{opacity:1}50%{opacity:0}}
+  /* предпросмотр хода: призрак фишки и фишки, которые перевернутся */
+  .rv-ghost{position:absolute;inset:11%;border-radius:50%;opacity:.45;pointer-events:none}
+  .rv-ghost.b{background:var(--disc-b)}.rv-ghost.w{background:var(--disc-w)}
+  .disc.pv .f{box-shadow:0 0 0 2px var(--gold),0 0 14px rgba(255,214,10,.55)}
+  .rv-grid.noanim .disc,.rv-grid.noanim .disc .f{animation:none!important}
 
   #end-score{display:flex;align-items:center;justify-content:center;gap:12px}
   #end-score .dot{width:24px;height:24px}
+  #end-note{font-size:12.5px}
+  #end-score:empty,#end-note:empty,#end-stats:empty,#end-sub:empty{display:none}
+  .rv-end-btns{display:flex;gap:8px}
+  .rv-end-btns .ku-btn{flex:1;padding-left:6px;padding-right:6px;font-size:14px;white-space:nowrap}
 
-  /* телефон в ландшафте: счёт — колонкой слева (ниже кнопки «←» платформы), поле — выше */
-  @media (orientation:landscape) and (max-height:500px){
-    #screen-game .ku-hud{position:absolute;left:max(14px,env(safe-area-inset-left,0px));top:72px;flex-direction:column;margin:0}
-    #hint{display:none}
+  /* ═══ ОКНА ═══ */
+  .rv-list{display:flex;flex-direction:column;gap:8px}
+  .ach-item{display:flex;align-items:center;gap:12px;padding:10px 12px;border-radius:14px;background:var(--panel);border:1px solid var(--panel-border)}
+  .ach-item.on{border-color:rgba(255,214,10,.45);background:rgba(255,214,10,.07)}
+  .ach-item.on h4{color:var(--gold)}
+  .ach-item:not(.on) .ach-icon{filter:grayscale(1);opacity:.55}
+  .ach-icon{font-size:22px;width:40px;height:40px;flex:none;display:flex;align-items:center;justify-content:center;background:rgba(255,255,255,.05);border-radius:12px}
+  .ach-info{min-width:0}
+  .ach-info h4{margin:0 0 2px;font-family:var(--font-display);font-weight:400;font-size:13px;letter-spacing:.5px}
+  .ach-info p{margin:0;font-size:11.5px;color:var(--muted);line-height:1.4}
+  .empty{text-align:center;color:var(--muted);padding:18px 6px}
+  .st-tabs{margin:0 auto 12px;width:100%}
+  .st-table{width:100%;border-collapse:collapse;font-size:12.5px}
+  .st-table th{font:400 9px/1.2 var(--font-display);letter-spacing:.5px;color:var(--muted);text-transform:uppercase;padding:4px 2px;text-align:center}
+  .st-table th:first-child,.st-table td:first-child{text-align:left;white-space:nowrap}
+  .st-table td{padding:7px 2px;border-top:1px solid rgba(255,255,255,.07);text-align:center;font-variant-numeric:tabular-nums}
+  .st-table td b{font-family:var(--font-display);font-weight:400;color:var(--accent)}
+  .st-table td.g{color:var(--good)} .st-table td.r{color:var(--bad)}
+  .st-sum{display:grid;grid-template-columns:repeat(auto-fill,minmax(92px,1fr));gap:8px;margin-bottom:12px}
+  .st-card{background:var(--glass-panel);border:1px solid var(--panel-border);border-radius:14px;padding:9px 6px;text-align:center}
+  .st-card .sv{font-family:var(--font-display);font-size:17px;color:var(--accent)}
+  .st-card .sl{font-size:9.5px;color:var(--muted);text-transform:uppercase;letter-spacing:.7px;margin-top:3px;line-height:1.25}
+  .st-note{font-size:11.5px;color:var(--muted);margin-top:10px;line-height:1.45}
+  .h-item{display:flex;align-items:center;gap:10px;padding:9px 11px;border-radius:13px;background:var(--panel);border:1px solid var(--panel-border);cursor:pointer;text-align:left;color:var(--text);font:inherit;width:100%}
+  .h-item:hover{border-color:var(--accent)}
+  .h-res{font:400 11px/1 var(--font-display);letter-spacing:.6px;width:64px;flex:none}
+  .h-res.w{color:var(--good)} .h-res.l{color:var(--bad)} .h-res.d{color:var(--gold)}
+  .h-mid{flex:1;min-width:0}
+  .h-mid div{font-size:12.5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .h-mid small{display:block;font-size:11px;color:var(--muted);margin-top:2px}
+  .h-sc{font:400 13px/1 var(--font-display);color:var(--text);flex:none}
+  .set-sec{font:400 10px/1 var(--font-display);letter-spacing:1.5px;color:var(--accent);text-transform:uppercase;margin:14px 0 4px}
+  .set-sec:first-child{margin-top:0}
+  .set-col{display:flex;flex-direction:column;gap:8px;padding:9px 2px;font-size:14px}
+  .set-col .ku-seg{width:100%}
+  .set-col .ku-seg button{padding:7px 4px;font-size:12.5px}
+  .set-note{font-size:11.5px;color:var(--muted);line-height:1.4;margin:-4px 0 6px}
+  /* просмотр партии */
+  .rec-top{display:flex;gap:14px;align-items:center;justify-content:center;flex-wrap:wrap}
+  .rec-board{width:min(280px,70vw);flex:none}
+  .rec-board .rv-grid{width:100%;aspect-ratio:1}
+  .rec-info{display:flex;flex-direction:column;gap:6px;align-items:center;min-width:140px}
+  .rec-score{display:flex;align-items:center;gap:8px;font:400 20px/1 var(--font-display)}
+  .rec-step{font-size:12.5px;color:var(--muted);text-align:center;min-height:2.6em}
+  .rec-ctrl{display:flex;gap:6px;justify-content:center;margin:12px 0 8px}
+  .rec-ctrl .ku-btn.icon{width:46px;height:40px}
+  .rec-ctrl .ku-btn.icon svg{width:20px;height:20px}
+  .rec-moves{display:flex;flex-wrap:wrap;gap:3px 6px;max-height:132px;overflow-y:auto;padding:6px;border-radius:12px;background:rgba(255,255,255,.035);border:1px solid rgba(255,255,255,.07)}
+  .rec-moves .mv{cursor:pointer}
+  #rec-text{width:100%;height:84px;resize:none;margin-top:8px;background:rgba(0,0,0,.3);color:var(--text);border:1px solid var(--panel-border);border-radius:10px;padding:8px;
+    font:12px/1.45 ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;user-select:text;-webkit-user-select:text}
+  @media (max-height:560px){
+    .ku-overlay .ku-card{padding:14px 18px;gap:7px}
+    .ku-overlay .ku-card h2{font-size:20px}
+    .ku-overlay .ku-big-score{font-size:28px}
+    .ku-overlay .ku-card .ku-btn{min-height:36px;padding-top:7px;padding-bottom:7px}
+    .rec-board{width:min(220px,40vw)}
+    /* низкий экран (телефон в альбоме): пауза и конец партии — в две колонки */
+    #ov-pause .ku-card{display:grid;grid-template-columns:1fr 1fr;width:min(560px,94vw)}
+    #ov-pause .ku-card>h2,#ov-pause .ku-card>p,#btn-resume,#btn-quit{grid-column:1/-1}
+    #ov-end .ku-card{display:grid;grid-template-columns:1fr 1fr;column-gap:18px;width:min(640px,94vw);align-items:center}
+    #ov-end .ku-card>h2,#end-sub{grid-column:1/-1}
+    #end-score,#end-note{grid-column:1}
+    #end-stats{grid-column:2;grid-row:3/span 2;margin:0}
+    #btn-again,.rv-end-btns,#btn-end-menu{grid-column:1/-1}
   }
+  @media (prefers-reduced-motion:reduce){ .cell.sug{animation:none} .rv-pl.think .dot{animation:none} }
 </style>
 </head>
 <body class="ku">
@@ -72,439 +205,2362 @@
   <!-- ═══ МЕНЮ ═══ -->
   <section id="screen-menu" class="ku-screen menu active">
     <h1 class="ku-logo">РЕВЕРСИ</h1>
-    <p class="ku-tagline">Стратегия • Поле 8×8 • Классика</p>
-    <div class="ku-pills"><span>⚫⚪ Переворачивай фишки</span><span>🤖 Против ИИ</span><span>🌐 По сети</span></div>
+    <p class="ku-tagline">Отелло • 5 уровней ИИ • По сети</p>
+    <div class="ku-pills"><span>⚫⚪ Правила Отелло</span><span>🤖 5 уровней</span><span>📜 Запись партий</span><span>🏅 Достижения</span></div>
+
+    <div class="ku-field"><div class="ku-label">Поле</div>
+      <div class="ku-seg" id="seg-size" role="radiogroup" aria-label="Размер поля">
+        <button data-n="6">6×6</button><button data-n="8">8×8</button><button data-n="10">10×10</button>
+      </div></div>
+    <div class="ku-field"><div class="ku-label">Уровень ИИ</div>
+      <div class="ku-seg" id="seg-level" role="radiogroup" aria-label="Уровень ИИ"></div>
+      <div class="rv-lvdesc" id="lv-desc"></div></div>
+    <div class="ku-field" style="margin-top:6px"><div class="ku-label">Ваш цвет против ИИ</div>
+      <div class="ku-seg" id="seg-color" role="radiogroup" aria-label="Ваш цвет">
+        <button data-c="1">⚫ Чёрные</button><button data-c="2">⚪ Белые</button><button data-c="0">🎲 Жребий</button>
+      </div></div>
+
     <div class="ku-menu-btns">
-      <button class="ku-btn big primary" id="btn-ai">🤖 Против ИИ<span class="best" id="best-ai">Вы — чёрные, ходите первым</span></button>
-      <button class="ku-btn big accent2" id="btn-net">🌐 По сети<span class="best">с другом по коду комнаты</span></button>
+      <button class="ku-btn big primary" id="btn-continue" hidden>▶ Продолжить<span class="best" id="continue-sub">—</span></button>
+      <button class="ku-btn big primary" id="btn-ai">🤖 Против ИИ<span class="best" id="best-ai">—</span></button>
+      <div class="ku-menu-duo">
+        <button class="ku-btn duo green" id="btn-hot">👥 Вдвоём<span class="best" id="best-hot">на одном экране</span></button>
+        <button class="ku-btn duo accent2" id="btn-net">🌐 По сети<span class="best" id="best-net">по коду комнаты</span></button>
+      </div>
     </div>
-    <div class="ku-menu-row"><button class="ku-btn ghost" id="btn-rules">📖 Правила</button></div>
-    <div class="ku-menu-stats" id="menu-stats">Сыграйте первую партию против ИИ</div>
-    <div class="ku-menu-hint">Тап по клетке с точкой — ход · P / Esc — меню партии</div>
+    <div class="ku-menu-row">
+      <button class="ku-btn ghost" id="btn-rules">📖 Правила</button>
+      <button class="ku-btn ghost" id="btn-stats">📊 Статистика</button>
+      <button class="ku-btn ghost" id="btn-ach">🏅 Достижения</button>
+      <button class="ku-btn ghost" id="btn-hist">📜 История</button>
+      <button class="ku-btn ghost" id="btn-settings">⚙️ Настройки</button>
+    </div>
+    <div class="ku-menu-stats" id="menu-stats">Сыграйте первую партию</div>
+    <div class="ku-menu-hint">Тап по клетке с точкой — ход · ↶ — отменить · 💡 — подсказка<br>Клавиатура: стрелки и Enter — ход · U — отмена · H — подсказка · P / Esc — пауза</div>
   </section>
 
   <!-- ═══ ИГРА ═══ -->
   <section id="screen-game" class="ku-screen fit">
     <header class="ku-top">
       <div class="ku-top-left"></div>
-      <div class="ku-top-title"><div class="t" id="game-title">ПРОТИВ ИИ</div><div class="s" id="game-sub">ВАШ ХОД</div></div>
+      <div class="ku-top-title"><div class="t" id="g-title">ПРОТИВ ИИ</div><div class="s" id="g-sub">ВАШ ХОД</div></div>
       <div class="ku-top-actions">
-        <button class="ku-btn icon" id="btn-pause" aria-label="Пауза"><svg viewBox="0 0 24 24"><line x1="9" y1="5" x2="9" y2="19"/><line x1="15" y1="5" x2="15" y2="19"/></svg></button>
+        <button class="ku-btn icon" id="btn-pause" aria-label="Пауза (P)" title="Пауза (P)"><svg viewBox="0 0 24 24"><line x1="9" y1="5" x2="9" y2="19"/><line x1="15" y1="5" x2="15" y2="19"/></svg></button>
       </div>
     </header>
-    <div id="wrap">
-      <div class="ku-hud" id="hud">
-        <div class="ku-stat pl" id="pl-b"><span><i class="dot b"></i><em id="name-b">Вы</em></span><b id="bsc">2</b></div>
-        <div class="ku-stat pl" id="pl-w"><span><i class="dot w"></i><em id="name-w">ИИ</em></span><b id="wsc">2</b></div>
+    <div id="play">
+      <div id="board-area">
+        <div class="ku-board" id="board-wrap"><div class="rv-grid" id="grid" role="grid" aria-label="Поле"></div></div>
       </div>
-      <div class="ku-board"><div id="grid" role="grid" aria-label="Поле 8×8"></div></div>
-      <p class="ku-hint" id="hint">Точки — доступные ходы</p>
+      <div class="rv-side" id="side">
+        <div class="ku-hud" id="hud">
+          <div class="ku-stat rv-pl" id="pl-1"><span><i class="dot b"></i><em id="pn-1">Вы</em></span><b id="pc-1">2</b></div>
+          <div class="ku-stat rv-pl" id="pl-2"><span><i class="dot w"></i><em id="pn-2">ИИ</em></span><b id="pc-2">2</b></div>
+        </div>
+        <div class="rv-tools" id="tools">
+          <button class="ku-btn sm" id="btn-undo" title="Отменить ход (U)">↶ Отменить</button>
+          <button class="ku-btn sm" id="btn-hint" title="Подсказка (H)">💡 Подсказка</button>
+        </div>
+        <div class="rv-moves" id="moves" role="button" tabindex="0" aria-label="Запись партии — открыть"></div>
+        <p class="ku-hint" id="g-tip"></p>
+      </div>
     </div>
   </section>
 </main>
 
-<!-- ═══ ПРАВИЛА ═══ -->
-<div class="ku-overlay" id="menu-rules">
-  <div class="ku-modal">
-    <header><h2>📖 Правила</h2><button class="ku-btn icon" id="btn-rules-x" aria-label="Закрыть">✕</button></header>
-    <div class="ku-body">
-      <h3>Цель</h3>
-      <ul class="ku-rules">
-        <li>К концу партии иметь на поле <b>больше фишек своего цвета</b>, чем у соперника.</li>
-      </ul>
-      <h3>Ход</h3>
-      <ul class="ku-rules">
-        <li>Фишку ставят так, чтобы между ней и другой вашей фишкой по прямой — горизонтали, вертикали или диагонали — подряд оказались фишки соперника. Все они <b>переворачиваются</b> в ваш цвет.</li>
-        <li>Ход без переворота невозможен. Доступные ходы отмечены точками, последний ход — розовой точкой на фишке.</li>
-        <li><b>Пас:</b> если ходов нет, ход переходит сопернику.</li>
-        <li>Партия заканчивается, когда ходов нет ни у кого (обычно — когда заполнено поле).</li>
-      </ul>
-      <h3>Советы</h3>
-      <ul class="ku-rules">
-        <li><b>Углы</b> перевернуть нельзя — занимайте их и не отдавайте клетки рядом с ними.</li>
-        <li>Не гонитесь за числом фишек в начале: важнее оставить сопернику меньше ходов.</li>
-      </ul>
-      <h3>Режимы</h3>
-      <ul class="ku-rules">
-        <li><b>Против ИИ:</b> вы играете чёрными и ходите первым.</li>
-        <li><b>По сети:</b> создатель комнаты играет чёрными. Нужен вход по коду игрока на платформе.</li>
-      </ul>
-    </div>
-    <footer><button class="ku-btn primary" id="btn-rules-close">Понятно</button></footer>
-  </div>
-</div>
-
 <!-- ═══ ПАУЗА ═══ -->
-<div class="ku-overlay" id="menu-pause">
-  <div class="ku-card">
-    <h2>⏸ ПАУЗА</h2>
-    <button class="ku-btn primary" id="btn-resume">Продолжить</button>
-    <button class="ku-btn" id="btn-restart">Новая партия</button>
-    <button class="ku-btn" id="btn-pause-rules">📖 Правила</button>
-    <button class="ku-btn ghost" id="btn-quit">В меню</button>
-  </div>
-</div>
+<div class="ku-overlay" id="ov-pause"><div class="ku-card" role="dialog" aria-modal="true" aria-labelledby="pause-h">
+  <h2 id="pause-h">⏸ ПАУЗА</h2>
+  <p id="pause-info"></p>
+  <button class="ku-btn primary" id="btn-resume">Продолжить</button>
+  <button class="ku-btn" id="btn-restart">Новая партия</button>
+  <button class="ku-btn" id="btn-p-record">📜 Запись партии</button>
+  <button class="ku-btn" id="btn-p-settings">⚙️ Настройки</button>
+  <button class="ku-btn" id="btn-p-rules">📖 Правила</button>
+  <button class="ku-btn ghost" id="btn-quit">В меню</button>
+</div></div>
 
 <!-- ═══ КОНЕЦ ПАРТИИ ═══ -->
-<div class="ku-overlay" id="menu-end">
-  <div class="ku-card">
-    <h2 id="end-title">ПОБЕДА!</h2>
-    <p id="end-sub"></p>
-    <div class="ku-big-score" id="end-score"></div>
-    <p id="end-stats"></p>
-    <button class="ku-btn primary" id="btn-again">Играть снова</button>
-    <button class="ku-btn ghost" id="btn-end-menu">В меню</button>
+<div class="ku-overlay" id="ov-end"><div class="ku-card" role="dialog" aria-modal="true" aria-labelledby="end-title">
+  <h2 id="end-title">ПОБЕДА!</h2>
+  <p id="end-sub"></p>
+  <div class="ku-big-score" id="end-score"></div>
+  <p id="end-note"></p>
+  <div class="ku-over-stats" id="end-stats"></div>
+  <button class="ku-btn primary" id="btn-again">Играть снова</button>
+  <div class="rv-end-btns">
+    <button class="ku-btn" id="btn-swap">⇄ Другой цвет</button>
+    <button class="ku-btn" id="btn-review">📜 Разбор</button>
   </div>
-</div>
+  <button class="ku-btn ghost" id="btn-end-menu">В меню</button>
+</div></div>
+
+<!-- ═══ ПРАВИЛА ═══ -->
+<div class="ku-overlay" id="ov-rules"><div class="ku-modal" role="dialog" aria-modal="true" aria-labelledby="rules-h">
+  <header><h2 id="rules-h">📖 Правила</h2><button class="ku-btn icon" data-close aria-label="Закрыть">✕</button></header>
+  <div class="ku-body">
+    <h3>Цель</h3>
+    <ul class="ku-rules">
+      <li>К концу партии иметь на поле <b>больше фишек своего цвета</b>, чем у соперника.</li>
+    </ul>
+    <h3>Начало</h3>
+    <ul class="ku-rules">
+      <li>В центре стоят 4 фишки крест-накрест: белые на d4 и e5, чёрные на e4 и d5 (на поле 8×8). <b>Чёрные ходят первыми.</b></li>
+    </ul>
+    <h3>Ход</h3>
+    <ul class="ku-rules">
+      <li>Фишку ставят на пустую клетку так, чтобы между ней и другой вашей фишкой по прямой — горизонтали, вертикали или диагонали — подряд стояли фишки соперника. Все они <b>переворачиваются</b> в ваш цвет.</li>
+      <li>Если ход закрывает фишки соперника сразу в нескольких направлениях, переворачиваются <b>все эти линии</b>. Фишки, перевёрнутые ходом, сами ничего не переворачивают.</li>
+      <li>Ход, который ничего не переворачивает, <b>невозможен</b>. Возможные ходы отмечены точками (можно выключить в настройках), последний ход — розовой точкой.</li>
+      <li><b>Пас.</b> Если ходов нет, игрок пропускает ход — об этом сообщается, и ходит соперник. Пасовать, когда ход есть, нельзя.</li>
+      <li><b>Конец партии</b> — когда ходов нет у обоих (обычно потому, что поле заполнено).</li>
+    </ul>
+    <h3>Подсчёт</h3>
+    <ul class="ku-rules">
+      <li>Побеждает тот, у кого <b>больше фишек</b>; поровну — ничья.</li>
+      <li>Если партия закончилась раньше, чем заполнилось поле, <b>пустые клетки отдаются победителю</b> (так считают на турнирах по правилам Всемирной федерации Отелло), при ничьей — делятся поровну. На то, кто победил, это не влияет — только на итоговый счёт: 40:20 при 4 пустых записывается как 44:20.</li>
+    </ul>
+    <h3>Советы</h3>
+    <ul class="ku-rules">
+      <li><b>Углы</b> перевернуть нельзя — занимайте их. Клетки рядом с пустым углом (особенно по диагонали — «X-клетки») опасны: они отдают угол сопернику.</li>
+      <li>В начале не гонитесь за числом фишек: важнее <b>подвижность</b> — оставить себе много ходов, а сопернику мало.</li>
+      <li>К концу партии полезно, чтобы последний ход в каждой пустой области остался за вами (<b>чётность</b>).</li>
+    </ul>
+    <h3>Режимы</h3>
+    <ul class="ku-rules">
+      <li><b>Против ИИ</b> — 5 уровней, можно выбрать цвет. Уровни 3–5 точно просчитывают концовку партии.</li>
+      <li><b>Отмена хода и подсказка</b> (против ИИ) превращают партию в <b>тренировочную</b>: она остаётся в истории с пометкой «с помощью», но не входит в победы и поражения, не влияет на серию и не даёт достижений.</li>
+      <li>Начать новую партию, не доиграв (после 4 ваших ходов), — <b>поражение</b>. Выйти в меню можно без потерь: партия сохраняется, её можно продолжить.</li>
+      <li><b>Вдвоём</b> — на одном устройстве по очереди; отмена хода доступна.</li>
+      <li><b>По сети</b> — создатель комнаты играет чёрными. Нужен вход по коду игрока на платформе. Поля 6×6 и 10×10 — отдельные комнаты.</li>
+    </ul>
+    <h3>Запись партии</h3>
+    <ul class="ku-rules">
+      <li>Столбцы — буквы a…h (a…j на 10×10) слева направо, строки — цифры сверху вниз: <b>a1</b> — левый верхний угол. Первые возможные ходы чёрных на 8×8: d3, c4, f5, e6.</li>
+    </ul>
+  </div>
+  <footer><button class="ku-btn primary" data-close>Понятно</button></footer>
+</div></div>
+
+<!-- ═══ НАСТРОЙКИ ═══ -->
+<div class="ku-overlay" id="ov-settings"><div class="ku-modal" role="dialog" aria-modal="true" aria-labelledby="set-h">
+  <header><h2 id="set-h">⚙️ Настройки</h2><button class="ku-btn icon" data-close aria-label="Закрыть">✕</button></header>
+  <div class="ku-body">
+    <div class="set-sec">Поле</div>
+    <label class="ku-switch-row">Показывать возможные ходы<input type="checkbox" id="set-moves"><span class="ku-switch"></span></label>
+    <label class="ku-switch-row">Отмечать последний ход<input type="checkbox" id="set-last"><span class="ku-switch"></span></label>
+    <label class="ku-switch-row">Координаты на поле<input type="checkbox" id="set-coords"><span class="ku-switch"></span></label>
+    <label class="ku-switch-row">Предпросмотр переворотов (мышь)<input type="checkbox" id="set-preview"><span class="ku-switch"></span></label>
+    <label class="ku-switch-row">Подтверждать ход вторым касанием<input type="checkbox" id="set-confirm"><span class="ku-switch"></span></label>
+    <div class="set-col"><span>Анимация переворотов</span>
+      <div class="ku-seg" id="set-anim"><button data-a="off">Нет</button><button data-a="fast">Быстро</button><button data-a="normal">Обычно</button><button data-a="slow">Медленно</button></div></div>
+    <div class="set-sec">Звук</div>
+    <label class="ku-switch-row">Звук<input type="checkbox" id="set-sound"><span class="ku-switch"></span></label>
+    <label class="ku-switch-row">Вибрация<input type="checkbox" id="set-vib"><span class="ku-switch"></span></label>
+    <div class="set-sec">Данные</div>
+    <p class="set-note">Сброс удалит статистику, историю партий, достижения и сохранённую партию.</p>
+    <button class="ku-btn danger sm" id="btn-reset">🗑 Сбросить статистику</button>
+  </div>
+  <footer><button class="ku-btn primary" data-close>Готово</button></footer>
+</div></div>
+
+<!-- ═══ СТАТИСТИКА ═══ -->
+<div class="ku-overlay" id="ov-stats"><div class="ku-modal" role="dialog" aria-modal="true" aria-labelledby="st-h">
+  <header><h2 id="st-h">📊 Статистика</h2><button class="ku-btn icon" data-close aria-label="Закрыть">✕</button></header>
+  <div class="ku-body">
+    <div class="st-sum" id="st-sum"></div>
+    <div class="ku-seg st-tabs" id="st-size"><button data-n="6">6×6</button><button data-n="8">8×8</button><button data-n="10">10×10</button></div>
+    <div id="st-body"></div>
+    <p class="st-note" id="st-note"></p>
+  </div>
+  <footer><button class="ku-btn primary" data-close>Закрыть</button></footer>
+</div></div>
+
+<!-- ═══ ДОСТИЖЕНИЯ ═══ -->
+<div class="ku-overlay" id="ov-ach"><div class="ku-modal" role="dialog" aria-modal="true" aria-labelledby="ach-h">
+  <header><h2 id="ach-h">🏅 Достижения</h2><button class="ku-btn icon" data-close aria-label="Закрыть">✕</button></header>
+  <div class="ku-body"><div class="rv-list" id="ach-list"></div></div>
+  <footer><button class="ku-btn primary" data-close>Закрыть</button></footer>
+</div></div>
+
+<!-- ═══ ИСТОРИЯ ═══ -->
+<div class="ku-overlay" id="ov-hist"><div class="ku-modal" role="dialog" aria-modal="true" aria-labelledby="hist-h">
+  <header><h2 id="hist-h">📜 История партий</h2><button class="ku-btn icon" data-close aria-label="Закрыть">✕</button></header>
+  <div class="ku-body"><div class="rv-list" id="hist-list"></div></div>
+  <footer><button class="ku-btn primary" data-close>Закрыть</button></footer>
+</div></div>
+
+<!-- ═══ ЗАПИСЬ И ПРОСМОТР ПАРТИИ ═══ -->
+<div class="ku-overlay" id="ov-record"><div class="ku-modal" role="dialog" aria-modal="true" aria-labelledby="rec-h">
+  <header><h2 id="rec-h">📜 Запись партии</h2><button class="ku-btn icon" data-close aria-label="Закрыть">✕</button></header>
+  <div class="ku-body">
+    <div class="rec-top">
+      <div class="rec-board ku-board"><div class="rv-grid" id="rec-grid" aria-label="Позиция"></div></div>
+      <div class="rec-info">
+        <div class="rec-score"><i class="dot b"></i><span id="rec-b">2</span> : <span id="rec-w">2</span><i class="dot w"></i></div>
+        <div class="rec-step" id="rec-step">Начальная позиция</div>
+      </div>
+    </div>
+    <div class="rec-ctrl">
+      <button class="ku-btn icon" id="rec-first" aria-label="В начало (Home)" title="В начало"><svg viewBox="0 0 24 24"><line x1="6" y1="6" x2="6" y2="18"/><polyline points="17 6 10 12 17 18"/></svg></button>
+      <button class="ku-btn icon" id="rec-prev" aria-label="Ход назад (←)" title="Ход назад"><svg viewBox="0 0 24 24"><polyline points="15 6 9 12 15 18"/></svg></button>
+      <button class="ku-btn icon" id="rec-play" aria-label="Проиграть" title="Проиграть"></button>
+      <button class="ku-btn icon" id="rec-next" aria-label="Ход вперёд (→)" title="Ход вперёд"><svg viewBox="0 0 24 24"><polyline points="9 6 15 12 9 18"/></svg></button>
+      <button class="ku-btn icon" id="rec-last" aria-label="В конец (End)" title="В конец"><svg viewBox="0 0 24 24"><polyline points="7 6 14 12 7 18"/><line x1="18" y1="6" x2="18" y2="18"/></svg></button>
+    </div>
+    <div class="rec-moves rv-moves" id="rec-moves"></div>
+    <textarea id="rec-text" readonly aria-label="Запись партии текстом"></textarea>
+  </div>
+  <footer><button class="ku-btn" id="rec-copy">📋 Копировать</button><button class="ku-btn primary" data-close>Закрыть</button></footer>
+</div></div>
 
 <div class="ku-toast" id="toast"></div>
 
 <script src="kunet.js"></script>
 <script>
 'use strict';
-const $ = id => document.getElementById(id);
-const DIR=[[-1,-1],[-1,0],[-1,1],[0,-1],[0,1],[1,-1],[1,0],[1,1]];
-const CORNERS=[0,7,56,63];
-let board=initialBoard(),turn=1,locked=true,gameOver=true;
-let mode='ai';                        // 'ai' — против ИИ, 'net' — по сети
-let lastMove=-1,prevBoard=null,aiTimer=null,endTimer=null,rulesReturn=null;
+/* ═══════════════════════════════════════════════════════════════
+ * ДВИЖОК РЕВЕРСИ (Отелло) — одна функция-фабрика без внешних зависимостей:
+ * та же функция работает в основном потоке, в фоновом Web Worker (через toString) и в Node (тесты).
+ *
+ *  • Поля 6×6, 8×8, 10×10. Доска — массив n·n: 0 — пусто, 1 — чёрная, 2 — белая;
+ *    индекс = строка·n + столбец, строка 0 — верхняя («a1» — левый верхний угол, как в нотации Отелло).
+ *  • Правила: ход обязан перевернуть хотя бы одну фишку соперника; переворачиваются все линии хода;
+ *    нет хода — пас; ходов нет у обоих — конец партии. В итоговом счёте пустые клетки отдаются
+ *    победителю (правила WOF), при ничьей — делятся поровну.
+ *  • ИИ — 5 уровней. Сильные: альфа-бета (PVS) с итеративным углублением, таблицей позиций и
+ *    упорядочиванием ходов; оценка — подвижность, потенциальная подвижность, углы, X/C-клетки,
+ *    стабильные фишки, чётность; в конце партии — точный перебор до конца в пределах бюджета.
+ * ═════════════════════════════════════════════════════════════ */
+function ReversiEngine() {
+  'use strict';
+  const SIZES = [6, 8, 10];
+  const now = (typeof performance !== 'undefined' && performance.now) ? () => performance.now() : () => Date.now();
 
-/* ── Сетевая партия (KuNet): seat 0 = ⚫ (1), seat 1 = ⚪ (2) ── */
-let net=null,mySide=1,netRound=0,noticeVer=-1,errAt=0;
-const isNet=()=>mode==='net'&&!!net&&!!net.room;
-function initialBoard(){const b=Array(64).fill(0);b[27]=2;b[28]=1;b[35]=1;b[36]=2;return b;}
-function netName(side){return isNet()?(net.room.players[side-1]||'?'):(side===1?'Вы':'ИИ');}
+  /* ═══ 1. Простые правила на плоском массиве (для интерфейса, записи партии и проверок) ═══ */
+  const DR = [-1, -1, -1, 0, 0, 1, 1, 1], DC = [-1, 0, 1, -1, 1, -1, 0, 1];
 
-/* ── Правила ── */
-function rc(i){return[Math.floor(i/8),i%8];}
-function idx(r,c){return r*8+c;}
-
-function flips(i,player){
-  const [r,c]=rc(i);const res=[];
-  for(const [dr,dc] of DIR){
-    let nr=r+dr,nc=c+dc,line=[];
-    while(nr>=0&&nr<8&&nc>=0&&nc<8&&board[idx(nr,nc)]===3-player){
-      line.push(idx(nr,nc));nr+=dr;nc+=dc;
-    }
-    if(line.length&&nr>=0&&nr<8&&nc>=0&&nc<8&&board[idx(nr,nc)]===player) res.push(...line);
+  function initialBoard(n) {
+    const b = new Array(n * n).fill(0), h = n / 2;
+    // как в Отелло: белые d4 и e5, чёрные e4 и d5 (для 8×8)
+    b[(h - 1) * n + h - 1] = 2; b[(h - 1) * n + h] = 1; b[h * n + h - 1] = 1; b[h * n + h] = 2;
+    return b;
   }
-  return res;
+
+  // Линии переворота для хода в клетку i: массив линий (каждая — от поставленной фишки наружу) или null
+  function flipLines(board, n, i, me) {
+    if (board[i] !== 0) return null;
+    const opp = 3 - me, r0 = (i / n) | 0, c0 = i % n;
+    let lines = null;
+    for (let k = 0; k < 8; k++) {
+      let r = r0 + DR[k], c = c0 + DC[k], line = null;
+      while (r >= 0 && r < n && c >= 0 && c < n && board[r * n + c] === opp) {
+        (line || (line = [])).push(r * n + c); r += DR[k]; c += DC[k];
+      }
+      if (line && r >= 0 && r < n && c >= 0 && c < n && board[r * n + c] === me) (lines || (lines = [])).push(line);
+    }
+    return lines;
+  }
+  function legalMoves(board, n, me) {
+    const out = [];
+    for (let i = 0; i < n * n; i++) if (board[i] === 0 && flipLines(board, n, i, me)) out.push(i);
+    return out;
+  }
+  function hasMove(board, n, me) {
+    for (let i = 0; i < n * n; i++) if (board[i] === 0 && flipLines(board, n, i, me)) return true;
+    return false;
+  }
+  // Сделать ход: { board, lines, flipped } или null, если ход невозможен
+  function play(board, n, i, me) {
+    const lines = flipLines(board, n, i, me);
+    if (!lines) return null;
+    const nb = board.slice();
+    nb[i] = me;
+    let flipped = 0;
+    for (const L of lines) for (const j of L) { nb[j] = me; flipped++; }
+    return { board: nb, lines, flipped };
+  }
+  // Кто ходит после хода игрока who: { turn, pass, over } (pass — у соперника нет хода, ход снова у who)
+  function after(board, n, who) {
+    const o = 3 - who;
+    if (hasMove(board, n, o)) return { turn: o, pass: false, over: false };
+    if (hasMove(board, n, who)) return { turn: who, pass: true, over: false };
+    return { turn: 0, pass: false, over: true };
+  }
+  function counts(board) {
+    let b = 0, w = 0, e = 0;
+    for (const v of board) { if (v === 1) b++; else if (v === 2) w++; else e++; }
+    return { b, w, e };
+  }
+  // Итоговый счёт: пустые клетки — победителю (поровну при ничьей)
+  function finalScore(board) {
+    const c = counts(board);
+    let fb = c.b, fw = c.w;
+    if (c.b > c.w) fb += c.e; else if (c.w > c.b) fw += c.e; else { fb += c.e / 2; fw += c.e / 2; }
+    return { b: c.b, w: c.w, e: c.e, fb, fw, winner: c.b > c.w ? 1 : c.w > c.b ? 2 : 0 };
+  }
+
+  /* ── Нотация: столбцы a…h (a…j), строки 1…n сверху вниз ── */
+  const LET = 'abcdefghij';
+  function sqName(n, i) { return i < 0 ? '—' : LET[i % n] + (((i / n) | 0) + 1); }
+  function parseSq(n, s) {
+    const m = /^([a-j])(\d{1,2})$/.exec(String(s || '').trim().toLowerCase());
+    if (!m) return -1;
+    const c = LET.indexOf(m[1]), r = +m[2] - 1;
+    return c >= 0 && c < n && r >= 0 && r < n ? r * n + c : -1;
+  }
+
+  /* ── Проиграть запись партии (список клеток) с начальной позиции ──
+   * Пасы в записи не хранятся: если у стороны нет хода, пас вставляется автоматически.
+   * → { ok, steps: [{ board, turn, move, by, lines, pass }], board, turn, over, bad }
+   *   steps[0] — начальная позиция; pass — после этого хода у соперника нет хода (пас, ходит тот же игрок). */
+  function replay(n, moves, start) {
+    let board = start ? start.board.slice() : initialBoard(n), turn = start ? start.turn : 1;
+    const steps = [{ board, turn, move: -1, by: 0, lines: null, pass: false }];
+    let over = false;
+    for (let k = 0; k < moves.length; k++) {
+      const i = moves[k];
+      if (over || !Number.isInteger(i) || i < 0 || i >= n * n) return { ok: false, steps, board, turn, over, bad: k };
+      const r = play(board, n, i, turn);
+      if (!r) return { ok: false, steps, board, turn, over, bad: k };
+      const a = after(r.board, n, turn);
+      const by = turn;
+      board = r.board; over = a.over;
+      steps.push({ board, turn: a.turn, move: i, by, lines: r.lines, pass: a.pass });
+      turn = a.turn;
+    }
+    return { ok: true, steps, board, turn, over, bad: -1 };
+  }
+
+  // Проверка доски: массив нужной длины из 0/1/2
+  function validBoard(b, n) {
+    if (!Array.isArray(b) || b.length !== n * n) return false;
+    for (const v of b) if (v !== 0 && v !== 1 && v !== 2) return false;
+    return true;
+  }
+
+  // Восстановить ходы между двумя позициями (сетевая партия: опрос мог пропустить промежуточное состояние).
+  // Ищет последовательность ходов из (board, turn), дающую доску target (новые фишки — кандидаты).
+  // → массив клеток или null
+  function diffMoves(n, board, turn, target, maxLen) {
+    const fresh = [];
+    for (let i = 0; i < n * n; i++) {
+      if (board[i] !== 0 && target[i] === 0) return null;          // фишки не исчезают
+      if (board[i] === 0 && target[i] !== 0) fresh.push(i);
+    }
+    if (!fresh.length || fresh.length > (maxLen || 6)) return null;
+    const same = (a, b) => { for (let i = 0; i < a.length; i++) if (a[i] !== b[i]) return false; return true; };
+    const used = new Array(fresh.length).fill(false), seq = [];
+    function dfs(bd, t) {
+      if (seq.length === fresh.length) return same(bd, target);
+      if (!t) return false;
+      for (let k = 0; k < fresh.length; k++) {
+        if (used[k]) continue;
+        const i = fresh[k];
+        const r = play(bd, n, i, t);
+        if (!r) continue;
+        const a = after(r.board, n, t);
+        used[k] = true; seq.push(i);
+        if (dfs(r.board, a.over ? 0 : a.turn)) return true;
+        used[k] = false; seq.pop();
+      }
+      return false;
+    }
+    return dfs(board, turn) ? seq.slice() : null;
+  }
+
+  /* ═══ 2. Геометрия для поиска: доска с рамкой (n+2)², рамка = 3 — без проверок границ ═══ */
+  const GEO = {};
+  function geo(n) {
+    if (GEO[n]) return GEO[n];
+    if (SIZES.indexOf(n) < 0) throw new Error('Размер поля: ' + n);
+    const W = n + 2, NSQ = W * W, m = n - 1;
+    const P = (r, c) => (r + 1) * W + c + 1;
+    const pad = new Int16Array(n * n), flat = new Int16Array(NSQ).fill(-1);
+    for (let r = 0; r < n; r++) for (let c = 0; c < n; c++) { pad[r * n + c] = P(r, c); flat[P(r, c)] = r * n + c; }
+    const dirs = new Int32Array([-W - 1, -W, -W + 1, -1, 1, W - 1, W, W + 1]);
+    // углы и их опасные соседи: X — по диагонали, C — по краю
+    const cs = [[0, 0, 1, 1], [0, m, 1, -1], [m, 0, -1, 1], [m, m, -1, -1]];
+    const cSq = new Int32Array(4), xSq = new Int32Array(4), c1Sq = new Int32Array(4), c2Sq = new Int32Array(4);
+    cs.forEach(([r, c, dr, dc], k) => { cSq[k] = P(r, c); xSq[k] = P(r + dr, c + dc); c1Sq[k] = P(r, c + dc); c2Sq[k] = P(r + dr, c); });
+    // четыре края (для стабильности)
+    const edges = [[], [], [], []];
+    for (let k = 0; k < n; k++) { edges[0].push(P(0, k)); edges[1].push(P(m, k)); edges[2].push(P(k, 0)); edges[3].push(P(k, m)); }
+    // позиционная таблица (классическая для 8×8, обобщённая на n×n) и приоритет клеток для порядка ходов
+    const sqw = new Int16Array(NSQ), prio = new Int8Array(NSQ);
+    for (let r = 0; r < n; r++) for (let c = 0; c < n; c++) {
+      const dr = Math.min(r, m - r), dc = Math.min(c, m - c);
+      let w, p;
+      if (dr === 0 && dc === 0) { w = 100; p = 9; }                              // угол
+      else if (dr === 1 && dc === 1) { w = -50; p = 0; }                         // X-клетка
+      else if ((dr === 0 && dc === 1) || (dr === 1 && dc === 0)) { w = -20; p = 1; }   // C-клетка
+      else if (dr === 0 || dc === 0) { const a = Math.max(dr, dc) === 2; w = a ? 10 : 5; p = a ? 7 : 6; }   // край: A / B
+      else if (dr === 1 || dc === 1) { w = -2; p = 3; }                          // второе кольцо
+      else { w = -1; p = 5; }                                                    // центр
+      sqw[P(r, c)] = w; prio[P(r, c)] = p;
+    }
+    const order = Array.from(pad).sort((a, b) => prio[b] - prio[a] || a - b);
+    return (GEO[n] = { n, W, NSQ, cells: n * n, pad, flat, dirs, cSq, xSq, c1Sq, c2Sq, edges, sqw, prio, order: Int32Array.from(order) });
+  }
+
+  // Детерминированный ГПСЧ (mulberry32)
+  function rng32(seed) {
+    let a = seed >>> 0;
+    return function () {
+      a = (a + 0x6D2B79F5) | 0;
+      let t = Math.imul(a ^ (a >>> 15), 1 | a);
+      t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
+      return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+    };
+  }
+
+  /* ═══ 3. Поисковик для поля n×n (замыкания над типизированными массивами — быстро в V8) ═══ */
+  const SEARCHERS = {};
+  function searcher(n) { return SEARCHERS[n] || (SEARCHERS[n] = makeSearcher(n)); }
+
+  function makeSearcher(n) {
+    const G = geo(n), W = G.W, NSQ = G.NSQ, CELLS = G.cells;
+    const D = G.dirs, SQW = G.sqw, PRIO = G.prio;
+    const CSQ = G.cSq, XSQ = G.xSq, C1 = G.c1Sq, C2 = G.c2Sq, EDGES = G.edges.map(e => Int32Array.from(e));
+    const b = new Int8Array(NSQ);
+    // пустые клетки — двусвязный список в порядке приоритета (удаление/возврат «танцующими ссылками»)
+    const HEAD = NSQ, nxt = new Int32Array(NSQ + 1), prv = new Int32Array(NSQ + 1);
+    let empties = 0;
+    const discs = new Int32Array(3);
+    const stk = new Int32Array(16384); let sp = 0;            // стек перевёрнутых фишек для отмены
+    // ключи Зобриста: две 32-битные половины (индекс таблицы и проверка)
+    const R = rng32(0x5EED + n);
+    const rnd = () => (R() * 4294967296) | 0;
+    const zA = [null, new Int32Array(NSQ), new Int32Array(NSQ)], zB = [null, new Int32Array(NSQ), new Int32Array(NSQ)];
+    const zFA = new Int32Array(NSQ), zFB = new Int32Array(NSQ);
+    for (let p = 0; p < NSQ; p++) {
+      zA[1][p] = rnd(); zA[2][p] = rnd(); zB[1][p] = rnd(); zB[2][p] = rnd();
+      zFA[p] = zA[1][p] ^ zA[2][p]; zFB[p] = zB[1][p] ^ zB[2][p];
+    }
+    const SIDE_A = rnd(), SIDE_B = rnd() | 1;
+    let hA = 0, hB = 0;
+    // таблица позиций
+    const TT_BITS = 17, TT_SIZE = 1 << TT_BITS, TT_MASK = TT_SIZE - 1;
+    const ttKey = new Int32Array(TT_SIZE), ttVal = new Int32Array(TT_SIZE), ttMv = new Int16Array(TT_SIZE);
+    const ttDep = new Int8Array(TT_SIZE), ttFlag = new Int8Array(TT_SIZE);
+    const F_LOW = 1, F_UP = 2, F_EXACT = 3, F_END = 4;     // F_END — запись точного эндшпиля (счёт в фишках)
+    const hist = new Int32Array(NSQ);
+    // буферы ходов по глубине
+    const MAXPLY = CELLS + 16;
+    const mvBuf = new Int32Array(MAXPLY * CELLS), mvSc = new Int32Array(MAXPLY * CELLS);
+    const mark = new Int32Array(NSQ); let stamp = 0;
+    // счётчики и ограничения
+    let nodes = 0, deadline = Infinity, nodeLimit = Infinity, aborted = false;
+    let evalKind = 0;   // 0 — полная оценка, 1 — простая (таблица клеток) для слабого уровня
+
+    function load(board, toMove) {
+      b.fill(3);
+      discs[0] = discs[1] = discs[2] = 0;
+      hA = hB = 0;
+      for (let i = 0; i < CELLS; i++) {
+        const p = G.pad[i], v = board[i] | 0;
+        b[p] = v;
+        if (v) { discs[v]++; hA ^= zA[v][p]; hB ^= zB[v][p]; }
+      }
+      // список пустых в порядке приоритета клеток
+      let last = HEAD; empties = 0;
+      for (let k = 0; k < G.order.length; k++) {
+        const p = G.order[k];
+        if (b[p] !== 0) continue;
+        nxt[last] = p; prv[p] = last; last = p; empties++;
+      }
+      nxt[last] = HEAD; prv[HEAD] = last;
+      sp = 0;
+    }
+    function toFlat() { const out = new Array(CELLS); for (let i = 0; i < CELLS; i++) out[i] = b[G.pad[i]]; return out; }
+
+    // Сделать ход: число перевёрнутых фишек (0 — ход невозможен, доска не меняется)
+    function doMove(sq, me) {
+      const opp = 3 - me, sp0 = sp;
+      for (let k = 0; k < 8; k++) {
+        const d = D[k];
+        let p = sq + d;
+        if (b[p] !== opp) continue;
+        p += d;
+        while (b[p] === opp) p += d;
+        if (b[p] !== me) continue;
+        p -= d;
+        while (p !== sq) { b[p] = me; stk[sp++] = p; hA ^= zFA[p]; hB ^= zFB[p]; p -= d; }
+      }
+      const c = sp - sp0;
+      if (c) {
+        b[sq] = me; hA ^= zA[me][sq]; hB ^= zB[me][sq];
+        const pv = prv[sq], nx = nxt[sq]; nxt[pv] = nx; prv[nx] = pv; empties--;
+        discs[me] += c + 1; discs[opp] -= c;
+      }
+      return c;
+    }
+    function undoMove(sq, me, c) {
+      const opp = 3 - me;
+      for (let i = 0; i < c; i++) { const p = stk[--sp]; b[p] = opp; hA ^= zFA[p]; hB ^= zFB[p]; }
+      b[sq] = 0; hA ^= zA[me][sq]; hB ^= zB[me][sq];
+      nxt[prv[sq]] = sq; prv[nxt[sq]] = sq; empties++;
+      discs[me] -= c + 1; discs[opp] += c;
+    }
+    function legalAt(sq, me, opp) {
+      for (let k = 0; k < 8; k++) {
+        const d = D[k];
+        let p = sq + d;
+        if (b[p] !== opp) continue;
+        p += d;
+        while (b[p] === opp) p += d;
+        if (b[p] === me) return true;
+      }
+      return false;
+    }
+    function countFlips(sq, me) {
+      const opp = 3 - me;
+      let t = 0;
+      for (let k = 0; k < 8; k++) {
+        const d = D[k];
+        let p = sq + d, c = 0;
+        while (b[p] === opp) { p += d; c++; }
+        if (c && b[p] === me) t += c;
+      }
+      return t;
+    }
+    function mobility(me) {
+      const opp = 3 - me;
+      let c = 0;
+      for (let sq = nxt[HEAD]; sq !== HEAD; sq = nxt[sq]) if (legalAt(sq, me, opp)) c++;
+      return c;
+    }
+    function anyMove(me) {
+      const opp = 3 - me;
+      for (let sq = nxt[HEAD]; sq !== HEAD; sq = nxt[sq]) if (legalAt(sq, me, opp)) return true;
+      return false;
+    }
+    function legalList(me) {
+      const opp = 3 - me, out = [];
+      for (let sq = nxt[HEAD]; sq !== HEAD; sq = nxt[sq]) if (legalAt(sq, me, opp)) out.push(sq);
+      return out;
+    }
+
+    /* ── Оценка позиции для стороны me (≈ десятые доли фишки итогового перевеса) ── */
+    const WIN = 20000;
+    function stableEdges(me) {
+      // стабильные фишки на краях: сплошной ряд своего цвета от угла и полностью заполненные края
+      stamp++;
+      let sMe = 0, sOp = 0;
+      for (let e = 0; e < 4; e++) {
+        const E = EDGES[e], L = E.length;
+        let full = true;
+        for (let k = 0; k < L; k++) if (b[E[k]] === 0) { full = false; break; }
+        if (full) {
+          for (let k = 0; k < L; k++) { const p = E[k]; if (mark[p] !== stamp) { mark[p] = stamp; if (b[p] === me) sMe++; else sOp++; } }
+          continue;
+        }
+        let v = b[E[0]];
+        if (v) for (let k = 0; k < L && b[E[k]] === v; k++) { const p = E[k]; if (mark[p] !== stamp) { mark[p] = stamp; if (v === me) sMe++; else sOp++; } }
+        v = b[E[L - 1]];
+        if (v) for (let k = L - 1; k >= 0 && b[E[k]] === v; k--) { const p = E[k]; if (mark[p] !== stamp) { mark[p] = stamp; if (v === me) sMe++; else sOp++; } }
+      }
+      return sMe - sOp;
+    }
+    function evalSimple(me) {
+      // таблица клеток; рядом со своим углом X/C перестают быть плохими
+      const opp = 3 - me;
+      let s = 0;
+      for (let i = 0; i < CELLS; i++) {
+        const p = G.pad[i], v = b[p];
+        if (v === me) s += SQW[p]; else if (v === opp) s -= SQW[p];
+      }
+      for (let k = 0; k < 4; k++) {
+        if (!b[CSQ[k]]) continue;
+        // угол занят — соседние X/C-клетки уже не опасны: их вес становится +5
+        let v = b[XSQ[k]]; if (v) s += (v === me ? 1 : -1) * (5 - SQW[XSQ[k]]);
+        v = b[C1[k]]; if (v) s += (v === me ? 1 : -1) * (5 - SQW[C1[k]]);
+        v = b[C2[k]]; if (v) s += (v === me ? 1 : -1) * (5 - SQW[C2[k]]);
+      }
+      return s * 3;
+    }
+    function evaluate(me) {
+      if (evalKind === 1) return evalSimple(me);
+      const opp = 3 - me;
+      let mobMe = 0, mobOp = 0, potMe = 0, potOp = 0;
+      for (let sq = nxt[HEAD]; sq !== HEAD; sq = nxt[sq]) {
+        let aMe = 0, aOp = 0;
+        for (let k = 0; k < 8; k++) { const v = b[sq + D[k]]; if (v === me) aMe++; else if (v === opp) aOp++; }
+        if (aOp) { potMe += aOp; if (legalAt(sq, me, opp)) mobMe++; }
+        if (aMe) { potOp += aMe; if (legalAt(sq, opp, me)) mobOp++; }
+      }
+      // ходов нет у обоих — партия окончена
+      if (!mobMe && !mobOp) return terminal(me);
+      const t = 1 - empties / CELLS;                // 0 — начало, 1 — конец
+      // углы и опасные клетки рядом с пустыми углами
+      let cor = 0, xc = 0;
+      for (let k = 0; k < 4; k++) {
+        const c = b[CSQ[k]];
+        if (c === me) cor++;
+        else if (c === opp) cor--;
+        else {
+          let v = b[XSQ[k]]; if (v === me) xc -= 3; else if (v === opp) xc += 3;
+          v = b[C1[k]]; if (v === me) xc -= 1; else if (v === opp) xc += 1;
+          v = b[C2[k]]; if (v === me) xc -= 1; else if (v === opp) xc += 1;
+        }
+      }
+      const stab = (cor || t > 0.55) ? stableEdges(me) : 0;
+      const mob = (100 * (mobMe - mobOp)) / (mobMe + mobOp + 2);
+      const pot = (100 * (potMe - potOp)) / (potMe + potOp + 2);
+      const dd = discs[me] - discs[opp];
+      let s = 320 * cor + 38 * xc
+        + (2.3 - 0.9 * t) * mob
+        + (1.0 - 0.5 * t) * pot
+        + 22 * stab
+        + (t < 0.45 ? -1.5 * dd : t > 0.75 ? 4 * dd : 0)
+        + (t > 0.6 ? ((empties & 1) ? 25 : -25) : 0);
+      s = Math.round(s);
+      return s > 9000 ? 9000 : s < -9000 ? -9000 : s;
+    }
+    function endDiff(me) {
+      const d = discs[me] - discs[3 - me];
+      return d > 0 ? d + empties : d < 0 ? d - empties : 0;
+    }
+    function terminal(me) {
+      const d = endDiff(me);
+      return d > 0 ? WIN + d * 10 : d < 0 ? -WIN + d * 10 : 0;
+    }
+    function checkStop() {
+      if (nodes >= nodeLimit || now() >= deadline) aborted = true;
+      return aborted;
+    }
+
+    /* ── Поиск в середине партии: negamax + PVS + таблица позиций + история ── */
+    function search(me, depth, alpha, beta, ply, passed) {
+      if ((++nodes & 1023) === 0 && checkStop()) return 0;
+      if (aborted) return 0;
+      if (depth <= 0) return evaluate(me);
+      const opp = 3 - me;
+      const kA = me === 2 ? hA ^ SIDE_A : hA, kB = me === 2 ? hB ^ SIDE_B : hB;
+      const ti = kA & TT_MASK;
+      let ttMove = -1;
+      if (ttKey[ti] === kB && ttFlag[ti]) {
+        ttMove = ttMv[ti];
+        const f = ttFlag[ti];
+        if (!(f & F_END) && ttDep[ti] >= depth) {
+          const v = ttVal[ti], fl = f & 3;
+          if (fl === F_EXACT) return v;
+          if (fl === F_LOW && v >= beta) return v;
+          if (fl === F_UP && v <= alpha) return v;
+        }
+      }
+      const base = ply * CELLS;
+      let cnt = 0;
+      for (let sq = nxt[HEAD]; sq !== HEAD; sq = nxt[sq]) {
+        if (!legalAt(sq, me, opp)) continue;
+        mvBuf[base + cnt] = sq;
+        mvSc[base + cnt] = sq === ttMove ? 1 << 30 : PRIO[sq] * 4096 + hist[sq];
+        cnt++;
+      }
+      if (!cnt) {
+        if (passed) return terminal(me);
+        return -search(opp, depth, -beta, -alpha, ply + 1, true);
+      }
+      const a0 = alpha;
+      let best = -1e9, bestMv = -1;
+      for (let i = 0; i < cnt; i++) {
+        // выбор лучшего из оставшихся (сортировка выбором — ходов немного)
+        let bi = i;
+        for (let j = i + 1; j < cnt; j++) if (mvSc[base + j] > mvSc[base + bi]) bi = j;
+        const sq = mvBuf[base + bi];
+        if (bi !== i) { mvBuf[base + bi] = mvBuf[base + i]; mvSc[base + bi] = mvSc[base + i]; mvBuf[base + i] = sq; }
+        const c = doMove(sq, me);
+        let v;
+        if (i === 0) v = -search(opp, depth - 1, -beta, -alpha, ply + 1, false);
+        else {
+          v = -search(opp, depth - 1, -alpha - 1, -alpha, ply + 1, false);
+          if (v > alpha && v < beta && !aborted) v = -search(opp, depth - 1, -beta, -alpha, ply + 1, false);
+        }
+        undoMove(sq, me, c);
+        if (aborted) return 0;
+        if (v > best) {
+          best = v; bestMv = sq;
+          if (v > alpha) { alpha = v; if (v >= beta) { hist[sq] += depth * depth; break; } }
+        }
+      }
+      ttKey[ti] = kB; ttVal[ti] = best; ttMv[ti] = bestMv; ttDep[ti] = depth;
+      ttFlag[ti] = best <= a0 ? F_UP : best >= beta ? F_LOW : F_EXACT;
+      return best;
+    }
+
+    /* ── Точный эндшпиль: перевес в фишках при лучшей игре обеих сторон ── */
+    const FF_MIN = 7;       // от стольких пустых — порядок «сначала ходы, оставляющие сопернику меньше ходов»
+    const TT_END_MIN = 9;   // от стольких пустых — таблица позиций
+    function solve1(me) {
+      const sq = nxt[HEAD], opp = 3 - me;
+      let f = countFlips(sq, me);
+      if (f) return discs[me] + f + 1 - (discs[opp] - f);
+      f = countFlips(sq, opp);
+      if (f) return discs[me] - f - (discs[opp] + f + 1);
+      const d = discs[me] - discs[opp];
+      return d > 0 ? d + 1 : d < 0 ? d - 1 : 0;
+    }
+    function solve(me, alpha, beta, ply, passed) {
+      if ((++nodes & 1023) === 0 && checkStop()) return 0;
+      if (aborted) return 0;
+      if (empties === 0) return discs[me] - discs[3 - me];
+      if (empties === 1) return solve1(me);
+      const opp = 3 - me;
+      let ti = -1, kB = 0, ttMove = -1;
+      if (empties >= TT_END_MIN) {
+        const kA = me === 2 ? hA ^ SIDE_A : hA;
+        kB = me === 2 ? hB ^ SIDE_B : hB;
+        ti = kA & TT_MASK;
+        if (ttKey[ti] === kB && ttFlag[ti]) {
+          ttMove = ttMv[ti];
+          const f = ttFlag[ti];
+          if (f & F_END) {
+            const v = ttVal[ti], fl = f & 3;
+            if (fl === F_EXACT) return v;
+            if (fl === F_LOW && v >= beta) return v;
+            if (fl === F_UP && v <= alpha) return v;
+          }
+        }
+      }
+      const a0 = alpha;
+      let best = -1000, bestMv = -1, any = false;
+      if (empties >= FF_MIN) {
+        const base = ply * CELLS;
+        let cnt = 0;
+        for (let sq = nxt[HEAD]; sq !== HEAD; sq = nxt[sq]) {
+          const c = doMove(sq, me);
+          if (!c) continue;
+          // меньше ходов у соперника — раньше; углы — раньше; ход из таблицы — первым
+          mvSc[base + cnt] = sq === ttMove ? -1 << 20 : mobility(opp) * 16 - PRIO[sq];
+          mvBuf[base + cnt] = sq;
+          cnt++;
+          undoMove(sq, me, c);
+        }
+        if (cnt) any = true;
+        for (let i = 0; i < cnt; i++) {
+          let bi = i;
+          for (let j = i + 1; j < cnt; j++) if (mvSc[base + j] < mvSc[base + bi]) bi = j;
+          const sq = mvBuf[base + bi];
+          if (bi !== i) { mvBuf[base + bi] = mvBuf[base + i]; mvSc[base + bi] = mvSc[base + i]; mvBuf[base + i] = sq; }
+          const c = doMove(sq, me);
+          let v;
+          if (i === 0) v = -solve(opp, -beta, -alpha, ply + 1, false);
+          else {
+            v = -solve(opp, -alpha - 1, -alpha, ply + 1, false);
+            if (v > alpha && v < beta && !aborted) v = -solve(opp, -beta, -alpha, ply + 1, false);
+          }
+          undoMove(sq, me, c);
+          if (aborted) return 0;
+          if (v > best) { best = v; bestMv = sq; if (v > alpha) { alpha = v; if (v >= beta) break; } }
+        }
+      } else {
+        for (let sq = nxt[HEAD]; sq !== HEAD; sq = nxt[sq]) {
+          const c = doMove(sq, me);
+          if (!c) continue;
+          any = true;
+          const v = -solve(opp, -beta, -alpha, ply + 1, false);
+          undoMove(sq, me, c);
+          if (aborted) return 0;
+          if (v > best) { best = v; bestMv = sq; if (v > alpha) { alpha = v; if (v >= beta) break; } }
+        }
+      }
+      if (!any) {
+        if (passed) return endDiff(me);
+        return -solve(opp, -beta, -alpha, ply + 1, true);
+      }
+      if (ti >= 0) {
+        ttKey[ti] = kB; ttVal[ti] = best; ttMv[ti] = bestMv; ttDep[ti] = empties;
+        ttFlag[ti] = F_END | (best <= a0 ? F_UP : best >= beta ? F_LOW : F_EXACT);
+      }
+      return best;
+    }
+
+    /* ── Корень: перебор ходов с полным окном для первого и нулевым для остальных ── */
+    function rootSearch(me, moves, depth, exact) {
+      const opp = 3 - me;
+      let alpha = exact ? -1000 : -1e9;
+      const beta = exact ? 1000 : 1e9;
+      let best = -1, bestV = -1e9;
+      const scores = [];
+      for (let i = 0; i < moves.length; i++) {
+        const sq = moves[i];
+        const c = doMove(sq, me);
+        let v;
+        if (exact) {
+          if (i === 0) v = -solve(opp, -beta, -alpha, 1, false);
+          else { v = -solve(opp, -alpha - 1, -alpha, 1, false); if (v > alpha && !aborted) v = -solve(opp, -beta, -alpha, 1, false); }
+        } else {
+          if (i === 0) v = -search(opp, depth - 1, -beta, -alpha, 1, false);
+          else { v = -search(opp, depth - 1, -alpha - 1, -alpha, 1, false); if (v > alpha && !aborted) v = -search(opp, depth - 1, -beta, -alpha, 1, false); }
+        }
+        undoMove(sq, me, c);
+        if (aborted) break;
+        scores.push([sq, v]);
+        if (v > bestV) { bestV = v; best = sq; if (v > alpha) alpha = v; }
+      }
+      return { move: best, score: bestV, scores, complete: !aborted, searched: scores.length };
+    }
+    // Оценка всех ходов корня с полным окном (для слабых уровней с «шумом» и для подсказки)
+    function rootAll(me, moves, depth) {
+      const opp = 3 - me, out = [];
+      for (const sq of moves) {
+        const c = doMove(sq, me);
+        const v = -search(opp, depth - 1, -1e9, 1e9, 1, false);
+        undoMove(sq, me, c);
+        if (aborted) return null;
+        out.push([sq, v]);
+      }
+      return out;
+    }
+
+    function setLimits(timeMs, nodeMax) {
+      nodes = 0; aborted = false;
+      deadline = timeMs > 0 && isFinite(timeMs) ? now() + timeMs : Infinity;
+      nodeLimit = nodeMax > 0 && isFinite(nodeMax) ? nodeMax : Infinity;
+    }
+    function clearTT() { ttFlag.fill(0); hist.fill(0); }
+
+    // perft: число вариантов на глубину d (пас — тоже полуход, позиция после конца партии — лист без продолжений)
+    function perft(me, d, passed) {
+      if (d === 0) return 1;
+      const opp = 3 - me;
+      let total = 0, any = false;
+      for (let sq = nxt[HEAD]; sq !== HEAD; sq = nxt[sq]) {
+        const c = doMove(sq, me);
+        if (!c) continue;
+        any = true;
+        total += d === 1 ? 1 : perft(opp, d - 1, false);
+        undoMove(sq, me, c);
+      }
+      if (!any) {
+        if (passed) return 0;                        // конец партии: продолжений нет
+        if (!anyMove(opp)) return 0;
+        return perft(opp, d - 1, true);
+      }
+      return total;
+    }
+
+    return {
+      n, G, load, toFlat, doMove, undoMove, legalAt, legalList, mobility, anyMove, evaluate, evalSimple,
+      search, solve, rootSearch, rootAll, setLimits, clearTT, perft, terminal, endDiff,
+      get nodes() { return nodes; }, get aborted() { return aborted; }, get empties() { return empties; },
+      get discs() { return [discs[0], discs[1], discs[2]]; },
+      set evalKind(v) { evalKind = v; }, get evalKind() { return evalKind; }
+    };
+  }
+
+  /* ═══ 4. Уровни ИИ ═══
+   * time — предел времени на ход (мс, в фоновом потоке), nodes — предел узлов: на быстром устройстве
+   * сила одинакова (упирается в узлы), на медленном ход всё равно не дольше time.
+   * exact — с какого числа пустых клеток (на поле 8×8) включается точный перебор до конца. */
+  const LEVELS = [
+    { id: 1, name: 'Новичок', icon: '🌱', desc: 'Ходит почти наугад и любит переворачивать побольше фишек' },
+    { id: 2, name: 'Любитель', icon: '🙂', desc: 'Смотрит на ход вперёд и ценит углы и края, но ошибается', depth: 2, simple: true, noise: 90, blunder: 0.12 },
+    { id: 3, name: 'Опытный', icon: '🧠', desc: 'Считает на 4 хода, следит за подвижностью и углами; точно доигрывает последние 8 клеток', depth: 4, exact: 8, noise: 12, time: 700 },
+    { id: 4, name: 'Мастер', icon: '🔥', desc: 'Считает на 6 ходов; точно доигрывает последние 12 клеток', depth: 6, exact: 12, nodes: 250000, time: 800 },
+    { id: 5, name: 'Чемпион', icon: '👑', desc: 'Углубляет расчёт, пока есть время; точный перебор последних 16 клеток', depth: 40, exact: 16, nodes: 1500000, time: 1000 }
+  ];
+  // поправка точного эндшпиля на размер поля: на 10×10 перебор дороже (больше ходов в каждой позиции);
+  // на 6×6 те же пороги, что на 8×8 (замер: 16 пустых ≈ 0,15 с, 18 — уже ≈ 1 с)
+  const exactFor = (lv, n) => !lv.exact ? 0 : n === 10 ? lv.exact - 2 : lv.exact;
+
+  /* ── Главная функция ИИ ──
+   * req: { board (n·n), n, color, level, seed?, time?, nodes?, depth?, exact?, hint? }
+   * → { move (индекс n·n или -1), score, depth, exact, nodes, ms, scores? } */
+  function think(req) {
+    const t0 = now(), n = req.n, me = req.color;
+    const S = searcher(n);
+    S.load(req.board, me);
+    const lv = Object.assign({}, LEVELS[Math.max(0, Math.min(4, (req.level | 0) - 1))]);
+    for (const k of ['time', 'nodes', 'depth', 'exact', 'noise', 'blunder']) if (req[k] !== undefined) lv[k] = req[k];
+    const rnd = rng32((req.seed >>> 0) || 12345);
+    const flatOf = sq => S.G.flat[sq];
+    const moves = S.legalList(me).sort((a, c) => S.G.prio[c] - S.G.prio[a]);
+    const res = { move: -1, score: 0, depth: 0, exact: false, nodes: 0, ms: 0 };
+    if (!moves.length) return res;
+    const fin = r => { r.ms = Math.round(now() - t0); return r; };
+    if (moves.length === 1 && !req.hint) { res.move = flatOf(moves[0]); res.forced = true; return fin(res); }
+
+    // Уровень 1: наугад или жадно (больше всего переворотов)
+    if (lv.id === 1 && !req.hint) {
+      let pick;
+      if (rnd() < 0.45) pick = moves[(rnd() * moves.length) | 0];
+      else {
+        let bestF = -1, cand = [];
+        for (const sq of moves) {
+          const c = S.doMove(sq, me); S.undoMove(sq, me, c);
+          if (c > bestF) { bestF = c; cand = [sq]; } else if (c === bestF) cand.push(sq);
+        }
+        pick = cand[(rnd() * cand.length) | 0];
+      }
+      res.move = flatOf(pick);
+      return fin(res);
+    }
+
+    S.clearTT();
+    S.setLimits(lv.time || 0, lv.nodes || 0);
+    const ex = exactFor(lv, n);
+
+    // Уровень 2: таблица клеток на 2 полухода, случайный разброс и редкие «зевки»
+    if (lv.simple && !req.hint) {
+      S.evalKind = 1;
+      const all = S.rootAll(me, moves, lv.depth) || moves.map(sq => [sq, 0]);
+      S.evalKind = 0;
+      let pick;
+      const nonCorner = all.filter(([sq]) => S.G.prio[sq] < 9);
+      if (rnd() < lv.blunder && nonCorner.length) pick = nonCorner[(rnd() * nonCorner.length) | 0][0];
+      else {
+        let bv = -1e9;
+        for (const [sq, v] of all) { const s = v + rnd() * lv.noise; if (s > bv) { bv = s; pick = sq; } }
+      }
+      res.move = flatOf(pick); res.depth = lv.depth; res.nodes = S.nodes;
+      return fin(res);
+    }
+
+    // Уровни 3–5 (и подсказка): итеративное углубление
+    S.evalKind = 0;
+    const empt = S.empties;
+    let order = moves.slice(), best = moves[0], bestScore = 0, done = 0;
+    const maxD = Math.min(lv.depth, empt);
+    const useExact = ex > 0 && empt <= ex;
+    const noisy = lv.noise > 0 && !req.hint && !useExact;
+    // Перед точным перебором — обычный поиск (порядок ходов и запасной ход, если перебор не успеет):
+    // при немногих пустых — короткий, на границе (их почти exact) — до 30 % времени.
+    const midCap = useExact ? Math.min(maxD, empt <= ex - 4 ? 4 : 10) : noisy ? maxD - 1 : maxD;
+    for (let d = 1; d <= midCap; d++) {
+      const r = S.rootSearch(me, order, d, false);
+      if (!r.complete) {
+        // прерванная итерация: её ход годится, если прежний лучший (первый) досчитан и другой ход его побил
+        if (r.searched >= 2 && r.move >= 0 && r.move !== order[0]) { best = r.move; bestScore = r.score; }
+        break;
+      }
+      best = r.move; bestScore = r.score; done = d;
+      order = r.scores.slice().sort((a, c) => c[1] - a[1]).map(x => x[0]);
+      if (Math.abs(r.score) >= 19000) break;                       // исход партии уже просчитан до конца
+      if (lv.time && now() - t0 > lv.time * (useExact ? 0.3 : 0.45)) break;   // следующая итерация не успеет
+    }
+    res.depth = done;
+    res.score = bestScore;
+    if (useExact && !S.aborted) {
+      const r = S.rootSearch(me, order, 0, true);
+      if (r.complete) { best = r.move; res.score = r.score; res.exact = true; res.depth = empt; }
+    }
+    // уровень 3: случайный выбор среди почти равных ходов (оценки всех ходов — с полным окном)
+    if (noisy && !S.aborted && maxD >= 1) {
+      const all = S.rootAll(me, order, maxD);
+      if (all) {
+        const top = all.reduce((m, x) => Math.max(m, x[1]), -1e9);
+        const near = all.filter(x => x[1] >= top - lv.noise && Math.abs(x[1]) < 19000);
+        best = near.length ? near[(rnd() * near.length) | 0][0] : all.find(x => x[1] === top)[0];
+        res.score = top; res.depth = maxD;
+      }
+    }
+    res.move = flatOf(best);
+    res.nodes = S.nodes;
+    return fin(res);
+  }
+
+  // Точный перебор позиции (для тестов и подсказки в эндшпиле): { move, score } или null при превышении лимита
+  function solveExact(board, n, color, timeMs, nodeMax) {
+    const S = searcher(n);
+    S.load(board, color);
+    S.clearTT();
+    S.setLimits(timeMs || 0, nodeMax || 0);
+    const moves = S.legalList(color);
+    if (!moves.length) return { move: -1, score: null };
+    const r = S.rootSearch(color, moves, 0, true);
+    return r.complete ? { move: S.G.flat[r.move], score: r.score, nodes: S.nodes } : null;
+  }
+
+  function perft(n, depth, board, color) {
+    const S = searcher(n);
+    S.load(board || initialBoard(n), color || 1);
+    return S.perft(color || 1, depth, false);
+  }
+
+  return {
+    SIZES, LEVELS, initialBoard, flipLines, legalMoves, hasMove, play, after, counts, finalScore,
+    sqName, parseSq, replay, validBoard, diffMoves, think, solveExact, perft, exactFor,
+    _searcher: searcher, _geo: geo, _rng: rng32
+  };
 }
 
-function valid(player){
-  return Array.from({length:64},(_,i)=>i).filter(i=>!board[i]&&flips(i,player).length);
+/* ═══════════════════════════════════════════════════════════════
+ * РЕВЕРСИ — интерфейс: меню, партия (против ИИ / вдвоём / по сети), анимация переворотов,
+ * запись и просмотр партии, статистика, достижения, история, сохранение, настройки.
+ * ИИ считает в фоновом потоке (Web Worker из той же функции движка).
+ * ═════════════════════════════════════════════════════════════ */
+const E = ReversiEngine();
+const $ = id => document.getElementById(id);
+const qa = s => Array.from(document.querySelectorAll(s));
+const nowMs = () => performance.now();
+const plural = (n, a, b, c) => { const m = n % 10, h = n % 100; return m === 1 && h !== 11 ? a : m >= 2 && m <= 4 && (h < 12 || h > 14) ? b : c; };
+const esc = s => String(s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]);
+const COLOR_INS = { 1: 'чёрными', 2: 'белыми' };
+const COLOR_PL = { 1: 'Чёрные', 2: 'Белые' };
+// идентификаторы KuNet: 8×8 — 'reversi', как в прежней версии (старый клиент из кэша может оказаться в той же комнате);
+// 6×6 и 10×10 — отдельные id, чтобы старые клиенты их не видели
+const NET_IDS = { 6: 'reversi_6', 8: 'reversi', 10: 'reversi_10' };
+const sizeOfGame = id => id === 'reversi' ? 8 : id === 'reversi_6' ? 6 : id === 'reversi_10' ? 10 : 0;
+const LV = E.LEVELS;
+const lvName = l => (LV[l - 1] || LV[0]).name;
+// родительный падеж для подписей «Вы обыграли …»
+const LV_GEN = { 1: 'Новичка', 2: 'Любителя', 3: 'Опытного', 4: 'Мастера', 5: 'Чемпиона' };
+
+/* ═══ Хранилище ═══ */
+const store = {
+  get(k, d) { try { const v = localStorage.getItem(k); if (v === null) return d; const o = JSON.parse(v); return o === null || o === undefined ? d : o; } catch (e) { return d; } },
+  set(k, v) { try { localStorage.setItem(k, JSON.stringify(v)); } catch (e) {} },
+  del(k) { try { localStorage.removeItem(k); } catch (e) {} }
+};
+const asObj = o => (o && typeof o === 'object' && !Array.isArray(o)) ? o : {};
+const nat = v => (typeof v === 'number' && isFinite(v) && v >= 0) ? Math.floor(v) : 0;
+// reversi_stats — ключ прежней версии ({w,l,d} против ИИ), продолжаем вести его как общий счёт против ИИ
+const KEYS = { legacy: 'reversi_stats', stats: 'reversi2_stats', set: 'reversi2_settings', ach: 'reversi2_ach', hist: 'reversi2_history', save: 'reversi2_save' };
+
+/* ── Настройки ── */
+const reducedMotion = (() => { try { return matchMedia('(prefers-reduced-motion: reduce)').matches; } catch (e) { return false; } })();
+const settings = (() => {
+  const o = asObj(store.get(KEYS.set, null));
+  const s = { sound: true, vib: true, moves: true, last: true, coords: true, preview: true, confirm: false,
+    anim: reducedMotion ? 'fast' : 'normal', n: 8, level: 2, color: 1, warned: false, stTab: 8 };
+  for (const k of ['sound', 'vib', 'moves', 'last', 'coords', 'preview', 'confirm', 'warned']) if (typeof o[k] === 'boolean') s[k] = o[k];
+  if (['off', 'fast', 'normal', 'slow'].includes(o.anim)) s.anim = o.anim;
+  if (E.SIZES.includes(o.n)) s.n = o.n;
+  if (E.SIZES.includes(o.stTab)) s.stTab = o.stTab;
+  if (Number.isInteger(o.level) && o.level >= 1 && o.level <= 5) s.level = o.level;
+  if ([0, 1, 2].includes(o.color)) s.color = o.color;
+  return s;
+})();
+const saveSettings = () => store.set(KEYS.set, settings);
+const ANIM_K = { off: 0, fast: 0.55, normal: 1, slow: 1.6 };
+const animK = () => ANIM_K[settings.anim];
+
+/* ── Статистика ──
+ * by['ai:<n>:<уровень>'] = { g, w, l, d, cur, best, top, a }  (top — лучший перевес в победе, a — тренировочные)
+ * by['hot:<n>'] = { g, b, w, d }   (победы чёрных / белых)
+ * by['net:<n>'] = { g, w, l, d }
+ * legacy — счёт прежней версии (8×8, уровень неизвестен); seen — reversi_stats на момент нашей последней записи. */
+const blankAI = () => ({ g: 0, w: 0, l: 0, d: 0, cur: 0, best: 0, top: 0, a: 0 });
+const blankHot = () => ({ g: 0, b: 0, w: 0, d: 0 });
+const blankNet = () => ({ g: 0, w: 0, l: 0, d: 0 });
+const STAT_KEY = /^(ai:(6|8|10):[1-5]|hot:(6|8|10)|net:(6|8|10))$/;
+const readLegacy = () => { const o = asObj(store.get(KEYS.legacy, null)); return { w: nat(o.w), l: nat(o.l), d: nat(o.d) }; };
+const stats = (() => {
+  const o = asObj(store.get(KEYS.stats, null));
+  const st = { v: 1, by: {}, legacy: { w: 0, l: 0, d: 0 }, seen: null, total: { games: 0, streak: 0, bestStreak: 0 }, sizes: {} };
+  const by = asObj(o.by);
+  for (const k in by) {
+    if (!STAT_KEY.test(k)) continue;
+    const r = asObj(by[k]), rec = k[0] === 'a' ? blankAI() : k[0] === 'h' ? blankHot() : blankNet();
+    for (const f in rec) rec[f] = nat(r[f]);
+    if (k[0] !== 'h') { const s = rec.w + rec.l + rec.d; if (s > rec.g) rec.g = s; }
+    else { const s = rec.b + rec.w + rec.d; if (s > rec.g) rec.g = s; }
+    st.by[k] = rec;
+  }
+  const lg = asObj(o.legacy); st.legacy = { w: nat(lg.w), l: nat(lg.l), d: nat(lg.d) };
+  if (o.seen && typeof o.seen === 'object') { const sn = asObj(o.seen); st.seen = { w: nat(sn.w), l: nat(sn.l), d: nat(sn.d) }; }
+  const t = asObj(o.total); st.total = { games: nat(t.games), streak: nat(t.streak), bestStreak: nat(t.bestStreak) };
+  const sz = asObj(o.sizes); for (const n of E.SIZES) if (sz[n]) st.sizes[n] = 1;
+  return st;
+})();
+const saveStats = () => store.set(KEYS.stats, stats);
+// Перенос и сверка счёта прежней версии: если старая версия (из кэша) сыграла ещё партии — добавляем разницу
+function syncLegacy() {
+  const raw = readLegacy();
+  if (!stats.seen) stats.legacy = raw;
+  else for (const k of ['w', 'l', 'd']) if (raw[k] > stats.seen[k]) stats.legacy[k] += raw[k] - stats.seen[k];
+  stats.seen = raw;
+  saveStats();
+}
+function bumpLegacy(res) {
+  const raw = readLegacy();
+  raw[res]++;
+  store.set(KEYS.legacy, raw);
+  stats.seen = raw;
+}
+syncLegacy();
+const aiRec = (n, lv) => stats.by[`ai:${n}:${lv}`] || blankAI();
+function aiTotals(n) {
+  const t = { g: 0, w: 0, l: 0, d: 0, a: 0 };
+  for (const k in stats.by) {
+    if (!k.startsWith('ai:') || (n && !k.startsWith(`ai:${n}:`))) continue;
+    const r = stats.by[k]; t.g += r.g; t.w += r.w; t.l += r.l; t.d += r.d; t.a += r.a;
+  }
+  if (!n || n === 8) { const L = stats.legacy; t.g += L.w + L.l + L.d; t.w += L.w; t.l += L.l; t.d += L.d; }
+  return t;
 }
 
-function place(i,player){
-  const fl=flips(i,player);if(!fl.length) return false;
-  board[i]=player;fl.forEach(j=>board[j]=player);
+/* ── Достижения ── */
+const ACH = [
+  { id: 'first_win', icon: '🏆', title: 'Первая победа', desc: 'Обыграйте ИИ (без отмены ходов и подсказок)' },
+  { id: 'beat_2', icon: '🙂', title: 'Любитель повержен', desc: 'Победите ИИ уровня «Любитель»' },
+  { id: 'beat_3', icon: '🧠', title: 'Опыт против опыта', desc: 'Победите ИИ уровня «Опытный»' },
+  { id: 'beat_4', icon: '🔥', title: 'Мастер-класс', desc: 'Победите ИИ уровня «Мастер»' },
+  { id: 'beat_5', icon: '👑', title: 'Чемпион чемпиона', desc: 'Победите ИИ уровня «Чемпион»' },
+  { id: 'white', icon: '⚪', title: 'Вторым номером', desc: 'Победите ИИ уровня «Опытный» или выше, играя белыми' },
+  { id: 'corners', icon: '🧱', title: 'Четыре угла', desc: 'Закончите партию против ИИ или по сети, владея всеми четырьмя углами' },
+  { id: 'wipeout', icon: '💯', title: 'Чистое поле', desc: 'Выиграйте так, чтобы у соперника не осталось ни одной фишки' },
+  { id: 'streak5', icon: '🔗', title: 'Пять подряд', desc: 'Выиграйте у ИИ 5 партий подряд' },
+  { id: 'draw', icon: '⚖️', title: 'Боевая ничья', desc: 'Сыграйте вничью с ИИ или по сети' },
+  { id: 'hot', icon: '👥', title: 'Вдвоём веселее', desc: 'Доиграйте партию вдвоём на одном устройстве' },
+  { id: 'net', icon: '🌐', title: 'Сетевой дебют', desc: 'Доиграйте партию по сети' },
+  { id: 'net_win', icon: '🏅', title: 'Победа по сети', desc: 'Обыграйте соперника по сети' },
+  { id: 'sizes', icon: '🔲', title: 'Все поля', desc: 'Доиграйте партии на полях 6×6, 8×8 и 10×10' },
+  { id: 'games50', icon: '🎖️', title: 'Ветеран', desc: 'Сыграйте 50 партий' }
+];
+const unlocked = (() => { const o = asObj(store.get(KEYS.ach, null)), u = {}; for (const a of ACH) if (nat(o[a.id])) u[a.id] = nat(o[a.id]); return u; })();
+const achCount = () => ACH.filter(a => unlocked[a.id]).length;
+const achQueue = []; let achTimer = 0;
+function nextAchToast() { const m = achQueue.shift(); if (!m) { achTimer = 0; return; } toast(m, 'gold', 2600); achTimer = setTimeout(nextAchToast, 2800); }
+function award(id) {
+  if (unlocked[id]) return;
+  const a = ACH.find(x => x.id === id);
+  if (!a) return;
+  unlocked[id] = Date.now(); store.set(KEYS.ach, unlocked);
+  sfx.ach(); vib([40, 40, 90]);
+  achQueue.push(`🏅 Достижение: ${a.title}`);
+  if (!achTimer) achTimer = setTimeout(nextAchToast, 900);
+}
+
+/* ── История партий (последние 40) ── */
+const HIST_MAX = 40;
+function validHistItem(h) {
+  if (!h || typeof h !== 'object' || !E.SIZES.includes(h.n) || !['ai', 'hot', 'net'].includes(h.m) || !Number.isFinite(h.t)) return false;
+  if (h.mv !== null && !(Array.isArray(h.mv) && h.mv.every(Number.isInteger))) return false;
+  return ['w', 'l', 'd'].includes(h.res);
+}
+let history = (() => { const a = store.get(KEYS.hist, []); return Array.isArray(a) ? a.filter(validHistItem).slice(-HIST_MAX) : []; })();
+function addHistory(h) { history.push(h); if (history.length > HIST_MAX) history = history.slice(-HIST_MAX); store.set(KEYS.hist, history); }
+
+/* ═══ Звук и вибрация ═══ */
+let actx = null;
+function tone(f, d, type, v, delay, f2) {
+  if (!settings.sound) return;
+  try {
+    if (!actx) actx = new (window.AudioContext || window.webkitAudioContext)();
+    if (actx.state === 'suspended') actx.resume();
+    const t0 = actx.currentTime + (delay || 0), o = actx.createOscillator(), g = actx.createGain();
+    o.type = type || 'sine'; o.frequency.setValueAtTime(f, t0);
+    if (f2) o.frequency.exponentialRampToValueAtTime(f2, t0 + d);
+    g.gain.setValueAtTime(0.0001, t0); g.gain.exponentialRampToValueAtTime(v || 0.05, t0 + 0.006); g.gain.exponentialRampToValueAtTime(0.0001, t0 + d);
+    o.connect(g); g.connect(actx.destination); o.start(t0); o.stop(t0 + d + 0.03);
+  } catch (e) {}
+}
+const sfx = {
+  put: () => tone(320, 0.09, 'triangle', 0.09, 0, 150),
+  flips: (cnt, k) => { const s = Math.max(k, 0.3); for (let j = 0; j < Math.min(cnt, 8); j++) tone(880 + j * 55, 0.035, 'sine', 0.022, (0.12 + j * 0.07) * s); },
+  pass: () => { tone(440, 0.12, 'sine', 0.05); tone(330, 0.16, 'sine', 0.05, 0.12); },
+  nope: () => tone(150, 0.09, 'square', 0.025),
+  win: () => [523, 659, 784, 1046].forEach((f, i) => tone(f, 0.15, 'triangle', 0.06, i * 0.1)),
+  lose: () => [392, 330, 262].forEach((f, i) => tone(f, 0.2, 'triangle', 0.05, i * 0.14)),
+  draw: () => [494, 494].forEach((f, i) => tone(f, 0.15, 'triangle', 0.05, i * 0.17)),
+  ach: () => [659, 784, 1046].forEach((f, i) => tone(f, 0.12, 'sine', 0.05, i * 0.09)),
+  hint: () => [784, 988].forEach((f, i) => tone(f, 0.1, 'sine', 0.04, i * 0.07)),
+  click: () => tone(620, 0.03, 'sine', 0.018)
+};
+const vib = p => { if (settings.vib && navigator.vibrate) try { navigator.vibrate(p); } catch (e) {} };
+const toast = (m, k, ms) => { if (window.KuArcade) KuArcade.toast(m, k, ms); };
+
+/* ═══ Фоновый поток ИИ ═══
+ * Один запрос за раз; новый запрос или отмена останавливают поток (следующий запрос создаст новый).
+ * Если поток не запускается — считаем в основном потоке с меньшим пределом времени. */
+const AI = {
+  w: null, seq: 0, cur: null, broken: false,
+  worker() {
+    if (this.broken) return null;
+    if (this.w) return this.w;
+    try {
+      const src = 'const E=(' + ReversiEngine.toString() + ')();' +
+        'onmessage=function(e){var d=e.data,r;try{r={id:d.id,res:E.think(d.req)}}catch(err){r={id:d.id,err:String(err&&err.message||err)}}postMessage(r)};';
+      const url = URL.createObjectURL(new Blob([src], { type: 'text/javascript' }));
+      const w = new Worker(url);
+      w.onmessage = e => {
+        const c = this.cur;
+        if (!c || c.id !== e.data.id) return;
+        this.cur = null;
+        if (e.data.err) c.reject(new Error(e.data.err)); else c.resolve(e.data.res);
+      };
+      w.onerror = ev => {
+        if (ev && ev.preventDefault) ev.preventDefault();
+        this.broken = true;
+        try { w.terminate(); } catch (e) {}
+        this.w = null;
+        const c = this.cur;
+        if (c) this.local(c.req).then(r => { if (this.cur === c) { this.cur = null; c.resolve(r); } }, err => { if (this.cur === c) { this.cur = null; c.reject(err); } });
+      };
+      this.w = w;
+      return w;
+    } catch (e) { this.broken = true; return null; }
+  },
+  ask(req) {
+    this.cancel();
+    return new Promise((resolve, reject) => {
+      const c = { id: ++this.seq, req, resolve, reject };
+      this.cur = c;
+      const w = this.worker();
+      if (w) { w.postMessage({ id: c.id, req }); return; }
+      this.local(req).then(r => { if (this.cur === c) { this.cur = null; resolve(r); } }, err => { if (this.cur === c) { this.cur = null; reject(err); } });
+    });
+  },
+  local(req) {
+    return new Promise((resolve, reject) => setTimeout(() => {
+      try { resolve(E.think(Object.assign({}, req, { time: Math.min(req.time || 250, 250) }))); } catch (e) { reject(e); }
+    }, 40));
+  },
+  busy() { return !!this.cur; },
+  cancel() {
+    const c = this.cur;
+    if (!c) return;
+    this.cur = null;
+    if (this.w) { try { this.w.terminate(); } catch (e) {} this.w = null; }
+    c.reject('cancel');
+  }
+};
+
+/* ═══ Поле (DOM): общий вид для партии и просмотра записи ═══ */
+const LETTERS = 'abcdefghij';
+function makeView(el) {
+  const V = { el, n: 0, cells: [], discs: [], shown: [] };
+  V.build = n => {
+    el.innerHTML = '';
+    el.style.gridTemplateColumns = el.style.gridTemplateRows = `repeat(${n}, minmax(0,1fr))`;
+    el.classList.toggle('big', n <= 6);
+    V.n = n; V.cells = []; V.discs = new Array(n * n).fill(null); V.shown = new Array(n * n).fill(0);
+    for (let r = 0; r < n; r++) {
+      const row = document.createElement('div');
+      row.setAttribute('role', 'row'); row.style.display = 'contents';
+      for (let c = 0; c < n; c++) {
+        const i = r * n + c, d = document.createElement('div');
+        d.className = 'cell'; d.dataset.i = i; d.setAttribute('role', 'gridcell');
+        if (r === 0 && c === 0) d.classList.add('tl');
+        if (r === 0 && c === n - 1) d.classList.add('tr');
+        if (r === n - 1 && c === 0) d.classList.add('bl');
+        if (r === n - 1 && c === n - 1) d.classList.add('br');
+        if (c === 0) { const l = document.createElement('i'); l.className = 'lab r'; l.textContent = r + 1; d.appendChild(l); }
+        if (r === n - 1) { const l = document.createElement('i'); l.className = 'lab c'; l.textContent = LETTERS[c]; d.appendChild(l); }
+        row.appendChild(d); V.cells.push(d);
+      }
+      el.appendChild(row);
+    }
+  };
+  // Нарисовать доску. anim: { at — клетка хода, lines — линии переворота } — фишки переворачиваются по линиям от хода
+  V.paint = (board, anim) => {
+    const n = V.n, k = animK(), on = !!anim && k > 0;
+    const delay = new Map();
+    let maxD = 0;
+    if (on && anim.lines) anim.lines.forEach(L => L.forEach((j, idx) => { const t = Math.round((120 + idx * 70) * k); delay.set(j, t); maxD = Math.max(maxD, t); }));
+    for (let i = 0; i < n * n; i++) {
+      const v = board[i] | 0, was = V.shown[i];
+      if (v === was) continue;
+      let d = V.discs[i];
+      if (!v) { if (d) d.remove(); V.discs[i] = null; continue; }
+      if (!was || !d) {
+        if (d) d.remove();
+        d = document.createElement('div');
+        d.className = 'disc ' + (v === 1 ? 'b' : 'w');
+        d.innerHTML = '<i class="f fb"></i><i class="f fw"></i>';
+        if (on && i === anim.at) d.classList.add('put');
+        V.cells[i].appendChild(d); V.discs[i] = d;
+        continue;
+      }
+      // имя анимации меняется с цветом, поэтому она перезапускается без принудительного пересчёта раскладки
+      if (on && delay.has(i)) { d.style.setProperty('--d', delay.get(i) + 'ms'); d.className = 'disc flip ' + (v === 1 ? 'b' : 'w'); }
+      else d.className = 'disc ' + (v === 1 ? 'b' : 'w');
+    }
+    V.shown = board.slice();
+    return on ? maxD + Math.round(420 * k) + 40 : 0;          // сколько мс идёт анимация
+  };
+  V.reset = () => { V.shown = new Array(V.n * V.n).fill(0); V.discs.forEach(d => d && d.remove()); V.discs = new Array(V.n * V.n).fill(null); };
+  return V;
+}
+const view = makeView($('grid'));
+const recView = makeView($('rec-grid'));
+
+/* ═══ Экраны и окна ═══ */
+let screen = 'menu';
+const OVERLAYS = ['ov-pause', 'ov-end', 'ov-rules', 'ov-settings', 'ov-stats', 'ov-ach', 'ov-hist', 'ov-record'];
+const isOpen = id => $(id).classList.contains('open');
+const anyOpen = () => OVERLAYS.some(isOpen) || !!document.querySelector('.ku-dialog') || !!document.querySelector('.kn-ov');
+let returnTo = null;           // окно, в которое вернуться (правила/настройки/запись из паузы или конца партии)
+let lastFocus = null;
+function openOv(id, from) {
+  if (from) { returnTo = from; $(from).classList.remove('open'); }
+  lastFocus = document.activeElement;
+  $(id).classList.add('open');
+  clearPreview();
+  setTimeout(() => { const b = $(id).querySelector('.ku-btn.primary, [data-close], .ku-btn'); try { if (b) b.focus({ preventScroll: true }); } catch (e) {} }, 30);
+}
+function closeOv(id) {
+  if (!isOpen(id)) return;
+  $(id).classList.remove('open');
+  if (id === 'ov-record') stopRecPlay();
+  if (returnTo && returnTo !== id) { const r = returnTo; returnTo = null; if (screen === 'game' || r === 'ov-stats' || r === 'ov-hist') { $(r).classList.add('open'); return; } }
+  returnTo = null;
+  try { if (lastFocus && lastFocus.focus && document.contains(lastFocus)) lastFocus.focus({ preventScroll: true }); } catch (e) {}
+  if (!anyOpen()) onResume();
+}
+function closeAll() { OVERLAYS.forEach(id => $(id).classList.remove('open')); returnTo = null; stopRecPlay(); }
+function showScreen(name) {
+  screen = name;
+  $('screen-menu').classList.toggle('active', name === 'menu');
+  $('screen-game').classList.toggle('active', name === 'game');
+  document.body.classList.toggle('ku-calm', name === 'game');
+  if (name === 'menu') refreshMenu(); else requestAnimationFrame(layout);
+}
+qa('[data-close]').forEach(b => b.addEventListener('click', () => { sfx.click(); closeOv(b.closest('.ku-overlay').id); }));
+qa('.ku-overlay').forEach(o => o.addEventListener('click', e => { if (e.target === o && o.querySelector('.ku-modal')) closeOv(o.id); }));
+
+/* ═══ Партия ═══ */
+let G = null, gameSeq = 0, endTimer = 0, aiTimer = 0, animUntil = 0, net = null, errAt = 0;
+function newG(mode, n, o) {
+  return {
+    id: ++gameSeq, mode, n, level: o.level || 0, my: o.my || 0, base: null, moves: [], board: E.initialBoard(n), turn: 1,
+    over: false, legal: [], last: -1, assisted: !!o.assisted, undos: o.undos || 0, hints: o.hints || 0, t0: Date.now() - (o.el || 0),
+    thinking: false, held: -1, sug: -1, sel: -1, cur: -1, kbd: false, recorded: false,
+    // сеть: раунд, подтверждённая сервером позиция и число подтверждённых ходов
+    round: 0, conf: null, confLen: 0, sending: false, oppLeft: false, broken: false, noticeVer: -1
+  };
+}
+// запись → позиция (с кэшем: одна и та же запись не проигрывается заново при каждом обновлении экрана)
+function pos() {
+  const key = G.moves.join(',') + '|' + (G.base ? G.base.board.join('') + G.base.turn : '');
+  if (G.rpKey !== key) { G.rp = E.replay(G.n, G.moves, G.base); G.rpKey = key; }
+  return G.rp;
+}
+// Позиция из записи ходов
+function syncFromMoves() {
+  const r = pos();
+  G.board = r.board; G.turn = r.over ? 0 : r.turn; G.over = r.over;
+  G.last = G.moves.length ? G.moves[G.moves.length - 1] : -1;
+  G.legal = G.over ? [] : E.legalMoves(G.board, G.n, G.turn);
+  return r;
+}
+const myMovesCount = () => { if (!G || G.mode === 'hot') return 0; const r = pos(); return r.steps.filter(s => s.by === G.my).length; };
+
+// Может ли человек сейчас ходить с этого устройства
+function canAct() {
+  if (!G || G.over || screen !== 'game' || anyOpen()) return false;
+  if (G.mode === 'ai') return G.turn === G.my && !G.thinking;
+  if (G.mode === 'hot') return true;
+  if (G.mode === 'net') return !!net && !!net.room && net.room.status === 'playing' && G.turn === G.my && !G.sending && !net.busy && !G.broken;
+  return false;
+}
+
+function startLocal(mode, o) {
+  AI.cancel(); clearTimeout(endTimer); clearTimeout(aiTimer);
+  leaveNet();
+  closeAll();
+  const n = o.n || settings.n;
+  let my = 0;
+  if (mode === 'ai') my = o.my || (settings.color === 0 ? (Math.random() < 0.5 ? 1 : 2) : settings.color);
+  G = newG(mode, n, { level: o.level || settings.level, my, assisted: o.assisted, undos: o.undos, hints: o.hints, el: o.el });
+  if (o.moves) G.moves = o.moves.slice();
+  view.build(n);
+  applyBoardClasses();
+  syncFromMoves();
+  view.paint(G.board, null);
+  showScreen('game');
+  updateAll();
+  if (mode === 'ai' && !o.moves) toast(my === 1 ? 'Вы играете чёрными — ваш ход первый' : 'Вы играете белыми — первым ходит ИИ', 'good');
+  if (o.moves) toast('Партия продолжается', 'good');
+  saveGame();
+  if (mode === 'ai' && G.turn !== G.my && !G.over) maybeAI();
+}
+
+/* ── Ход (против ИИ и вдвоём) ── */
+function commitMove(i) {
+  const by = G.turn, r = E.play(G.board, G.n, i, by);
+  if (!r) return false;
+  G.moves.push(i);
+  const a = E.after(r.board, G.n, by);
+  G.board = r.board; G.turn = a.over ? 0 : a.turn; G.over = a.over; G.last = i;
+  G.legal = G.over ? [] : E.legalMoves(G.board, G.n, G.turn);
+  G.sug = -1; G.sel = -1;
+  const dur = view.paint(G.board, { at: i, lines: r.lines });
+  animUntil = nowMs() + dur;
+  sfx.put(); sfx.flips(r.flipped, animK()); vib(10);
+  if (a.pass) announcePass(3 - by);
+  updateAll();
+  if (G.over) { recordResult(); scheduleEnd(); return true; }
+  saveGame();
+  if (G.mode === 'ai' && G.turn !== G.my) maybeAI();
+  return true;
+}
+function announcePass(who) {
+  let m;
+  if (G.mode === 'ai') m = who === G.my ? 'У вас нет ходов — пас, ходит ИИ' : 'У ИИ нет ходов — пас, снова ваш ход';
+  else if (G.mode === 'net') m = who === G.my ? 'У вас нет ходов — пас' : 'У соперника нет ходов — пас, снова ваш ход';
+  else m = `${who === 1 ? '⚫ У чёрных' : '⚪ У белых'} нет ходов — пас`;
+  toast(m, 'gold', 2600); sfx.pass(); vib([20, 60, 20]);
+}
+
+/* ── Ход ИИ: считаем сразу (пока идёт анимация хода игрока), применяем не раньше конца анимации ── */
+const MIN_THINK = 450;
+function maybeAI() {
+  if (!G || G.mode !== 'ai' || G.over || G.turn === G.my || G.thinking) return;
+  G.thinking = true; G.held = -1;
+  const gid = G.id, ply = G.moves.length, t0 = nowMs();
+  updateHUD();
+  AI.ask({ board: G.board.slice(), n: G.n, color: G.turn, level: G.level, seed: (Math.random() * 2147483647) | 0 })
+    .then(res => {
+      if (!G || G.id !== gid || G.moves.length !== ply) return;
+      const wait = Math.max(MIN_THINK - (nowMs() - t0), animUntil - nowMs() + 120, 0);
+      clearTimeout(aiTimer);
+      aiTimer = setTimeout(() => {
+        if (!G || G.id !== gid || G.moves.length !== ply) return;
+        G.thinking = false;
+        if (anyOpen() || screen !== 'game') { G.held = res.move; updateHUD(); return; }    // пауза — ход ждёт
+        commitAI(res.move);
+      }, wait);
+    })
+    .catch(err => {
+      if (err === 'cancel' || !G || G.id !== gid || G.moves.length !== ply) return;
+      // сбой расчёта — случайный законный ход, партия не зависает
+      const ms = E.legalMoves(G.board, G.n, G.turn);
+      G.thinking = false;
+      if (ms.length) commitAI(ms[(Math.random() * ms.length) | 0]);
+    });
+}
+function commitAI(i) {
+  if (!G || G.over || G.mode !== 'ai' || G.turn === G.my) return;
+  if (!commitMove(i)) { const ms = E.legalMoves(G.board, G.n, G.turn); if (ms.length) commitMove(ms[0]); }
+}
+// После закрытия окон: ход ИИ, отложенный паузой
+function onResume() {
+  if (!G || screen !== 'game') return;
+  if (G.mode === 'ai' && G.held >= 0 && !G.over && G.turn !== G.my) {
+    const m = G.held, gid = G.id;
+    clearTimeout(aiTimer);
+    aiTimer = setTimeout(() => {
+      if (!G || G.id !== gid) return;
+      if (anyOpen() || screen !== 'game') { updateHUD(); return; }     // снова пауза — ход ИИ ещё подождёт
+      G.held = -1; commitAI(m);
+    }, 250);
+  }
+  else if (G.mode === 'ai' && !G.over && G.turn !== G.my && !G.thinking && !AI.busy()) maybeAI();
+  paintMarks();
+}
+
+/* ── Отмена хода и подсказка ── */
+async function assistOK() {
+  if (!G || G.mode !== 'ai' || G.assisted) return true;
+  if (!settings.warned) {
+    const ok = await KuArcade.confirm('Отмена хода и подсказка делают партию тренировочной: она сохранится в истории, но не войдёт в победы и поражения, серию и достижения.', { title: 'ТРЕНИРОВКА?', ok: 'Понятно, дальше', cancel: 'Отмена' });
+    if (!ok) return false;
+    settings.warned = true; saveSettings();
+  }
+  return true;
+}
+function markAssisted() {
+  if (G.mode === 'ai' && !G.assisted) { G.assisted = true; toast('Тренировочная партия — без учёта в статистике', 'gold'); }
+}
+async function undo() {
+  if (!G || G.over || !G.moves.length || G.mode === 'net' || screen !== 'game') return;
+  if (G.mode === 'ai') {
+    const r = pos();
+    let j = -1;
+    for (let t = r.steps.length - 1; t >= 1; t--) if (r.steps[t].by === G.my) { j = t - 1; break; }   // индекс последнего своего хода
+    if (j < 0) { toast('Нечего отменять'); return; }
+    if (!(await assistOK())) return;
+    if (!G || G.over) return;
+    AI.cancel(); clearTimeout(aiTimer); G.thinking = false; G.held = -1;
+    markAssisted(); G.undos++;
+    G.moves.length = j;
+  } else {
+    G.moves.pop();
+  }
+  G.sug = -1; G.sel = -1;
+  syncFromMoves();
+  view.paint(G.board, null);
+  animUntil = nowMs();
+  sfx.click();
+  updateAll(); saveGame();
+  if (G.mode === 'ai' && G.turn !== G.my && !G.over) maybeAI();
+}
+async function hint() {
+  if (!canAct() || G.mode === 'net') return;
+  if (!(await assistOK())) return;
+  if (!canAct()) return;
+  markAssisted(); G.hints++;
+  const gid = G.id, ply = G.moves.length;
+  $('btn-hint').disabled = true;
+  $('g-sub').textContent = 'ИЩУ ЛУЧШИЙ ХОД…';
+  AI.ask({ board: G.board.slice(), n: G.n, color: G.turn, level: 5, hint: true, time: 800, nodes: 600000, seed: 1 })
+    .then(res => {
+      if (!G || G.id !== gid || G.moves.length !== ply || res.move < 0) return;
+      G.sug = res.move;
+      let m = `💡 Лучший ход: ${E.sqName(G.n, res.move)}`;
+      if (res.exact) m += res.score > 0 ? ` — точный расчёт: победа (+${res.score})` : res.score < 0 ? ` — точный расчёт: поражение (${res.score})` : ' — точный расчёт: ничья';
+      toast(m, 'gold', 3200); sfx.hint();
+      paintMarks(); saveGame();
+    })
+    .catch(() => {})
+    .then(() => { $('btn-hint').disabled = false; updateHUD(); });
+}
+
+/* ── Конец партии: учёт, история, достижения ── */
+function margins(f, me) {
+  const my = me === 1 ? f.fb : f.fw, op = me === 1 ? f.fw : f.fb;
+  return { my, op, res: my > op ? 'w' : my < op ? 'l' : 'd' };
+}
+function recordResult(abandoned) {
+  if (!G || G.recorded) return;
+  G.recorded = true;
+  const n = G.n, f = E.finalScore(G.board);
+  const dur = Math.round((Date.now() - G.t0) / 1000);
+  let res = 'd';
+  const corners = [0, n - 1, n * n - n, n * n - 1];
+  if (G.mode === 'ai') {
+    const m = margins(f, G.my);
+    res = abandoned ? 'l' : m.res;
+    const k = `ai:${n}:${G.level}`, r = stats.by[k] || (stats.by[k] = blankAI());
+    if (G.assisted) r.a++;
+    else {
+      r.g++; r[res]++;
+      if (res === 'w') { r.cur++; r.best = Math.max(r.best, r.cur); r.top = Math.max(r.top, m.my - m.op); } else r.cur = 0;
+      if (res === 'w') { stats.total.streak++; stats.total.bestStreak = Math.max(stats.total.bestStreak, stats.total.streak); } else stats.total.streak = 0;
+      bumpLegacy(res);
+    }
+  } else if (G.mode === 'hot') {
+    const k = `hot:${n}`, r = stats.by[k] || (stats.by[k] = blankHot());
+    r.g++; r[f.winner === 1 ? 'b' : f.winner === 2 ? 'w' : 'd']++;
+    res = f.winner === 1 ? 'w' : f.winner === 2 ? 'l' : 'd';            // для вдвоём: w — победили чёрные
+  } else if (G.mode === 'net') {
+    const m = margins(f, G.my);
+    res = m.res;
+    const k = `net:${n}`, r = stats.by[k] || (stats.by[k] = blankNet());
+    r.g++; r[res]++;
+  }
+  stats.total.games++;
+  if (!abandoned) stats.sizes[n] = 1;
+  saveStats();
+  const opp = G.mode === 'net' && net && net.room ? String(net.room.players[2 - G.my] || '') : '';
+  // у брошенной партии — фактический счёт на поле (пустые клетки никому не отдаются)
+  addHistory({ t: Date.now(), m: G.mode, n, lv: G.level, me: G.my, b: f.b, w: f.w, fb: abandoned ? f.b : f.fb, fw: abandoned ? f.w : f.fw, res, a: G.assisted ? 1 : 0,
+    ab: abandoned ? 1 : 0, mv: G.broken ? null : G.moves.slice(), bs: G.base ? G.base.board.slice() : undefined, bt: G.base ? G.base.turn : undefined,
+    opp: opp.slice(0, 32), dur });
+  clearSave();
+  if (abandoned) return;
+  // достижения
+  const clean = G.mode === 'ai' && !G.assisted;
+  const mine = G.mode === 'net' || clean;
+  if (clean && res === 'w') {
+    award('first_win');
+    if (G.level >= 2) award('beat_' + G.level);
+    if (G.my === 2 && G.level >= 3) award('white');
+  }
+  if (mine && corners.every(c => G.board[c] === G.my)) award('corners');
+  if (mine && res === 'w' && (G.my === 1 ? f.w : f.b) === 0) award('wipeout');
+  if (stats.total.streak >= 5) award('streak5');
+  if (mine && res === 'd') award('draw');
+  if (G.mode === 'hot') award('hot');
+  if (G.mode === 'net') { award('net'); if (res === 'w') award('net_win'); }
+  if (E.SIZES.every(s => stats.sizes[s])) award('sizes');
+  if (stats.total.games >= 50) award('games50');
+}
+function scheduleEnd() {
+  clearTimeout(endTimer);
+  const wait = Math.max(animUntil - nowMs(), 0) + 650;
+  endTimer = setTimeout(showEnd, wait);
+}
+function showEnd() {
+  if (!G || screen !== 'game') return;
+  const f = E.finalScore(G.board), n = G.n;
+  const title = $('end-title');
+  let t = 'НИЧЬЯ', cls = '', sub = '', snd = 'draw';
+  if (G.mode === 'ai') {
+    const m = margins(f, G.my);
+    if (m.res === 'w') { t = 'ПОБЕДА!'; cls = 'win'; sub = `Вы обыграли ${LV_GEN[G.level]} (${n}×${n})`; snd = 'win'; }
+    else if (m.res === 'l') { t = 'ПОРАЖЕНИЕ'; cls = 'lose'; sub = `${lvName(G.level)} оказался сильнее`; snd = 'lose'; }
+    else sub = 'Поровну фишек';
+    if (G.assisted) sub += ' · тренировочная партия';
+  } else if (G.mode === 'hot') {
+    if (f.winner) { t = f.winner === 1 ? 'ПОБЕДА ЧЁРНЫХ' : 'ПОБЕДА БЕЛЫХ'; cls = 'win'; snd = 'win'; }
+    sub = f.winner ? 'Вдвоём на одном экране' : 'Поровну фишек';
+  } else {
+    const m = margins(f, G.my);
+    const oppName = net && net.room ? (net.room.players[2 - G.my] || 'Соперник') : 'Соперник';
+    if (m.res === 'w') { t = 'ПОБЕДА!'; cls = 'win'; sub = `Вы обыграли: ${oppName}`; snd = 'win'; }
+    else if (m.res === 'l') { t = 'ПОРАЖЕНИЕ'; cls = 'lose'; sub = `Победил ${oppName}`; snd = 'lose'; }
+    else sub = 'Поровну фишек';
+  }
+  title.textContent = t; title.className = cls;
+  $('end-sub').textContent = sub;
+  $('end-score').innerHTML = `<i class="dot b"></i>${fmtScore(f.fb)} : ${fmtScore(f.fw)}<i class="dot w"></i>`;
+  $('end-note').textContent = f.e ? `Пустых клеток: ${f.e} — ${f.winner ? 'отданы победителю' : 'поделены поровну'} (на поле ${f.b} : ${f.w})` : '';
+  const pr = pos();
+  const passes = pr.steps.filter(s => s.pass).length;
+  const corners = [0, n - 1, n * n - n, n * n - 1];
+  const myC = G.mode === 'hot' ? null : corners.filter(c => G.board[c] === G.my).length;
+  let rows = `<div>Ходов<b>${G.moves.length}</b></div>`;
+  if (myC !== null) rows += `<div>Ваших углов<b>${myC} из 4</b></div>`;
+  if (passes) rows += `<div>Пасов<b>${passes}</b></div>`;
+  if (G.mode === 'ai' && !G.assisted) {
+    const r = aiRec(n, G.level);
+    rows += `<div>${lvName(G.level)} · ${n}×${n}<b>${r.w}–${r.l}${r.d ? '–' + r.d : ''}</b></div>`;
+    if (r.cur >= 2) rows += `<div>Серия побед<b>${r.cur}</b></div>`;
+  }
+  $('end-stats').innerHTML = rows;
+  $('btn-again').hidden = G.mode === 'net' && (G.oppLeft || !net);
+  $('btn-again').textContent = G.mode === 'net' ? 'Новая партия для обоих' : 'Играть снова';
+  $('btn-swap').hidden = G.mode !== 'ai';
+  $('btn-review').hidden = G.broken && !G.moves.length;
+  closeAll();
+  openOv('ov-end');
+  sfx[snd](); vib(snd === 'win' ? [30, 50, 30, 50, 80] : 60);
+}
+const fmtScore = v => Number.isInteger(v) ? String(v) : String(v).replace('.', ',');
+
+/* ── Сохранение незаконченной партии (против ИИ и вдвоём) ── */
+function saveGame() {
+  if (!G || G.mode === 'net' || G.over || G.recorded) return;
+  if (!G.moves.length) { clearSave(); return; }               // нечего продолжать (новая партия или всё отменено)
+  store.set(KEYS.save, { v: 1, m: G.mode, n: G.n, lv: G.level, me: G.my, mv: G.moves.slice(), a: G.assisted ? 1 : 0, u: G.undos, h: G.hints, el: Date.now() - G.t0, at: Date.now() });
+}
+function clearSave() { store.del(KEYS.save); }
+function loadSave() {
+  const s = asObj(store.get(KEYS.save, null));
+  if (s.v !== 1 || !['ai', 'hot'].includes(s.m) || !E.SIZES.includes(s.n) || !Array.isArray(s.mv) || !s.mv.every(Number.isInteger)) return null;
+  if (s.m === 'ai' && (!(Number.isInteger(s.lv) && s.lv >= 1 && s.lv <= 5) || ![1, 2].includes(s.me))) return null;
+  const r = E.replay(s.n, s.mv);
+  if (!r.ok || r.over) return null;
+  return { m: s.m, n: s.n, lv: s.lv, me: s.me, mv: s.mv, a: !!s.a, u: nat(s.u), h: nat(s.h), el: nat(s.el), board: r.board };
+}
+function continueSaved() {
+  const s = loadSave();
+  if (!s) { clearSave(); refreshMenu(); return; }
+  startLocal(s.m, { n: s.n, level: s.lv, my: s.me, moves: s.mv, assisted: s.a, undos: s.u, hints: s.h, el: s.el });
+}
+// Начать новую партию вместо сохранённой: недоигранная честная партия против ИИ (4+ своих хода) — поражение
+async function confirmReplace() {
+  const s = loadSave();
+  const live = G && !G.over && !G.recorded && G.mode !== 'net' && screen === 'game';
+  if (live) saveGame();
+  const cur = live ? { m: G.mode, a: G.assisted, my: G.my } : s ? { m: s.m, a: s.a, my: s.me } : null;
+  if (!cur) return true;
+  let myCnt = 0;
+  if (cur.m === 'ai') {
+    if (live) myCnt = myMovesCount();
+    else { const r = E.replay(s.n, s.mv); myCnt = r.steps.filter(x => x.by === s.me).length; }
+  }
+  const penal = cur.m === 'ai' && !cur.a && myCnt >= 4;
+  const msg = penal ? 'Недоигранная партия против ИИ будет засчитана как поражение.' : 'Недоигранная партия будет удалена.';
+  const ok = await KuArcade.confirm(msg, { title: 'НОВАЯ ПАРТИЯ?', ok: 'Начать новую', cancel: 'Отмена', danger: penal });
+  if (!ok) return false;
+  if (penal) {
+    if (!live) { G = newG('ai', s.n, { level: s.lv, my: s.me }); G.moves = s.mv.slice(); syncFromMoves(); }
+    recordResult(true);
+  }
+  clearSave();
   return true;
 }
 
-function counts(){let b=0,w=0;for(const v of board){if(v===1)b++;else if(v===2)w++;}return{b,w};}
-
-/* ── Статистика против ИИ ── */
-function loadStats(){
-  try{const s=JSON.parse(localStorage.getItem('reversi_stats')||'{}')||{};return{w:s.w|0,l:s.l|0,d:s.d|0};}
-  catch(e){return{w:0,l:0,d:0};}
+/* ═══ Отрисовка партии ═══ */
+function applyBoardClasses() {
+  const g = $('grid');
+  g.classList.toggle('nocoord', !settings.coords);
+  const k = animK();
+  document.documentElement.style.setProperty('--rv-flip', Math.round(420 * k) + 'ms');
+  document.documentElement.style.setProperty('--rv-put', Math.round(300 * k) + 'ms');
+  g.classList.toggle('noanim', k === 0);
 }
-function saveStats(s){try{localStorage.setItem('reversi_stats',JSON.stringify(s));}catch(e){}}
-
-/* ── Экраны и окна ── */
-const open=id=>$(id).classList.add('open');
-const close=id=>$(id).classList.remove('open');
-const isOpen=id=>$(id).classList.contains('open');
-function closeAll(){document.querySelectorAll('.ku-overlay.open').forEach(o=>o.classList.remove('open'));}
-function closeRules(){close('menu-rules');if(rulesReturn)open(rulesReturn);rulesReturn=null;}
-function showScreen(name){
-  $('screen-menu').classList.toggle('active',name==='menu');
-  $('screen-game').classList.toggle('active',name==='game');
-  if(name==='menu') refreshMenu(); else layout();
+let previewAt = -1;
+let ghostEl = null;          // «призрак» фишки при предпросмотре хода
+function paintMarks() {
+  if (!G || !view.cells.length) return;
+  const act = canAct();
+  const showMv = act && settings.moves;
+  const legal = new Set(act ? G.legal : []);
+  const n = G.n;
+  $('grid').classList.toggle('t2', G.turn === 2);
+  let flips = null;
+  const pv = previewAt >= 0 && act && legal.has(previewAt) ? previewAt : (G.sel >= 0 && legal.has(G.sel) ? G.sel : -1);
+  if (pv >= 0) { flips = new Set(); (E.flipLines(G.board, n, pv, G.turn) || []).forEach(L => L.forEach(j => flips.add(j))); }
+  for (let i = 0; i < n * n; i++) {
+    const c = view.cells[i];
+    c.classList.toggle('mv', showMv && legal.has(i));
+    c.classList.toggle('last', settings.last && i === G.last && G.board[i] !== 0);
+    c.classList.toggle('sug', i === G.sug && act);
+    c.classList.toggle('sel', i === G.sel && act);
+    c.classList.toggle('cur', G.kbd && i === G.cur && screen === 'game');
+    c.classList.toggle('pvc', i === pv);
+    const d = view.discs[i];
+    if (d) d.classList.toggle('pv', !!flips && flips.has(i));
+    const v = G.board[i];
+    const lab = E.sqName(n, i) + ': ' + (v === 1 ? 'чёрная' : v === 2 ? 'белая' : legal.has(i) ? 'возможный ход' : 'пусто');
+    if (c.getAttribute('aria-label') !== lab) c.setAttribute('aria-label', lab);
+  }
+  if (pv >= 0) {
+    if (!ghostEl) ghostEl = document.createElement('i');
+    ghostEl.className = 'rv-ghost ' + (G.turn === 1 ? 'b' : 'w');
+    if (ghostEl.parentNode !== view.cells[pv]) view.cells[pv].appendChild(ghostEl);
+  } else if (ghostEl && ghostEl.parentNode) ghostEl.remove();
 }
-function refreshMenu(){
-  const s=loadStats(),n=s.w+s.l+s.d;
-  $('best-ai').textContent=n?`Побед: ${s.w} · поражений: ${s.l}`+(s.d?` · ничьих: ${s.d}`:''):'Вы — чёрные, ходите первым';
-  $('menu-stats').textContent=n?`Партий против ИИ: ${n} • Побед: ${s.w} • Поражений: ${s.l} • Ничьих: ${s.d}`:'Сыграйте первую партию против ИИ';
-}
+function clearPreview() { if (previewAt >= 0 || (G && G.sel >= 0)) { previewAt = -1; if (G) G.sel = -1; paintMarks(); } }
 
-/* ── Поле ── */
-const cells=[];
-(function buildGrid(){
-  const g=$('grid');
-  for(let i=0;i<64;i++){const d=document.createElement('div');d.className='cell';d.dataset.i=i;g.appendChild(d);cells.push(d);}
-  g.addEventListener('click',e=>{
-    const c=e.target.closest('.cell');
-    if(c&&c.classList.contains('hint')) playerMove(+c.dataset.i);
+function playerName(side) {
+  if (!G) return '';
+  if (G.mode === 'ai') return side === G.my ? 'Вы' : lvName(G.level);
+  if (G.mode === 'hot') return COLOR_PL[side];
+  const p = net && net.room ? net.room.players[side - 1] : '';
+  return (p || (side === G.my ? 'Вы' : 'Соперник')) + (side === G.my ? ' (вы)' : '');
+}
+function statusText() {
+  if (!G) return '';
+  if (G.mode === 'net') {
+    if (G.oppLeft) return 'СОПЕРНИК ВЫШЕЛ';
+    if (G.broken) return 'ПАРТИЯ ПРЕРВАНА';
+    if (G.over) return 'ПАРТИЯ ОКОНЧЕНА';
+    if (G.turn === G.my) return G.sending ? 'ОТПРАВКА ХОДА…' : 'ВАШ ХОД';
+    return 'ХОДИТ СОПЕРНИК';
+  }
+  if (G.over) return 'ПАРТИЯ ОКОНЧЕНА';
+  if (G.mode === 'hot') return G.turn === 1 ? 'ХОД ЧЁРНЫХ' : 'ХОД БЕЛЫХ';
+  if (G.turn === G.my) return 'ВАШ ХОД';
+  return G.held >= 0 ? 'ИИ ГОТОВ ХОДИТЬ' : 'ИИ ДУМАЕТ…';
+}
+// число в счёте с «подпрыгиванием» (Web Animations — без принудительного пересчёта раскладки)
+function setNum(id, v) {
+  const el = $(id), t = String(v);
+  if (el.textContent === t) return;
+  el.textContent = t;
+  if (animK() > 0 && el.animate) { try { el.animate([{ transform: 'scale(1)' }, { transform: 'scale(1.3)', offset: 0.4 }, { transform: 'scale(1)' }], { duration: 320, easing: 'ease-out' }); } catch (e) {} }
+}
+function updateHUD() {
+  if (!G) return;
+  const c = E.counts(G.board);
+  setNum('pc-1', c.b); setNum('pc-2', c.w);
+  $('pn-1').textContent = playerName(1); $('pn-2').textContent = playerName(2);
+  for (const s of [1, 2]) {
+    const el = $('pl-' + s);
+    el.classList.toggle('on', !G.over && G.turn === s);
+    el.classList.toggle('think', G.mode === 'ai' && G.thinking && G.turn === s);
+  }
+  const n = G.n;
+  $('g-title').textContent = G.mode === 'ai' ? `${lvName(G.level).toUpperCase()} · ${n}×${n}` : G.mode === 'hot' ? `ВДВОЁМ · ${n}×${n}` : `ПО СЕТИ · ${net && net.room ? net.room.id : ''}`;
+  $('g-sub').textContent = statusText();
+  $('grid').setAttribute('aria-label', `Поле ${n}×${n}. ${statusText().toLowerCase()}`);
+  const tools = $('tools');
+  tools.hidden = G.mode === 'net';
+  $('btn-undo').disabled = G.over || !G.moves.length || (G.mode === 'ai' && !pos().steps.some(s => s.by === G.my));
+  $('btn-hint').disabled = !canAct();
+  let tip = '';
+  if (G.mode === 'net') tip = net && net.room ? `Комната ${net.room.id} · вы играете ${COLOR_INS[G.my]}` + (G.n !== 8 ? ` · поле ${n}×${n}` : '') : '';
+  else if (G.mode === 'ai' && G.assisted) tip = '🎓 Тренировочная партия — без учёта в статистике';
+  else if (G.moves.length < 2) tip = settings.moves ? 'Точки — возможные ходы · углы не переворачиваются' : 'Углы не переворачиваются';
+  $('g-tip').textContent = tip;
+  paintMarks();
+}
+function renderMoves(target, rec, curStep, onClick) {
+  // запись ходов: «1. ⚫d3 ⚪c5 2. …», пас — отдельной отметкой
+  const el = target || $('moves');
+  const r = rec || (G ? pos() : null);
+  if (!r) { el.innerHTML = ''; return; }
+  const n = target ? REC.n : G.n;
+  const out = [];
+  let num = 0, open = false;
+  for (let k = 1; k < r.steps.length; k++) {
+    const s = r.steps[k];
+    // новый номер — с каждым ходом чёрных (или с первого хода, если запись начинается с белых)
+    if (s.by === 1 || k === 1) { if (open) out.push('</span>'); num++; out.push(`<span class="mp"><span class="mn">${num}.</span>`); open = true; }
+    const cur = curStep === undefined ? k === r.steps.length - 1 : k === curStep;
+    out.push(`<span class="mv ${s.by === 1 ? 'b' : 'w'}${cur ? ' cur' : ''}" data-k="${k}">${E.sqName(n, s.move)}</span>`);
+    if (s.pass) out.push(`<span class="mv ps" title="пас">${s.by === 1 ? '⚪' : '⚫'} пас</span>`);
+  }
+  if (open) out.push('</span>');
+  el.innerHTML = out.join('');
+  const c = el.querySelector('.cur');
+  // прокрутить к текущему ходу внутри полосы (без прокрутки страницы) — в следующем кадре, вместе с раскладкой
+  if (c) requestAnimationFrame(() => {
+    if (!c.isConnected) return;
+    const er = el.getBoundingClientRect(), cr = c.getBoundingClientRect();
+    if (cr.right > er.right || cr.left < er.left) el.scrollLeft += cr.left - er.left - er.width / 2;
+    if (cr.bottom > er.bottom || cr.top < er.top) el.scrollTop += cr.top - er.top - er.height / 2;
   });
-})();
-
-function layout(){
-  const wrap=$('wrap');
-  if(!wrap.clientHeight) return;                       // экран игры скрыт
-  let used=0;                                          // счёт и подсказка в той же колонке (gap 10)
-  for(const el of [$('hud'),$('hint')]) if(el.offsetHeight&&getComputedStyle(el).position!=='absolute') used+=el.offsetHeight+10;
-  const size=Math.floor(Math.max(200,Math.min(560,wrap.clientWidth-16,wrap.clientHeight-16-used)));   // рамка .ku-board = 16
-  $('grid').style.width=$('grid').style.height=size+'px';
+  if (onClick) el.querySelectorAll('.mv[data-k]').forEach(s => s.addEventListener('click', ev => { ev.stopPropagation(); onClick(+s.dataset.k); }));
 }
-window.addEventListener('resize',layout);
+function updateAll() { updateHUD(); renderMoves(); }
 
-// Можно ли сейчас ходить с этого устройства
-function canAct(){
-  if(gameOver||locked) return false;
-  if(isNet()) return turn===mySide&&net.room.status==='playing'&&!net.busy;
-  return mode==='ai'&&turn===1;
-}
-
-function render(){
-  const hints=canAct()?valid(turn):[];
-  const [lr,lc]=lastMove>=0?rc(lastMove):[0,0];
-  for(let i=0;i<64;i++){
-    const d=cells[i],v=board[i],pv=prevBoard?prevBoard[i]:v;
-    d.classList.toggle('hint',hints.includes(i));
-    d.classList.toggle('last',i===lastMove);
-    let disc=d.firstChild;
-    if(!v){if(disc)disc.remove();continue;}
-    const cls='disc '+(v===1?'b':'w');
-    if(!disc){
-      disc=document.createElement('div');disc.className=cls;
-      if(prevBoard) disc.classList.add('put');
-      d.appendChild(disc);
-    } else if(!prevBoard){
-      disc.className=cls;disc.style.animationDelay='';
-    } else if(pv!==v){                                  // перевёрнута — волной от последнего хода
-      disc.className=cls;void disc.offsetWidth;disc.classList.add('flip');
-      const [r,c]=rc(i);
-      disc.style.animationDelay=lastMove>=0?(Math.max(Math.abs(r-lr),Math.abs(c-lc))-1)*70+'ms':'';
+/* ═══ Раскладка: портрет (счёт над полем) или альбом (панель справа) ═══ */
+function layout() {
+  if (screen !== 'game' || !G) return;
+  const scr = $('screen-game'), play = $('play'), wrap = $('board-wrap'), grid = $('grid');
+  const fit = wide => {
+    scr.classList.toggle('wide', wide);
+    const W = play.clientWidth, H = play.clientHeight;
+    if (wide) {
+      const side = $('side').getBoundingClientRect().width || 240;
+      return Math.floor(Math.min(H, W - side - 18) - 16);
     }
-  }
-  prevBoard=board.slice();
-  updateHUD();
+    let used = 0;
+    for (const id of ['hud', 'tools', 'moves', 'g-tip']) { const el = $(id); if (el.offsetHeight) used += el.offsetHeight + 8; }
+    return Math.floor(Math.min(W, H - used) - 16);
+  };
+  grid.style.width = grid.style.height = '10px';
+  const portrait = fit(false), wide = fit(true);
+  const useWide = wide > portrait + 12;
+  let size = useWide ? wide : portrait;
+  scr.classList.toggle('wide', useWide);
+  // на низком экране прячем подсказку под полем
+  $('g-tip').style.display = !useWide && play.clientHeight < 560 ? 'none' : '';
+  if (!useWide) size = fit(false);
+  size = Math.max(150, Math.min(useWide ? 680 : 600, size));
+  grid.style.width = grid.style.height = size + 'px';
+  wrap.style.maxWidth = '';
 }
+let layoutT = 0;
+window.addEventListener('resize', () => { clearTimeout(layoutT); layoutT = setTimeout(layout, 60); });
 
-function setNum(id,v){
-  const el=$(id),t=String(v);
-  if(el.textContent!==t){el.textContent=t;el.classList.remove('pop');void el.offsetWidth;el.classList.add('pop');}
-}
-function statusText(){
-  if(isNet()){
-    if(net.room.status==='closed') return 'СОПЕРНИК ВЫШЕЛ';
-    if(gameOver) return 'ПАРТИЯ ОКОНЧЕНА';
-    if(turn===mySide) return locked?'ОТПРАВКА ХОДА…':'ВАШ ХОД';
-    return 'ХОД: '+netName(turn).toUpperCase();
-  }
-  if(gameOver) return 'ПАРТИЯ ОКОНЧЕНА';
-  return turn===1?'ВАШ ХОД':'ИИ ДУМАЕТ…';
-}
-function updateHUD(){
-  const{b,w}=counts();
-  setNum('bsc',b);setNum('wsc',w);
-  $('name-b').textContent=isNet()?netName(1)+(mySide===1?' (вы)':''):'Вы';
-  $('name-w').textContent=isNet()?netName(2)+(mySide===2?' (вы)':''):'ИИ';
-  $('pl-b').classList.toggle('on',!gameOver&&turn===1);
-  $('pl-w').classList.toggle('on',!gameOver&&turn===2);
-  $('game-title').textContent=isNet()?'ПО СЕТИ · '+net.room.id:'ПРОТИВ ИИ';
-  $('game-sub').textContent=statusText();
-}
-
-/* ── Партия против ИИ ── */
-function newGame(){
-  clearTimeout(aiTimer);clearTimeout(endTimer);
-  closeAll();
-  if(isNet()){
-    if(net.room.status==='closed'){toMenu();return;}
-    $('game-sub').textContent='НОВАЯ ПАРТИЯ…';
-    net.reset({board:initialBoard(),turn:1},0).then(r=>netApply(r))
-      .catch(e=>{if(isNet())KuArcade.toast('Не удалось начать: '+e.message,'bad');});
+/* ═══ Ввод ═══ */
+function cellFromEvent(e) { const c = e.target.closest && e.target.closest('#grid .cell'); return c ? +c.dataset.i : -1; }
+$('grid').addEventListener('click', e => {
+  const i = cellFromEvent(e);
+  if (i < 0 || !G) return;
+  G.kbd = false;
+  tryMove(i, e.pointerType === 'mouse' || e.detail === 0 ? 'mouse' : 'tap');
+});
+$('grid').addEventListener('pointermove', e => {
+  if (e.pointerType !== 'mouse' || !settings.preview || !G) return;
+  const i = cellFromEvent(e);
+  const p = i >= 0 && canAct() && G.legal.includes(i) ? i : -1;
+  if (p !== previewAt) { previewAt = p; paintMarks(); }
+});
+$('grid').addEventListener('pointerleave', () => { if (previewAt >= 0) { previewAt = -1; paintMarks(); } });
+let lastPtr = 'mouse';
+$('grid').addEventListener('pointerdown', e => { lastPtr = e.pointerType || 'mouse'; });
+function tryMove(i, how) {
+  if (!G || screen !== 'game') return;
+  if (!canAct()) {
+    if (G.mode === 'net' && !G.over && G.turn !== G.my) toast('Сейчас ход соперника');
     return;
   }
-  board=initialBoard();
-  turn=1;locked=false;gameOver=false;lastMove=-1;prevBoard=null;
-  render();
-}
-
-function playerMove(i){
-  if(isNet()){netMove(i);return;}
-  if(mode!=='ai'||locked||gameOver||turn!==1) return;
-  if(!place(i,1)) return;
-  lastMove=i;
-  advance();
-}
-
-// Передать ход сопернику с учётом паса; если ходов нет ни у кого — конец партии
-function advance(){
-  const other=3-turn;
-  if(valid(other).length) turn=other;
-  else if(valid(turn).length) KuArcade.toast(other===2?'У ИИ нет ходов — пас, снова ваш ход':'У вас нет ходов — пас','gold');
-  else{finish();return;}
-  locked=turn===2;
-  render();
-  if(turn===2){clearTimeout(aiTimer);aiTimer=setTimeout(aiMove,650);}
-}
-
-function aiMove(){
-  if(mode!=='ai'||gameOver||turn!==2) return;
-  if(isOpen('menu-pause')||isOpen('menu-rules')){aiTimer=setTimeout(aiMove,400);return;}   // на паузе ИИ ждёт
-  const moves=valid(2);if(!moves.length){advance();return;}
-  // Жадный: максимум захватов + угловой приоритет.
-  // Угол a1 — индекс 0, поэтому проверяем на undefined, а не на «ложность».
-  const cornerMove=moves.find(m=>CORNERS.includes(m));
-  const best=cornerMove!==undefined?cornerMove:moves.reduce((a,b)=>flips(b,2).length>flips(a,2).length?b:a);
-  place(best,2);
-  lastMove=best;
-  advance();
-}
-
-function scoreLine(){
-  const{b,w}=counts();
-  $('end-score').innerHTML=`<i class="dot b"></i>${b} : ${w}<i class="dot w"></i>`;
-  return{b,w};
-}
-
-function finish(){
-  gameOver=true;locked=true;
-  clearTimeout(aiTimer);
-  render();
-  const{b,w}=scoreLine();
-  let title='НИЧЬЯ',cls='',sub='Поровну фишек',stats='';
-  if(isNet()){
-    if(b!==w){const win=b>w?1:2;title=win===mySide?'ПОБЕДА!':'ПОРАЖЕНИЕ';cls=win===mySide?'win':'lose';sub=win===mySide?'Вы победили':'Победил '+netName(win);}
-  } else {
-    const st=loadStats();
-    if(b>w){title='ПОБЕДА!';cls='win';sub='Вы обыграли ИИ';st.w++;}
-    else if(w>b){title='ПОРАЖЕНИЕ';cls='lose';sub='ИИ оказался сильнее';st.l++;}
-    else st.d++;
-    saveStats(st);
-    stats=`Против ИИ — побед: ${st.w} · поражений: ${st.l}`+(st.d?` · ничьих: ${st.d}`:'');
+  if (!G.legal.includes(i)) {
+    if (G.board[i] === 0) { sfx.nope(); const c = view.cells[i]; c.classList.remove('ku-shake-x'); void c.offsetWidth; c.classList.add('ku-shake-x'); }
+    if (G.sel >= 0) { G.sel = -1; paintMarks(); }
+    return;
   }
-  $('end-title').textContent=title;$('end-title').className=cls;
-  $('end-sub').textContent=sub;
-  $('end-stats').textContent=stats;
-  $('btn-again').style.display='';
-  clearTimeout(endTimer);
-  endTimer=setTimeout(()=>{closeAll();open('menu-end');},900);   // сначала видна финальная позиция
+  // подтверждение вторым касанием (настройка): первое касание показывает, что перевернётся
+  if (settings.confirm && how !== 'key' && lastPtr !== 'mouse' && G.sel !== i) { G.sel = i; sfx.click(); paintMarks(); return; }
+  G.sel = -1; previewAt = -1;
+  if (G.mode === 'net') netMove(i); else commitMove(i);
 }
+$('btn-undo').addEventListener('click', () => undo());
+$('btn-hint').addEventListener('click', () => hint());
+$('moves').addEventListener('click', () => { if (G) openRecordFromGame(); });
+$('moves').addEventListener('keydown', e => { if ((e.key === 'Enter' || e.key === ' ') && G) { e.preventDefault(); openRecordFromGame(); } });
 
-/* ── Сеть ── */
-function netMove(i){
-  if(locked||gameOver||turn!==mySide||!net.isMyTurn()||net.busy) return;
-  if(!place(i,mySide)) return;
-  lastMove=i;
-  // очередь хода с учётом пропусков
-  turn=3-turn;
-  let passed=false;
-  if(!valid(turn).length){turn=3-turn;passed=true;}
-  const finished=!valid(1).length&&!valid(2).length;
-  if(passed&&!finished) KuArcade.toast('У соперника нет ходов — пас, снова ваш ход','gold');
-  locked=true;render();
-  net.move({board:board.slice(),turn},turn-1,{i},finished)
-    .then(()=>{if(!isNet())return;locked=false;render();if(finished&&!gameOver)finish();})
-    .catch(e=>{
-      if(!isNet()) return;
-      if(/устарело/.test(e.message)){KuArcade.toast('Синхронизация…');return;}   // состояние сервера уже применено
-      KuArcade.toast('Ход не отправлен: '+e.message,'bad');
-      netApply(net.room);   // откат к последнему подтверждённому состоянию — ход можно повторить
-    });
-}
-
-function netApply(room){
-  if(!isNet()||!room||!room.state) return;
-  if(room.round!==netRound){netRound=room.round;closeAll();clearTimeout(endTimer);prevBoard=null;gameOver=false;}
-  const sb=room.state.board;
-  board=(Array.isArray(sb)&&sb.length===64?sb:initialBoard()).slice();
-  turn=room.state.turn===2?2:1;
-  const lm=room.lastMove;
-  lastMove=lm&&lm.move&&typeof lm.move.i==='number'?lm.move.i:-1;
-  locked=false;
-  const over=room.status==='finished'||(!valid(1).length&&!valid(2).length);
-  // соперник сходил, а ход снова у него — значит, у нас нет ходов
-  if(!over&&room.status==='playing'&&lm&&lm.by!==mySide-1&&turn!==mySide&&room.ver!==noticeVer){
-    noticeVer=room.ver;KuArcade.toast('У вас нет ходов — пас','gold');
+document.addEventListener('keydown', e => {
+  if (document.querySelector('.ku-dialog') || document.querySelector('.kn-ov')) return;
+  const k = e.key;
+  // окна: Esc закрывает верхнее
+  const top = OVERLAYS.filter(isOpen);
+  if (top.length) {
+    if (top.includes('ov-record')) {
+      if (k === 'ArrowLeft') { e.preventDefault(); recStep(REC.k - 1); return; }
+      if (k === 'ArrowRight') { e.preventDefault(); recStep(REC.k + 1); return; }
+      if (k === 'Home') { e.preventDefault(); recStep(0); return; }
+      if (k === 'End') { e.preventDefault(); recStep(REC.steps.length - 1); return; }
+    }
+    if (k === 'Escape' || ((k === 'p' || k === 'P' || k === 'з' || k === 'З') && top.includes('ov-pause'))) {
+      e.preventDefault();
+      const id = top[top.length - 1];
+      if (id === 'ov-end') return;
+      closeOv(id);
+    }
+    return;
   }
-  if(room.status==='closed') gameOver=true;
-  if(over&&!gameOver){finish();return;}
-  render();
-}
+  if (screen !== 'game' || !G) return;
+  if (k === 'Escape' || k === 'p' || k === 'P' || k === 'з' || k === 'З') { e.preventDefault(); openPause(); return; }
+  if (e.ctrlKey && (k === 'z' || k === 'Z' || k === 'я')) { e.preventDefault(); undo(); return; }
+  if (e.ctrlKey || e.metaKey || e.altKey) return;
+  if (k === 'u' || k === 'U' || k === 'г' || k === 'Г' || k === 'Backspace') { e.preventDefault(); undo(); return; }
+  if (k === 'h' || k === 'H' || k === 'р' || k === 'Р') { e.preventDefault(); hint(); return; }
+  const n = G.n;
+  const dirs = { ArrowUp: [-1, 0], ArrowDown: [1, 0], ArrowLeft: [0, -1], ArrowRight: [0, 1], w: [-1, 0], s: [1, 0], a: [0, -1], d: [0, 1], 'ц': [-1, 0], 'ы': [1, 0], 'ф': [0, -1], 'в': [0, 1] };
+  if (dirs[k]) {
+    e.preventDefault();
+    if (!G.kbd || G.cur < 0) { G.kbd = true; G.cur = G.legal.length ? G.legal[0] : (n / 2 - 1) * n + n / 2 - 1; paintMarks(); return; }
+    const [dr, dc] = dirs[k];
+    const r = Math.max(0, Math.min(n - 1, ((G.cur / n) | 0) + dr)), c = Math.max(0, Math.min(n - 1, (G.cur % n) + dc));
+    G.cur = r * n + c; paintMarks();
+    return;
+  }
+  if (k === 'Enter' || k === ' ') {
+    if (document.activeElement && document.activeElement.closest && document.activeElement.closest('button, [role=button]') && !G.kbd) return;
+    e.preventDefault();
+    if (!G.kbd || G.cur < 0) { G.kbd = true; G.cur = G.legal.length ? G.legal[0] : 0; paintMarks(); return; }
+    tryMove(G.cur, 'key');
+  }
+});
 
-function startNet(sess){
-  clearTimeout(aiTimer);clearTimeout(endTimer);
-  net=sess;mode='net';netRound=sess.room.round;mySide=sess.seat+1;noticeVer=-1;
-  closeAll();
-  gameOver=false;prevBoard=null;lastMove=-1;
-  sess.onUpdate=room=>netApply(room);
-  sess.onClosed=()=>onNetClosed();
-  sess.onError=()=>{if(Date.now()-errAt>8000){errAt=Date.now();KuArcade.toast('Нет связи с сервером…','bad');}};
-  $('hint').textContent='Комната '+sess.room.id+' · вы играете '+(mySide===1?'чёрными':'белыми');
-  showScreen('game');
-  netApply(sess.room);
-  sess.startPolling();
-  KuArcade.toast(mySide===1?'Вы играете чёрными — ваш ход первый':'Вы играете белыми — первым ходит соперник','good');
+/* ═══ Пауза, меню, навигация ═══ */
+function openPause() {
+  if (!G || screen !== 'game' || anyOpen()) return;
+  clearPreview();
+  $('btn-restart').textContent = G.mode === 'net' ? 'Новая партия для обоих' : 'Новая партия';
+  $('btn-restart').hidden = G.mode === 'net' && (!net || G.oppLeft || G.broken);
+  const c = E.counts(G.board);
+  $('pause-info').textContent = G.mode === 'net' ? 'Партия по сети продолжается — соперник может ходить.' :
+    `${G.mode === 'ai' ? lvName(G.level) + ' · ' : 'Вдвоём · '}${G.n}×${G.n} · ход ${G.moves.length + 1} · ⚫ ${c.b} : ${c.w} ⚪`;
+  openOv('ov-pause');
 }
-function onNetClosed(){
-  if(!isNet()) return;
-  clearTimeout(endTimer);
-  gameOver=true;locked=true;
-  closeAll();
-  render();
-  scoreLine();
-  $('end-title').textContent='СОПЕРНИК ВЫШЕЛ';$('end-title').className='';
-  $('end-sub').textContent='Партия прервана';
-  $('end-stats').textContent='';
-  $('btn-again').style.display='none';
-  open('menu-end');
-}
-function leaveNet(){
-  if(net){net.onUpdate=net.onClosed=net.onError=null;net.leave();}
-  net=null;mySide=1;
-  if(mode==='net') mode='ai';
-}
-window.addEventListener('pagehide',()=>{if(net)net.leaveBeacon();});
+$('btn-pause').addEventListener('click', () => { sfx.click(); openPause(); });
+$('btn-resume').addEventListener('click', () => closeOv('ov-pause'));
+$('btn-restart').addEventListener('click', async () => {
+  if (!G) return;
+  if (G.mode === 'net') { netReset(); return; }
+  closeOv('ov-pause');
+  if (!(await confirmReplace())) { openPause(); return; }
+  startLocal(G.mode, { n: G.n, level: G.level, my: G.mode === 'ai' ? (settings.color === 0 ? 0 : G.my) : 0 });
+});
+$('btn-p-record').addEventListener('click', () => openRecordFromGame('ov-pause'));
+$('btn-p-settings').addEventListener('click', () => openSettings('ov-pause'));
+$('btn-p-rules').addEventListener('click', () => openOv('ov-rules', 'ov-pause'));
+$('btn-quit').addEventListener('click', () => toMenu());
+$('btn-again').addEventListener('click', () => {
+  if (!G) return;
+  if (G.mode === 'net') { netReset(); return; }
+  startLocal(G.mode, { n: G.n, level: G.level, my: G.mode === 'ai' && settings.color !== 0 ? G.my : 0 });
+});
+$('btn-swap').addEventListener('click', () => { if (G && G.mode === 'ai') startLocal('ai', { n: G.n, level: G.level, my: 3 - G.my }); });
+$('btn-review').addEventListener('click', () => openRecordFromGame('ov-end'));
+$('btn-end-menu').addEventListener('click', () => toMenu());
 
-/* ── Навигация ── */
-function startAI(){
+async function toMenu() {
+  if (G && G.mode === 'net' && net && !G.over && !G.oppLeft && !G.broken) {
+    const ok = await KuArcade.confirm('Соперник увидит, что вы вышли, партия прервётся.', { title: 'ВЫЙТИ ИЗ ПАРТИИ?', ok: 'Выйти', cancel: 'Остаться', danger: true });
+    if (!ok) return;
+  }
+  AI.cancel(); clearTimeout(aiTimer); clearTimeout(endTimer);
+  if (G && G.mode !== 'net') saveGame();
   leaveNet();
-  mode='ai';
-  $('hint').textContent='Точки — доступные ходы · углы не переворачиваются';
-  showScreen('game');
-  newGame();
-}
-function toMenu(){
-  clearTimeout(aiTimer);clearTimeout(endTimer);
-  leaveNet();
-  gameOver=true;locked=true;
   closeAll();
+  if (G) { G.thinking = false; }
   showScreen('menu');
 }
 
-$('btn-ai').addEventListener('click',startAI);
-$('btn-net').addEventListener('click',()=>{
-  KuNet.openLobby({
-    game:'reversi',title:'РЕВЕРСИ · ПО СЕТИ',
-    initialState:()=>({board:initialBoard(),turn:1}),
-    onStart:startNet
+/* ═══ Меню ═══ */
+function buildLevelSeg() {
+  $('seg-level').innerHTML = LV.map(l => `<button data-l="${l.id}" role="radio" title="${esc(l.name)}">${l.icon}<small>${esc(l.name)}</small></button>`).join('');
+}
+buildLevelSeg();
+function refreshMenu() {
+  const segs = [['seg-size', 'n', settings.n], ['seg-level', 'l', settings.level], ['seg-color', 'c', settings.color]];
+  for (const [id, attr, val] of segs) $(id).querySelectorAll('button').forEach(b => { const on = +b.dataset[attr] === val; b.classList.toggle('active', on); b.setAttribute('aria-checked', on); });
+  const lv = LV[settings.level - 1], n = settings.n;
+  $('lv-desc').textContent = `${lv.icon} ${lv.desc}`;
+  const r = aiRec(n, settings.level), colorTxt = settings.color === 0 ? 'цвет по жребию' : `вы — ${settings.color === 1 ? 'чёрные' : 'белые'}`;
+  $('best-ai').textContent = r.g ? `${lv.name} · ${n}×${n} — побед ${r.w} из ${r.g}` : `${lv.name} · ${n}×${n} · ${colorTxt}`;
+  const hot = stats.by[`hot:${n}`];
+  $('best-hot').textContent = hot && hot.g ? `${n}×${n} · сыграно ${hot.g}` : `${n}×${n} · на одном экране`;
+  $('best-net').textContent = `${n}×${n} · по коду комнаты`;
+  const s = loadSave();
+  $('btn-continue').hidden = !s;
+  if (s) {
+    const c = E.counts(s.board);
+    $('continue-sub').textContent = `${s.m === 'ai' ? lvName(s.lv) : 'Вдвоём'} · ${s.n}×${s.n} · ход ${s.mv.length + 1} · ⚫ ${c.b} : ${c.w} ⚪`;
+  }
+  const t = aiTotals(0);
+  const games = stats.total.games + stats.legacy.w + stats.legacy.l + stats.legacy.d;
+  $('menu-stats').textContent = games ? `Партий: ${games} • Побед над ИИ: ${t.w} • Достижений: ${achCount()}/${ACH.length}` : 'Сыграйте первую партию';
+}
+function segClick(id, attr, key) {
+  $(id).addEventListener('click', e => {
+    const b = e.target.closest('button'); if (!b) return;
+    settings[key] = +b.dataset[attr]; saveSettings(); sfx.click(); refreshMenu();
   });
+}
+segClick('seg-size', 'n', 'n'); segClick('seg-level', 'l', 'level'); segClick('seg-color', 'c', 'color');
+$('btn-continue').addEventListener('click', () => { sfx.click(); continueSaved(); });
+$('btn-ai').addEventListener('click', async () => { sfx.click(); if (!(await confirmReplace())) return; startLocal('ai', { n: settings.n, level: settings.level }); });
+$('btn-hot').addEventListener('click', async () => { sfx.click(); if (!(await confirmReplace())) return; startLocal('hot', { n: settings.n }); });
+$('btn-net').addEventListener('click', () => { sfx.click(); openLobby(); });
+$('btn-rules').addEventListener('click', () => openOv('ov-rules'));
+$('btn-stats').addEventListener('click', () => openStats());
+$('btn-ach').addEventListener('click', () => openAch());
+$('btn-hist').addEventListener('click', () => openHist());
+$('btn-settings').addEventListener('click', () => openSettings());
+
+/* ═══ Настройки ═══ */
+const SW = { 'set-sound': 'sound', 'set-vib': 'vib', 'set-moves': 'moves', 'set-last': 'last', 'set-coords': 'coords', 'set-preview': 'preview', 'set-confirm': 'confirm' };
+function openSettings(from) {
+  for (const id in SW) $(id).checked = !!settings[SW[id]];
+  $('set-anim').querySelectorAll('button').forEach(b => b.classList.toggle('active', b.dataset.a === settings.anim));
+  openOv('ov-settings', from);
+}
+for (const id in SW) $(id).addEventListener('change', () => {
+  settings[SW[id]] = $(id).checked; saveSettings();
+  if (id === 'set-sound' && settings.sound) sfx.click();
+  if (id === 'set-vib' && settings.vib) vib(30);
+  applyBoardClasses(); if (G) { G.sel = -1; updateHUD(); }
 });
-$('btn-rules').addEventListener('click',()=>{rulesReturn=null;open('menu-rules');});
-$('btn-pause-rules').addEventListener('click',()=>{rulesReturn='menu-pause';close('menu-pause');open('menu-rules');});
-$('btn-rules-x').addEventListener('click',closeRules);
-$('btn-rules-close').addEventListener('click',closeRules);
-$('btn-pause').addEventListener('click',()=>{
-  if(isOpen('menu-end')) return;
-  $('btn-restart').textContent=isNet()?'Новая партия для обоих':'Новая партия';
-  open('menu-pause');
+$('set-anim').addEventListener('click', e => {
+  const b = e.target.closest('button'); if (!b) return;
+  settings.anim = b.dataset.a; saveSettings();
+  $('set-anim').querySelectorAll('button').forEach(x => x.classList.toggle('active', x === b));
+  applyBoardClasses();
 });
-$('btn-resume').addEventListener('click',()=>close('menu-pause'));
-$('btn-restart').addEventListener('click',newGame);
-$('btn-quit').addEventListener('click',toMenu);
-$('btn-again').addEventListener('click',newGame);
-$('btn-end-menu').addEventListener('click',toMenu);
-document.addEventListener('keydown',e=>{
-  if(e.code!=='Escape'&&e.code!=='KeyP') return;
-  if(isOpen('menu-rules')){closeRules();return;}
-  if(!$('screen-game').classList.contains('active')||isOpen('menu-end')) return;
-  if(isOpen('menu-pause')) close('menu-pause'); else $('btn-pause').click();
+$('btn-reset').addEventListener('click', async () => {
+  const ok = await KuArcade.confirm('Удалить статистику, историю партий, достижения и сохранённую партию? Это нельзя отменить.', { title: 'СБРОС', ok: 'Сбросить', cancel: 'Отмена', danger: true });
+  if (!ok) return;
+  stats.by = {}; stats.legacy = { w: 0, l: 0, d: 0 }; stats.total = { games: 0, streak: 0, bestStreak: 0 }; stats.sizes = {};
+  store.set(KEYS.legacy, { w: 0, l: 0, d: 0 }); stats.seen = { w: 0, l: 0, d: 0 }; saveStats();
+  for (const k in unlocked) delete unlocked[k];
+  store.del(KEYS.ach); history = []; store.del(KEYS.hist);
+  if (!(G && screen === 'game' && !G.over)) clearSave();
+  toast('Статистика сброшена', 'good');
+  refreshMenu();
 });
 
+/* ═══ Статистика ═══ */
+function openStats(tab) {
+  if (tab) settings.stTab = tab;
+  const t = aiTotals(0);
+  let hotG = 0, netG = 0, netW = 0;
+  for (const k in stats.by) { if (k.startsWith('hot:')) hotG += stats.by[k].g; if (k.startsWith('net:')) { netG += stats.by[k].g; netW += stats.by[k].w; } }
+  const games = stats.total.games + stats.legacy.w + stats.legacy.l + stats.legacy.d;
+  const card = (v, l) => `<div class="st-card"><div class="sv">${v}</div><div class="sl">${l}</div></div>`;
+  $('st-sum').innerHTML = card(games, 'Партий') + card(t.w, 'Побед над ИИ') + card(t.g ? Math.round(100 * t.w / t.g) + '%' : '—', 'Доля побед') +
+    card(stats.total.bestStreak, 'Лучшая серия') + card(netW + ' / ' + netG, 'По сети: победы') + card(achCount() + '/' + ACH.length, 'Достижения');
+  const n = settings.stTab;
+  $('st-size').querySelectorAll('button').forEach(b => b.classList.toggle('active', +b.dataset.n === n));
+  let rows = '';
+  for (const l of LV) {
+    const r = aiRec(n, l.id);
+    const pct = r.g ? Math.round(100 * r.w / r.g) + '%' : '—';
+    rows += `<tr><td>${l.icon} ${esc(l.name)}</td><td>${r.g}</td><td class="g">${r.w}</td><td class="r">${r.l}</td><td>${r.d}</td><td><b>${pct}</b></td><td>${r.top ? '+' + r.top : '—'}</td><td>${r.best || '—'}</td></tr>`;
+  }
+  const hot = stats.by[`hot:${n}`] || blankHot(), nt = stats.by[`net:${n}`] || blankNet();
+  let html = `<table class="st-table"><thead><tr><th>Против ИИ</th><th>Игр</th><th>Поб.</th><th>Пор.</th><th>Нич.</th><th>%</th><th>Лучш.</th><th>Серия</th></tr></thead><tbody>${rows}</tbody></table>`;
+  html += `<table class="st-table" style="margin-top:12px"><thead><tr><th>Режим</th><th>Игр</th><th colspan="3">Итоги</th></tr></thead><tbody>
+    <tr><td>👥 Вдвоём</td><td>${hot.g}</td><td colspan="3">⚫ ${hot.b} · ⚪ ${hot.w} · ничьих ${hot.d}</td></tr>
+    <tr><td>🌐 По сети</td><td>${nt.g}</td><td colspan="3"><span class="ku-good">${nt.w}</span> поб. · <span class="ku-bad">${nt.l}</span> пор. · ${nt.d} нич.</td></tr></tbody></table>`;
+  $('st-body').innerHTML = html;
+  const notes = [];
+  const at = aiTotals(n);
+  if (at.a) notes.push(`Тренировочных партий (с отменой хода или подсказкой) на ${n}×${n}: ${at.a} — в победы и поражения не входят.`);
+  const L = stats.legacy;
+  if (n === 8 && L.w + L.l + L.d) notes.push(`До обновления игры (8×8): побед ${L.w}, поражений ${L.l}, ничьих ${L.d} — учтены в общих итогах.`);
+  notes.push('«Лучш.» — самый большой перевес в победе, «Серия» — лучшая серия побед подряд на этом уровне.');
+  $('st-note').innerHTML = notes.map(esc).join('<br>');
+  if (!isOpen('ov-stats')) openOv('ov-stats');
+}
+$('st-size').addEventListener('click', e => { const b = e.target.closest('button'); if (!b) return; settings.stTab = +b.dataset.n; saveSettings(); openStats(); });
+
+/* ═══ Достижения и история ═══ */
+function openAch() {
+  $('ach-list').innerHTML = ACH.map(a => {
+    const t = unlocked[a.id];
+    return `<div class="ach-item${t ? ' on' : ''}"><div class="ach-icon">${a.icon}</div><div class="ach-info"><h4>${esc(a.title)}</h4><p>${esc(a.desc)}${t ? ' · ' + new Date(t).toLocaleDateString('ru-RU') : ''}</p></div></div>`;
+  }).join('');
+  openOv('ov-ach');
+}
+function histTitle(h) {
+  const sz = `${h.n}×${h.n}`;
+  if (h.m === 'ai') return `🤖 ${lvName(h.lv)} · ${sz} · вы ${h.me === 2 ? '⚪' : '⚫'}`;
+  if (h.m === 'hot') return `👥 Вдвоём · ${sz}`;
+  return `🌐 По сети · ${sz}${h.opp ? ' · с ' + h.opp : ''}`;
+}
+function histRes(h) {
+  if (h.m === 'hot') return h.res === 'w' ? ['w', 'ЧЁРНЫЕ'] : h.res === 'l' ? ['w', 'БЕЛЫЕ'] : ['d', 'НИЧЬЯ'];
+  return h.res === 'w' ? ['w', 'ПОБЕДА'] : h.res === 'l' ? ['l', h.ab ? 'БРОШЕНА' : 'ПОРАЖЕНИЕ'] : ['d', 'НИЧЬЯ'];
+}
+function openHist() {
+  if (!history.length) { $('hist-list').innerHTML = '<div class="empty">Здесь появятся сыгранные партии — их можно будет пересмотреть ход за ходом.</div>'; openOv('ov-hist'); return; }
+  $('hist-list').innerHTML = history.slice().reverse().map((h, k) => {
+    const [cls, txt] = histRes(h), d = new Date(h.t);
+    const when = d.toLocaleDateString('ru-RU', { day: '2-digit', month: '2-digit' }) + ' ' + d.toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' });
+    const extra = [when, (h.mv ? h.mv.length : 0) + ' ' + plural(h.mv ? h.mv.length : 0, 'ход', 'хода', 'ходов')];
+    if (h.dur) extra.push(Math.floor(h.dur / 60) + ':' + String(h.dur % 60).padStart(2, '0'));
+    if (h.a) extra.push('с помощью');
+    return `<button class="h-item" data-k="${history.length - 1 - k}"><span class="h-res ${cls}">${txt}</span><span class="h-mid"><div>${esc(histTitle(h))}</div><small>${esc(extra.join(' · '))}</small></span><span class="h-sc">${fmtScore(h.fb)}:${fmtScore(h.fw)}</span></button>`;
+  }).join('');
+  $('hist-list').querySelectorAll('.h-item').forEach(b => b.addEventListener('click', () => {
+    const h = history[+b.dataset.k];
+    if (!h || !h.mv) { toast('Запись этой партии недоступна'); return; }
+    openRecord({ n: h.n, moves: h.mv, base: h.bs ? { board: h.bs, turn: h.bt === 2 ? 2 : 1 } : null, title: histTitle(h), meta: h }, 'ov-hist');
+  }));
+  openOv('ov-hist');
+}
+
+/* ═══ Запись партии и просмотр ход за ходом ═══ */
+const REC = { n: 8, moves: [], steps: [], k: 0, timer: 0, text: '' };
+function openRecordFromGame(from) {
+  if (!G) return;
+  const title = G.mode === 'ai' ? `${lvName(G.level)} · ${G.n}×${G.n}` : G.mode === 'hot' ? `Вдвоём · ${G.n}×${G.n}` : `По сети · ${G.n}×${G.n}`;
+  openRecord({ n: G.n, moves: G.moves.slice(), base: G.base, title, meta: null, live: !G.over }, from || null);
+}
+function openRecord(d, from) {
+  const r = E.replay(d.n, d.moves, d.base);
+  REC.n = d.n; REC.moves = d.moves; REC.steps = r.steps; REC.rec = r;
+  recView.build(d.n);
+  $('rec-grid').classList.toggle('nocoord', !settings.coords);
+  $('rec-h').textContent = '📜 ' + (d.title || 'Запись партии');
+  // текст записи
+  const lines = [];
+  const h = d.meta;
+  const date = h ? new Date(h.t) : new Date();
+  lines.push(`Реверси ${d.n}×${d.n} · ${date.toLocaleDateString('ru-RU')}${h ? ' · ' + histTitle(h).replace(/^\S+\s/, '') : ''}`);
+  const toks = [];
+  let num = 0;
+  for (let k = 1; k < r.steps.length; k++) {
+    const s = r.steps[k];
+    if (s.by === 1 || k === 1) toks.push((++num) + '.');
+    toks.push(E.sqName(d.n, s.move));
+    if (s.pass) toks.push(s.by === 1 ? '(белые: пас)' : '(чёрные: пас)');
+  }
+  lines.push(toks.join(' ') || '—');
+  if (r.over) { const f = E.finalScore(r.board); lines.push(`Итог: чёрные ${fmtScore(f.fb)} — белые ${fmtScore(f.fw)}` + (f.e ? ` (на поле ${f.b}:${f.w}, пустые — ${f.winner ? 'победителю' : 'поровну'})` : '')); }
+  else if (d.live) lines.push('Партия продолжается');
+  REC.text = lines.join('\n');
+  $('rec-text').value = REC.text;
+  recStep(r.steps.length - 1, true);
+  openOv('ov-record', from);
+}
+function recStep(k, instant) {
+  const steps = REC.steps;
+  if (!steps.length) return;
+  k = Math.max(0, Math.min(steps.length - 1, k));
+  const forward = k === REC.k + 1 && !instant;
+  REC.k = k;
+  const s = steps[k];
+  recView.paint(s.board, forward ? { at: s.move, lines: s.lines } : null);
+  recView.cells.forEach((c, i) => c.classList.toggle('last', settings.last && i === s.move));
+  const c = E.counts(s.board);
+  $('rec-b').textContent = c.b; $('rec-w').textContent = c.w;
+  let txt;
+  if (k === 0) txt = 'Начальная позиция';
+  else {
+    txt = `Ход ${k}: ${s.by === 1 ? '⚫ чёрные' : '⚪ белые'} — ${E.sqName(REC.n, s.move)}`;
+    if (s.pass) txt += ` · ${s.by === 1 ? 'у белых' : 'у чёрных'} нет хода — пас`;
+  }
+  if (k === steps.length - 1 && REC.rec.over) { const f = E.finalScore(s.board); txt += (k ? ' · ' : '') + `конец партии ${fmtScore(f.fb)}:${fmtScore(f.fw)}`; }
+  $('rec-step').textContent = txt;
+  renderMoves($('rec-moves'), REC.rec, k, kk => { stopRecPlay(); recStep(kk, true); });
+  $('rec-first').disabled = $('rec-prev').disabled = k === 0;
+  $('rec-last').disabled = $('rec-next').disabled = k === steps.length - 1;
+}
+const ICON_PLAY = '<svg viewBox="0 0 24 24"><polygon points="8 5 19 12 8 19 8 5"/></svg>';
+const ICON_PAUSE = '<svg viewBox="0 0 24 24"><line x1="9" y1="5" x2="9" y2="19"/><line x1="15" y1="5" x2="15" y2="19"/></svg>';
+function stopRecPlay() { clearInterval(REC.timer); REC.timer = 0; $('rec-play').innerHTML = ICON_PLAY; $('rec-play').setAttribute('aria-label', 'Проиграть'); }
+$('rec-first').addEventListener('click', () => { stopRecPlay(); recStep(0, true); });
+$('rec-prev').addEventListener('click', () => { stopRecPlay(); recStep(REC.k - 1, true); });
+$('rec-next').addEventListener('click', () => { stopRecPlay(); recStep(REC.k + 1); });
+$('rec-last').addEventListener('click', () => { stopRecPlay(); recStep(REC.steps.length - 1, true); });
+$('rec-play').addEventListener('click', () => {
+  if (REC.timer) { stopRecPlay(); return; }
+  if (REC.k >= REC.steps.length - 1) recStep(0, true);
+  $('rec-play').innerHTML = ICON_PAUSE; $('rec-play').setAttribute('aria-label', 'Пауза');
+  REC.timer = setInterval(() => { if (REC.k >= REC.steps.length - 1) { stopRecPlay(); return; } recStep(REC.k + 1); }, Math.max(450, 900 * Math.max(animK(), 0.5)));
+});
+$('rec-copy').addEventListener('click', async () => {
+  const text = REC.text;
+  let ok = false;
+  try { if (navigator.clipboard && window.isSecureContext) { await navigator.clipboard.writeText(text); ok = true; } } catch (e) {}
+  if (!ok) {
+    const ta = $('rec-text');
+    try { ta.focus(); ta.select(); ok = document.execCommand('copy'); } catch (e) { ok = false; }
+  }
+  toast(ok ? 'Запись скопирована' : 'Не удалось скопировать — выделите текст вручную', ok ? 'good' : 'bad');
+});
+
+/* ═══ Сеть (KuNet) ═══
+ * Формат состояния — как в прежней версии: { board: [n·n], turn: 1|2 }, ход { i }, seat 0 — чёрные.
+ * Сервер не проверяет правила, поэтому позиция соперника проверяется: доска нужного размера, ходы
+ * восстанавливаются по разнице с последней подтверждённой позицией (опрос мог пропустить ход при пасе). */
+function openLobby() {
+  if (!window.KuNet) { toast('Сетевой модуль не загрузился', 'bad'); return; }
+  const n = settings.n;
+  KuNet.openLobby({
+    game: NET_IDS[n], title: `РЕВЕРСИ ${n}×${n} · ПО СЕТИ`,
+    initialState: () => ({ board: E.initialBoard(n), turn: 1 }),
+    meta: { label: `${n}×${n}` },
+    onStart: sess => startNet(sess)
+  });
+}
+function startNet(sess) {
+  const room = sess && sess.room;
+  const n = sizeOfGame(room && room.game);
+  if (!n) { toast('Это комната другой игры', 'bad'); try { sess.leave(); } catch (e) {} return; }
+  AI.cancel(); clearTimeout(aiTimer); clearTimeout(endTimer);
+  leaveNet();
+  closeAll();
+  net = sess;
+  G = newG('net', n, { my: sess.seat === 1 ? 2 : 1 });
+  G.round = room.round; G.conf = { board: E.initialBoard(n), turn: 1 }; G.confLen = 0;
+  view.build(n); applyBoardClasses(); view.paint(G.board, null);
+  sess.onUpdate = rm => netApply(rm);
+  sess.onClosed = rm => onNetClosed(rm);
+  sess.onError = () => { if (Date.now() - errAt > 8000) { errAt = Date.now(); toast('Нет связи с сервером…', 'bad'); } };
+  showScreen('game');
+  netApply(room);
+  sess.startPolling();
+  toast(G.my === 1 ? 'Вы играете чёрными — ваш ход первый' : 'Вы играете белыми — первым ходит соперник', 'good');
+}
+function netBroken(msg) {
+  if (!G || G.mode !== 'net') return;
+  G.broken = true; G.over = true;
+  sfx.lose();
+  updateAll();
+  $('end-title').textContent = 'ПАРТИЯ ПРЕРВАНА'; $('end-title').className = 'lose';
+  $('end-sub').textContent = msg;
+  $('end-score').innerHTML = ''; $('end-note').textContent = ''; $('end-stats').innerHTML = '';
+  $('btn-again').hidden = true; $('btn-swap').hidden = true; $('btn-review').hidden = !G.moves.length;
+  closeAll(); openOv('ov-end');
+  const s = net; net = null;
+  if (s) { s.onUpdate = s.onClosed = s.onError = null; try { s.leave(); } catch (e) {} }
+}
+function netApply(room) {
+  if (!G || G.mode !== 'net' || !net || !room) return;
+  if (room.status === 'closed') { onNetClosed(room); return; }
+  const st = room.state;
+  if (!st || typeof st !== 'object') return;
+  if (room.round !== G.round) {
+    // соперник начал новую партию в комнате
+    G.round = room.round; G.moves = []; G.base = null; G.over = false; G.recorded = false; G.t0 = Date.now();
+    G.conf = { board: E.initialBoard(G.n), turn: 1 }; G.confLen = 0; G.sending = false;
+    clearTimeout(endTimer); closeAll();
+    view.reset();
+    toast('Новая партия!', 'good');
+  }
+  if (!E.validBoard(st.board, G.n) || (st.turn !== 1 && st.turn !== 2)) {
+    netBroken(st.board && Array.isArray(st.board) && st.board.length !== G.n * G.n
+      ? `Соперник играет на другом поле — вероятно, у него старая версия игры (только 8×8). Партия прервана.`
+      : 'Соперник прислал повреждённую позицию. Партия прервана.');
+    return;
+  }
+  const tgt = st.board.slice();
+  const confB = G.conf.board;
+  let anim = null;
+  const same = tgt.every((v, i) => v === confB[i]);
+  G.moves.length = G.confLen;                       // неподтверждённый свой ход отбрасываем — сервер главнее
+  if (!same) {
+    const seq = E.diffMoves(G.n, confB, G.conf.turn, tgt, 8);
+    if (seq) {
+      // анимируем последний ход (если доска на экране отличается)
+      const prev = seq.length > 1 ? E.replay(G.n, seq.slice(0, -1), { board: confB, turn: G.conf.turn }) : null;
+      const before = prev ? prev.board : confB, by = prev ? prev.turn : G.conf.turn;
+      const last = seq[seq.length - 1];
+      const r = E.play(before, G.n, last, by);
+      if (r) anim = { at: last, lines: r.lines, by };
+      G.moves.push(...seq);
+    } else {
+      // запись не восстановить (например, соперник пропустил много ходов) — продолжаем с позиции сервера
+      G.base = { board: tgt.slice(), turn: st.turn }; G.moves = [];
+      toast('Позиция синхронизирована с сервером', 'gold');
+    }
+  }
+  G.confLen = G.moves.length;
+  G.conf = { board: tgt.slice(), turn: st.turn };
+  G.board = tgt; G.turn = st.turn; G.last = G.moves.length ? G.moves[G.moves.length - 1] : (room.lastMove && room.lastMove.move && Number.isInteger(room.lastMove.move.i) ? room.lastMove.move.i : -1);
+  G.sending = false;
+  const over = room.status === 'finished' || (!E.hasMove(tgt, G.n, 1) && !E.hasMove(tgt, G.n, 2));
+  G.over = over;
+  G.legal = over ? [] : E.legalMoves(tgt, G.n, G.turn);
+  const shownSame = tgt.every((v, i) => v === view.shown[i]);
+  if (!shownSame) {
+    // анимация хода — только если на экране отличаются ровно клетки этого хода
+    let ok = !!anim;
+    if (ok) { const cells = new Set([anim.at]); anim.lines.forEach(L => L.forEach(j => cells.add(j))); ok = view.shown.every((v, i) => cells.has(i) || v === tgt[i]); }
+    const dur = view.paint(tgt, ok ? anim : null);
+    animUntil = nowMs() + dur;
+    if (anim) { sfx.put(); vib(10); }
+  }
+  // соперник сходил, а очередь снова у него — у нас нет ходов (пас)
+  const lm = room.lastMove;
+  if (!over && room.status === 'playing' && lm && lm.by !== G.my - 1 && G.turn !== G.my && room.ver !== G.noticeVer) {
+    G.noticeVer = room.ver; announcePass(G.my);
+  }
+  updateAll();
+  if (over && !G.recorded) { recordResult(); scheduleEnd(); }
+}
+function netMove(i) {
+  if (!canAct()) return;
+  const by = G.my, r = E.play(G.board, G.n, i, by);
+  if (!r) return;
+  const a = E.after(r.board, G.n, by);
+  // как в прежней версии: после последнего хода очередь остаётся у сходившего
+  const turn = a.over ? by : a.turn, finished = a.over;
+  G.moves.push(i); G.board = r.board; G.turn = turn; G.last = i; G.sending = true; G.sel = -1;
+  G.legal = [];
+  const dur = view.paint(G.board, { at: i, lines: r.lines });
+  animUntil = nowMs() + dur;
+  sfx.put(); sfx.flips(r.flipped, animK()); vib(10);
+  if (a.pass && !finished) announcePass(3 - by);
+  updateAll();
+  const gid = G.id, round = G.round, s = net;
+  s.move({ board: r.board.slice(), turn }, turn - 1, { i }, finished)
+    .then(() => {
+      if (!G || G.id !== gid || G.round !== round || net !== s) return;
+      G.sending = false;
+      G.confLen = G.moves.length; G.conf = { board: r.board.slice(), turn };
+      G.legal = E.legalMoves(G.board, G.n, G.turn);
+      if (finished) { G.over = true; G.legal = []; recordResult(); scheduleEnd(); }
+      updateAll();
+    })
+    .catch(e => {
+      if (!G || G.id !== gid || net !== s) return;
+      G.sending = false;
+      const msg = (e && e.message) || String(e);
+      if (/устарело/.test(msg)) { toast('Синхронизация…'); updateAll(); return; }     // состояние сервера уже применено
+      toast('Ход не отправлен: ' + msg, 'bad');
+      // откат к подтверждённой позиции — ход можно повторить
+      G.moves.length = G.confLen; G.board = G.conf.board.slice(); G.turn = G.conf.turn;
+      G.last = G.moves.length ? G.moves[G.moves.length - 1] : -1;
+      G.legal = E.legalMoves(G.board, G.n, G.turn);
+      view.paint(G.board, null);
+      updateAll();
+    });
+}
+function netReset() {
+  if (!net || !G || G.mode !== 'net') return;
+  if (G.oppLeft) { toMenu(); return; }
+  $('g-sub').textContent = 'НОВАЯ ПАРТИЯ…';
+  const s = net;
+  s.reset({ board: E.initialBoard(G.n), turn: 1 }, 0, G.round).then(room => { if (net === s) netApply(room); })
+    .catch(e => { if (net === s) toast('Не удалось начать: ' + ((e && e.message) || e), 'bad'); });
+  closeAll();
+}
+function onNetClosed() {
+  if (!G || G.mode !== 'net') return;
+  const wasOver = G.over;
+  G.oppLeft = true;
+  const s = net; net = null;
+  if (s) { s.onUpdate = s.onClosed = s.onError = null; s.stopPolling(); }
+  clearTimeout(endTimer);
+  updateAll();
+  if (wasOver && G.recorded) { toast('Соперник вышел из комнаты', 'bad'); $('btn-again').hidden = true; $('btn-restart').hidden = true; return; }
+  G.over = true;
+  closeAll();
+  const c = E.counts(G.board);
+  $('end-title').textContent = 'СОПЕРНИК ВЫШЕЛ'; $('end-title').className = '';
+  $('end-sub').textContent = 'Партия прервана и не засчитана';
+  $('end-score').innerHTML = `<i class="dot b"></i>${c.b} : ${c.w}<i class="dot w"></i>`;
+  $('end-note').textContent = ''; $('end-stats').innerHTML = '';
+  $('btn-again').hidden = true; $('btn-swap').hidden = true; $('btn-review').hidden = !G.moves.length;
+  openOv('ov-end');
+  sfx.lose();
+}
+function leaveNet() {
+  const s = net;
+  net = null;
+  if (s) { s.onUpdate = s.onClosed = s.onError = null; try { s.leave(); } catch (e) {} }
+}
+window.addEventListener('pagehide', () => { if (net) { try { net.leaveBeacon(); } catch (e) {} } if (G && G.mode !== 'net') saveGame(); });
+
+/* ═══ Пауза при скрытии вкладки ═══ */
+document.addEventListener('visibilitychange', () => {
+  if (!document.hidden) return;
+  if (G && G.mode !== 'net') saveGame();
+  if (screen === 'game' && G && !G.over && G.mode !== 'net' && !anyOpen()) openPause();
+});
+
+/* ═══ Старт ═══ */
 refreshMenu();
+
+stopRecPlay();
+
 </script>
 </body>
 </html>
