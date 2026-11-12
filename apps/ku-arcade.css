@@ -113,7 +113,7 @@ html.ku-embedded .ku-logo:not(.ku-top .ku-logo){margin-top:max(5vh,48px)}   /* �
 .ku-menu-stats{margin-top:24px;color:var(--muted);font-size:13px;text-align:center;line-height:1.6}
 .ku-menu-hint{margin-top:8px;color:var(--muted);font-size:11px;opacity:.7;text-align:center;max-width:560px;line-height:1.6}
 .ku-field{display:flex;flex-direction:column;align-items:center;gap:8px;margin-top:18px;width:min(340px,88vw)}
-.ku-label{font-family:var(--font-display);font-weight:400;font-size:10px;letter-spacing:1.5px;color:var(--muted);text-transform:uppercase}
+.ku-label{font-family:var(--font-display);font-weight:400;font-size:11px;letter-spacing:1.4px;color:var(--muted);text-transform:uppercase}
 
 /* ── Кнопки ── */
 .ku-btn{font-family:var(--font-body);font-size:15px;font-weight:600;color:var(--text);line-height:1.2;
@@ -141,8 +141,8 @@ html.ku-embedded .ku-logo:not(.ku-top .ku-logo){margin-top:max(5vh,48px)}   /* �
 .ku-btn.big{width:min(340px,88vw);padding:15px;font-size:19px;flex-direction:column;gap:4px}
 .ku-btn.duo{width:163px;padding:13px 8px;font-size:16px;flex-direction:column;gap:3px}
 .ku-btn.wide{width:min(340px,88vw)}
-.ku-btn.sm{padding:8px 14px;font-size:13px;border-radius:12px}
-.ku-btn.icon{width:42px;height:42px;padding:0;font-size:18px;border-radius:12px;flex:none}
+.ku-btn.sm{padding:8px 14px;min-height:38px;font-size:13px;border-radius:12px}
+.ku-btn.icon{width:44px;height:44px;padding:0;font-size:18px;border-radius:12px;flex:none}
 .ku-btn.icon svg{width:18px;height:18px;fill:none;stroke:currentColor;stroke-width:2.2;stroke-linecap:round;stroke-linejoin:round}
 .ku-btn .best{font-size:11.5px;font-weight:500;opacity:.85}
 .ku-btn.on{border-color:var(--accent);box-shadow:0 0 0 2px rgba(0,229,255,.45),var(--shadow-btn)}
@@ -151,7 +151,7 @@ html.ku-embedded .ku-logo:not(.ku-top .ku-logo){margin-top:max(5vh,48px)}   /* �
 .ku-seg{display:flex;gap:4px;padding:4px;border-radius:14px;background:rgba(255,255,255,.04);border:1px solid var(--panel-border);
   backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);width:min(340px,88vw)}
 .ku-seg button{flex:1 1 0;min-width:0;font-family:var(--font-body);font-size:13px;font-weight:600;color:var(--muted);background:transparent;
-  border:1px solid transparent;border-radius:10px;padding:8px 6px;cursor:pointer;transition:.2s;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  border:1px solid transparent;border-radius:10px;padding:8px 6px;min-height:38px;cursor:pointer;transition:.2s;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;touch-action:manipulation}
 .ku-seg button.active{color:var(--text);background:rgba(0,229,255,.16);border-color:rgba(0,229,255,.55);box-shadow:0 0 12px rgba(0,229,255,.25)}
 .ku-seg button:active{transform:scale(.96)}
 
@@ -175,7 +175,7 @@ html.ku-embedded .ku-standalone-only{display:none!important}
 .ku-hud{display:flex;gap:8px;flex-wrap:wrap;justify-content:center;margin:2px 0 10px;flex:none}
 .ku-stat{display:flex;flex-direction:column;align-items:center;justify-content:center;min-width:62px;padding:6px 12px;border-radius:12px;
   background:var(--glass-panel);border:1px solid var(--panel-border);backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px)}
-.ku-stat span{font-size:10px;letter-spacing:1.2px;color:var(--muted);text-transform:uppercase;white-space:nowrap;line-height:1.3}
+.ku-stat span{font-size:10.5px;letter-spacing:1px;color:var(--muted);text-transform:uppercase;white-space:nowrap;line-height:1.3}
 .ku-stat b{font-family:var(--font-display);font-weight:400;font-size:17px;color:var(--accent);line-height:1.25;white-space:nowrap;font-variant-numeric:tabular-nums}
 .ku-stat b.pop{animation:kuScorePop .35s ease}
 .ku-stat.c2 b{color:var(--accent2)} .ku-stat.gold b{color:var(--gold)} .ku-stat.good b{color:var(--good)} .ku-stat.bad b{color:var(--bad)}
@@ -259,15 +259,15 @@ html.ku-embedded .ku-modal{max-height:calc(100dvh - 80px)}
 .ku-rules b:not([class]){color:var(--text)}   /* <b class="ku-gold"> и т.п. сохраняют свой цвет */
 
 /* ── Настройки: переключатель, степпер, ползунок ── */
-.ku-set-row{display:flex;align-items:center;justify-content:space-between;gap:14px;padding:9px 2px;font-size:14px}
-.ku-switch-row{display:flex;align-items:center;justify-content:space-between;gap:14px;padding:10px 2px;cursor:pointer;font-size:14px}
+.ku-set-row{display:flex;align-items:center;justify-content:space-between;gap:14px;padding:9px 2px;min-height:44px;font-size:14px}
+.ku-switch-row{display:flex;align-items:center;justify-content:space-between;gap:14px;padding:10px 2px;min-height:44px;cursor:pointer;font-size:14px}
 .ku-switch-row input{display:none}
 .ku-switch{width:46px;height:26px;border-radius:13px;background:rgba(255,255,255,.15);position:relative;transition:.2s;flex:none}
 .ku-switch::after{content:'';position:absolute;width:20px;height:20px;border-radius:50%;background:#fff;top:3px;left:3px;transition:.2s}
 .ku-switch-row input:checked+.ku-switch{background:var(--accent);box-shadow:0 0 10px rgba(0,229,255,.5)}
 .ku-switch-row input:checked+.ku-switch::after{left:23px}
 .ku-stepper{display:flex;align-items:center;gap:8px}
-.ku-stepper button{width:32px;height:32px;border-radius:10px;font-size:17px;font-weight:700;cursor:pointer;color:var(--text);
+.ku-stepper button{width:38px;height:38px;border-radius:11px;touch-action:manipulation;font-size:17px;font-weight:700;cursor:pointer;color:var(--text);
   background:linear-gradient(160deg,rgba(255,255,255,.12),rgba(255,255,255,.04));border:1px solid var(--panel-border);transition:.15s}
 .ku-stepper button:active{transform:scale(.9)}
 .ku-stepper b{min-width:36px;text-align:center;font-family:var(--font-display);font-weight:400;font-size:16px;color:var(--accent)}
@@ -278,7 +278,8 @@ html.ku-embedded .ku-modal{max-height:calc(100dvh - 80px)}
 /* ── Тост ── */
 .ku-toast{position:fixed;left:50%;bottom:calc(26px + env(safe-area-inset-bottom,0px));transform:translate(-50%,20px);background:rgba(8,12,30,.94);
   border:1px solid var(--panel-border);color:var(--text);padding:11px 22px;border-radius:12px;z-index:80;opacity:0;
-  pointer-events:none;transition:.3s;font-size:14px;box-shadow:0 8px 30px rgba(0,0,0,.5);max-width:90vw;text-align:center}
+  pointer-events:none;transition:.3s;font-size:14px;line-height:1.35;box-shadow:0 8px 30px rgba(0,0,0,.5);
+  width:max-content;max-width:min(90vw,480px);text-align:center}   /* max-content: иначе left:50% сжимает тост до половины экрана */
 .ku-toast.show{opacity:1;transform:translate(-50%,0)}
 .ku-toast.top{bottom:auto;top:calc(66px + env(safe-area-inset-top,0px));transform:translate(-50%,-20px)}   /* не перекрывает высокое поле */
 .ku-toast.top.show{transform:translate(-50%,0)}
@@ -325,4 +326,99 @@ html.ku-embedded .ku-modal{max-height:calc(100dvh - 80px)}
   .ku-card{box-shadow:0 20px 80px rgba(0,0,0,.65),0 0 50px color-mix(in srgb,var(--accent) 10%,transparent)}
   .ku-modal{background:linear-gradient(170deg,color-mix(in srgb,var(--bg2) 82%,white 6%),var(--bg1))}
   .ku-switch-row input:checked+.ku-switch{box-shadow:0 0 10px color-mix(in srgb,var(--accent) 50%,transparent)}
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+ * Версия 2 (11.2026): полировка кнопок, появление меню, эффекты,
+ * окна в альбомной ориентации телефона, мелкие экраны
+ * ═════════════════════════════════════════════════════════════════════════ */
+body.ku{-webkit-touch-callout:none}
+.ku ::selection{background:rgba(0,229,255,.32);color:#fff}
+
+/* Тонкие полосы прокрутки в меню и окнах */
+.ku-screen.menu,.ku-card,.ku-modal .ku-body{scrollbar-width:thin;scrollbar-color:rgba(255,255,255,.22) transparent}
+.ku-screen.menu::-webkit-scrollbar,.ku-card::-webkit-scrollbar,.ku-modal .ku-body::-webkit-scrollbar{width:6px;height:6px}
+.ku-screen.menu::-webkit-scrollbar-thumb,.ku-card::-webkit-scrollbar-thumb,.ku-modal .ku-body::-webkit-scrollbar-thumb{background:rgba(255,255,255,.2);border-radius:3px}
+.ku-screen.menu::-webkit-scrollbar-track,.ku-card::-webkit-scrollbar-track,.ku-modal .ku-body::-webkit-scrollbar-track{background:transparent}
+
+/* Холст салюта (KuArcade.confetti) — поверх окон, нажатия проходят насквозь */
+.ku-fx{position:fixed;inset:0;width:100%;height:100%;pointer-events:none;z-index:95}
+
+/* Цветные кнопки: объём (блик сверху, тень снизу) и свечение в цвет кнопки */
+.ku-btn.primary{--ku-glow:rgba(0,229,255,.3)} .ku-btn.accent2{--ku-glow:rgba(255,77,210,.3)} .ku-btn.green{--ku-glow:rgba(81,245,139,.26)}
+.ku-btn.gold{--ku-glow:rgba(255,190,30,.28)} .ku-btn.red{--ku-glow:rgba(255,93,125,.3)} .ku-btn.blue{--ku-glow:rgba(91,140,255,.32)}
+.ku-btn.primary,.ku-btn.accent2,.ku-btn.green,.ku-btn.gold,.ku-btn.red,.ku-btn.blue{font-weight:700;
+  box-shadow:0 6px 22px var(--ku-glow),0 2px 6px rgba(0,0,0,.28),inset 0 1px 0 rgba(255,255,255,.5),inset 0 -2px 0 rgba(0,0,0,.16)}
+@media (hover:hover){
+  .ku-btn.primary:hover,.ku-btn.accent2:hover,.ku-btn.green:hover,.ku-btn.gold:hover,.ku-btn.red:hover,.ku-btn.blue:hover{filter:brightness(1.08);
+    box-shadow:0 10px 30px var(--ku-glow),0 2px 6px rgba(0,0,0,.28),inset 0 1px 0 rgba(255,255,255,.5),inset 0 -2px 0 rgba(0,0,0,.16)}
+}
+.ku-btn:active{filter:brightness(.93)}
+.ku-btn.on{box-shadow:0 0 0 2px rgba(0,229,255,.45),var(--shadow-btn)}
+.ku-btn:disabled,.ku-btn.disabled{box-shadow:none;filter:none}
+@supports (color:color-mix(in srgb,red 50%,blue)){
+  .ku-btn.primary{--ku-glow:color-mix(in srgb,var(--accent) 30%,transparent)}
+  .ku-btn.accent2{--ku-glow:color-mix(in srgb,var(--accent2) 30%,transparent)}
+  .ku-btn.on{box-shadow:0 0 0 2px color-mix(in srgb,var(--accent) 45%,transparent),var(--shadow-btn)}
+}
+.ku-seg button:focus-visible,.ku-key:focus-visible,.ku-pad button:focus-visible,.ku-stepper button:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+
+/* Игровое поле: неоновая кромка — от цвета акцента в левом верхнем углу к второму акценту в правом нижнем.
+ * Статичная (без анимации и перерисовок), рисуется поверх рамки и не ловит нажатия. */
+.ku-board::after{content:'';position:absolute;inset:0;border-radius:inherit;padding:1px;pointer-events:none;opacity:.85;
+  background:linear-gradient(135deg,var(--accent) 0%,rgba(255,255,255,.05) 32%,rgba(255,255,255,.05) 68%,var(--accent2) 100%);
+  -webkit-mask:linear-gradient(#000 0 0) content-box,linear-gradient(#000 0 0);-webkit-mask-composite:xor;
+  mask:linear-gradient(#000 0 0) content-box exclude,linear-gradient(#000 0 0)}
+
+/* Окно победы / поражения: рамка и свечение в цвет заголовка (где браузер умеет :has) */
+.ku-card:has(>h2.win),.ku-card:has(.ku-new-best:not([hidden])){border-color:rgba(81,245,139,.42);
+  box-shadow:0 20px 80px rgba(0,0,0,.65),0 0 54px rgba(81,245,139,.2),inset 0 1px 0 rgba(255,255,255,.1)}
+.ku-card:has(>h2.lose){border-color:rgba(255,93,125,.38);
+  box-shadow:0 20px 80px rgba(0,0,0,.65),0 0 54px rgba(255,93,125,.16),inset 0 1px 0 rgba(255,255,255,.08)}
+
+/* Меню: кнопки появляются по очереди */
+.ku-screen.menu.active .ku-menu-btns>*{animation:kuFadeUp .42s ease backwards}
+.ku-screen.menu.active .ku-menu-btns>*:nth-child(1){animation-delay:.05s}
+.ku-screen.menu.active .ku-menu-btns>*:nth-child(2){animation-delay:.10s}
+.ku-screen.menu.active .ku-menu-btns>*:nth-child(3){animation-delay:.15s}
+.ku-screen.menu.active .ku-menu-btns>*:nth-child(4){animation-delay:.20s}
+.ku-screen.menu.active .ku-menu-btns>*:nth-child(n+5){animation-delay:.25s}
+@media (prefers-reduced-motion:reduce){
+  .ku-screen.menu.active .ku-menu-btns>*,.ku-screen.active,.ku-card,.ku-modal{animation:none}
+}
+
+/* Переключатели и поля внутри окон не шире окна (на 360 px .ku-seg шириной 88vw вылезал из окна) */
+.ku-modal .ku-seg,.ku-card .ku-seg,.ku-modal .ku-field,.ku-card .ku-field{max-width:100%}
+
+/* Узкие телефоны */
+@media (max-width:360px){
+  .ku-card{padding:22px 18px}
+  .ku-modal>header{padding:13px 14px}
+  .ku-modal .ku-body{padding:14px}
+  .ku-modal>footer{padding:12px 14px}
+  .ku-hud{gap:6px}
+}
+
+/* Телефон в альбоме: окна плотнее и занимают почти всю высоту. Внутри платформы окно встаёт по центру экрана,
+ * если не задевает кнопку «←» (узкое или невысокое окно); иначе набор сам ставит класс .ku-below — окно
+ * опускается под кнопку, как раньше (ku-arcade.js → placeOverlay). На экране 844×390 окну доступно 374 px вместо 310. */
+@media (orientation:landscape) and (max-height:500px){
+  .ku-overlay,html.ku-embedded .ku-overlay{padding:8px 12px}
+  html.ku-embedded .ku-overlay.ku-below{padding-top:64px}
+  .ku-card,html.ku-embedded .ku-card{max-height:calc(100dvh - 16px);padding:14px 22px;gap:8px}
+  .ku-modal,html.ku-embedded .ku-modal{max-height:calc(100dvh - 16px);max-width:100%}
+  html.ku-embedded .ku-overlay.ku-below .ku-card,html.ku-embedded .ku-overlay.ku-below .ku-modal{max-height:calc(100dvh - 72px)}
+  .ku-card h2{font-size:20px}
+  .ku-card p{font-size:13px;line-height:1.4}
+  .ku-card .ku-btn{padding-top:9px;padding-bottom:9px;min-height:38px}
+  .ku-big-score{font-size:26px}
+  .ku-new-best{font-size:15px}
+  .ku-over-stats{gap:4px;margin:2px 0}
+  .ku-over-stats div{font-size:13px}
+  .ku-modal>header{padding:8px 16px}
+  .ku-modal .ku-body{padding:10px 16px}
+  .ku-modal>footer{padding:8px 16px}
+  .ku-toast{bottom:calc(12px + env(safe-area-inset-bottom,0px));padding:8px 16px;font-size:13px}
+  .ku-toast.top{top:calc(10px + env(safe-area-inset-top,0px))}
+  html.ku-embedded .ku-toast.top{max-width:min(480px,calc(100vw - 148px))}   /* не заходит под кнопку «←» */
 }

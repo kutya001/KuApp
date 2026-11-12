@@ -10,6 +10,12 @@
  *  • KuArcade.confirm(msg, {title, ok, cancel, danger}) → Promise<boolean>,
  *    KuArcade.alert(msg, {title, ok}) → Promise — диалоги в стиле набора
  *    (вместо системных confirm/alert, которые выбиваются из стиля).
+ *  • KuArcade.confetti({count, x, y, colors}) — залп конфетти поверх экрана (x, y — доли экрана 0…1);
+ *    KuArcade.celebrate() — праздничный салют. Запускается и сам: когда открывается окно .ku-overlay,
+ *    в котором виден заголовок h2.win или строка .ku-new-best (победа, новый рекорд).
+ *    Отключить для окна: атрибут data-ku-nofx. При «уменьшить движение» эффектов нет.
+ *  • Экран не гаснет, пока идёт игра (Screen Wake Lock): блокировка берётся при касании/нажатии
+ *    и отпускается через 3 минуты без действий или при сворачивании.
  * ═════════════════════════════════════════════════════════════════════════ */
 (function () {
   'use strict';
@@ -63,6 +69,7 @@
     if (!toastEl) {
       toastEl = document.querySelector('.ku-toast');
       if (!toastEl) { toastEl = document.createElement('div'); toastEl.className = 'ku-toast'; document.body.appendChild(toastEl); }
+      if (!toastEl.hasAttribute('role')) { toastEl.setAttribute('role', 'status'); toastEl.setAttribute('aria-live', 'polite'); }
     }
     toastEl.textContent = msg;
     toastEl.className = 'ku-toast show' + (kind ? ' ' + kind : '');
@@ -119,17 +126,142 @@
   function confirmDialog(message, o) { return dialog(message, o, true); }
   function alertDialog(message, o) { return dialog(message, o, false); }
 
+  /* ── Салют: конфетти на отдельном холсте поверх всего (без перерисовки игры) ── */
+  var fxCanvas = null, fxParts = [], fxRaf = 0, fxLast = 0, lastCelebrate = 0;
+  function reducedMotion() {
+    try { return window.matchMedia('(prefers-reduced-motion: reduce)').matches; } catch (e) { return false; }
+  }
+  function confetti(o) {
+    o = o || {};
+    if (reducedMotion() || !document.body) return;
+    var W = window.innerWidth, H = window.innerHeight;
+    if (!fxCanvas) {
+      fxCanvas = document.createElement('canvas');
+      fxCanvas.className = 'ku-fx'; fxCanvas.setAttribute('aria-hidden', 'true');
+      document.body.appendChild(fxCanvas);
+    }
+    var dpr = Math.min(2, window.devicePixelRatio || 1);
+    if (fxCanvas.width !== Math.round(W * dpr) || fxCanvas.height !== Math.round(H * dpr)) {
+      fxCanvas.width = Math.round(W * dpr); fxCanvas.height = Math.round(H * dpr);
+    }
+    var n = Math.max(8, Math.min(160, o.count || (W < 500 ? 70 : 110)));
+    var colors = (o.colors || PALETTE.map(color)).filter(Boolean);
+    if (!colors.length) colors = ['#00e5ff', '#ffd60a', '#ff4dd2', '#51f58b'];
+    var x0 = (o.x == null ? 0.5 : o.x) * W, y0 = (o.y == null ? 0.36 : o.y) * H, unit = Math.min(W, H);
+    for (var i = 0; i < n; i++) {
+      var a = Math.random() * Math.PI * 2, sp = (0.3 + Math.random() * 0.9) * unit * 1.35;
+      fxParts.push({ x: x0, y: y0, vx: Math.cos(a) * sp, vy: Math.sin(a) * sp - unit * 0.55, g: unit * 2.1,
+        w: 5 + Math.random() * 6, h: 4 + Math.random() * 5, r: Math.random() * 6.283, vr: (Math.random() - 0.5) * 14,
+        ph: Math.random() * 6.283, c: colors[i % colors.length], life: 0, ttl: 1.4 + Math.random() * 1.2 });
+    }
+    if (fxParts.length > 420) fxParts.splice(0, fxParts.length - 420);
+    if (!fxRaf) { fxLast = performance.now(); fxRaf = requestAnimationFrame(fxTick); }
+  }
+  function fxTick(t) {
+    var dt = Math.min(0.05, Math.max(0, (t - fxLast) / 1000)); fxLast = t;
+    var W = window.innerWidth, H = window.innerHeight, ctx = fxCanvas.getContext('2d');
+    ctx.setTransform(fxCanvas.width / W, 0, 0, fxCanvas.height / H, 0, 0);
+    ctx.clearRect(0, 0, W, H);
+    var drag = Math.pow(0.22, dt);
+    for (var i = fxParts.length - 1; i >= 0; i--) {
+      var p = fxParts[i]; p.life += dt;
+      if (p.life > p.ttl || p.y > H + 40) { fxParts.splice(i, 1); continue; }
+      p.vx *= drag; p.vy = p.vy * drag + p.g * dt;
+      p.x += p.vx * dt; p.y += p.vy * dt; p.r += p.vr * dt;
+      var flip = Math.abs(Math.cos(p.life * 8 + p.ph));          // «переворот» бумажки
+      ctx.save(); ctx.translate(p.x, p.y); ctx.rotate(p.r);
+      ctx.globalAlpha = Math.max(0, Math.min(1, (p.ttl - p.life) / 0.45));
+      ctx.fillStyle = p.c; ctx.fillRect(-p.w / 2, -p.h * flip / 2, p.w, p.h * flip + 1);
+      ctx.restore();
+    }
+    if (fxParts.length) fxRaf = requestAnimationFrame(fxTick);
+    else { fxRaf = 0; ctx.clearRect(0, 0, W, H); }
+  }
+  function celebrate(o) {
+    var now = Date.now();
+    if (now - lastCelebrate < 1500) return;      // одно окно — один салют
+    lastCelebrate = now;
+    confetti(o);
+    setTimeout(function () { confetti({ count: 46, x: 0.18 + Math.random() * 0.14, y: 0.3 }); }, 260);
+    setTimeout(function () { confetti({ count: 46, x: 0.68 + Math.random() * 0.14, y: 0.3 }); }, 480);
+  }
+  function shown(el) {
+    if (!el || !el.getClientRects().length) return false;
+    var cs = getComputedStyle(el);
+    return cs.visibility !== 'hidden' && (el.textContent || '').trim() !== '';
+  }
+  function checkWin(ov) {
+    if (!ov || !ov.isConnected || !ov.classList.contains('open')) return;
+    if (ov.classList.contains('ku-dialog') || ov.hasAttribute('data-ku-nofx')) return;
+    var els = ov.querySelectorAll('h2.win, .ku-new-best');
+    for (var i = 0; i < els.length; i++) if (shown(els[i])) {
+      // то же окно с тем же текстом, открытое повторно («посмотреть поле» → назад к итогам), — без второго салюта
+      var sig = (ov.textContent || '').replace(/\s+/g, ' ').slice(0, 200), now = Date.now();
+      if (ov.__kuWinSig === sig && now - (ov.__kuWinAt || 0) < 120000) return;
+      ov.__kuWinSig = sig; ov.__kuWinAt = now;
+      celebrate();
+      return;
+    }
+  }
+
+  /* ── Окно и кнопка «←» платформы ──
+   * Внутри платформы левый верхний угол (64×64) занят кнопкой «←». Окно, которое в него попадает,
+   * опускается под кнопку (класс .ku-below); остальные встают по центру и получают всю высоту экрана. */
+  function placeOverlay(ov) {
+    if (!embedded || !ov || !ov.isConnected || !ov.classList.contains('open')) return;
+    ov.classList.remove('ku-below');
+    var box = ov.firstElementChild;
+    while (box && !box.offsetWidth) box = box.nextElementSibling;
+    if (!box) return;
+    // offsetLeft/Top — по раскладке, без учёта анимации появления (scale)
+    if (box.offsetLeft < 62 && box.offsetTop < 62) ov.classList.add('ku-below');
+  }
+  function placeOverlays() {
+    var list = document.querySelectorAll('.ku-overlay.open');
+    for (var i = 0; i < list.length; i++) placeOverlay(list[i]);
+  }
+
+  /* ── Экран не гаснет во время игры ── */
+  var wakeLock = null, wakePending = false, wakeTimer = 0, WAKE_IDLE_MS = 180000;
+  function wakeRelease() {
+    clearTimeout(wakeTimer);
+    if (wakeLock) { try { wakeLock.release(); } catch (e) {} wakeLock = null; }
+  }
+  function wakeKick() {
+    clearTimeout(wakeTimer);
+    wakeTimer = setTimeout(wakeRelease, WAKE_IDLE_MS);
+    if (wakeLock || wakePending || !navigator.wakeLock || document.visibilityState !== 'visible') return;
+    wakePending = true;
+    try {
+      navigator.wakeLock.request('screen').then(function (lock) {
+        wakePending = false; wakeLock = lock;
+        lock.addEventListener('release', function () { if (wakeLock === lock) wakeLock = null; });
+        if (document.visibilityState !== 'visible') wakeRelease();
+      }).catch(function () { wakePending = false; });
+    } catch (e) { wakePending = false; }
+  }
+  window.addEventListener('pointerdown', wakeKick, { passive: true, capture: true });
+  window.addEventListener('keydown', wakeKick, { passive: true, capture: true });
+  document.addEventListener('visibilitychange', function () { if (document.visibilityState !== 'visible') wakeRelease(); });
+
   var resizeT = 0;
   window.addEventListener('resize', function () {
     clearTimeout(resizeT);
-    resizeT = setTimeout(function () { document.querySelectorAll('.ku-logo[data-text]').forEach(fit); }, 120);
+    resizeT = setTimeout(function () { document.querySelectorAll('.ku-logo[data-text]').forEach(fit); placeOverlays(); }, 120);
   });
 
   // экран или оверлей стал видимым (у них анимация появления) — подогнать заголовки внутри
   document.addEventListener('animationstart', function (e) {
     var t = e.target;
-    if (t && t.classList && (t.classList.contains('ku-screen') || t.classList.contains('ku-overlay')))
+    if (t && t.classList && (t.classList.contains('ku-screen') || t.classList.contains('ku-overlay'))) {
       t.querySelectorAll('.ku-logo[data-text]').forEach(fit);
+      if (e.target === t && t.classList.contains('ku-overlay')) {
+        placeOverlay(t);                                   // сразу, до первой отрисовки окна
+        // окно победы / нового рекорда — салют (содержимое окна игра могла дописать сразу после открытия)
+        setTimeout(function () { placeOverlay(t); checkWin(t); }, 90);
+        setTimeout(function () { placeOverlay(t); }, 420);
+      }
+    }
   }, true);
 
   function boot() {
@@ -141,5 +273,6 @@
   }
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', boot); else boot();
 
-  window.KuArcade = { embedded: embedded, logo: logo, toast: toast, color: color, confirm: confirmDialog, alert: alertDialog };
+  window.KuArcade = { embedded: embedded, logo: logo, toast: toast, color: color, confirm: confirmDialog, alert: alertDialog,
+    confetti: confetti, celebrate: celebrate };
 })();
