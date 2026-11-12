@@ -80,10 +80,10 @@
   /* магазин */
   .shop-wrap{flex:1;min-height:0;width:100%;max-width:560px;display:flex;flex-direction:column;margin-top:4px}
   .shop-head{display:flex;gap:8px;align-items:center;flex:none;padding:0 2px 8px}
-  #branch{flex:1;width:auto;padding:3px}
+  #branch{flex:1;min-width:0;width:auto;padding:3px}   /* min-width:0 — иначе на узком экране кнопка «×1» уезжает за край */
   #branch button{padding:7px 2px;font-size:12px}
   #branch button .bi{font-size:14px}
-  #buymode{width:52px;height:40px;font-family:var(--font-display);font-weight:400;font-size:13px;letter-spacing:.3px;color:var(--gold);border-color:#ffd60a55}
+  #buymode{flex:none;width:52px;height:40px;font-family:var(--font-display);font-weight:400;font-size:13px;letter-spacing:.3px;color:var(--gold);border-color:#ffd60a55}
   @media (max-width:400px){#branch .bi{display:none}}
   #shop{flex:1;min-height:0;overflow-y:auto;-webkit-overflow-scrolling:touch;display:flex;flex-direction:column;gap:8px;padding:2px 2px 16px;overscroll-behavior:contain}
   .ku-btn.upg{width:100%;flex:none;justify-content:flex-start;text-align:left;gap:11px;padding:9px 11px;border-radius:16px;font-weight:400;align-items:center}

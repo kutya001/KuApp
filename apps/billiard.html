@@ -63,6 +63,12 @@
   .bl-spin-head{display:flex;align-items:center;gap:6px;height:24px}
   #btn-spin-reset{width:24px;height:24px;border-radius:8px;font-size:12px}
   #btn-spin-reset svg{width:13px;height:13px}
+  .ku-board::after{display:none}   /* у деревянного стола неоновой кромки набора нет */
+  /* Мелкие кнопки: невидимое расширение зоны нажатия до ~40 px (вёрстка не меняется) */
+  #btn-spin-reset,#power-minus,#power-plus,#act-chip-ok{position:relative}
+  #btn-spin-reset::after,#power-minus::after,#power-plus::after,#act-chip-ok::after{content:'';position:absolute;inset:-8px}
+  #power-minus::after,#power-plus::after{inset:-6px -3px}
+  #act-chip-ok::after{inset:-6px -4px}
   #spin-control{position:relative;width:60px;height:60px;border-radius:50%;cursor:crosshair;
     background:radial-gradient(circle at 38% 32%,#fff,#e5e8f4 45%,#98a1c2);border:2px solid rgba(0,229,255,.45);
     box-shadow:0 0 14px rgba(0,229,255,.22),inset -4px -5px 9px rgba(0,0,0,.3)}

@@ -151,7 +151,7 @@
     .ku-overlay .ku-big-score{font-size:26px}
     .ku-overlay .ku-over-stats{display:grid;grid-template-columns:1fr 1fr;column-gap:16px;row-gap:3px;margin:2px 0}
     .ku-overlay .ku-over-stats div{font-size:13px}
-    .ku-overlay .ku-card .ku-btn{min-height:34px;padding-top:6px;padding-bottom:6px;font-size:14px}
+    .ku-overlay .ku-card .ku-btn{min-height:38px;padding-top:6px;padding-bottom:6px;font-size:14px}
     .ku-overlay .ku-card{width:min(560px,92vw)}
     .ov-btns{display:grid;grid-template-columns:1fr 1fr;gap:8px}
     .ov-btns .ku-btn.primary{grid-column:1 / -1}
@@ -173,7 +173,7 @@
     #ov-over .ku-over-stats div{font-size:12px}
     #ov-over .ku-over-stats b{font-size:13px}
     #over-unlock,#over-note{font-size:11.5px}
-    .ku-overlay .ku-card .ku-btn{min-height:32px;padding-top:5px;padding-bottom:5px}
+    .ku-overlay .ku-card .ku-btn{min-height:36px;padding-top:5px;padding-bottom:5px}
   }
   /* «Меньше движения»: без парящих букв, пульсаций и вылетающих надписей */
   body.rm .ku-logo .ch,body.rm .ku-new-best,body.rm #center .msg{animation:none}
@@ -914,21 +914,37 @@ const DinoRender = (() => {
     dunes: { far: ridge(51, 90, 16, 34), near: ridge(52, 70, 8, 20) }
   };
 
-  /* ── Размер холста: мир шириной 600 вписывается по ширине (или по высоте, если мало места) ── */
-  function fit(availW, availH, maxScale, maxVis) {
-    let s = Math.min(availW / E.W, availH / MIN_VIS, maxScale || 1.6);
+  /* ── Размер холста: мир шириной 600 вписывается по ширине (или по высоте, если мало места).
+   * visW — «крупный план»: сколько мира помещается по ширине при самом близком положении камеры (телефон стоя).
+   * Камера сама отъезжает до полных 600 с ростом скорости (см. camera) — на высокой скорости видно столько же, сколько раньше. ── */
+  let cssW = 0, camMin = E.W, camW = E.W, camT = 0;
+  const CAM_LEAD_TICKS = 37;          // впереди всегда видно не меньше ~0,62 с пути (как на полном поле при макс. скорости)
+  function fit(availW, availH, maxScale, maxVis, visW) {
+    visW = Math.max(300, Math.min(E.W, visW || E.W));
+    let s = Math.min(availW / visW, availH / MIN_VIS, maxScale || 1.6);
     s = Math.max(0.3, s);
-    const w = Math.floor(E.W * s);
+    const w = Math.floor(visW * s);
     const vis = Math.max(MIN_VIS, Math.min(availH / s, maxVis || 260));
-    return { w, h: Math.floor(vis * s), s };
+    return { w, h: Math.floor(vis * s), s, visW };
   }
-  function resize(canvas, w, h, ratio) {
+  function resize(canvas, w, h, ratio, visW) {
     cv = canvas; ctx = cv.getContext('2d');
     dpr = Math.max(1, Math.min(ratio || 1, 2));
-    cssH = h; sc = w / E.W;
+    camMin = Math.max(300, Math.min(E.W, visW || E.W));
+    camW = Math.max(camMin, Math.min(E.W, camW));
+    cssW = w; cssH = h; sc = w / camW;
     cv.style.width = w + 'px'; cv.style.height = h + 'px';
     cv.width = Math.round(w * dpr); cv.height = Math.round(h * dpr);
     top = E.GROUND + BAND - h / sc;
+  }
+  /* Камера крупного плана: видимая ширина мира зависит от скорости, меняется плавно */
+  function camera(g, t, snap) {
+    if (camMin >= E.W) { camW = E.W; return; }
+    const want = Math.max(camMin, Math.min(E.W, E.DINO_X + E.RUN_W + CAM_LEAD_TICKS * (g.speed || 0)));
+    const dt = Math.max(0, Math.min(100, t - camT)); camT = t;
+    camW = snap ? want : camW + (want - camW) * (1 - Math.exp(-dt / 260));
+    if (Math.abs(want - camW) < 0.4) camW = want;
+    sc = cssW / camW; top = E.GROUND + BAND - cssH / sc;
   }
   const worldToCss = (x, y) => [x * sc, (y - top) * sc];
   const blur = u => u * sc * dpr;                    // shadowBlur не масштабируется матрицей
@@ -1295,6 +1311,7 @@ const DinoRender = (() => {
    * v: { skin, alpha, t (мс), reduce, boxes, phase: ready|run|dead|pause, shake (0…1), crashAt } */
   function frame(g, v) {
     if (!ctx) return;
+    camera(g, v.t || 0, v.reduce || !g.running);      // до старта и при «уменьшить движение» — без плавного наезда
     const c = ctx, k = dpr * sc;
     const a = v.alpha == null ? 1 : v.alpha;
     const ti = E.theme(g), pi = E.prevTheme(g);
@@ -1984,8 +2001,9 @@ function layout() {
   let availH = Math.max(120, stage.clientHeight - pbH - hH - frame);
   // телефон стоя: поле целиком выше середины экрана, ниже — зона приседа
   if (pad) availH = Math.min(availH, Math.max(110, vh / 2 - 14 - (stage.offsetTop + pbH) - frame));
-  const f = R.fit(availW, availH, 1.6, portrait ? 300 : 240);
-  R.resize($('#cv'), f.w, f.h, window.devicePixelRatio || 1);
+  // телефон стоя: крупный план (видно 420 из 600 единиц мира), камера отъезжает с ростом скорости
+  const f = R.fit(availW, availH, 1.6, portrait ? 300 : 240, portrait ? 420 : 0);
+  R.resize($('#cv'), f.w, f.h, window.devicePixelRatio || 1, f.visW);
   pb.style.width = (f.w + frame) + 'px';
   // подпись «⬆ Прыжок» над линией середины — только если между полем и линией есть место
   const boardBottom = stage.offsetTop + pbH + f.h + frame;

@@ -81,6 +81,8 @@
   .sd-table th{font:400 10px var(--font-display);letter-spacing:1px;color:var(--muted);text-transform:uppercase;text-align:right;padding:6px 4px}
   .sd-table th:first-child,.sd-table td:first-child{text-align:left}
   .sd-table td{padding:8px 4px;border-top:1px solid var(--panel-border);text-align:right;font-variant-numeric:tabular-nums}
+  @media (max-width:380px){.sd-table th{letter-spacing:.2px;padding:6px 2px} .sd-table td{padding:8px 2px}}   /* таблица статистики не шире окна */
+  @media (max-width:340px){.sd-table th{font-size:9px;letter-spacing:0;padding:6px 1px} .sd-table td{padding:8px 1px;font-size:12px}}
   .sd-table td b{font:400 14px var(--font-display);color:var(--accent)}
   .sd-cards{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;margin-bottom:14px}
   .sd-cards div{display:flex;flex-direction:column;align-items:center;gap:2px;padding:10px 4px;border-radius:12px;background:var(--glass-panel);border:1px solid var(--panel-border)}

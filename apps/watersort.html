@@ -177,6 +177,8 @@
   .set-btns{display:flex;gap:8px;flex-wrap:wrap}
   .ku-modal .ku-seg{width:100%}
   .ku-modal .ku-seg.ws-seg-sm{width:auto;flex:none}
+  /* узкий телефон: переключатель в строке настроек ужимается, а не вылезает за окно */
+  @media (max-width:400px){.ku-set-row .ku-seg.ws-seg-sm{flex:0 1 auto;min-width:0} .ku-set-row .ws-seg-sm button{padding:7px 8px;font-size:12px;flex:0 1 auto;min-width:0}}
   @media (max-height:560px){
     .ku-overlay .ku-card{padding:14px 18px;gap:7px}
     .ku-overlay .ku-card h2{font-size:20px}

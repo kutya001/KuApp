@@ -59,6 +59,7 @@
             height: var(--header-h);
         }
         .header-left { flex: 1; min-width: 0; }
+        html.in-platform header { padding-left: 70px; }   /* место под кнопку «←» платформы */
         #workout-select {
             width: 100%; background: transparent; color: var(--text); border: none;
             font-family: 'Manrope', sans-serif; font-size: 1rem; font-weight: 700;
@@ -322,7 +323,7 @@
             align-items: center; gap: 6px;
             background: none; border: none;
             color: var(--text); cursor: pointer;
-            padding: 2px 0; max-width: 100%;
+            padding: 2px 0; max-width: 100%; min-height: 36px;
             font-family: 'Manrope', sans-serif;
         }
         #btn-select-program:hover #workout-name-display { color: var(--c-prep); }
@@ -394,6 +395,8 @@
     </style>
 </head>
 <body>
+<script>/* внутри платформы левый верхний угол занят её кнопкой «←» — шапка сдвигается */
+try{if(window.self!==window.top)document.documentElement.classList.add('in-platform')}catch(e){document.documentElement.classList.add('in-platform')}</script>
 
 <div id="progress-bar"><div id="progress-fill"></div></div>
 

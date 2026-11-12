@@ -56,6 +56,9 @@
   .sn-sum b{color:var(--gold);font-family:var(--font-display);font-weight:400}
   /* выбор уровня */
   .lv-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:7px;margin:2px 0 4px}
+  /* сетка уровней прокручивается сама, «Назад» всегда на виду */
+  #ov-levels .ku-card{overflow:hidden}
+  #ov-levels .lv-grid{overflow-y:auto;min-height:72px;flex:0 1 auto;padding:2px;scrollbar-width:thin;overscroll-behavior:contain}
   .lv{height:64px;min-width:0;border-radius:12px;border:1px solid rgba(255,255,255,.08);background:rgba(255,255,255,.045);
     color:var(--text);font-family:var(--font-body);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;
     padding:4px 2px;cursor:pointer;box-shadow:inset 0 1px 0 rgba(255,255,255,.06);transition:transform .15s,border-color .2s,box-shadow .2s}
@@ -79,6 +82,20 @@
     display:flex;flex-direction:column;align-items:center;gap:5px;padding:7px 4px 6px;font:600 11px var(--font-body);transition:.2s}
   .mz canvas{display:block;width:40px;height:61px;border-radius:5px}
   .mz.active{border-color:rgba(0,229,255,.6);color:var(--text);background:rgba(0,229,255,.1);box-shadow:0 0 12px rgba(0,229,255,.25)}
+  /* Невысокие экраны: окна настройки «Классика» и «Против ИИ» помещаются без прокрутки */
+  @media (orientation:portrait) and (max-height:700px){
+    #ov-classic .col-a>p:not(.sn-sum),#ov-vs .col-a>p:not(.sn-sum){display:none}
+    .mz canvas{width:34px;height:52px}
+  }
+  @media (orientation:portrait) and (max-height:600px){
+    #ov-classic .ku-card,#ov-vs .ku-card{padding:14px 16px;gap:7px}
+    .mz{padding:5px 2px} .mz canvas{width:28px;height:43px}
+  }
+  @media (orientation:landscape) and (max-height:360px){
+    #ov-classic .col-a>p:not(.sn-sum),#ov-vs .col-a>p:not(.sn-sum){display:none}
+    .mz canvas{width:24px;height:37px}
+    #ov-classic .ku-card,#ov-vs .ku-card{padding-top:9px;padding-bottom:9px}
+  }
   /* звёзды за уровень */
   .stars{display:flex;justify-content:center;gap:10px;font-size:34px;line-height:1;margin:2px 0}
   .stars span{display:inline-block;color:rgba(255,255,255,.12)}
