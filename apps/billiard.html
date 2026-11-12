@@ -47,7 +47,7 @@
   #play.horz #dock{flex-direction:column;width:176px}
   #board-box>canvas{cursor:crosshair}
   .bl-ctl{display:flex;flex-direction:column;align-items:center;gap:6px;flex:none;min-width:0}
-  .bl-cap{font-size:9.5px;letter-spacing:1px;color:var(--muted);text-transform:uppercase;white-space:nowrap}
+  .bl-cap{font-size:10.5px;letter-spacing:.8px;color:var(--muted);text-transform:uppercase;white-space:nowrap}
 
   /* Шкала силы: потянуть вниз и отпустить — удар */
   .power-track{position:relative;width:34px;height:200px;border-radius:17px;background:rgba(4,6,22,.6);border:1px solid var(--panel-border);
@@ -58,15 +58,29 @@
     box-shadow:0 0 10px var(--accent);pointer-events:none}
   .power-ticks{position:absolute;inset:0;pointer-events:none;
     background:repeating-linear-gradient(to bottom,transparent 0 9%,rgba(255,255,255,.07) 9% 10%)}
+  .power-inner{position:absolute;inset:0;pointer-events:none}
+  /* «−» и «+» на концах шкалы (телефон, удар кнопкой): тап — 1 %, удержание — повтор; шкала между ними — 0…100 % */
+  .power-end{display:none}
+  .power-track.ends .power-end{display:flex;position:absolute;align-items:center;justify-content:center;pointer-events:none;z-index:3;
+    font:700 21px/1 var(--font-body);color:var(--text);background:rgba(255,255,255,.06)}
+  .power-track.ends.h .power-end{top:0;bottom:0;width:36px}
+  .power-track.ends.h .power-end.m{left:0;border-right:1px solid rgba(255,255,255,.13)}
+  .power-track.ends.h .power-end.p{right:0;border-left:1px solid rgba(255,255,255,.13)}
+  .power-track.ends:not(.h) .power-end{left:0;right:0;height:36px}
+  .power-track.ends:not(.h) .power-end.m{top:0;border-bottom:1px solid rgba(255,255,255,.13)}
+  .power-track.ends:not(.h) .power-end.p{bottom:0;border-top:1px solid rgba(255,255,255,.13)}
+  .power-track.ends.h .power-inner{left:36px;right:36px}
+  .power-track.ends:not(.h) .power-inner{top:36px;bottom:36px}
+  .power-track.ends .power-end.hit{background:rgba(0,229,255,.22);color:var(--accent)}
 
   /* Винт */
   .bl-spin-head{display:flex;align-items:center;gap:6px;height:24px}
-  #btn-spin-reset{width:24px;height:24px;border-radius:8px;font-size:12px}
-  #btn-spin-reset svg{width:13px;height:13px}
+  #btn-spin-reset{width:28px;height:28px;border-radius:9px;font-size:12px}
+  #btn-spin-reset svg{width:14px;height:14px}
   .ku-board::after{display:none}   /* у деревянного стола неоновой кромки набора нет */
   /* Мелкие кнопки: невидимое расширение зоны нажатия до ~40 px (вёрстка не меняется) */
   #btn-spin-reset,#power-minus,#power-plus,#act-chip-ok{position:relative}
-  #btn-spin-reset::after,#power-minus::after,#power-plus::after,#act-chip-ok::after{content:'';position:absolute;inset:-8px}
+  #btn-spin-reset::after,#power-minus::after,#power-plus::after,#act-chip-ok::after{content:'';position:absolute;inset:-7px}
   #power-minus::after,#power-plus::after{inset:-6px -3px}
   #act-chip-ok::after{inset:-6px -4px}
   #spin-control{position:relative;width:60px;height:60px;border-radius:50%;cursor:crosshair;
@@ -87,6 +101,11 @@
     background:repeating-linear-gradient(to right,rgba(255,255,255,.22) 0 2px,transparent 2px 20px)}
   .micro-aim-center{position:absolute;left:50%;top:0;bottom:0;width:2px;transform:translateX(-50%);pointer-events:none;
     background:var(--accent);box-shadow:0 0 8px var(--accent)}
+  /* края линейки: тап — один шаг прицела, удержание — повтор */
+  .aim-arrow{position:absolute;top:0;bottom:0;width:26px;display:flex;align-items:center;justify-content:center;pointer-events:none;
+    font:700 22px/1 var(--font-body);color:var(--text);opacity:.8;background:linear-gradient(to right,rgba(4,6,22,.85),rgba(4,6,22,0))}
+  .aim-arrow.l{left:0} .aim-arrow.r{right:0;background:linear-gradient(to left,rgba(4,6,22,.85),rgba(4,6,22,0))}
+  .micro-aim-track.step-l .aim-arrow.l,.micro-aim-track.step-r .aim-arrow.r{color:var(--accent);opacity:1}
 
   /* Настройки: цвет сукна */
   .bl-swatches{display:flex;flex-wrap:wrap;gap:10px;margin:2px 0 8px}
@@ -128,12 +147,14 @@
   #screen-game.compact{padding:0 6px 6px}
   #screen-game.compact .ku-top{display:none}
   #screen-game.compact #play{gap:6px}
-  #play.cv{grid-template-columns:auto 34px minmax(0,1fr) 34px auto;
-    grid-template-areas:"bar bar bar bar bar" "board board board board board" "spin aim aim aim shoot" "spin pminus power pplus shoot";
+  /* стоя: счёт | стол | винт · точный прицел · «Ударить» / винт · сила (с − и + на концах) · «Ударить» */
+  #play.cv{grid-template-columns:auto minmax(0,1fr) auto;
+    grid-template-areas:"bar bar bar" "board board board" "spin aim shoot" "spin power shoot";
     justify-content:stretch;align-content:center}
   #play.cv:not(.btnmode){grid-template-columns:auto minmax(0,1fr);grid-template-areas:"bar bar" "board board" "spin aim" "spin power"}
-  #play.ch{grid-template-columns:58px auto 100px;grid-template-rows:auto auto minmax(0,1fr) auto auto;
-    grid-template-areas:"power board bar" "power board spin" "power board aim" "power board adj" "power board shoot";justify-content:center;align-content:center}
+  /* боком: сила слева (под кнопкой «←» платформы) | стол | счёт и кнопки, винт, точный прицел, «Ударить» */
+  #play.ch{grid-template-columns:58px auto 104px;grid-template-rows:auto auto minmax(44px,1fr) auto;
+    grid-template-areas:"power board bar" "power board spin" "power board aim" "power board shoot";justify-content:center;align-content:center}
   #play.cv #dock,#play.ch #dock{display:contents}
   #screen-game.compact .ku-board{padding:0;border:0;border-radius:12px}
   #screen-game.compact .ku-board>canvas{border-radius:12px}
@@ -145,7 +166,16 @@
   #play.cv .bl-mini{height:58px;padding:4px 0 0 var(--ku-safe-left)}
   .bl-mini-score{flex:1 1 auto;min-width:0;display:flex;flex-direction:column;align-items:center;gap:3px}
   .bl-mini-row{display:flex;align-items:center;justify-content:center;gap:10px;max-width:100%;min-width:0}
-  .bl-mini-p{--pc:var(--accent);display:flex;align-items:center;gap:6px;min-width:0;opacity:.45;transition:opacity .25s}
+  .bl-mini-p{--pc:var(--accent);display:grid;grid-template-columns:auto minmax(0,1fr) auto;grid-template-areas:"dot name score" "pips pips pips";
+    align-items:center;gap:3px 6px;min-width:0;opacity:.45;transition:opacity .25s}
+  #mini-p2{grid-template-areas:"score name dot" "pips pips pips"}
+  .bl-mini-p i{grid-area:dot} .bl-mini-p b{grid-area:name} .bl-mini-p em{grid-area:score}
+  /* забитые шары — восемь меток под счётом */
+  .bl-pips{grid-area:pips;display:flex;gap:3px;height:6px}
+  #mini-p2 .bl-pips{justify-content:flex-end}
+  .bl-pips span{width:6px;height:6px;border-radius:50%;background:rgba(255,255,255,.16)}
+  .bl-pips span.on{background:var(--pc);box-shadow:0 0 6px var(--pc)}
+  .bl-mini-btns{display:flex;gap:8px;flex:none}
   #mini-p2{--pc:var(--accent2)}
   .bl-mini-p.on{opacity:1}
   .bl-mini-p b{font-family:var(--font-display);font-weight:400;font-size:11px;letter-spacing:1px;text-transform:uppercase;
@@ -158,35 +188,40 @@
   .bl-mini-status{font-family:var(--font-display);font-size:11px;letter-spacing:.5px;color:var(--accent);text-transform:uppercase;
     white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:100%}
   #btn-menu{flex:none}
-  #play.ch .bl-mini{flex-direction:column;align-items:stretch;gap:8px}
-  #play.ch #btn-menu{align-self:flex-end;order:-1}
+  #play.ch .bl-mini{flex-direction:column;align-items:stretch;gap:6px}
+  #play.ch .bl-mini-btns{order:-1;justify-content:space-between}
+  #play.ch #mini-p2 .bl-pips{justify-content:flex-start}
+  @media (max-width:400px){     /* телефон стоя: без двоеточия и с меньшими отступами имена помещаются целиком */
+    #play.cv .bl-mini-row{gap:6px} #play.cv .bl-mini-sep{display:none}
+    #play.cv .bl-mini-p{gap:3px 4px} #play.cv .bl-mini-p b{font-size:10.5px;letter-spacing:.4px}
+  }
   #play.ch .bl-mini-row{flex-direction:column;align-items:stretch;gap:5px}
   #play.ch .bl-mini-sep{display:none}
-  #play.ch .bl-mini-p{justify-content:flex-start}
-  #play.ch .bl-mini-p em{margin-left:auto;font-size:18px}
-  #play.ch #mini-p2 i{order:-2} #play.ch #mini-p2 b{order:-1}
-  #play.ch .bl-mini-p b{max-width:62px;font-size:10px}
-  #play.ch .bl-mini-status{white-space:normal;text-align:center;font-size:10px;line-height:1.3}
+  #play.ch .bl-mini-p,#play.ch #mini-p2{grid-template-columns:auto minmax(0,1fr) auto;grid-template-areas:"dot name score" "pips pips pips"}
+  #play.ch .bl-mini-p em{font-size:18px}
+  #play.ch .bl-mini-p b{max-width:66px;font-size:10.5px;letter-spacing:.6px}
+  #play.ch .bl-mini-status{white-space:normal;text-align:center;font-size:10.5px;line-height:1.3}
 
   /* управление в компактном режиме: без подписей, винт с кнопкой сброса на краю */
   #screen-game.compact .bl-ctl>.ku-label,#screen-game.compact .bl-ctl>.bl-cap,#screen-game.compact .bl-spin-head .ku-label{display:none}
   #screen-game.compact #spin-box{position:relative;gap:0}
   #screen-game.compact .bl-spin-head{position:absolute;top:-6px;right:-10px;z-index:2;height:auto}
-  #screen-game.compact #spin-control{width:58px;height:58px}
+  #screen-game.compact #spin-control{width:62px;height:62px}
   #play.cv #spin-box{align-self:center;margin:0 8px 0 2px}
   #play.ch #spin-box{justify-self:center;margin-top:6px}
   #screen-game.compact #aim-box{gap:0;min-width:0;width:100%}
-  #screen-game.compact .micro-aim-track{height:30px;min-width:0}
-  #play.ch #aim-box{align-self:end}
-  #play.ch .micro-aim-track{height:40px}
+  #screen-game.compact .micro-aim-track{height:40px;min-width:0}
+  #play.ch #aim-box{align-self:center;height:100%;max-height:92px;justify-content:center}
+  #play.ch .micro-aim-track{height:100%;min-height:44px}
   #screen-game.compact .aim-hint,.power-track.h .power-hint{display:block;position:absolute;left:10px;top:50%;transform:translateY(-50%);
-    font-family:var(--font-display);font-size:9.5px;letter-spacing:1.5px;color:var(--muted);opacity:.75;pointer-events:none;white-space:nowrap}
-  #play.ch .aim-hint{left:50%;top:auto;bottom:3px;transform:translateX(-50%);font-size:8px;letter-spacing:1px}
+    font-family:var(--font-display);font-size:10.5px;letter-spacing:1.3px;color:var(--muted);opacity:.8;pointer-events:none;white-space:nowrap}
+  #play.ch .aim-hint{left:50%;top:auto;bottom:5px;transform:translateX(-50%);z-index:1;font-size:10px;letter-spacing:1px;opacity:1;
+    padding:2px 7px;border-radius:7px;background:rgba(6,9,28,.92)}
   #play.ch .power-hint{display:block;position:absolute;left:50%;top:50%;transform:translate(-50%,-50%) rotate(90deg);
-    font-family:var(--font-display);font-size:9.5px;letter-spacing:1.5px;color:var(--muted);opacity:.75;pointer-events:none;white-space:nowrap}
+    font-family:var(--font-display);font-size:10.5px;letter-spacing:1.3px;color:var(--muted);opacity:.8;pointer-events:none;white-space:nowrap}
   #play.cv #power-box{grid-area:power;width:100%}
   #play.ch #power-box{align-self:end;justify-self:center}
-  .power-track.h{width:100%;height:30px;border-radius:12px;cursor:ew-resize}
+  .power-track.h{width:100%;height:40px;border-radius:13px;cursor:ew-resize}
   .power-track.h .power-fill{top:0;bottom:0;left:0;right:auto;width:0;height:auto;
     background:linear-gradient(to right,var(--green),var(--gold) 55%,var(--red))}
   .power-track.h .power-handle{top:50%;left:0;width:8px;height:24px;transform:translate(-50%,-50%)}
@@ -195,11 +230,19 @@
   /* ── Сила в процентах, ±1 %, кнопка «Ударить» ── */
   .power-val{position:absolute;left:0;right:0;bottom:7px;text-align:center;pointer-events:none;z-index:2;
     font-family:var(--font-display);font-weight:400;font-size:11px;letter-spacing:.5px;color:#fff;text-shadow:0 1px 3px #000,0 0 6px #000}
-  .power-track.h .power-val{left:auto;right:9px;bottom:auto;top:50%;transform:translateY(-50%);font-size:12px}
+  .power-track.h .power-val{left:auto;right:9px;bottom:auto;top:50%;transform:translateY(-50%);font-size:13px}
+  .power-track.ends.h .power-val{right:44px}
+  .power-track.ends:not(.h) .power-val{bottom:42px}
+  .power-track.ends.h .power-hint{left:46px}
+  #play.cv .aim-hint{left:30px}
+  @media (max-width:400px){#play.cv .aim-hint{font-size:10px;letter-spacing:.5px}}   /* подпись не доходит до средней метки линейки */
+  .power-track.ends .power-hint i{display:none}
   .bl-power-adj{display:flex;gap:6px;flex:none}
   .bl-power-adj .ku-btn{font-size:20px;line-height:1}
-  .bl-shoot{flex:none;letter-spacing:.5px}
-  .bl-shoot:disabled{opacity:.4;filter:saturate(.3);cursor:default}
+  .bl-shoot{flex:none;letter-spacing:.5px;flex-direction:column;gap:2px;line-height:1.1}
+  .bl-shoot b{font-weight:700}
+  .bl-shoot small{font-size:10.5px;font-weight:500;letter-spacing:.1px;opacity:.88;white-space:nowrap}
+  .bl-shoot:disabled{opacity:.55;filter:saturate(.3);cursor:default}
   #play:not(.btnmode) #power-adj,#play:not(.btnmode) #btn-shoot{display:none}
   #power-minus{grid-area:pminus} #power-plus{grid-area:pplus} #btn-shoot{grid-area:shoot}
   #play.vert #btn-shoot,#play.horz #btn-shoot{height:46px;padding:0 18px}
@@ -207,10 +250,23 @@
   #play.horz #btn-shoot{width:100%}
   #play.cv #power-adj{display:contents}
   #play.cv #power-adj .ku-btn{width:34px;height:30px;border-radius:9px;align-self:center}
-  #play.cv #btn-shoot{width:78px;height:auto;align-self:stretch;padding:0 4px;font-size:13px;border-radius:12px}
-  #play.ch #power-adj{grid-area:adj;display:flex;gap:6px}
-  #play.ch #power-adj .ku-btn{flex:1 1 0;width:auto;height:32px}
-  #play.ch #btn-shoot{height:40px;padding:0;font-size:13px}
+  #play.cv #btn-shoot{width:88px;height:auto;align-self:stretch;padding:0 4px;font-size:14px;border-radius:14px}
+  #play.ch #btn-shoot{height:50px;padding:0;font-size:14px}
+  /* на телефоне «−» и «+» — на концах самой шкалы силы */
+  #screen-game.compact #power-adj{display:none!important}
+  @media (max-width:340px){      /* самый узкий телефон стоя: шкале силы и линейке — побольше места */
+    #play.cv #btn-shoot{width:74px;font-size:13px}
+    #play.cv #spin-box{margin:0 4px 0 0}
+    #screen-game.compact #spin-control{width:54px;height:54px}
+    #play.cv .bl-mini{gap:6px} #play.cv .bl-mini-btns{gap:6px} #play.cv .bl-mini-row{gap:4px}
+    #play.cv .bl-mini-p{gap:3px} #play.cv .bl-mini-p b{font-size:10px;letter-spacing:0}
+    #play.cv .aim-hint{left:26px;letter-spacing:.2px}
+  }
+  @media (orientation:landscape) and (max-height:340px){
+    #screen-game.compact #spin-control{width:52px;height:52px}
+    #play.ch #btn-shoot{height:44px}
+    #play.ch .bl-mini-status{display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+  }
   #play:not(.btnmode) #power-adj{display:none}
 
   /* ── Вид стола 2D/3D ── */
@@ -232,10 +288,18 @@
   .bl-chip[hidden]{display:none!important}
   .bl-chip{pointer-events:none} .bl-chip .ku-btn{pointer-events:auto}   /* тап по тексту проходит на стол */
   .bl-chip.low{top:auto!important;bottom:10px}
+  /* разовая подсказка по управлению: не закрывает ни пирамиду, ни биток (стоя — середина стола, лёжа — нижний край) */
+  .bl-tip{position:absolute;left:50%;top:58px;transform:translateX(-50%);z-index:3;width:max-content;max-width:calc(100% - 28px);
+    padding:8px 13px;border-radius:12px;background:rgba(6,10,28,.88);border:1px solid var(--panel-border);box-shadow:0 6px 20px rgba(0,0,0,.45);
+    font-size:12.5px;line-height:1.4;color:var(--text);text-align:center;pointer-events:none;opacity:0;transition:opacity .35s}
+  .bl-tip.show{opacity:1}
+  #play.cv .bl-tip{top:50%;transform:translate(-50%,-50%)}
+  #play.ch .bl-tip{top:auto;bottom:12px}
+  .bl-tip b{color:var(--accent);font-weight:600}
   .bl-chip-txt{min-width:0;overflow:hidden;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical}
   .bl-chip.bad{border-color:rgba(255,93,125,.75)} .bl-chip.bad .bl-chip-txt{color:#ffb3c2}
-  .bl-chip .ku-btn{flex:none;height:32px;min-height:32px;padding:0 12px;font-size:12px;border-radius:10px;width:auto}
-  .bl-chip .bl-chip-x{width:32px;padding:0}
+  .bl-chip .ku-btn{flex:none;height:36px;min-height:36px;padding:0 13px;font-size:12.5px;border-radius:11px;width:auto}
+  .bl-chip .bl-chip-x{width:36px;padding:0}
   .bl-chip-txt[hidden]+.ku-btn{margin-left:-7px}
   #board-box.v3 .bl-chip{left:10px;transform:none;max-width:calc(100% - 130px)}
   #screen-game.compact #board-box.v3 .bl-chip{left:8px;top:8px}
@@ -345,8 +409,9 @@
     </div>
     <div class="ku-menu-stats" id="menu-stats">Разбой с руки • Биток — любой шар • Фол — штрафной шар</div>
     <div class="ku-menu-hint">Разбой: поставь биток в доме — тяни шар пальцем или тапни в доме, «Готово» — к прицелу<br>
-      Тап по шару — выбрать биток · ведение по столу — прицел · «Сила» — потяни и «Ударить»<br>
-      Клавиши: ← → — точный прицел · стрелки — двигать биток с руки · P / Esc — пауза</div>
+      Тап по столу — прицел в точку · веди пальцем — поворот прицела · линейка — точная доводка<br>
+      «Сила» — потяни шкалу (− / + на концах — по 1&nbsp;%) и «Ударить»<br>
+      Мышь: клик и ведение — прицел, колесо — точно · клавиши: ← → прицел, ↑ ↓ сила, пробел — удар, P — пауза</div>
   </section>
 
   <!-- ═══ ИГРА ═══ -->
@@ -379,23 +444,29 @@
       <div id="mini-bar" class="bl-mini">
         <div class="bl-mini-score">
           <div class="bl-mini-row">
-            <span class="bl-mini-p on" id="mini-p1"><i></i><b id="mini-name1">Игрок 1</b><em id="mini-score1">0</em></span>
+            <span class="bl-mini-p on" id="mini-p1"><i></i><b id="mini-name1">Игрок 1</b><em id="mini-score1">0</em><span class="bl-pips" id="mini-pips1" aria-hidden="true"></span></span>
             <span class="bl-mini-sep">:</span>
-            <span class="bl-mini-p" id="mini-p2"><em id="mini-score2">0</em><b id="mini-name2">Игрок 2</b><i></i></span>
+            <span class="bl-mini-p" id="mini-p2"><em id="mini-score2">0</em><b id="mini-name2">Игрок 2</b><i></i><span class="bl-pips" id="mini-pips2" aria-hidden="true"></span></span>
           </div>
           <div class="bl-mini-status" id="mini-status">Ход: Игрок 1</div>
         </div>
-        <button class="ku-btn icon bl-view-btn" id="btn-view" aria-label="Вид стола: 2D или 3D" title="Вид: 2D / 3D">3D</button>
-        <button class="ku-btn icon" id="btn-menu" aria-label="Меню партии: счёт, настройки, пауза"><svg viewBox="0 0 24 24"><line x1="4" y1="7" x2="20" y2="7"/><line x1="4" y1="12" x2="20" y2="12"/><line x1="4" y1="17" x2="20" y2="17"/></svg></button>
+        <div class="bl-mini-btns">
+          <button class="ku-btn icon bl-view-btn" id="btn-view" aria-label="Вид стола: 2D или 3D" title="Вид: 2D / 3D">3D</button>
+          <button class="ku-btn icon" id="btn-menu" aria-label="Меню партии: счёт, настройки, пауза"><svg viewBox="0 0 24 24"><line x1="4" y1="7" x2="20" y2="7"/><line x1="4" y1="12" x2="20" y2="12"/><line x1="4" y1="17" x2="20" y2="17"/></svg></button>
+        </div>
       </div>
       <!-- Сила удара -->
       <div id="power-box" class="bl-ctl">
         <span class="ku-label">Сила</span>
-        <div id="power-slider" class="power-track">
-          <div class="power-ticks"></div>
-          <span class="power-hint">СИЛА · тяни →</span>
-          <div id="power-fill" class="power-fill"></div>
-          <div id="power-handle" class="power-handle"></div>
+        <div id="power-slider" class="power-track" role="slider" aria-label="Сила удара" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0">
+          <div class="power-inner">
+            <div class="power-ticks"></div>
+            <div id="power-fill" class="power-fill"></div>
+            <div id="power-handle" class="power-handle"></div>
+          </div>
+          <span class="power-hint">СИЛА<i> · тяни →</i></span>
+          <span class="power-end m" aria-hidden="true">−</span>
+          <span class="power-end p" aria-hidden="true">+</span>
           <b class="power-val" id="power-val">0%</b>
         </div>
         <span class="bl-cap">тяни ↓</span>
@@ -411,6 +482,7 @@
           <button class="ku-btn primary" id="act-chip-ok">Готово</button>
           <button class="ku-btn ghost bl-chip-x" id="act-chip-x" aria-label="Отменить выбор" hidden>✕</button>
         </div>
+        <div class="bl-tip" id="aim-tip" role="status" aria-live="polite" hidden></div>
       </div>
       <!-- Винт и микро-прицел -->
       <div id="dock">
@@ -420,19 +492,20 @@
           <div id="spin-control" tabindex="0" role="button" aria-label="Винт и наклон кия: точная настройка" title="Тап — точная настройка винта и наклона кия"><div id="spin-dot"></div><span class="bl-elev-badge" id="elev-badge" hidden>0°</span></div>
         </div>
         <div id="aim-box" class="bl-ctl">
-          <span class="ku-label">Микро-прицел</span>
+          <span class="ku-label">Точный прицел</span>
           <div id="micro-aim-area" class="micro-aim-track">
             <div id="micro-aim-ruler" class="micro-aim-ruler"></div>
-            <span class="aim-hint">ТОЧНЫЙ ПРИЦЕЛ</span>
+            <span class="aim-hint">ПРИЦЕЛ</span>
+            <span class="aim-arrow l" aria-hidden="true">‹</span><span class="aim-arrow r" aria-hidden="true">›</span>
             <div class="micro-aim-center"></div>
           </div>
-          <span class="bl-cap">веди влево / вправо</span>
+          <span class="bl-cap">веди · тап по краю — шаг</span>
         </div>
         <div id="power-adj" class="bl-power-adj">
           <button class="ku-btn icon" id="power-minus" aria-label="Сила −1&nbsp;%">−</button>
           <button class="ku-btn icon" id="power-plus" aria-label="Сила +1&nbsp;%">+</button>
         </div>
-        <button class="ku-btn primary bl-shoot" id="btn-shoot" disabled>Ударить</button>
+        <button class="ku-btn primary bl-shoot" id="btn-shoot" disabled><b>Ударить</b><small id="shoot-sub">задайте силу</small></button>
       </div>
     </div>
   </section>
@@ -463,6 +536,7 @@
         <h3>Вид стола</h3>
         <div class="ku-seg" data-seg="view"><button data-v="2d">2D — сверху</button><button data-v="3d">3D</button></div>
         <label class="ku-switch-row">Номера на шарах<input type="checkbox" data-opt="numbers"><span class="ku-switch"></span></label>
+        <label class="ku-switch-row">Лупа при доводке прицела<input type="checkbox" data-opt="loupe"><span class="ku-switch"></span></label>
       </div>
     </div>
     <footer class="bl-menu-actions" id="pause-actions">
@@ -530,14 +604,16 @@
       <ul class="ku-rules">
         <li><b>Биток с руки</b> (разбой, московская): дом подсвечен, биток — бегущим пунктиром. Тяните шар пальцем или мышью, или тапните в доме. Туда, где нельзя (за линией и на линии дома, вплотную к шару, у лузы), шар не встаёт — красный «призрак» и подсказка. <b>«Готово»</b> (Enter) — к прицелу, <b>«✋ Переставить»</b> (H) — снова двигать; тап или ведение вне дома — сразу прицел. Пока двигаете шар, прицел остаётся на цели, траектория пересчитывается. Стрелки — сдвиг на 2 мм (Shift — 2 см). В 3D камера встаёт над домом, протяжка по столу двигает шар.</li>
         <li><b>Штрафной шар / шар за свояк:</b> тапните шар (подсвечены жёлтым) и нажмите «Снять» (или тапните его ещё раз). Клавиши: стрелки — выбор, Enter — снять. Затем — окно выбора: бить самому, передать удар (после неправильного разбоя — и перестановка).</li>
-        <li><b>Тап по шару</b> — выбрать биток (в свободной пирамиде). <b>Тап или ведение по столу</b> — направление удара (вести можно и от самого битка).</li>
-        <li><b>Микро-прицел</b> — ведите по линейке влево/вправо: медленно — доводка на доли миллиметра, быстро — крупнее. На клавиатуре ← →, с Shift — крупнее.</li>
+        <li><b>Тап по шару</b> — выбрать биток (в свободной пирамиде). <b>Тап по столу</b> — прицел в эту точку.</li>
+        <li><b>Ведение пальцем по столу</b> — поворот прицела: прицел поворачивается на тот же угол, на который палец обошёл биток, и <b>не прыгает</b> в точку касания — палец не закрывает цель, случайное касание прицел не сбивает. Чем дальше палец от битка, тем точнее; ведёте нарочно медленно — втрое тоньше. Потянули от самого битка — прицел идёт за пальцем. <b>Мышь:</b> нажали — прицел в точку, ведёте — прицел за курсором, <b>колесо</b> — точная доводка (с Shift — крупнее).</li>
+        <li><b>Лупа</b> — пока прицел поворачивают, в углу стола видна увеличенная втрое точка соударения: прицельный шар, «призрачный» биток и линии прицела. Гаснет через полторы секунды; выключается в настройках.</li>
+        <li><b>Точный прицел</b> (линейка) — ведите влево/вправо: медленно — доводка на доли миллиметра, быстро — крупнее. <b>Тап по левому или правому краю</b> — один шаг (0,4 мм на двух метрах), удержание — повтор. На клавиатуре ← →, с Shift — крупнее.</li>
         <li><b>Винт</b> — точка удара по битку: выше центра — накат, ниже — оттяжка, в стороны — боковой винт. Протяжка по маленькому шару — быстрая настройка, <b>тап по нему — точная</b>: большой шар, стрелки с шагом 1&nbsp;%, проценты наката/оттяжки и бокового, <b>наклон кия</b> 0–75° (удар сверху).</li>
-        <li><b>Сила</b> видна в процентах. Режим <b>«Бить кнопкой «Ударить»»</b> (включён сразу): потяните шкалу до нужной силы и отпустите — сила остаётся; поправьте прицел и силу (− / + по 1&nbsp;%, на клавиатуре ↑ ↓, с Shift — по 5&nbsp;%) и нажмите <b>«Ударить»</b> (или пробел). Если режим выключить в настройках, удар — сразу при отпускании шкалы; вернули шкалу в начало — удар отменён.</li>
+        <li><b>Сила</b> видна в процентах. Режим <b>«Бить кнопкой «Ударить»»</b> (включён сразу): потяните шкалу до нужной силы и отпустите — сила остаётся; поправьте прицел и силу (− / + по 1&nbsp;%: на телефоне они на концах самой шкалы, удержание — повтор; на клавиатуре ↑ ↓, с Shift — по 5&nbsp;%) и нажмите <b>«Ударить»</b> (или пробел) — под словом «Ударить» видно, с какой силой будет удар. Если режим выключить в настройках, удар — сразу при отпускании шкалы; вернули шкалу в начало — удар отменён.</li>
         <li><b>Траектория.</b> Обычная: линия прицельного шара <b>зелёная</b>, если он идёт в лузу (с учётом отброса и скорости); пунктир — путь битка, зелёный — биток тоже уйдёт в лузу (свояк); <b>красная</b> — биток сам идёт в лузу, ни в кого не попав (фол); крестик — шар остановится здесь.</li>
         <li><b>Полная траектория</b> — весь путь до остановки, с отскоками, соударениями и лузами (тот же расчёт, что и сам удар). <b>Глубина</b> — сколько шаров по цепочке показывать: 1 — биток и шары, которые он ударит, 2 — и те, что ударят они, … «Все». Биток — жёлтый пунктир, задетые — белые линии, дальше по цепочке — бледнее; пунктирный круг — где шар встанет, кольцо у лузы — шар упадёт.</li>
         <li><b>3D-вид</b> — кнопка 3D/2D. Камера стоит за битком по линии прицела: протяните по столу влево/вправо — поворот прицела, вверх/вниз — высота камеры; щипок или колесо мыши — ближе/дальше; тап по шару — выбрать биток (или шар на полку), по сукну — прицел в эту точку. «Обзор» — весь стол; пока шары катятся, камера сама показывает весь стол.</li>
-        <li>Режим удара, траектория, вид 2D/3D, номера шаров и цвет сукна — в настройках и в меню партии (⏸ / ☰). На телефоне стол занимает почти весь экран: внизу (в альбомной ориентации — по бокам) только управление и счёт, остальное — в меню ☰.</li>
+        <li>Режим удара, траектория, вид 2D/3D, номера шаров, лупа и цвет сукна — в настройках и в меню партии (⏸ / ☰). На телефоне стол занимает почти весь экран: внизу (в альбомной ориентации — по бокам) только управление и счёт, остальное — в меню ☰.</li>
       </ul>
       <h3>Физика стола</h3>
       <ul class="ku-rules">
@@ -573,6 +649,8 @@
       <h3>Вид стола</h3>
       <div class="ku-seg" data-seg="view"><button data-v="2d">2D — сверху</button><button data-v="3d">3D</button></div>
       <label class="ku-switch-row">Номера на шарах<input type="checkbox" data-opt="numbers"><span class="ku-switch"></span></label>
+      <label class="ku-switch-row">Лупа при доводке прицела<input type="checkbox" data-opt="loupe"><span class="ku-switch"></span></label>
+      <div class="bl-opt-note">Пока вы поворачиваете прицел, в углу стола видна увеличенная точка соударения — насколько «толсто» биток попадёт в шар.</div>
     </div>
     <footer><button class="ku-btn primary" id="btn-settings-close">Готово</button></footer>
   </div>
@@ -662,7 +740,7 @@ const DEPTHS = [1, 2, 3, 4, 5, 99];        // глубина полной тра
 // Виды пирамиды: «Свободная» — битком может быть любой шар; «Московская» (официально «Комбинированная») —
 // биток только жёлтый, после свояка — шар себе на полку и удар с руки из дома
 const KINDS = { free: 'Свободная', moscow: 'Московская' };
-const prefs = { theme: 0, numbers: true, traj: 'short', depth: 2, shootBtn: true, view3d: false, kind: 'free' };
+const prefs = { theme: 0, numbers: true, traj: 'short', depth: 2, shootBtn: true, view3d: false, kind: 'free', loupe: true, tip: 0 };
 try {
   const s = JSON.parse(store.get('billiard_prefs') || '{}') || {};
   if (s.numbers === false) prefs.numbers = false;
@@ -673,6 +751,8 @@ try {
   if (s.shootBtn === false) prefs.shootBtn = false;
   if (s.view3d === true) prefs.view3d = true;
   if (s.kind === 'moscow') prefs.kind = 'moscow';
+  if (s.loupe === false) prefs.loupe = false;
+  if (s.tip > 0 && s.tip < 100) prefs.tip = s.tip | 0;
 } catch (e) {}
 let currentThemeIndex = prefs.theme;
 let showNumbers = prefs.numbers;
@@ -681,9 +761,12 @@ let trajDepth = prefs.depth;
 let shootByButton = prefs.shootBtn;        // сила задаётся заранее, удар — кнопкой «Ударить»
 let view3d = prefs.view3d;
 let menuKind = prefs.kind;                 // вид пирамиды, выбранный в меню (для новой партии)
+let aimLoupe = prefs.loupe;                // лупа: увеличенная точка соударения, пока прицел доводят
+let tipShown = prefs.tip;                  // номер разовой подсказки по управлению, которую уже показали
 function savePrefs() {
   store.set('billiard_prefs', JSON.stringify({ v: 2, theme: currentThemeIndex, numbers: showNumbers, traj: trajMode, depth: trajDepth,
-                                               shootBtn: shootByButton, view3d, kind: menuKind }));
+                                               shootBtn: shootByButton, view3d, kind: menuKind,
+                                               loupe: aimLoupe, tip: tipShown }));
 }
 
 // === ВЕКТОР (для интерфейса) ===
@@ -2508,11 +2591,14 @@ function makeFxSprites() {
   c.fillStyle = g; c.fillRect(0, 0, 64, 64);
 }
 // Тело шара считается попиксельно: свет ламп сверху, затемнение к краю, отражение сукна снизу
-function ballSprite(cue) {
-  const rpx = R * scale * dpr;
-  const key = rpx.toFixed(2) + ':' + currentThemeIndex;
+// zoom — во сколько раз крупнее обычного нужен спрайт (лупа рисует шары резкими, а не растянутыми)
+let spriteZoom = 1;
+function ballSprite(cue, zoom) {
+  zoom = zoom || 1;
+  const key = (R * scale * dpr).toFixed(2) + ':' + currentThemeIndex;
   if (key !== spriteKey) { spriteCache = {}; spriteKey = key; }
-  const k = cue ? 'cue' : 'obj';
+  const rpx = R * scale * dpr * zoom;
+  const k = (cue ? 'cue' : 'obj') + zoom;
   if (spriteCache[k]) return spriteCache[k];
   const S = Math.ceil(rpx * 2 + 4), cv = document.createElement('canvas'); cv.width = cv.height = S;
   const c = cv.getContext('2d'), img = c.createImageData(S, S), d = img.data;
@@ -2600,7 +2686,7 @@ function drawDecals(b) {
   ctx.restore();
 }
 function drawBall(b, x, y, k, alpha) {
-  const spr = ballSprite(b.number === 0), s = spr.S / (scale * dpr) * k;
+  const spr = ballSprite(b.number === 0, spriteZoom), s = spr.S / (scale * dpr * spriteZoom) * k;
   ctx.globalAlpha = alpha;
   ctx.drawImage(spr.cv, x - s / 2, y - s / 2, s, s);
   ctx.globalAlpha = 1;
@@ -2910,6 +2996,90 @@ function updateStroke(dt) {
   }
 }
 
+// === ЛУПА: увеличенная точка соударения, пока прицел доводят ===
+// Шар на телефоне — 12–13 px, толщину резки на глаз не разобрать. Пока прицел поворачивают (протяжкой по столу,
+// линейкой, клавишами, колесом), в углу стола виден тот же участок стола крупнее в 3 раза: прицельный шар,
+// «призрачный» биток в момент касания и линии прицела. Через полторы секунды после последнего движения лупа гаснет.
+const LOUPE_MS = 1500, LOUPE_ZOOM = 3;
+let loupeT = -1e9, loupeCv = null, loupeSpot = null, loupeOn = false;
+function aimTouched() { loupeT = performance.now(); }
+function tablePx(x, y) {                                   // точка стола (мм) → пиксель холста (как tableTransform)
+  const k = scale * dpr, X = (x + RAIL_W) * k, Y = (y + RAIL_W) * k;
+  return vertical ? [Y, FULL_W * k - X] : [X, Y];
+}
+function loupeTarget() {
+  if (!aimLoupe || performance.now() - loupeT > LOUPE_MS) return null;
+  if (gameState.ballsMoving || gameState.stroke || !gameState.selectedBall || !myAction() || !aimPhase()) return null;
+  const pv = aimPreview(); if (!pv || !pv.reaches) return null;
+  const h = pv.hit;
+  if (h.type === 'ball') return { x: (h.x + h.ball.x) / 2, y: (h.y + h.ball.y) / 2 };
+  if (h.type === 'cushion') return { x: h.x, y: h.y };
+  return null;                                             // биток идёт прямо в лузу или не докатывается — увеличивать нечего
+}
+// место лупы: угол стола, дальний от точки соударения, пальца и битка; пока лупа видна — место не меняется
+function loupePlace(D, hx, hy) {
+  const W = canvas.width, H = canvas.height, m = D / 2 + 10 * dpr;
+  // разовая подсказка по управлению лежит поверх стола — под неё лупа не встаёт
+  const tipEl = document.getElementById('aim-tip');
+  let tr = null;
+  if (tipEl && !tipEl.hidden) {
+    const a = tipEl.getBoundingClientRect(), b = canvas.getBoundingClientRect();
+    tr = [(a.left - b.left) * dpr, (a.top - b.top) * dpr, (a.right - b.left) * dpr, (a.bottom - b.top) * dpr];
+  }
+  const far = (cx, cy) => {
+    let d = Math.hypot(cx - hx, cy - hy);
+    if (aimPtr) d = Math.min(d, Math.hypot(cx - aimPtr[0] * dpr, cy - aimPtr[1] * dpr) * 1.3);
+    const cb = gameState.selectedBall, c = tablePx(cb.x, cb.y);
+    d = Math.min(d, Math.hypot(cx - c[0], cy - c[1]) * 1.6 + D);
+    if (cy < H / 2 && !chip.hidden) d *= 0.5;              // сверху по центру — подсказка с кнопкой
+    if (tr && cx + D / 2 > tr[0] && cx - D / 2 < tr[2] && cy + D / 2 > tr[1] && cy - D / 2 < tr[3]) d *= 0.3;
+    return d;
+  };
+  if (loupeSpot && loupeOn && far(loupeSpot[0], loupeSpot[1]) > D * 1.15) return loupeSpot;
+  let best = null, bd = -1;
+  for (const c of [[m, m], [W - m, m], [m, H - m], [W - m, H - m]]) { const d = far(c[0], c[1]); if (d > bd) { bd = d; best = c; } }
+  return (loupeSpot = best);
+}
+function loupeCapture() {                                  // снимок участка стола с шарами — до линий прицела
+  const t = loupeTarget();
+  if (!t) { loupeOn = false; return null; }
+  const D = Math.round(Math.max(92, Math.min(132, Math.min(canvas.width, canvas.height) / dpr * 0.3)) * dpr), S = D / LOUPE_ZOOM;
+  const [hx, hy] = tablePx(t.x, t.y);
+  if (!loupeCv) loupeCv = document.createElement('canvas');
+  if (loupeCv.width !== D) { loupeCv.width = D; loupeCv.height = D; }
+  const lc = loupeCv.getContext('2d');
+  lc.setTransform(1, 0, 0, 1, 0, 0); lc.fillStyle = '#0b0d14'; lc.fillRect(0, 0, D, D);
+  lc.imageSmoothingEnabled = true; lc.imageSmoothingQuality = 'high';
+  lc.drawImage(canvas, hx - S / 2, hy - S / 2, S, S, 0, 0, D, D);
+  return { D, hx, hy };
+}
+function loupeDraw(L) {
+  const [cx, cy] = loupePlace(L.D, L.hx, L.hy), r = L.D / 2;
+  const fade = Math.max(0, Math.min(1, (LOUPE_MS - (performance.now() - loupeT)) / 260));
+  loupeOn = true;
+  ctx.save();
+  ctx.setTransform(1, 0, 0, 1, 0, 0);
+  ctx.globalAlpha = fade;
+  ctx.shadowColor = 'rgba(0,0,0,.6)'; ctx.shadowBlur = 14 * dpr;
+  ctx.beginPath(); ctx.arc(cx, cy, r, 0, 2 * Math.PI); ctx.fillStyle = '#0b0d14'; ctx.fill();
+  ctx.shadowBlur = 0;
+  ctx.save();
+  ctx.beginPath(); ctx.arc(cx, cy, r, 0, 2 * Math.PI); ctx.clip();
+  ctx.drawImage(loupeCv, cx - r, cy - r);
+  // линии прицела — заново, в увеличенных координатах стола (толщина линий — как на столе, шары — крупнее)
+  const k = scale * dpr;
+  ctx.translate(cx, cy); ctx.scale(LOUPE_ZOOM, LOUPE_ZOOM); ctx.translate(-L.hx, -L.hy);
+  if (vertical) ctx.transform(0, -k, k, 0, 0, FULL_W * k); else ctx.transform(k, 0, 0, k, 0, 0);
+  ctx.translate(RAIL_W, RAIL_W);
+  spriteZoom = LOUPE_ZOOM;                                 // шары — заново, спрайтами нужного размера (на снимке они размыты)
+  try { drawBalls(); } finally { spriteZoom = 1; }
+  const s0 = scale; scale = s0 * LOUPE_ZOOM;               // перья меряют толщину линий в долях scale
+  try { drawAimWith(pen2d); } finally { scale = s0; }
+  ctx.restore();
+  ctx.lineWidth = 2 * dpr; ctx.strokeStyle = 'rgba(140,235,255,.9)';
+  ctx.beginPath(); ctx.arc(cx, cy, r - dpr, 0, 2 * Math.PI); ctx.stroke();
+  ctx.restore();
+}
 function render() {
   ensureTableLayer(); makeFxSprites();
   ctx.setTransform(1, 0, 0, 1, 0, 0);
@@ -2922,9 +3092,12 @@ function render() {
   if (cs) drawCueShadow(cs);
   drawBalls();
   drawSelection();
+  const loupe = loupeCapture();
+  tableTransform(ctx);
   drawRulesWith(pen2d);
   drawAim();
   if (cs) drawCue(cs);
+  if (loupe) loupeDraw(loupe);
 }
 
 // === ЦИКЛ: физика фиксированными шагами по времени ===
@@ -2947,8 +3120,8 @@ function loop(ts) {
     if (gameState.ballsMoving && !moving && falling.length === 0) { gameState.ballsMoving = false; ballsVersion++; onTurnEnd(); }
     else if (moving && !replaying) setStatus('Шары катятся…');
   }
-  updateShootBtn(); updateChip();
-  if (view3d) V3.render(dt); else render();
+  updateShootBtn(); updateChip(); maybeTip();
+  if (view3d) { loupeOn = false; V3.render(dt); } else render();
 }
 
 // === 3D-ВИД (WebGL 1, без библиотек) ===
@@ -3746,6 +3919,7 @@ function layout() {
     play.classList.toggle('btnmode', shootByButton);
     powerHoriz = vertical;
     powerSlider.classList.toggle('h', powerHoriz);
+    powerSlider.classList.toggle('ends', shootByButton);     // «−» и «+» — на концах шкалы
     const W = play.clientWidth, H = play.clientHeight;
     let long;
     if (vertical) {          // сверху счёт и меню, снизу винт | прицел + сила, стол — всё остальное
@@ -3753,16 +3927,17 @@ function layout() {
       const dockH = spanH(['spin-box', 'aim-box', 'power-box', 'power-minus', 'power-plus', 'btn-shoot']);
       long = Math.min(H - barH - dockH - 2 * GAP, W * FULL_W / FULL_H);
     } else {                 // слева сила (под кнопкой «←» платформы), справа счёт, меню, винт и прицел
-      long = Math.min(W - 58 - 100 - 2 * GAP, H * FULL_W / FULL_H);
+      long = Math.min(W - 58 - 104 - 2 * GAP, H * FULL_W / FULL_H);
     }
     long = Math.floor(Math.max(200, long));
     const cssW = vertical ? Math.floor(long * FULL_H / FULL_W) : long, cssH = vertical ? long : Math.floor(long * FULL_H / FULL_W);
     setCanvasSize(cssW, cssH);
-    if (!vertical) powerSlider.style.height = Math.max(90, cssH - 70) + 'px';
+    // боком шкала силы — на всю высоту экрана ниже кнопки «←» платформы (а не по высоте стола)
+    if (!vertical) powerSlider.style.height = Math.max(120, H - 66) + 'px';
     setPowerUI(gameState.aimPower || 0);
     return;
   }
-  powerHoriz = false; powerSlider.classList.remove('h');
+  powerHoriz = false; powerSlider.classList.remove('h', 'ends');
   const FRAME = 16, GAP = 10;                            // рамка .ku-board: padding 7 + border 1
   const pw = $('power-box').offsetWidth || 44;
   const W = play.clientWidth, H = play.clientHeight;
@@ -3849,6 +4024,13 @@ function updateHUD() {
   $('mini-p1').classList.toggle('on', gameState.currentPlayer === 1);
   $('mini-p2').classList.toggle('on', gameState.currentPlayer === 2);
   $('board-box').classList.toggle('c2', gameState.currentPlayer === 2);
+  for (const p of [1, 2]) {
+    const n = Math.max(0, Math.min(8, gameState['score' + p] | 0)), el = $('mini-pips' + p);
+    if (el.dataset.n !== String(n)) {
+      el.dataset.n = n;
+      el.innerHTML = Array.from({ length: 8 }, (_, i) => `<span${i < n ? ' class="on"' : ''}></span>`).join('');
+    }
+  }
 }
 function popScore(p) {
   for (const el of [$('score' + p + '-box'), $('mini-score' + p)]) {
@@ -3948,6 +4130,7 @@ function renderSettings() {
   document.querySelectorAll('.bl-theme-label').forEach(el => { el.textContent = 'Сукно: ' + themes[currentThemeIndex].name; });
   document.querySelectorAll('input[data-opt="numbers"]').forEach(el => { el.checked = showNumbers; });
   document.querySelectorAll('input[data-opt="shootbtn"]').forEach(el => { el.checked = shootByButton; });
+  document.querySelectorAll('input[data-opt="loupe"]').forEach(el => { el.checked = aimLoupe; });
   const segVal = { traj: trajMode, depth: String(trajDepth), view: view3d ? '3d' : '2d' };
   document.querySelectorAll('[data-seg]').forEach(seg => {
     seg.querySelectorAll('button[data-v]').forEach(b => b.classList.toggle('active', b.dataset.v === segVal[seg.dataset.seg]));
@@ -3959,6 +4142,7 @@ document.querySelectorAll('input[data-opt]').forEach(el => {
   el.onchange = () => {
     if (el.dataset.opt === 'numbers') showNumbers = el.checked;
     else if (el.dataset.opt === 'shootbtn') setShootMode(el.checked);
+    else if (el.dataset.opt === 'loupe') aimLoupe = el.checked;
     savePrefs(); renderSettings();
   };
 });
@@ -4113,17 +4297,24 @@ $('elev-range').addEventListener('input', e => setElev(+e.target.value));
 // Касание без протяжки удар не делает: случайный тап по шкале не должен бить.
 const powerSlider = $('power-slider'); const powerFill = $('power-fill'); const powerHandle = $('power-handle');
 let powerPointer = null, powerX0 = 0, powerY0 = 0, powerMoved = false;
-const powerVal = $('power-val'), shootBtn = $('btn-shoot');
+const powerVal = $('power-val'), shootBtn = $('btn-shoot'), shootSub = $('shoot-sub');
+const POWER_END = 36;          // px: зоны «−» и «+» на концах шкалы (телефон, удар кнопкой)
+const powerEnds = () => powerSlider.classList.contains('ends');
 function setPowerUI(percent) {
   const v = (percent * 100) + '%';
   if (powerHoriz) { powerFill.style.width = v; powerFill.style.height = ''; powerHandle.style.left = v; powerHandle.style.top = ''; }
   else { powerFill.style.height = v; powerFill.style.width = ''; powerHandle.style.top = v; powerHandle.style.left = ''; }
   powerVal.textContent = Math.round(percent * 100) + '%';
+  powerSlider.setAttribute('aria-valuenow', Math.round(percent * 100));
   updateShootBtn();
 }
+let shootSubText = '';
 function updateShootBtn() {
   const off = !(gameState.aimPower >= minPower()) || gameState.ballsMoving || !gameState.selectedBall || !canControl() || !aimPhase();
   if (shootBtn.disabled !== off) shootBtn.disabled = off;
+  // под словом «Ударить» — с какой силой будет удар (или что силу ещё не задали)
+  const sub = gameState.aimPower >= minPower() ? 'сила ' + Math.round(gameState.aimPower * 100) + '%' : 'задайте силу';
+  if (sub !== shootSubText) { shootSubText = sub; shootSub.textContent = sub; }
 }
 function adjustPower(d) {
   if (gameState.ballsMoving || !myAction() || !aimPhase()) return;
@@ -4133,9 +4324,16 @@ function adjustPower(d) {
 holdRepeat($('power-minus'), () => adjustPower(-0.01));
 holdRepeat($('power-plus'), () => adjustPower(0.01));
 shootBtn.onclick = () => { resumeAudio(); releaseShot(); };
-function updatePowerFromSlider(e) {
+// зона шкалы под пальцем: −1 — «−», +1 — «+», 0 — сама шкала
+function powerZoneAt(e) {
+  if (!powerEnds()) return 0;
   const rect = powerSlider.getBoundingClientRect();
-  const f = powerHoriz ? (e.clientX - rect.left) / rect.width : (e.clientY - rect.top) / rect.height;
+  const pos = powerHoriz ? e.clientX - rect.left : e.clientY - rect.top, len = powerHoriz ? rect.width : rect.height;
+  return pos < POWER_END ? -1 : pos > len - POWER_END ? 1 : 0;
+}
+function updatePowerFromSlider(e) {
+  const rect = powerSlider.getBoundingClientRect(), z = powerEnds() ? POWER_END : 0;
+  const f = powerHoriz ? (e.clientX - rect.left - z) / Math.max(1, rect.width - 2 * z) : (e.clientY - rect.top - z) / Math.max(1, rect.height - 2 * z);
   gameState.aimPower = Math.max(0, Math.min(100, Math.round(f * 100))) / 100;   // шаг 1 %: сила на экране = сила удара
   setPowerUI(gameState.aimPower);
 }
@@ -4167,44 +4365,81 @@ function fireShot(b, ang, p, spin, elev) {
   g.ballsMoving = true;
   playSound('cue', v0);
 }
+// «−» / «+» на концах шкалы: нажали — 1 %, держим — повтор; повели палец — обычная протяжка шкалы
+let powerZone = 0, powerHoldT = 0, powerRepT = 0;
+function powerZoneStop() {
+  clearTimeout(powerHoldT); clearInterval(powerRepT); powerHoldT = powerRepT = 0;
+  if (powerZone) powerSlider.querySelector(powerZone < 0 ? '.power-end.m' : '.power-end.p').classList.remove('hit');
+  powerZone = 0;
+}
 powerSlider.addEventListener('pointerdown', e => {
   resumeAudio();
   if (gameState.ballsMoving || !gameState.selectedBall || !myAction() || !aimPhase()) return;
   e.preventDefault(); powerPointer = e.pointerId; capture(powerSlider, e);
-  powerX0 = e.clientX; powerY0 = e.clientY; powerMoved = false; updatePowerFromSlider(e);
+  powerX0 = e.clientX; powerY0 = e.clientY; powerMoved = false;
+  powerZoneStop();
+  const z = powerZoneAt(e);
+  if (z) {
+    powerZone = z; powerSlider.querySelector(z < 0 ? '.power-end.m' : '.power-end.p').classList.add('hit');
+    adjustPower(z * 0.01);
+    powerHoldT = setTimeout(() => { powerRepT = setInterval(() => adjustPower(z * 0.01), 55); }, 380);
+  } else updatePowerFromSlider(e);
 });
 powerSlider.addEventListener('pointermove', e => {
   if (e.pointerId !== powerPointer) return;
-  if (Math.abs(e.clientX - powerX0) + Math.abs(e.clientY - powerY0) > 4) powerMoved = true;
+  if (Math.abs(e.clientX - powerX0) + Math.abs(e.clientY - powerY0) > (powerZone ? 8 : 4)) powerMoved = true;
+  if (powerZone) { if (!powerMoved) return; powerZoneStop(); }
   updatePowerFromSlider(e);
 });
 powerSlider.addEventListener('pointerup', e => {
   if (e.pointerId !== powerPointer) return;
-  powerPointer = null;
+  powerPointer = null; powerZoneStop();
   if (shootByButton) return;                              // сила выставлена — удар кнопкой «Ударить»
   if (powerMoved) releaseShot(); else { gameState.aimPower = 0; setPowerUI(0); }
 });
 powerSlider.addEventListener('pointercancel', e => {
   if (e.pointerId !== powerPointer) return;
-  powerPointer = null;
+  powerPointer = null; powerZoneStop();
   if (!shootByButton) { gameState.aimPower = 0; setPowerUI(0); }
 });
 
-// Микро-прицел (линейка)
+// Точный прицел (линейка): ведём — доводка (медленно — тоньше, быстро — крупнее);
+// тап по левой / правой половине — один шаг, удержание — повтор
 const microAimArea = $('micro-aim-area'); const microAimRuler = $('micro-aim-ruler');
 let microPointer = null, lastMicroAimX = 0, lastMicroT = 0, rulerOffset = 0;
+const AIM_STEP = 0.0002;       // рад: один шаг — 0,4 мм на двух метрах
 function nudgeAim(delta, px) {
-  gameState.aimAngle += delta; aimChanged();
+  gameState.aimAngle += delta; aimChanged(); aimTouched();
   rulerOffset += px;
   if (rulerOffset > 40) rulerOffset -= 40; if (rulerOffset < -40) rulerOffset += 40;
   microAimRuler.style.transform = `translateX(${rulerOffset}px)`;
 }
+const canAim = () => !gameState.ballsMoving && !!gameState.selectedBall && myAction() && aimPhase();
+let microX0 = 0, microMoved = false, microDir = 0, microHoldT = 0, microRepT = 0, microRepeated = false;
+function microStop() {
+  clearTimeout(microHoldT); clearInterval(microRepT); microHoldT = microRepT = 0;
+  microAimArea.classList.remove('step-l', 'step-r');
+}
 microAimArea.addEventListener('pointerdown', e => {
-  if (gameState.ballsMoving || !gameState.selectedBall || !myAction() || !aimPhase()) return;
+  if (!canAim()) return;
   e.preventDefault(); microPointer = e.pointerId; capture(microAimArea, e); lastMicroAimX = e.clientX; lastMicroT = e.timeStamp || performance.now();
+  const rect = microAimArea.getBoundingClientRect();
+  microX0 = e.clientX; microMoved = false; microRepeated = false; microDir = e.clientX < rect.left + rect.width / 2 ? -1 : 1;
+  microStop();
+  microAimArea.classList.add(microDir < 0 ? 'step-l' : 'step-r');
+  microHoldT = setTimeout(() => {
+    microRepeated = true;
+    microRepT = setInterval(() => { if (canAim()) nudgeAim(microDir * AIM_STEP, microDir * 3); }, 60);
+  }, 380);
 });
 microAimArea.addEventListener('pointermove', e => {
   if (e.pointerId !== microPointer) return;
+  if (!microMoved) {
+    if (Math.abs(e.clientX - microX0) < 5) return;
+    microMoved = true; microStop(); lastMicroAimX = e.clientX; lastMicroT = e.timeStamp || performance.now();   // без рывка на первом шаге
+    return;
+  }
+  if (!canAim()) return;
   const deltaX = e.clientX - lastMicroAimX, now = e.timeStamp || performance.now();
   const speed = Math.abs(deltaX) / Math.max(1, now - lastMicroT);              // px/мс
   // медленно — тонкая доводка (0,00008 рад/px: лузы всего на 5 мм шире шара), быстро — крупнее (до 0,002 рад/px)
@@ -4212,10 +4447,19 @@ microAimArea.addEventListener('pointermove', e => {
   nudgeAim(deltaX * k, deltaX);
   lastMicroAimX = e.clientX; lastMicroT = now;
 });
-const endMicro = e => { if (e.pointerId === microPointer) microPointer = null; };
-microAimArea.addEventListener('pointerup', endMicro); microAimArea.addEventListener('pointercancel', endMicro);
+microAimArea.addEventListener('pointerup', e => {
+  if (e.pointerId !== microPointer) return;
+  microPointer = null;
+  if (!microMoved && !microRepeated && canAim()) nudgeAim(microDir * AIM_STEP, microDir * 3);    // тап — один шаг
+  microStop();
+});
+microAimArea.addEventListener('pointercancel', e => { if (e.pointerId === microPointer) { microPointer = null; microStop(); } });
 
-// Стол (2D): выбор битка, грубый прицел, установка битка с руки, выбор шара на полку
+// Стол (2D): выбор битка, прицел, установка битка с руки, выбор шара на полку.
+// Мышь: нажали — прицел в точку, ведём — прицел за курсором; колесо — точная доводка.
+// Палец / перо: тап — прицел в точку; протяжка — поворот прицела БЕЗ скачка: прицел поворачивается на тот же
+// угол, на который палец обошёл биток, — палец не закрывает цель, а случайное касание не сбивает прицел.
+// Чем дальше палец от битка и чем медленнее ведём — тем точнее.
 function getMousePosInMM(e) {
   const rect = canvas.getBoundingClientRect();
   const px = e.clientX - rect.left, py = e.clientY - rect.top;
@@ -4223,13 +4467,35 @@ function getMousePosInMM(e) {
   const Y = vertical ? px / scale : py / scale;
   return new Vec2(X - RAIL_W, Y - RAIL_W);
 }
-let canvasPointer = null, aimDrag = null;
+let canvasPointer = null, aimDrag = null, aimGest = null, aimPtr = null;
+const AIM_SLOP = 7;            // CSS px: сдвиг меньше — это тап
+function aimRelMove(t, e) {
+  const sb = gameState.selectedBall, a = aimGest, px = e.clientX, py = e.clientY, now = e.timeStamp || performance.now();
+  if (!a.moved) {
+    if (Math.hypot(px - a.x0, py - a.y0) < AIM_SLOP) return;
+    a.moved = true; a.lx = t.x; a.ly = t.y; a.lpx = px; a.lpy = py; a.lt = now;   // поворот — от этого места, без рывка
+    aimTouched();
+    return;
+  }
+  const ax = a.lx - sb.x, ay = a.ly - sb.y, bx = t.x - sb.x, by = t.y - sb.y;
+  const ra = Math.hypot(ax, ay), rb = Math.hypot(bx, by);
+  if (ra > 1 && rb > 1) {
+    let d = Math.atan2(ax * by - ay * bx, ax * bx + ay * by);                    // на какой угол палец обошёл биток
+    d *= Math.min(1, Math.min(ra, rb) / (60 / scale));                            // вплотную к битку — не дёргать
+    const speed = Math.hypot(px - a.lpx, py - a.lpy) / Math.max(1, now - a.lt);   // px/мс
+    // обычное ведение — прицел идёт за пальцем один к одному; нарочно медленное (до ~40 px/с) — втрое тоньше
+    d *= 0.35 + 0.65 * Math.min(1, Math.max(0, (speed - 0.04) / 0.21));
+    gameState.aimAngle += d; aimChanged(); aimTouched();
+  }
+  a.lx = t.x; a.ly = t.y; a.lpx = px; a.lpy = py; a.lt = now;
+}
 function handleCanvasStart(e) {
   resumeAudio();
   if (e.pointerType === 'mouse' && e.button !== 0) return;
   if (gameState.ballsMoving || !myAction()) return;
   const g = gameState;
   e.preventDefault(); canvasPointer = e.pointerId; capture(canvas, e);
+  tipHurry();
   const t = getMousePosInMM(e);
   // на тач-экране шар мелкий — допуск не меньше ~14 CSS px, выбирается ближайший шар
   const tol = e.pointerType === 'mouse' ? R * 2 : Math.max(R * 2, 14 / scale);
@@ -4242,7 +4508,7 @@ function handleCanvasStart(e) {
     }
     return best;
   };
-  aimDrag = null;
+  aimDrag = null; aimGest = null;
   if (g.phase === 'pick') { const b = nearest(canPickBall); if (b) pickTap(b); return; }
   if (!aimPhase()) return;
   const sb = g.selectedBall;
@@ -4255,31 +4521,45 @@ function handleCanvasStart(e) {
   } else if (clicked && clicked === sb) {
     aimDrag = 'pending'; g.aimTol = tol;
   } else if (sb) {
-    if (clicked) aimAtPoint(clicked.x, clicked.y);          // этим шаром бить нельзя — целимся в него
-    else aimAtPoint(t.x, t.y);
-    aimDrag = true;
+    const tx = clicked ? clicked.x : t.x, ty = clicked ? clicked.y : t.y;   // тап по шару, которым бить нельзя, — целимся в него
+    if (e.pointerType === 'mouse') { aimAtPoint(tx, ty); aimDrag = true; aimTouched(); }
+    else aimGest = { x0: e.clientX, y0: e.clientY, tx, ty, moved: false };
   }
 }
 function handleCanvasMove(e) {
   if (e.pointerId !== canvasPointer) return;
   const t = getMousePosInMM(e), sb = gameState.selectedBall;
   if (handDrag) { handMove(t); return; }
-  if (!aimDrag || !sb || gameState.ballsMoving || !myAction() || !aimPhase()) return;
+  if ((!aimDrag && !aimGest) || !sb || gameState.ballsMoving || !myAction() || !aimPhase()) return;
+  const rect = canvas.getBoundingClientRect();
+  aimPtr = [e.clientX - rect.left, e.clientY - rect.top];      // лупа не встаёт под палец
+  if (aimGest) { aimRelMove(t, e); return; }
   const dx = t.x - sb.x, dy = t.y - sb.y;
   if (aimDrag === 'pending') { if (Math.sqrt(dx * dx + dy * dy) < gameState.aimTol) return; aimDrag = true; }
-  aimAtPoint(t.x, t.y);
+  aimAtPoint(t.x, t.y); aimTouched();
 }
 function handleCanvasEnd(e) {
   if (e.pointerId !== canvasPointer) return;
   canvasPointer = null;
   if (handDrag) handEnd();
-  aimDrag = null;
+  // палец убрали, не сдвинув, — это тап: прицел в точку касания
+  if (aimGest && !aimGest.moved && e.type === 'pointerup' && gameState.selectedBall && !gameState.ballsMoving && myAction() && aimPhase()) {
+    aimAtPoint(aimGest.tx, aimGest.ty);
+  }
+  aimDrag = null; aimGest = null; aimPtr = null;
 }
 canvas.addEventListener('pointerdown', handleCanvasStart);
 canvas.addEventListener('pointermove', handleCanvasMove);
 canvas.addEventListener('pointerup', handleCanvasEnd);
 canvas.addEventListener('pointercancel', handleCanvasEnd);
 canvas.addEventListener('contextmenu', e => e.preventDefault());
+// колесо мыши над столом — точная доводка прицела (с Shift — крупнее)
+canvas.addEventListener('wheel', e => {
+  if (!canAim() || anyOverlay()) return;
+  e.preventDefault();
+  const dir = Math.sign(e.deltaY || e.deltaX); if (!dir) return;
+  nudgeAim(dir * AIM_STEP * (e.shiftKey ? 10 : 2), dir * 4);
+}, { passive: false });
 
 // Клавиатура: ← → — точный прицел (Shift — крупнее), P / Esc — пауза; биток с руки — стрелки двигают шар,
 // Enter / пробел — «Готово», H — переставить снова; выбор шара на полку — стрелки и Enter
@@ -4318,9 +4598,38 @@ document.addEventListener('keydown', e => {
     if (gameState.ballsMoving || !gameState.selectedBall || !myAction() || !aimPhase()) return;
     e.preventDefault();
     const s = (e.code === 'ArrowLeft' ? -1 : 1) * (e.shiftKey ? 5 : 1);
-    nudgeAim(e.shiftKey ? s * 0.002 : s * 0.0002, s * 2);   // 0,0002 рад за нажатие, с Shift — 0,01 (s уже ×5)
+    nudgeAim(e.shiftKey ? s * 0.002 : s * AIM_STEP, s * 2);   // 0,0002 рад за нажатие, с Shift — 0,01 (s уже ×5)
   }
 });
+
+// Разовая подсказка по управлению: когда игрок впервые дошёл до прицела (после обновления управления — ещё раз).
+// Показывается на столе под верхней подсказкой, гаснет сама или с первым ударом.
+const TIP_VERSION = 2;
+let tipTimer = 0, tipEnd = 0;
+// игрок уже прицеливается — подсказка не задерживается дольше 4 с
+function tipHurry() {
+  if (!tipTimer || tipEnd - performance.now() <= 4000) return;
+  clearTimeout(tipTimer); tipEnd = performance.now() + 4000; tipTimer = setTimeout(hideTip, 4000);
+}
+function hideTip() {
+  const el = $('aim-tip'); clearTimeout(tipTimer); tipTimer = 0;
+  if (el.hidden) return;
+  el.classList.remove('show'); setTimeout(() => { el.hidden = true; }, 380);
+}
+function maybeTip() {
+  if (tipTimer && (gameState.ballsMoving || gameState.stroke || !gameScreen.classList.contains('active'))) hideTip();
+  if (tipShown >= TIP_VERSION) return;
+  if (!gameScreen.classList.contains('active') || anyOverlay() || !canAim()) return;
+  if (gameState.phase === 'place' && handMode === 'place') return;      // сначала биток ставят с руки
+  tipShown = TIP_VERSION; savePrefs();
+  let coarse = false;
+  try { coarse = window.matchMedia('(pointer:coarse)').matches; } catch (e) {}
+  const el = $('aim-tip');
+  el.innerHTML = coarse ? '<b>Тап</b> по столу — прицел в точку<br><b>Ведите пальцем</b> — плавный поворот<br>Линейка <b>«Прицел»</b> — точная доводка'
+                        : '<b>Клик и ведение</b> — прицел · <b>колесо</b> и ← → — точно<br>↑ ↓ — сила · <b>пробел</b> — удар';
+  el.hidden = false; void el.offsetWidth; el.classList.add('show');
+  tipEnd = performance.now() + 7500; tipTimer = setTimeout(hideTip, 7500);
+}
 
 window.addEventListener('resize', resize);
 
