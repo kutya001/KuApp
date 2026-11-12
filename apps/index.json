@@ -1,105 +1,115 @@
 {
   "categories": [
     {
-      "id": "other",
-      "label": "🎯 Другое",
+      "id": "arcade",
+      "label": "🕹️ Аркады",
       "games": [
-        {
-          "id": "marketplace",
-          "name": "СтройМаркет",
-          "icon": "🏗️",
-          "desc": "Маркетплейс стройматериалов и услуг.",
-          "file": "marketplace.html"
-        },
-        {
-          "id": "tpb",
-          "name": "Конструктор Тренировочной Программы",
-          "icon": "🤾",
-          "desc": "Собирай линии, не переполняй.",
-          "file": "TrainingProgramBuilder.html"
-        },
         {
           "id": "tetris",
           "name": "Тетрис",
           "icon": "🟦",
-          "desc": "Собирай линии, не переполняй.",
-          "file": "tetris.html"
+          "desc": "Марафон, спринт, ультра, копатель, дзен и Block Blast — по современным правилам.",
+          "file": "tetris.html",
+          "color": "#00e5ff"
         },
-        {
-          "id": "clicker",
-          "name": "Атлет",
-          "icon": "💪",
-          "desc": "Кликер: качай атлета, сезоны и медали, турниры, офлайн-доход.",
-          "file": "clicker.html"
-        }
-      ]
-    },
-    {
-      "id": "arcade",
-      "label": "🕹️ Аркады",
-      "games": [
         {
           "id": "snake",
           "name": "Змейка",
           "icon": "🐍",
           "desc": "24 лабиринта, классика как на Nokia, на время и дуэль с ИИ.",
-          "file": "snake.html"
-        },
-        {
-          "id": "pong",
-          "name": "Пинг-понг",
-          "icon": "🏓",
-          "desc": "Матч с ИИ по правилам подачи, турнир из 7 соперников, кампания и игра вдвоём.",
-          "file": "pong.html"
+          "file": "snake.html",
+          "color": "#51f58b"
         },
         {
           "id": "breakout",
           "name": "Арканоид",
           "icon": "🧱",
           "desc": "32 уровня, 4 босса, капсулы как в классике, аркада и бесконечный режим.",
-          "file": "breakout.html"
+          "file": "breakout.html",
+          "color": "#ff9f43"
         },
         {
           "id": "bounce",
           "name": "Bounce Classic",
           "icon": "🔴",
           "desc": "Ремейк Bounce с Nokia: 11 уровней, кольца, вода и насос, джеки, супер-прыжок.",
-          "file": "bounce.html"
-        },
-        {
-          "id": "flappy",
-          "name": "Флаппи",
-          "icon": "🐦",
-          "desc": "Один тап — лети: классика, хардкор с ветром, испытание дня, 8 птиц.",
-          "file": "flappy.html"
-        },
-        {
-          "id": "dino",
-          "name": "Дино",
-          "icon": "🦕",
-          "desc": "Раннер как Chrome Dino: испытание дня, хардкор, тренировка, 9 скинов.",
-          "file": "dino.html"
-        },
-        {
-          "id": "basketball",
-          "name": "Баскетбол",
-          "icon": "🏀",
-          "desc": "Честная физика броска: 30 уровней, на время, конкурс трёхочковых.",
-          "file": "basketball.html"
-        },
-        {
-          "id": "billiard",
-          "name": "Русский Бильярд",
-          "icon": "🎱",
-          "desc": "Свободная и московская пирамида: биток с руки, реалистичная физика, винт, 2D и 3D. Вдвоём или по сети.",
-          "file": "billiard.html"
+          "file": "bounce.html",
+          "color": "#ff5d7d"
         },
         {
           "id": "pacman",
           "name": "Pac-Man",
           "icon": "🟡",
           "desc": "Правила аркады 1980: характеры привидений, фрукты, уровни; 3 своих лабиринта.",
-          "file": "pacman.html"
+          "file": "pacman.html",
+          "color": "#ffd60a"
+        },
+        {
+          "id": "flappy",
+          "name": "Флаппи",
+          "icon": "🐦",
+          "desc": "Один тап — лети: классика, хардкор с ветром, испытание дня, 8 птиц.",
+          "file": "flappy.html",
+          "color": "#5bd1ff",
+          "tags": [
+            "daily"
+          ]
+        },
+        {
+          "id": "dino",
+          "name": "Дино",
+          "icon": "🦕",
+          "desc": "Раннер как Chrome Dino: испытание дня, хардкор, тренировка, 9 скинов.",
+          "file": "dino.html",
+          "color": "#b6f25c",
+          "tags": [
+            "daily"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "sport",
+      "label": "🏆 Спорт",
+      "games": [
+        {
+          "id": "pong",
+          "name": "Пинг-понг",
+          "icon": "🏓",
+          "desc": "Матч с ИИ по правилам подачи, турнир из 7 соперников, кампания и игра вдвоём.",
+          "file": "pong.html",
+          "color": "#ff4dd2",
+          "tags": [
+            "duo"
+          ]
+        },
+        {
+          "id": "basketball",
+          "name": "Баскетбол",
+          "icon": "🏀",
+          "desc": "Честная физика броска: 30 уровней, на время, конкурс трёхочковых.",
+          "file": "basketball.html",
+          "color": "#ff8a3d"
+        },
+        {
+          "id": "billiard",
+          "name": "Русский Бильярд",
+          "icon": "🎱",
+          "desc": "Свободная и московская пирамида: биток с руки, реалистичная физика, винт, 2D и 3D. Вдвоём или по сети.",
+          "file": "billiard.html",
+          "color": "#2dd4a7",
+          "tags": [
+            "online",
+            "duo"
+          ]
+        },
+        {
+          "id": "clicker",
+          "name": "Атлет",
+          "icon": "💪",
+          "desc": "Кликер: качай атлета, сезоны и медали, турниры, офлайн-доход.",
+          "file": "clicker.html",
+          "color": "#ffb020"
         }
       ]
     },
@@ -112,76 +122,157 @@
           "name": "2048",
           "icon": "🔢",
           "desc": "Поля 3×3–6×6, на время и без отмены, рекорды по полю.",
-          "file": "2048.html"
+          "file": "2048.html",
+          "color": "#f6c453"
         },
         {
           "id": "fifteen",
           "name": "Пятнашки",
           "icon": "🔀",
           "desc": "Поля 3×3–6×6, числа и картинки, пятнашки дня и подсказки.",
-          "file": "fifteen.html"
+          "file": "fifteen.html",
+          "color": "#5b8cff",
+          "tags": [
+            "daily"
+          ]
         },
         {
           "id": "sudoku",
           "name": "Судоку",
           "icon": "🔲",
           "desc": "6 версий, судоку дня, кампания и дуэль.",
-          "file": "sudoku.html"
+          "file": "sudoku.html",
+          "color": "#c77dff",
+          "tags": [
+            "online",
+            "duo",
+            "daily"
+          ]
         },
         {
           "id": "minesweeper",
           "name": "Сапёр",
           "icon": "💣",
           "desc": "Классика по всем правилам: 3 уровня и своё поле, без угадывания, сапёр дня, подсказки.",
-          "file": "minesweeper.html"
+          "file": "minesweeper.html",
+          "color": "#9aa7ff",
+          "tags": [
+            "daily"
+          ]
         },
         {
           "id": "watersort",
           "name": "Сортировка цветов",
           "icon": "🧪",
           "desc": "200 уровней, звёзды за минимум ходов, головоломка дня, скрытые слои.",
-          "file": "watersort.html"
+          "file": "watersort.html",
+          "color": "#38e1c6",
+          "tags": [
+            "daily"
+          ]
         },
         {
           "id": "memory",
           "name": "Найди пару",
           "icon": "🃏",
           "desc": "5 полей, 7 наборов карт: на время, лимит ходов, вдвоём, испытание дня.",
-          "file": "memory.html"
+          "file": "memory.html",
+          "color": "#ff7ac8",
+          "tags": [
+            "duo",
+            "daily"
+          ]
         }
       ]
     },
     {
       "id": "logic",
-      "label": "🧠 Логика",
+      "label": "🧠 Логика и слова",
       "games": [
         {
           "id": "tictac",
           "name": "Крестики-нолики",
           "icon": "✕○",
           "desc": "3×3, 4×4, 5×5, гомоку и ультимативные: против ИИ, вдвоём, по сети.",
-          "file": "tictac.html"
+          "file": "tictac.html",
+          "color": "#6ee7ff",
+          "tags": [
+            "online",
+            "duo"
+          ]
         },
         {
           "id": "reversi",
           "name": "Реверси",
           "icon": "⚫",
           "desc": "Отелло: 5 уровней ИИ, поля 6×6–10×10, вдвоём и по сети, разбор партий.",
-          "file": "reversi.html"
-        },
-        {
-          "id": "wordle",
-          "name": "Слово",
-          "icon": "🔤",
-          "desc": "Угадай слово из 4–7 букв за 6 попыток: слово дня, сложный режим.",
-          "file": "wordle.html"
+          "file": "reversi.html",
+          "color": "#7ef29d",
+          "tags": [
+            "online",
+            "duo"
+          ]
         },
         {
           "id": "wallrush",
           "name": "Wall Rush",
           "icon": "🚧",
           "desc": "Дойди до края, до центра или обгони соперника в гонке к финишу — перекрывай путь стенами. Против ИИ, вдвоём или по сети.",
-          "file": "wallrush.html"
+          "file": "wallrush.html",
+          "color": "#ffa94d",
+          "tags": [
+            "online",
+            "duo"
+          ]
+        },
+        {
+          "id": "wordle",
+          "name": "Слово",
+          "icon": "🔤",
+          "desc": "Угадай слово из 4–7 букв за 6 попыток: слово дня, сложный режим.",
+          "file": "wordle.html",
+          "color": "#6ddf7a",
+          "tags": [
+            "daily"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "tools",
+      "label": "🧰 Приложения",
+      "games": [
+        {
+          "id": "trainer",
+          "name": "Тренер",
+          "icon": "🏋️",
+          "desc": "Таймер тренировок по программам: McGill Big 3, HIIT, реабилитация плеча.",
+          "file": "trainer.html",
+          "color": "#51f58b"
+        },
+        {
+          "id": "dictionary",
+          "name": "Словарь",
+          "icon": "📖",
+          "desc": "Учи иностранные слова: карточки, тесты и рейтинг.",
+          "file": "dictionary.html",
+          "color": "#5b8cff"
+        },
+        {
+          "id": "tpb",
+          "name": "Конструктор тренировок",
+          "icon": "🤾",
+          "desc": "Редактор программ тренировок для «Тренера»: упражнения перетаскиванием, экспорт в JSON.",
+          "file": "TrainingProgramBuilder.html",
+          "color": "#c77dff"
+        },
+        {
+          "id": "marketplace",
+          "name": "СтройМаркет",
+          "icon": "🏗️",
+          "desc": "Маркетплейс стройматериалов и услуг.",
+          "file": "marketplace.html",
+          "color": "#ffb020"
         }
       ]
     }

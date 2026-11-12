@@ -1,13 +1,13 @@
 {
   "name": "KuApp",
   "short_name": "KuApp",
-  "description": "Фитнес-платформа: тренер, словарь, игры",
+  "description": "Игры и приложения: аркады, головоломки, игры по сети, тренер и словарь",
   "start_url": "./",
   "scope": "./",
   "display": "standalone",
-  "orientation": "portrait-primary",
-  "background_color": "#0a0a0f",
-  "theme_color": "#0a0a0f",
+  "orientation": "any",
+  "background_color": "#070b24",
+  "theme_color": "#070b24",
   "lang": "ru",
   "icons": [
     {
@@ -23,6 +23,11 @@
       "purpose": "any maskable"
     }
   ],
-  "categories": ["health", "fitness", "sports"],
+  "categories": [
+    "games",
+    "entertainment",
+    "health",
+    "fitness"
+  ],
   "prefer_related_applications": false
 }
