@@ -105,16 +105,17 @@ KuApp — это Progressive Web Application (PWA), представляющее
 
 #### 2.2.2 Service Worker (`sw.js`)
 
-**Версия кэша:** `app-v5`
+**Версия кэша:** `app-v19`
 
 **Стратегии кэширования:**
 
 | Ресурс | Стратегия |
 |--------|-----------|
-| App shell (`index.html`, `manifest.json`, иконки) | Cache-First |
-| Файлы приложений (`apps/*.html`) | Network-First |
-| Workout JSON (`workouts/*.json`) | Network-First |
-| Внешние API (Google Sheets, OAuth, шрифты, CDN) | Bypass (не кэшируются) |
+| Оболочка и общие файлы игр (`index.html`, `manifest.json`, иконки, `apps/index.json`, `ku-arcade.*`, `kunet.js`, шрифты) | Предзагрузка при установке (ошибка загрузки прерывает установку) |
+| Все свои файлы (`apps/*`, `workouts/*.json`, …) | Stale-while-revalidate: ответ из кэша сразу, обновление в фоне к следующему запуску |
+| Игры каталога (`apps/*.html`) | Дозагрузка в фоне по сообщению `PRECACHE` (через 5 с после открытия каталога, не при `saveData`) |
+| Внешние адреса (Google Apps Script, Google API, CDN) | Bypass (не перехватываются) |
+| Нет сети и нет в кэше | Навигация верхнего уровня → `index.html` из кэша; страница в `<iframe>` → заглушка «Нет подключения» (503) |
 
 **postMessage API:**
 
@@ -122,6 +123,7 @@ KuApp — это Progressive Web Application (PWA), представляющее
 |---------|----------|
 | `CLEAR_CACHE` | Полная очистка кэша |
 | `GET_CACHE_INFO` | Информация о текущем кэше |
+| `PRECACHE` `{ urls }` | Дозагрузить файлы, которых ещё нет в кэше |
 | `SKIP_WAITING` | Принудительная активация новой версии SW |
 
 #### 2.2.3 PWA Manifest (`manifest.json`)
@@ -129,13 +131,27 @@ KuApp — это Progressive Web Application (PWA), представляющее
 ```json
 {
   "display": "standalone",
-  "orientation": "portrait",
-  "theme_color": "#0a0a0f",
-  "background_color": "#0a0a0f",
-  "categories": ["health", "fitness", "sports"],
+  "orientation": "any",
+  "theme_color": "#070b24",
+  "background_color": "#070b24",
+  "categories": ["games", "entertainment", "health", "fitness"],
   "lang": "ru"
 }
 ```
+
+`orientation: any` — установленное приложение поворачивается вместе с телефоном (у игр есть альбомная раскладка).
+
+#### 2.2.4 Каталог и запуск приложений
+
+- Каталог строится из `apps/index.json`: категории `arcade`, `sport`, `puzzle`, `logic`, `tools`; у записи —
+  `id`, `name`, `icon`, `desc`, `file`, необязательные `color` (цвет карточки) и `tags` (`online`, `duo`, `daily`).
+- Локальное состояние каталога: `mcg_launches` (время последнего запуска), `kuapp_favs` (избранное).
+- Запуск: `launchApp(file, id)` создаёт новый `<iframe>` (а не меняет `src`), показывает заставку до события `load`,
+  передаёт фокус игре и добавляет запись в историю (`history.pushState`) — системная «Назад» закрывает игру
+  (`popstate` → `closeApp`). Кнопка «←» 44×44 в левом верхнем углу (отступ 14 px) — контракт с играми (угол 64×64).
+- Гость в журнале сессий — «Гость XXXXXX» (случайный идентификатор в `localStorage.kuapp_guest`); IP-адрес и
+  геолокация не запрашиваются. В старых записях IP виден только администратору (`displayUser`).
+- `gasCall` — таймаут 25 с (`AbortController`), понятные сообщения при обрыве сети и не-JSON ответе.
 
 ### 2.3 PlatformAPI
 
@@ -378,16 +394,22 @@ KuApp — это Progressive Web Application (PWA), представляющее
 
 Файл: `apps/index.json`
 
-Приложения группируются по 4 категориям:
+Приложения группируются по 5 категориям:
 
 | Категория | ID | Приложения |
 |-----------|-----|------------|
-| Другое | `other` | marketplace, TrainingProgramBuilder, tetris, clicker |
-| Аркады | `arcade` | snake, pong, breakout, bounce, flappy, dino, basketball, billiard, pacman |
+| Аркады | `arcade` | tetris, snake, breakout, bounce, pacman, flappy, dino |
+| Спорт | `sport` | pong, basketball, billiard, clicker |
 | Головоломки | `puzzle` | 2048, fifteen, sudoku, minesweeper, watersort, memory |
-| Логика | `logic` | tictac, reversi, wordle, wallrush |
+| Логика и слова | `logic` | tictac, reversi, wallrush, wordle |
+| Приложения | `tools` | trainer, dictionary, tpb (TrainingProgramBuilder), marketplace |
 
-> **Примечание:** `trainer.html` и `dictionary.html` не входят в `index.json` — они запускаются напрямую платформой.
+У записи каталога, кроме `id`, `name`, `icon`, `desc`, `file`, есть необязательные поля: `color` — цвет карточки
+(`#rrggbb`), `tags` — метки и фильтры каталога: `online` (по сети), `duo` (вдвоём на одном устройстве),
+`daily` (есть «игра дня»).
+
+> **Примечание:** если в `index.json` нет `trainer` и `dictionary` (старая версия файла в кэше), платформа
+> добавляет их сама. Служебная плитка «GAS WebApp» показывается только администратору.
 
 ---
 
@@ -455,10 +477,12 @@ GitHub Pages автоматически публикует изменения и
 
 ### 9.2 Обновление Service Worker
 
-После деплоя необходимо вручную увеличить `CACHE_NAME` в `sw.js` для инвалидации кэша:
+Обновления подтягиваются сами (stale-while-revalidate): свежая версия файла скачивается в фоне и показывается
+при следующем открытии. При крупном релизе увеличьте `CACHE_NAME` в `sw.js` — старый кэш удалится целиком,
+а пользователю покажется полоска «Доступно обновление → Обновить»:
 
 ```js
-const CACHE_NAME = 'app-v5'; // → 'app-v6'
+const CACHE_NAME = 'app-v19'; // → 'app-v20'
 ```
 
 ### 9.3 Google Apps Script деплой
@@ -475,7 +499,7 @@ const CACHE_NAME = 'app-v5'; // → 'app-v6'
 | Слой | Технология |
 |------|-----------|
 | Фронтенд | Vanilla HTML5/CSS3/JS (ES2022), inline в single-file HTML |
-| Шрифты | Google Fonts: Manrope, JetBrains Mono (CDN) |
+| Шрифты | Russo One + Rubik, локально в `apps/fonts/` (SIL OFL) — оболочка и игры; моноширинный — системный |
 | PWA | Service Worker + Web App Manifest |
 | Бэкенд | Google Apps Script |
 | База данных | Google Sheets |
